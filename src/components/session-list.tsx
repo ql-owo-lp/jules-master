@@ -19,7 +19,7 @@ import {
 import type { Session, Job, State } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2, X } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2, X, Github } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -90,8 +90,8 @@ export function SessionList({
   }, [jobs]);
 
   const handleRowClick = (e: React.MouseEvent, sessionId: string) => {
-    // Prevent navigation if a button inside the row was clicked
-    if ((e.target as HTMLElement).closest('button')) {
+    // Prevent navigation if a button or link inside the row was clicked
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) {
       return;
     }
     const path = jobFilter ? `/sessions/${sessionId}?jobId=${jobFilter}` : `/sessions/${sessionId}`;
@@ -113,6 +113,17 @@ export function SessionList({
   }
 
   const isAnyFilterActive = jobFilter || repoFilter !== 'all' || statusFilter !== 'all';
+
+  const getPullRequestUrl = (session: Session): string | null => {
+    if (session.outputs && session.outputs.length > 0) {
+      for (const output of session.outputs) {
+        if (output.pullRequest?.url) {
+          return output.pullRequest.url;
+        }
+      }
+    }
+    return null;
+  }
 
   return (
     <Card className="shadow-md">
@@ -158,7 +169,7 @@ export function SessionList({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="filter-status">Status</Label>
+            <Label htmlFor="filter-status">Session Status</Label>
             <Select value={statusFilter} onValueChange={onStatusFilterChange}>
               <SelectTrigger id="filter-status">
                 <SelectValue placeholder="Filter by status..." />
@@ -210,14 +221,16 @@ export function SessionList({
                   <TableHead>Repository</TableHead>
                   <TableHead>Branch</TableHead>
                   <TableHead>Title</TableHead>
-                  <TableHead className="w-[180px]">Status</TableHead>
+                  <TableHead className="w-[180px]">Session Status</TableHead>
                   <TableHead className="w-[150px]">Created</TableHead>
+                  <TableHead className="w-[80px] text-center">GitHub</TableHead>
                   <TableHead className="w-[80px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sessions.map((session) => {
                   const job = sessionToJobMap.get(session.id);
+                  const prUrl = getPullRequestUrl(session);
                   return (
                   <TableRow
                     key={session.id}
@@ -235,6 +248,24 @@ export function SessionList({
                       {formatDistanceToNow(new Date(session.createTime || session.createdAt), {
                         addSuffix: true,
                       })}
+                    </TableCell>
+                     <TableCell className="text-center">
+                      {prUrl ? (
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a href={prUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" aria-label="View Pull Request">
+                                  <Github className="h-4 w-4" />
+                                </Button>
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View Pull Request on GitHub</p>
+                            </TooltipContent>
+                          </Tooltip>
+                      ): (
+                         <div className="w-10 h-10" />
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                        {session.state === 'AWAITING_PLAN_APPROVAL' ? (
