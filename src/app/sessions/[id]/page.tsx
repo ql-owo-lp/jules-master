@@ -49,23 +49,23 @@ export default function SessionDetailPage({
   const { toast } = useToast();
   const [message, setMessage] = useState("");
 
-  const fetchSession = async () => {
-    if (!apiKey) return;
-    startFetching(async () => {
-      const fetchedSession = await getSession(apiKey, params.id);
-      if (fetchedSession) {
-        setSession(fetchedSession);
-      } else {
-        notFound();
-      }
-    });
-  };
-
   useEffect(() => {
+    const fetchSession = async () => {
+      if (!apiKey || !params.id) return;
+      startFetching(async () => {
+        const fetchedSession = await getSession(apiKey, params.id);
+        if (fetchedSession) {
+          setSession(fetchedSession);
+        } else {
+          notFound();
+        }
+      });
+    };
+
     if (apiKey) {
       fetchSession();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, params.id]);
 
   const handleApprovePlan = () => {
