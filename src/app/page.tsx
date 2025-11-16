@@ -8,7 +8,7 @@ import type { Session, Job } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listSessions } from "./sessions/actions";
+import { listSessions, revalidateSessions } from "./sessions/actions";
 import { approvePlan } from "./sessions/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ export default function Home() {
   const fetchSessions = () => {
     if (!apiKey) return;
     startFetching(async () => {
+      await revalidateSessions();
       const fetchedSessions = await listSessions(apiKey);
       // Filter out any sessions that might be null or undefined from the API response
       const validSessions = fetchedSessions.filter(s => s);
