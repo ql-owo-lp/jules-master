@@ -11,6 +11,7 @@ import { Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/sessions/new/actions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { revalidateSessions } from "@/app/sessions/actions";
 
 
 export default function NewJobPage() {
@@ -64,6 +65,8 @@ export default function NewJobPage() {
       title: "Job submitted!",
       description: `${newSessions.length} new session(s) have been created.`,
     });
+    // Revalidate in the background, don't need to await
+    revalidateSessions();
     router.push('/jobs');
   };
 

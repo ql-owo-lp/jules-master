@@ -39,11 +39,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { addPrompt, updatePrompt, deletePrompt, getPrompts } from "./actions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 export default function PredefinedPromptsPage() {
-  const [prompts, setPrompts] = useState<PredefinedPrompt[]>([]);
+  const [prompts, setPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState<PredefinedPrompt | null>(
@@ -52,16 +52,11 @@ export default function PredefinedPromptsPage() {
   const [title, setTitle] = useState("");
   const [promptText, setPromptText] = useState("");
   const { toast } = useToast();
-
-  const fetchPrompts = async () => {
-    setIsLoading(true);
-    const fetchedPrompts = await getPrompts();
-    setPrompts(fetchedPrompts);
-    setIsLoading(false);
-  };
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    fetchPrompts();
+    setIsClient(true);
+    setIsLoading(false);
   }, []);
 
   const handleAddNew = () => {
@@ -79,8 +74,7 @@ export default function PredefinedPromptsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    await deletePrompt(id);
-    await fetchPrompts();
+    setPrompts(prompts.filter((p) => p.id !== id));
     toast({
       title: "Prompt deleted",
       description: "The predefined prompt has been removed.",
@@ -98,22 +92,44 @@ export default function PredefinedPromptsPage() {
     }
 
     if (currentPrompt?.id) {
-      await updatePrompt(currentPrompt.id, { title, prompt: promptText });
+      setPrompts(
+        prompts.map((p) =>
+          p.id === currentPrompt.id ? { ...p, title, prompt: promptText } : p
+        )
+      );
       toast({
         title: "Prompt updated",
         description: "Your predefined prompt has been saved.",
       });
     } else {
-      await addPrompt({ title, prompt: promptText });
+      const newPrompt: PredefinedPrompt = {
+        id: crypto.randomUUID(),
+        title,
+        prompt: promptText,
+      };
+      setPrompts([...prompts, newPrompt]);
       toast({
         title: "Prompt added",
         description: "Your new predefined prompt has been created.",
       });
     }
-
-    await fetchPrompts();
     setIsDialogOpen(false);
   };
+
+  if (!isClient) {
+    return (
+       <div className="flex flex-col flex-1 bg-background">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
+          <div className="container mx-auto max-w-4xl space-y-8">
+             <div className="space-y-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-48 w-full" />
+              </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <>

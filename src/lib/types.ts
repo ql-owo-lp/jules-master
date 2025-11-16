@@ -79,7 +79,7 @@ export type Source = {
 };
 
 export type PredefinedPrompt = {
-  id?: string; // Firestore ID, optional because it's not present on creation
+  id: string;
   title: string;
   prompt: string;
 };
