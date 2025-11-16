@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 60);
+  const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
