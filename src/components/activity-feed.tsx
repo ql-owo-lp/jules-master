@@ -33,6 +33,7 @@ import {
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { ScrollArea } from "./ui/scroll-area";
 
 const originatorIcons: Record<string, React.ReactNode> = {
   user: <User className="h-5 w-5 text-blue-500" />,
@@ -42,7 +43,24 @@ const originatorIcons: Record<string, React.ReactNode> = {
 
 export function ActivityFeed({ activities }: { activities: Activity[] }) {
   if (activities.length === 0) {
-    return null;
+     return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Activity Feed</CardTitle>
+          <CardDescription>
+            A timeline of events that have occurred during this session will appear here.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+             <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
+                <p className="font-semibold text-lg">No Activities Yet</p>
+                <p className="text-sm">
+                    As the session progresses, its activities will be shown here.
+                </p>
+            </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -54,36 +72,41 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-8">
-          {activities.map((activity) => (
-            <div key={activity.id} className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <span
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
-                  title={`Originated by: ${activity.originator}`}
-                >
-                  {originatorIcons[activity.originator] || (
-                    <MessageSquare className="h-5 w-5" />
-                  )}
-                </span>
-                <div className="flex-1 w-px bg-border my-2"></div>
-              </div>
-              <div className="flex-1 space-y-1">
-                <div className="flex justify-between items-start">
-                  <p className="font-semibold text-sm">{activity.description}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(activity.createTime), {
-                      addSuffix: true,
-                    })}
-                  </p>
+        <ScrollArea className="h-[600px] pr-4">
+            <div className="space-y-8">
+            {activities.map((activity) => (
+                <div key={activity.id} className="flex gap-4">
+                <div className="flex flex-col items-center">
+                    <span
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
+                    title={`Originated by: ${activity.originator}`}
+                    >
+                    {originatorIcons[activity.originator] || (
+                        <MessageSquare className="h-5 w-5" />
+                    )}
+                    </span>
+                    {/* Don't draw the line for the last item */}
+                    {activities[activities.length - 1].id !== activity.id && (
+                       <div className="flex-1 w-px bg-border my-2"></div>
+                    )}
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  <ActivityContent activity={activity} />
+                <div className="flex-1 space-y-1 mt-1">
+                    <div className="flex justify-between items-start">
+                    <p className="font-semibold text-sm">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground whitespace-nowrap pl-4">
+                        {formatDistanceToNow(new Date(activity.createTime), {
+                        addSuffix: true,
+                        })}
+                    </p>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                    <ActivityContent activity={activity} />
+                    </div>
                 </div>
-              </div>
+                </div>
+            ))}
             </div>
-          ))}
-        </div>
+        </ScrollArea>
       </CardContent>
     </Card>
   );
@@ -160,7 +183,7 @@ function ActivityContent({ activity }: { activity: Activity }) {
     );
   }
 
-  return <p className="text-xs italic">No additional details.</p>;
+  return null; // Return null if there's no specific content to render
 }
 
 function PlanDetails({ plan }: { plan: Plan }) {
