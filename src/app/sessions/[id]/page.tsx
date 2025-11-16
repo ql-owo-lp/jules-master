@@ -24,6 +24,12 @@ import { Label } from "@/components/ui/label";
 import { JobStatusBadge } from "@/components/job-status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   ArrowLeft,
   Calendar,
   CheckSquare,
@@ -49,6 +55,7 @@ export default function SessionDetailPage({
 }: {
   params: { id: string };
 }) {
+  const { id } = params;
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [session, setSession] = useState<Session | null>(null);
@@ -61,7 +68,6 @@ export default function SessionDetailPage({
 
   useEffect(() => {
     const fetchSessionData = async () => {
-      const id = params.id;
       if (!apiKey || !id) return;
       startFetching(async () => {
         const [fetchedSession, fetchedActivities] = await Promise.all([
@@ -81,7 +87,7 @@ export default function SessionDetailPage({
     if (apiKey) {
       fetchSessionData();
     }
-  }, [apiKey, params.id]);
+  }, [apiKey, id]);
 
   const handleApprovePlan = () => {
     if (!session) return;
@@ -107,6 +113,11 @@ export default function SessionDetailPage({
         setSession(result);
         setMessage("");
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
+        
+        // Refresh activities
+        const fetchedActivities = await listActivities(apiKey, id);
+        setActivities(fetchedActivities.sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime()));
+
       } else {
         toast({
           variant: "destructive",
@@ -133,9 +144,8 @@ export default function SessionDetailPage({
     return (
       <div className="container mx-auto max-w-4xl space-y-8 p-4 sm:p-6 md:p-8">
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-96 w-full" />
       </div>
     );
   }
@@ -172,176 +182,189 @@ export default function SessionDetailPage({
             </Card>
           )}
 
-          {session.state === "AWAITING_USER_FEEDBACK" && (
-             <Card>
-              <CardHeader>
-                <CardTitle>User Feedback Required</CardTitle>
-                <CardDescription>
-                  The session is waiting for your input to continue.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-2">
-                    <Label htmlFor="message">Your Message</Label>
-                    <Textarea
-                        id="message"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Type your message here..."
-                        rows={4}
-                        disabled={isActionPending}
-                    />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button onClick={handleSendMessage} disabled={isActionPending || !message.trim()}>
-                  {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
-                  Send Message
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList>
+              <TabsTrigger value="details">Session Details</TabsTrigger>
+              <TabsTrigger value="activity">Session Activity</TabsTrigger>
+            </TabsList>
 
-          <ActivityFeed activities={activities} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Session Details</CardTitle>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                <div className="space-y-4">
-                     {job && (
-                         <div className="flex items-start gap-3">
-                            <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Job Name</p>
-                                <p className="text-muted-foreground">{job.name}</p>
+            <TabsContent value="details">
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle>Session Details</CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                    <div className="space-y-4">
+                        {job && (
+                            <div className="flex items-start gap-3">
+                                <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Job Name</p>
+                                    <p className="text-muted-foreground">{job.name}</p>
+                                </div>
                             </div>
-                        </div>
-                     )}
-                     <div className="flex items-start gap-3">
-                        <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
-                        <div>
-                            <p className="font-semibold">Session Name</p>
-                            <p className="text-muted-foreground font-mono text-xs">{session.name}</p>
-                        </div>
-                    </div>
-                     <div className="flex items-start gap-3">
-                        <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
-                        <div>
-                            <p className="font-semibold">Session ID</p>
-                            <p className="text-muted-foreground font-mono text-xs">{session.id}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <Code className="h-5 w-5 text-muted-foreground mt-0.5" />
-                        <div>
-                            <p className="font-semibold">Prompt</p>
-                            <p className="text-muted-foreground bg-muted p-3 rounded-md mt-1">{session.prompt}</p>
-                        </div>
-                    </div>
-                     {repoContext && (
-                         <div className="flex items-start gap-3">
-                            <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Repository</p>
-                                <p className="text-muted-foreground">{repoName}</p>
-                            </div>
-                        </div>
-                     )}
-                      {repoContext?.startingBranch && (
-                         <div className="flex items-start gap-3">
-                            <GitMerge className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Starting Branch</p>
-                                <p className="text-muted-foreground">{repoContext.startingBranch}</p>
-                            </div>
-                        </div>
-                     )}
-                      {session.sourceContext?.source && (
-                         <div className="flex items-start gap-3">
+                        )}
+                        <div className="flex items-start gap-3">
                             <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
                             <div>
-                                <p className="font-semibold">Full Source</p>
-                                <p className="text-muted-foreground font-mono text-xs">{session.sourceContext.source}</p>
+                                <p className="font-semibold">Session Name</p>
+                                <p className="text-muted-foreground font-mono text-xs">{session.name}</p>
                             </div>
                         </div>
-                     )}
-                </div>
-
-                 <div className="space-y-4">
-                     <div className="flex items-start gap-3">
-                        <CheckSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
-                        <div>
-                            <p className="font-semibold">Requires Plan Approval</p>
-                            <p className="text-muted-foreground">{session.requirePlanApproval ? 'Yes' : 'No'}</p>
+                        <div className="flex items-start gap-3">
+                            <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
+                            <div>
+                                <p className="font-semibold">Session ID</p>
+                                <p className="text-muted-foreground font-mono text-xs">{session.id}</p>
+                            </div>
                         </div>
+                        <div className="flex items-start gap-3">
+                            <Code className="h-5 w-5 text-muted-foreground mt-0.5" />
+                            <div>
+                                <p className="font-semibold">Prompt</p>
+                                <p className="text-muted-foreground bg-muted p-3 rounded-md mt-1">{session.prompt}</p>
+                            </div>
+                        </div>
+                        {repoContext && (
+                            <div className="flex items-start gap-3">
+                                <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Repository</p>
+                                    <p className="text-muted-foreground">{repoName}</p>
+                                </div>
+                            </div>
+                        )}
+                          {repoContext?.startingBranch && (
+                            <div className="flex items-start gap-3">
+                                <GitMerge className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Starting Branch</p>
+                                    <p className="text-muted-foreground">{repoContext.startingBranch}</p>
+                                </div>
+                            </div>
+                        )}
+                          {session.sourceContext?.source && (
+                            <div className="flex items-start gap-3">
+                                <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Full Source</p>
+                                    <p className="text-muted-foreground font-mono text-xs">{session.sourceContext.source}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                     <div className="flex items-start gap-3">
-                        <Zap className="h-5 w-5 text-muted-foreground mt-0.5" />
-                        <div>
-                            <p className="font-semibold">Automation Mode</p>
-                            <p className="text-muted-foreground">{session.automationMode || 'Unspecified'}</p>
-                        </div>
-                    </div>
-                     {session.createTime && (
-                         <div className="flex items-start gap-3">
-                            <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Created</p>
-                                <p className="text-muted-foreground" title={new Date(session.createTime).toISOString()}>
-                                    {format(new Date(session.createTime), "PPP p")} ({formatDistanceToNow(new Date(session.createTime), { addSuffix: true })})
-                                </p>
-                            </div>
-                        </div>
-                     )}
-                     {session.updateTime && (
-                         <div className="flex items-start gap-3">
-                            <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Last Updated</p>
-                                <p className="text-muted-foreground" title={new Date(session.updateTime).toISOString()}>
-                                    {format(new Date(session.updateTime), "PPP p")} ({formatDistanceToNow(new Date(session.updateTime), { addSuffix: true })})
-                                </p>
-                            </div>
-                        </div>
-                     )}
-                      {session.url && (
-                         <div className="flex items-start gap-3">
-                            <ExternalLink className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Jules UI Link</p>
-                                <a href={session.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                    View Session in Jules
-                                </a>
-                            </div>
-                        </div>
-                     )}
-                </div>
 
-                {session.outputs && session.outputs.length > 0 && (
-                    <div className="col-span-full space-y-4 pt-4 border-t">
-                        <h3 className="text-lg font-semibold">Outputs</h3>
-                         {session.outputs.map((output, index) => (
-                             <div key={index}>
-                                {output.pullRequest && (
-                                     <div className="flex items-start gap-3">
-                                        <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                        <div>
-                                            <p className="font-semibold">Pull Request</p>
-                                            <a href={output.pullRequest.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline block">
-                                                {output.pullRequest.title}
-                                            </a>
-                                            <p className="text-muted-foreground mt-1">{output.pullRequest.description}</p>
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                            <CheckSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
+                            <div>
+                                <p className="font-semibold">Requires Plan Approval</p>
+                                <p className="text-muted-foreground">{session.requirePlanApproval ? 'Yes' : 'No'}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Zap className="h-5 w-5 text-muted-foreground mt-0.5" />
+                            <div>
+                                <p className="font-semibold">Automation Mode</p>
+                                <p className="text-muted-foreground">{session.automationMode || 'Unspecified'}</p>
+                            </div>
+                        </div>
+                        {session.createTime && (
+                            <div className="flex items-start gap-3">
+                                <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Created</p>
+                                    <p className="text-muted-foreground" title={new Date(session.createTime).toISOString()}>
+                                        {format(new Date(session.createTime), "PPP p")} ({formatDistanceToNow(new Date(session.createTime), { addSuffix: true })})
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                        {session.updateTime && (
+                            <div className="flex items-start gap-3">
+                                <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Last Updated</p>
+                                    <p className="text-muted-foreground" title={new Date(session.updateTime).toISOString()}>
+                                        {format(new Date(session.updateTime), "PPP p")} ({formatDistanceToNow(new Date(session.updateTime), { addSuffix: true })})
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                          {session.url && (
+                            <div className="flex items-start gap-3">
+                                <ExternalLink className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Jules UI Link</p>
+                                    <a href={session.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                        View Session in Jules
+                                    </a>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {session.outputs && session.outputs.length > 0 && (
+                        <div className="col-span-full space-y-4 pt-4 border-t">
+                            <h3 className="text-lg font-semibold">Outputs</h3>
+                            {session.outputs.map((output, index) => (
+                                <div key={index}>
+                                    {output.pullRequest && (
+                                        <div className="flex items-start gap-3">
+                                            <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                            <div>
+                                                <p className="font-semibold">Pull Request</p>
+                                                <a href={output.pullRequest.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline block">
+                                                    {output.pullRequest.title}
+                                                </a>
+                                                <p className="text-muted-foreground mt-1">{output.pullRequest.description}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                             </div>
-                         ))}
-                    </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="activity">
+              <div className="mt-4">
+                <ActivityFeed activities={activities} />
+
+                {session.state === "AWAITING_USER_FEEDBACK" && (
+                  <Card className="mt-8">
+                    <CardHeader>
+                      <CardTitle>User Feedback Required</CardTitle>
+                      <CardDescription>
+                        The session is waiting for your input to continue.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-2">
+                          <Label htmlFor="message">Your Message</Label>
+                          <Textarea
+                              id="message"
+                              value={message}
+                              onChange={(e) => setMessage(e.target.value)}
+                              placeholder="Type your message here..."
+                              rows={4}
+                              disabled={isActionPending}
+                          />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={handleSendMessage} disabled={isActionPending || !message.trim()}>
+                        {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
+                        Send Message
+                      </Button>
+                    </CardFooter>
+                  </Card>
                 )}
-            </CardContent>
-          </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
