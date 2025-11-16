@@ -18,18 +18,25 @@ import {
 import type { Job } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { formatDistanceToNow } from "date-fns";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, RefreshCw } from "lucide-react";
+import { Button } from "./ui/button";
 
 type JobListProps = {
   jobs: Job[];
+  lastUpdatedAt: Date | null;
+  onRefresh: () => void;
 };
 
-export function JobList({ jobs }: JobListProps) {
+export function JobList({ jobs, lastUpdatedAt, onRefresh }: JobListProps) {
   if (jobs.length === 0) {
     return (
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>Job Queue</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle>Job Queue</CardTitle>
+            </div>
+          </div>
           <CardDescription>Your created jobs will appear here.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -48,7 +55,20 @@ export function JobList({ jobs }: JobListProps) {
   return (
     <Card className="shadow-md">
       <CardHeader>
-        <CardTitle>Job Queue</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CardTitle>Job Queue</CardTitle>
+            <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh job list">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          {lastUpdatedAt && (
+            <div className="text-sm text-muted-foreground">
+              Last updated:{" "}
+              {formatDistanceToNow(lastUpdatedAt, { addSuffix: true })}
+            </div>
+          )}
+        </div>
         <CardDescription>A list of your most recent jobs.</CardDescription>
       </CardHeader>
       <CardContent>
