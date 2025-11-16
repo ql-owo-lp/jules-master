@@ -179,7 +179,7 @@ function ActivityContent({ activity }: { activity: Activity }) {
     return (
       <div className="mt-2 space-y-1">
         <p className="font-medium">{activity.progressUpdated.title}</p>
-        <p>{activity.progressUpdated.description}</p>
+        <CollapsibleMessage content={activity.progressUpdated.description} />
       </div>
     );
   }
@@ -195,7 +195,7 @@ function ActivityContent({ activity }: { activity: Activity }) {
     return (
       <div className="flex items-center gap-2 mt-2">
         <XCircle className="h-4 w-4 text-red-500" />
-        <p>Session failed: {activity.sessionFailed.reason}</p>
+        <CollapsibleMessage content={`Session failed: ${activity.sessionFailed.reason}`} />
       </div>
     );
   }
@@ -214,7 +214,7 @@ function ActivityContent({ activity }: { activity: Activity }) {
                         <ChevronsRight className="h-4 w-4"/>
                         <span className="font-semibold">{artifact.bashOutput.command}</span>
                     </div>
-                    <pre className="whitespace-pre-wrap bg-background p-2 rounded-md"><code>{artifact.bashOutput.output}</code></pre>
+                    <CollapsibleMessage content={artifact.bashOutput.output} isPreformatted />
                     <p className="mt-2 text-xs">Exit Code: {artifact.bashOutput.exitCode}</p>
                 </div>
             )}
@@ -264,48 +264,36 @@ function GitPatchDetails({ patch }: { patch: GitPatch }) {
   };
 
   return (
-    <Accordion type="single" collapsible className="w-full">
-      <AccordionItem value="patch">
-        <AccordionTrigger>
-          <div className="flex items-center gap-2 text-sm">
-            <FileCode className="h-4 w-4" />
-            <span>View Code Changes</span>
+      <div className="space-y-4 mt-2">
+        <div className="flex items-start gap-2">
+          <GitMerge className="h-4 w-4 mt-1 text-muted-foreground" />
+          <div>
+            <p className="text-xs font-semibold uppercase text-muted-foreground">
+              Suggested Commit Message
+            </p>
+            <p className="font-mono text-sm bg-background p-2 rounded-md">
+              {patch.suggestedCommitMessage}
+            </p>
           </div>
-        </AccordionTrigger>
-        <AccordionContent>
-          <div className="space-y-4 mt-2">
-            <div className="flex items-start gap-2">
-              <GitMerge className="h-4 w-4 mt-1 text-muted-foreground" />
-              <div>
-                <p className="text-xs font-semibold uppercase text-muted-foreground">
-                  Suggested Commit Message
-                </p>
-                <p className="font-mono text-sm bg-background p-2 rounded-md">
-                  {patch.suggestedCommitMessage}
-                </p>
-              </div>
-            </div>
-            <div className="relative">
-              <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono">
-                <code>{patch.unidiffPatch}</code>
-              </pre>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 h-7 w-7"
-                onClick={() => handleCopy(patch.unidiffPatch)}
-              >
-                {copied ? (
-                  <ClipboardCheck className="h-4 w-4" />
-                ) : (
-                  <Clipboard className="h-4 w-4" />
-                )}
-                <span className="sr-only">Copy patch</span>
-              </Button>
-            </div>
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+        </div>
+        <div className="relative">
+          <CollapsibleMessage content={patch.unidiffPatch} isPreformatted />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-0 right-0 h-7 w-7"
+            onClick={() => handleCopy(patch.unidiffPatch)}
+          >
+            {copied ? (
+              <ClipboardCheck className="h-4 w-4" />
+            ) : (
+              <Clipboard className="h-4 w-4" />
+            )}
+            <span className="sr-only">Copy patch</span>
+          </Button>
+        </div>
+      </div>
   );
 }
+
+    
