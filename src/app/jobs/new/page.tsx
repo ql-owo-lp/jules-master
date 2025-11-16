@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { JobCreationForm } from "@/components/job-creation-form";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Source } from "@/lib/types";
+import type { Session, Source, AutomationMode } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,7 +24,14 @@ export default function NewJobPage() {
   }, []);
 
 
-  const handleCreateSession = async (title: string, prompt: string, source: Source | null, branch: string | undefined): Promise<Session | null> => {
+  const handleCreateSession = async (
+    title: string, 
+    prompt: string, 
+    source: Source | null, 
+    branch: string | undefined,
+    requirePlanApproval: boolean,
+    automationMode: AutomationMode
+  ): Promise<Session | null> => {
     if (!source || !branch) {
         toast({
             variant: "destructive",
@@ -40,7 +47,9 @@ export default function NewJobPage() {
         githubRepoContext: {
           startingBranch: branch,
         }
-      }
+      },
+      requirePlanApproval,
+      automationMode
     });
 
     if (!newSession) {
