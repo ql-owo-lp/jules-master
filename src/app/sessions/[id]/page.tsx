@@ -363,7 +363,7 @@ export default function SessionDetailPage({
                     </div>
 
                     {session.outputs && session.outputs.length > 0 && (
-                        <div className="col-span-full space-y-4 pt-4 border-t">
+                        <div className="md:col-span-2 space-y-4 pt-4 mt-4 border-t">
                             <h3 className="text-lg font-semibold">Outputs</h3>
                             {session.outputs.map((output, index) => (
                                 <div key={index}>
@@ -375,7 +375,9 @@ export default function SessionDetailPage({
                                                 <a href={output.pullRequest.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline block">
                                                     {output.pullRequest.title}
                                                 </a>
-                                                <p className="text-muted-foreground mt-1">{output.pullRequest.description}</p>
+                                                {output.pullRequest.description && (
+                                                    <p className="text-muted-foreground mt-1 text-xs">{output.pullRequest.description}</p>
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -436,3 +438,5 @@ export default function SessionDetailPage({
     </div>
   );
 }
+
+    
