@@ -38,11 +38,10 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 
 export default function SessionDetailPage({
-  params,
+  params: { id },
 }: {
   params: { id: string };
 }) {
-  const { id } = params;
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [session, setSession] = useState<Session | null>(null);
   const [isFetching, startFetching] = useTransition();
@@ -274,5 +273,3 @@ export default function SessionDetailPage({
     </div>
   );
 }
-
-    
