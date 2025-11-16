@@ -13,12 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { createTitleForJob } from "@/app/actions";
-import type { Job } from "@/lib/types";
+import type { Session } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2 } from "lucide-react";
 
 type JobCreationFormProps = {
-  onJobsCreated: (jobs: Job[]) => void;
+  onJobsCreated: (sessions: Session[]) => void;
   disabled?: boolean;
 };
 
@@ -41,18 +41,20 @@ export function JobCreationForm({
       toast({
         variant: "destructive",
         title: "No prompts entered",
-        description: "Please enter at least one job prompt.",
+        description: "Please enter at least one session prompt.",
       });
       return;
     }
 
     startTransition(async () => {
       try {
-        const newJobs: Job[] = await Promise.all(
+        const newSessions: Session[] = await Promise.all(
           promptLines.map(async (prompt) => {
             const title = await createTitleForJob(prompt);
+            const id = crypto.randomUUID();
             return {
-              id: crypto.randomUUID(),
+              id: id,
+              name: `sessions/${id}`,
               title,
               prompt,
               status: "Pending",
@@ -61,18 +63,18 @@ export function JobCreationForm({
           })
         );
 
-        onJobsCreated(newJobs);
+        onJobsCreated(newSessions);
         setPrompts("");
         toast({
-          title: "Jobs submitted!",
-          description: `${newJobs.length} new job(s) have been created.`,
+          title: "Sessions submitted!",
+          description: `${newSessions.length} new session(s) have been created.`,
         });
       } catch (error) {
         toast({
           variant: "destructive",
-          title: "Failed to create jobs",
+          title: "Failed to create sessions",
           description:
-            "An error occurred while generating job titles. Please try again.",
+            "An error occurred while generating session titles. Please try again.",
         });
       }
     });
@@ -81,24 +83,24 @@ export function JobCreationForm({
   return (
     <Card className="shadow-md">
       <CardHeader>
-        <CardTitle>Create Batch Jobs</CardTitle>
+        <CardTitle>Create Batch Sessions</CardTitle>
         <CardDescription>
-          Enter your job prompts below, one per line. We'll use AI to generate a
-          suitable title for each job.
+          Enter your session prompts below, one per line. We'll use AI to generate a
+          suitable title for each session.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent>
           <div className="grid w-full gap-2">
-            <Label htmlFor="prompts" className="sr-only">Job Prompts</Label>
+            <Label htmlFor="prompts" className="sr-only">Session Prompts</Label>
             <Textarea
               id="prompts"
-              placeholder="e.g., Process all user-uploaded videos from the last 24 hours and generate thumbnails."
+              placeholder="e.g., Create a boba app!"
               rows={5}
               value={prompts}
               onChange={(e) => setPrompts(e.target.value)}
               disabled={isPending || disabled}
-              aria-label="Job Prompts"
+              aria-label="Session Prompts"
             />
           </div>
         </CardContent>
@@ -116,7 +118,7 @@ export function JobCreationForm({
             ) : (
               <>
                 <Wand2 className="mr-2 h-4 w-4" />
-                Create Jobs
+                Create Sessions
               </>
             )}
           </Button>

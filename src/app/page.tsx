@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import { JobCreationForm } from "@/components/job-creation-form";
-import { JobList } from "@/components/job-list";
+import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Job, JobStatus } from "@/lib/types";
+import type { Session, JobStatus } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function Home() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 5);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
 
@@ -22,43 +22,43 @@ export default function Home() {
     setLastUpdatedAt(new Date());
   }, []);
 
-  const handleJobsCreated = (newJobs: Job[]) => {
-    setJobs((prevJobs) => [...newJobs, ...prevJobs]);
+  const handleSessionsCreated = (newSessions: Session[]) => {
+    setSessions((prevSessions) => [...newSessions, ...prevSessions]);
     setLastUpdatedAt(new Date());
   };
 
   const handleRefresh = () => {
-    // In a real app, this would re-fetch jobs.
+    // In a real app, this would re-fetch sessions.
     // Here, we'll just update the timestamp.
     setLastUpdatedAt(new Date());
-    // And we can re-trigger the status simulation for pending jobs
-    // by creating a new array reference for the jobs state.
-    setJobs(prevJobs => [...prevJobs]); 
+    // And we can re-trigger the status simulation for pending sessions
+    // by creating a new array reference for the sessions state.
+    setSessions(prevSessions => [...prevSessions]); 
   };
 
-  // Effect to simulate job status progression
+  // Effect to simulate session status progression
   useEffect(() => {
     if (pollInterval <= 0 || !isClient) return;
 
     const timers: NodeJS.Timeout[] = [];
-    jobs.forEach((job) => {
-      if (job.status === "Pending") {
+    sessions.forEach((session) => {
+      if (session.status === "Pending") {
         const timer1 = setTimeout(() => {
-          setJobs((prevJobs) =>
-            prevJobs.map((j) =>
-              j.id === job.id ? { ...j, status: "Running" } : j
+          setSessions((prevSessions) =>
+            prevSessions.map((s) =>
+              s.id === session.id ? { ...s, status: "Running" } : s
             )
           );
           setLastUpdatedAt(new Date());
         }, Math.random() * (pollInterval * 1000 * 0.6) + (pollInterval * 1000 * 0.2)); // Start running after 20-80% of interval
         timers.push(timer1);
-      } else if (job.status === "Running") {
+      } else if (session.status === "Running") {
         const timer2 = setTimeout(() => {
           const newStatus: JobStatus =
             Math.random() > 0.2 ? "Succeeded" : "Failed";
-          setJobs((prevJobs) =>
-            prevJobs.map((j) =>
-              j.id === job.id ? { ...j, status: newStatus } : j
+          setSessions((prevSessions) =>
+            prevSessions.map((s) =>
+              s.id === session.id ? { ...s, status: newStatus } : s
             )
           );
           setLastUpdatedAt(new Date());
@@ -70,7 +70,7 @@ export default function Home() {
     return () => {
       timers.forEach(clearTimeout);
     };
-  }, [jobs, pollInterval, isClient]);
+  }, [sessions, pollInterval, isClient]);
 
   if (!isClient) {
     return (
@@ -107,16 +107,16 @@ export default function Home() {
               <AlertTitle>API Key Not Set</AlertTitle>
               <AlertDescription>
                 Please set your Jules API key in the settings menu (top right
-                corner) to create jobs.
+                corner) to create sessions.
               </AlertDescription>
             </Alert>
           )}
           <JobCreationForm
-            onJobsCreated={handleJobsCreated}
+            onJobsCreated={handleSessionsCreated}
             disabled={!apiKey}
           />
-          <JobList
-            jobs={jobs}
+          <SessionList
+            sessions={sessions}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
           />
