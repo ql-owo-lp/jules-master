@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useCallback, Suspense } from "react";
+import { useState, useEffect, useTransition, useCallback, Suspense, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Job } from "@/lib/types";
+import type { Session, Job, State } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, Plus, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,13 +29,47 @@ function HomePageContent() {
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
 
   const searchParams = useSearchParams();
-  const jobId = searchParams.get("jobId");
-  
-  const filteredJob = jobId ? jobs.find(j => j.id === jobId) : null;
+  const jobIdParam = searchParams.get("jobId");
 
-  const filteredSessions = jobId 
-    ? sessions.filter(s => filteredJob?.sessionIds.includes(s.id))
-    : sessions;
+  const [jobFilter, setJobFilter] = useState<string | null>(jobIdParam);
+  const [repoFilter, setRepoFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+
+  // Effect to sync job filter with URL param
+  useEffect(() => {
+    setJobFilter(jobIdParam);
+  }, [jobIdParam]);
+
+  
+  const filteredJob = jobFilter ? jobs.find(j => j.id === jobFilter) : null;
+
+  const getRepoNameFromSource = (source: string | undefined): string => {
+    if (!source) return 'N/A';
+    // Example source: "sources/github/owner/repo"
+    const parts = source.split('/');
+    if (parts.length >= 4) {
+      return `${parts[2]}/${parts[3]}`;
+    }
+    return source;
+  }
+
+  const filteredSessions = useMemo(() => {
+    return sessions.filter(s => {
+      const job = jobs.find(j => j.sessionIds.includes(s.id));
+      
+      const jobMatch = !jobFilter || (job && job.id === jobFilter);
+      const repoMatch = repoFilter === 'all' || (job && job.repo === repoFilter);
+      const statusMatch = statusFilter === 'all' || s.state === statusFilter;
+
+      return jobMatch && repoMatch && statusMatch;
+    });
+  }, [sessions, jobs, jobFilter, repoFilter, statusFilter]);
+
+  const uniqueRepos = useMemo(() => ['all', ...Array.from(new Set(jobs.map(j => j.repo)))], [jobs]);
+  const uniqueJobNames = useMemo(() => ['all', ...Array.from(new Set(jobs.map(j => j.id)))], [jobs]);
+  const uniqueStatuses = useMemo(() => ['all', ...Array.from(new Set(sessions.map(s => s.state).filter((s): s is State => !!s)))], [sessions]);
+  const jobMap = useMemo(() => new Map(jobs.map(j => [j.id, j.name])), [jobs]);
 
 
   const fetchSessions = useCallback(() => {
@@ -155,6 +189,16 @@ function HomePageContent() {
             pollInterval={pollInterval}
             titleTruncateLength={titleTruncateLength}
             filteredJobName={filteredJob?.name}
+            jobFilter={jobFilter}
+            repoFilter={repoFilter}
+            statusFilter={statusFilter}
+            onJobFilterChange={setJobFilter}
+            onRepoFilterChange={setRepoFilter}
+            onStatusFilterChange={setStatusFilter}
+            uniqueRepos={uniqueRepos}
+            uniqueJobNames={uniqueJobNames}
+            uniqueStatuses={uniqueStatuses}
+            jobMap={jobMap}
           />
         </div>
       </main>

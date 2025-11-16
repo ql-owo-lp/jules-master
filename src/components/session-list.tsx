@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Session, Job } from "@/lib/types";
+import type { Session, Job, State } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
 import { ClipboardList, RefreshCw, Hand, Loader2, X } from "lucide-react";
@@ -26,6 +26,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Label } from "./ui/label";
 
 
 type SessionListProps = {
@@ -40,6 +42,16 @@ type SessionListProps = {
   pollInterval: number;
   titleTruncateLength: number;
   filteredJobName?: string;
+  jobFilter: string | null;
+  repoFilter: string;
+  statusFilter: string;
+  onJobFilterChange: (value: string | null) => void;
+  onRepoFilterChange: (value: string) => void;
+  onStatusFilterChange: (value: string) => void;
+  uniqueRepos: string[];
+  uniqueJobNames: string[];
+  uniqueStatuses: string[];
+  jobMap: Map<string, string>;
 };
 
 export function SessionList({
@@ -54,14 +66,24 @@ export function SessionList({
   pollInterval,
   titleTruncateLength,
   filteredJobName,
+  jobFilter,
+  repoFilter,
+  statusFilter,
+  onJobFilterChange,
+  onRepoFilterChange,
+  onStatusFilterChange,
+  uniqueRepos,
+  uniqueJobNames,
+  uniqueStatuses,
+  jobMap,
 }: SessionListProps) {
   const router = useRouter();
 
   const sessionToJobMap = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, Job>();
     for (const job of jobs) {
       for (const sessionId of job.sessionIds) {
-        map.set(sessionId, job.name);
+        map.set(sessionId, job);
       }
     }
     return map;
@@ -72,7 +94,8 @@ export function SessionList({
     if ((e.target as HTMLElement).closest('button')) {
       return;
     }
-    router.push(`/sessions/${sessionId}`);
+    const path = jobFilter ? `/sessions/${sessionId}?jobId=${jobFilter}` : `/sessions/${sessionId}`;
+    router.push(path);
   };
 
   const truncateTitle = (title: string, maxLength: number) => {
@@ -81,6 +104,15 @@ export function SessionList({
     }
     return title.substring(0, maxLength) + "...";
   };
+
+  const handleClearFilters = () => {
+    onJobFilterChange(null);
+    onRepoFilterChange('all');
+    onStatusFilterChange('all');
+    router.push('/');
+  }
+
+  const isAnyFilterActive = jobFilter || repoFilter !== 'all' || statusFilter !== 'all';
 
   return (
     <Card className="shadow-md">
@@ -108,17 +140,56 @@ export function SessionList({
           )}
         </div>
         <CardDescription>
-          {filteredJobName 
-            ? `Showing sessions for job: "${filteredJobName}"` 
-            : (sessions.length > 0 ? "A list of your most recent sessions." : "Your created sessions will appear here.")
-          }
+          {sessions.length > 0 ? "A list of your most recent sessions." : "Your created sessions will appear here."}
         </CardDescription>
-          {filteredJobName && (
-             <Button variant="outline" size="sm" onClick={() => router.push('/')} className="mt-2">
-                <X className="mr-2 h-4 w-4" />
-                Clear Filter
-            </Button>
-          )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+          <div className="space-y-2">
+            <Label htmlFor="filter-repo">Repository</Label>
+            <Select value={repoFilter} onValueChange={onRepoFilterChange}>
+              <SelectTrigger id="filter-repo">
+                <SelectValue placeholder="Filter by repository..." />
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueRepos.map(repo => (
+                  <SelectItem key={repo} value={repo}>{repo === 'all' ? 'All Repositories' : repo}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="filter-status">Status</Label>
+            <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+              <SelectTrigger id="filter-status">
+                <SelectValue placeholder="Filter by status..." />
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueStatuses.map(status => (
+                  <SelectItem key={status} value={status}>{status === 'all' ? 'All Statuses' : status}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="filter-job">Job Name</Label>
+            <Select value={jobFilter || 'all'} onValueChange={(value) => onJobFilterChange(value === 'all' ? null : value)}>
+              <SelectTrigger id="filter-job">
+                <SelectValue placeholder="Filter by job..." />
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueJobNames.map(jobId => (
+                  <SelectItem key={jobId} value={jobId}>{jobId === 'all' ? 'All Jobs' : jobMap.get(jobId) || jobId}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {isAnyFilterActive && (
+          <Button variant="outline" size="sm" onClick={handleClearFilters} className="mt-4">
+              <X className="mr-2 h-4 w-4" />
+              Clear All Filters
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {sessions.length === 0 ? (
@@ -126,7 +197,7 @@ export function SessionList({
             <ClipboardList className="h-12 w-12 mb-4" />
             <p className="font-semibold text-lg">No sessions found</p>
             <p className="text-sm">
-              {filteredJobName ? "No sessions found for this job." : "Create a new job to see sessions here."}
+              {isAnyFilterActive ? "No sessions match the current filters." : "Create a new job to see sessions here."}
             </p>
           </div>
         ) : (
@@ -136,6 +207,8 @@ export function SessionList({
               <TableHeader>
                 <TableRow>
                   <TableHead>Job Name</TableHead>
+                  <TableHead>Repository</TableHead>
+                  <TableHead>Branch</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead className="w-[180px]">Status</TableHead>
                   <TableHead className="w-[150px]">Created</TableHead>
@@ -143,13 +216,17 @@ export function SessionList({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sessions.map((session) => (
+                {sessions.map((session) => {
+                  const job = sessionToJobMap.get(session.id);
+                  return (
                   <TableRow
                     key={session.id}
                     className="cursor-pointer"
                     onClick={(e) => handleRowClick(e, session.id)}
                   >
-                    <TableCell>{sessionToJobMap.get(session.id) || "N/A"}</TableCell>
+                    <TableCell>{job?.name || "N/A"}</TableCell>
+                    <TableCell>{job?.repo || "N/A"}</TableCell>
+                    <TableCell>{job?.branch || "N/A"}</TableCell>
                     <TableCell className="font-medium" title={session.title}>{truncateTitle(session.title, titleTruncateLength)}</TableCell>
                     <TableCell>
                       <JobStatusBadge status={session.state || session.status} />
@@ -182,7 +259,7 @@ export function SessionList({
                         )}
                     </TableCell>
                   </TableRow>
-                ))}
+                )})}
               </TableBody>
             </Table>
             </TooltipProvider>

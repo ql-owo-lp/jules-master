@@ -36,6 +36,7 @@ export type SourceContext = {
 
 export type GitHubRepoContext = {
   startingBranch: string;
+  branch?: string;
 };
 
 export type SessionOutput = {
