@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -47,6 +47,7 @@ import {
   Share,
   Zap,
   Briefcase,
+  RefreshCw
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -56,6 +57,7 @@ export default function SessionDetailPage({
   params: { id: string };
 }) {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [session, setSession] = useState<Session | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -64,30 +66,67 @@ export default function SessionDetailPage({
   const { toast } = useToast();
   const [message, setMessage] = useState("");
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [countdown, setCountdown] = useState(pollInterval);
+  const activityFeedRef = useRef<HTMLDivElement>(null);
+
+  const fetchSessionData = async (options: { showToast?: boolean } = {}) => {
+    const id = params.id;
+    if (!apiKey || !id) return;
+    
+    if (options.showToast) {
+        toast({ title: "Refreshing session..." });
+    }
+
+    startFetching(async () => {
+      const [fetchedSession, fetchedActivities] = await Promise.all([
+        getSession(apiKey, id),
+        listActivities(apiKey, id)
+      ]);
+      
+      if (fetchedSession) {
+        setSession(fetchedSession);
+        setActivities(fetchedActivities.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime()));
+        setLastUpdatedAt(new Date());
+        setCountdown(pollInterval);
+      } else {
+        notFound();
+      }
+    });
+  };
 
   useEffect(() => {
-    const fetchSessionData = async () => {
-      const id = params.id;
-      if (!apiKey || !id) return;
-      startFetching(async () => {
-        const [fetchedSession, fetchedActivities] = await Promise.all([
-          getSession(apiKey, id),
-          listActivities(apiKey, id)
-        ]);
-        
-        if (fetchedSession) {
-          setSession(fetchedSession);
-          setActivities(fetchedActivities.sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime()));
-        } else {
-          notFound();
-        }
-      });
-    };
-
-    if (apiKey) {
+    if (apiKey && params.id) {
       fetchSessionData();
     }
-  }, [apiKey, params]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, params.id]);
+
+  // Set up polling interval
+  useEffect(() => {
+    if (apiKey && pollInterval > 0) {
+      const intervalId = setInterval(() => fetchSessionData(), pollInterval * 1000);
+      return () => clearInterval(intervalId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, pollInterval]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!apiKey || pollInterval <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [apiKey, pollInterval, lastUpdatedAt]);
+  
+  // Auto-scroll activity feed
+  useEffect(() => {
+    if (activityFeedRef.current) {
+        activityFeedRef.current.scrollTop = activityFeedRef.current.scrollHeight;
+    }
+  }, [activities]);
+
 
   const handleApprovePlan = () => {
     if (!session) return;
@@ -116,7 +155,7 @@ export default function SessionDetailPage({
         
         // Refresh activities
         const fetchedActivities = await listActivities(apiKey, params.id);
-        setActivities(fetchedActivities.sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime()));
+        setActivities(fetchedActivities.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime()));
 
       } else {
         toast({
@@ -140,7 +179,7 @@ export default function SessionDetailPage({
   const job = jobs.find(j => session && j.sessionIds.includes(session.id));
 
 
-  if (isFetching || !session) {
+  if (isFetching && !session) {
     return (
       <div className="container mx-auto max-w-4xl space-y-8 p-4 sm:p-6 md:p-8">
         <Skeleton className="h-8 w-64" />
@@ -148,6 +187,14 @@ export default function SessionDetailPage({
         <Skeleton className="h-96 w-full" />
       </div>
     );
+  }
+  
+  if (!session) {
+     return (
+       <div className="container mx-auto max-w-4xl space-y-8 p-4 sm:p-6 md:p-8">
+        <p>No session found. Make sure your API key is set correctly.</p>
+      </div>
+     )
   }
 
   return (
@@ -183,9 +230,27 @@ export default function SessionDetailPage({
           )}
 
           <Tabs defaultValue="details" className="w-full">
-            <TabsList>
+            <TabsList className="w-full justify-start">
               <TabsTrigger value="details">Session Details</TabsTrigger>
               <TabsTrigger value="activity">Session Activity</TabsTrigger>
+               <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
+                    <Button variant="ghost" size="icon" onClick={() => fetchSessionData({ showToast: true })} aria-label="Refresh session data" disabled={isFetching}>
+                        <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+                    </Button>
+                    {lastUpdatedAt && (
+                        <div className="text-right">
+                        <div>
+                            Last updated:{" "}
+                            {format(lastUpdatedAt, "h:mm:ss a")}
+                        </div>
+                        {pollInterval > 0 && (
+                            <div>
+                            Next poll in: {countdown}s
+                            </div>
+                        )}
+                        </div>
+                    )}
+                </div>
             </TabsList>
 
             <TabsContent value="details">
@@ -331,7 +396,7 @@ export default function SessionDetailPage({
 
             <TabsContent value="activity">
               <div className="mt-4">
-                <ActivityFeed activities={activities} />
+                <ActivityFeed activities={activities} ref={activityFeedRef} />
 
                 {session.state === "AWAITING_USER_FEEDBACK" && (
                   <Card className="mt-8">
@@ -370,3 +435,5 @@ export default function SessionDetailPage({
     </div>
   );
 }
+
+    
