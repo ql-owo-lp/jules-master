@@ -11,15 +11,19 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 const LINE_LIMIT = 10;
 
 type CollapsibleMessageProps = {
-    content: string;
+    content?: string;
     isPreformatted?: boolean;
 };
 
 export function CollapsibleMessage({ content, isPreformatted = false }: CollapsibleMessageProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const lineCount = useMemo(() => (content.match(/\n/g) || '').length + 1, [content]);
+    const lineCount = useMemo(() => ((content || '').match(/\n/g) || '').length + 1, [content]);
     const isCollapsible = lineCount > LINE_LIMIT;
+
+    if (!content) {
+        return null;
+    }
 
     const Wrapper = ({ children }: { children: React.ReactNode }) => 
         isPreformatted ? (
@@ -71,5 +75,3 @@ export function CollapsibleMessage({ content, isPreformatted = false }: Collapsi
         </div>
     );
 }
-
-    
