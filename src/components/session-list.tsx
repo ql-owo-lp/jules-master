@@ -123,8 +123,8 @@ export function SessionList({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Title</TableHead>
                   <TableHead>Job Name</TableHead>
+                  <TableHead>Title</TableHead>
                   <TableHead className="w-[180px]">Status</TableHead>
                   <TableHead className="w-[150px]">Created</TableHead>
                   <TableHead className="w-[80px] text-right">Actions</TableHead>
@@ -137,8 +137,8 @@ export function SessionList({
                     className="cursor-pointer"
                     onClick={(e) => handleRowClick(e, session.id)}
                   >
-                    <TableCell className="font-medium" title={session.title}>{truncateTitle(session.title, titleTruncateLength)}</TableCell>
                     <TableCell>{sessionToJobMap.get(session.id) || "N/A"}</TableCell>
+                    <TableCell className="font-medium" title={session.title}>{truncateTitle(session.title, titleTruncateLength)}</TableCell>
                     <TableCell>
                       <JobStatusBadge status={session.state || session.status} />
                     </TableCell>
