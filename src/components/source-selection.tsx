@@ -22,6 +22,7 @@ type SourceSelectionProps = {
 
 export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSelectionProps) {
   const [sources, setSources] = useState<Source[]>([]);
+  const [selectedValue, setSelectedValue] = useState<string | undefined>();
   const [isFetching, startFetching] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +34,12 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSe
           const fetchedSources = await listSources(apiKey);
           setSources(fetchedSources);
           if (fetchedSources.length > 0) {
-            onSourceSelected(fetchedSources[0]);
+            const defaultSource = fetchedSources[0];
+            setSelectedValue(defaultSource.name);
+            onSourceSelected(defaultSource);
+          } else {
+            setSelectedValue(undefined);
+            onSourceSelected(null);
           }
         } catch (e) {
           setError('Failed to load repositories.');
@@ -42,18 +48,18 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSe
       });
     } else {
       setSources([]);
+      setSelectedValue(undefined);
       onSourceSelected(null);
     }
-  }, [apiKey, onSourceSelected]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey]);
 
   const handleValueChange = (sourceName: string) => {
+    setSelectedValue(sourceName);
     const selected = sources.find((s) => s.name === sourceName) || null;
     onSourceSelected(selected);
   };
   
-  const selectedValue = sources.length > 0 ? sources.find(s => s.name === sources[0].name)?.name : undefined;
-
-
   if (isFetching) {
     return (
       <div className="space-y-2">
@@ -81,7 +87,7 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSe
       <Select
         onValueChange={handleValueChange}
         disabled={disabled || sources.length === 0}
-        defaultValue={selectedValue}
+        value={selectedValue}
         name="repository"
       >
         <SelectTrigger id="repository">
