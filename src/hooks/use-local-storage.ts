@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 // This hook can't be used during server-side rendering.
 // Wrap the component using it with a check for `isClient` or similar.
@@ -8,6 +8,13 @@ export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T) => void] {
+  
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const [storedValue, setStoredValue] = useState<T>(() => {
     if (typeof window === "undefined") {
       return initialValue;
@@ -36,6 +43,21 @@ export function useLocalStorage<T>(
     },
     [key, storedValue]
   );
+  
+  // Re-read from local storage when isClient becomes true
+  useEffect(() => {
+    if (isClient) {
+      try {
+        const item = window.localStorage.getItem(key);
+        if (item) {
+          setStoredValue(JSON.parse(item));
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }, [isClient, key]);
+
 
   return [storedValue, setValue];
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useState, useEffect } from "react";
 import type { PredefinedPrompt } from "@/lib/types";
 import {
   Card,
@@ -9,7 +8,6 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BookText, Plus, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { BookText, Plus, Edit, Trash2, MoreHorizontal, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,12 +39,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { addPrompt, updatePrompt, deletePrompt, getPrompts } from "./actions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PredefinedPromptsPage() {
-  const [prompts, setPrompts] = useLocalStorage<PredefinedPrompt[]>(
-    "predefined-prompts",
-    []
-  );
+  const [prompts, setPrompts] = useState<PredefinedPrompt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState<PredefinedPrompt | null>(
     null
@@ -54,6 +52,17 @@ export default function PredefinedPromptsPage() {
   const [title, setTitle] = useState("");
   const [promptText, setPromptText] = useState("");
   const { toast } = useToast();
+
+  const fetchPrompts = async () => {
+    setIsLoading(true);
+    const fetchedPrompts = await getPrompts();
+    setPrompts(fetchedPrompts);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchPrompts();
+  }, []);
 
   const handleAddNew = () => {
     setCurrentPrompt(null);
@@ -69,15 +78,16 @@ export default function PredefinedPromptsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setPrompts(prompts.filter((p) => p.id !== id));
+  const handleDelete = async (id: string) => {
+    await deletePrompt(id);
+    await fetchPrompts();
     toast({
       title: "Prompt deleted",
       description: "The predefined prompt has been removed.",
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim() || !promptText.trim()) {
       toast({
         variant: "destructive",
@@ -87,31 +97,21 @@ export default function PredefinedPromptsPage() {
       return;
     }
 
-    if (currentPrompt) {
-      // Editing existing prompt
-      setPrompts(
-        prompts.map((p) =>
-          p.id === currentPrompt.id ? { ...p, title, prompt: promptText } : p
-        )
-      );
+    if (currentPrompt?.id) {
+      await updatePrompt(currentPrompt.id, { title, prompt: promptText });
       toast({
         title: "Prompt updated",
         description: "Your predefined prompt has been saved.",
       });
     } else {
-      // Adding new prompt
-      const newPrompt: PredefinedPrompt = {
-        id: crypto.randomUUID(),
-        title,
-        prompt: promptText,
-      };
-      setPrompts([...prompts, newPrompt]);
+      await addPrompt({ title, prompt: promptText });
       toast({
         title: "Prompt added",
         description: "Your new predefined prompt has been created.",
       });
     }
 
+    await fetchPrompts();
     setIsDialogOpen(false);
   };
 
@@ -136,7 +136,13 @@ export default function PredefinedPromptsPage() {
                 </Button>
               </CardHeader>
               <CardContent>
-                {prompts.length === 0 ? (
+                {isLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ) : prompts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
                     <p className="font-semibold text-lg">No Prompts Yet</p>
                     <p className="text-sm">
@@ -177,7 +183,7 @@ export default function PredefinedPromptsPage() {
                                     Edit
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    onClick={() => handleDelete(p.id)}
+                                    onClick={() => handleDelete(p.id!)}
                                     className="text-destructive"
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
