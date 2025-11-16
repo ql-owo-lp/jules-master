@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { createTitleForJob } from "@/app/actions";
 import { refreshSources } from "@/app/sessions/actions";
-import type { Session, Source } from "@/lib/types";
+import type { Session, Source, Branch } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2, RefreshCw } from "lucide-react";
 import { SourceSelection } from "./source-selection";
@@ -59,13 +59,11 @@ export function JobCreationForm({
   const [isRefreshing, startRefreshTransition] = useTransition();
   const { toast } = useToast();
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
-  // Add a key to force re-mounting of the SourceSelection component
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
 
   const handleRefresh = useCallback(async () => {
     startRefreshTransition(async () => {
       await refreshSources();
-      // By changing the key, we force React to re-mount SourceSelection
       setSourceSelectionKey(Date.now());
       toast({
         title: "Refreshed",
@@ -123,6 +121,9 @@ export function JobCreationForm({
   const handlePreCannedPromptClick = (prompt: string) => {
     setPrompts(prompt);
   };
+  
+  const branches = selectedSource?.githubRepo?.branches || [];
+  const defaultBranch = selectedSource?.githubRepo?.defaultBranch?.displayName;
 
   return (
     <Card className="shadow-md">
@@ -180,7 +181,11 @@ export function JobCreationForm({
                     disabled={disabled || isPending} 
                 />
             </div>
-            <BranchSelection apiKey={apiKey} source={selectedSource} disabled={disabled || isPending || !selectedSource}/>
+            <BranchSelection 
+              branches={branches} 
+              defaultBranchName={defaultBranch} 
+              disabled={disabled || isPending || !selectedSource}
+            />
           </div>
         </CardContent>
         <CardFooter>
