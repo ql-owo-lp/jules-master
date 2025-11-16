@@ -7,7 +7,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
-import type { Session } from "@/lib/types";
+import type { Session, Job } from "@/lib/types";
 import { getSession, approvePlan, sendMessage } from "./actions";
 
 import {
@@ -40,6 +40,7 @@ import {
   Play,
   Share,
   Zap,
+  Briefcase,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -49,6 +50,7 @@ export default function SessionDetailPage({
   params: { id: string };
 }) {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [session, setSession] = useState<Session | null>(null);
   const [isFetching, startFetching] = useTransition();
   const [isActionPending, startActionTransition] = useTransition();
@@ -119,6 +121,8 @@ export default function SessionDetailPage({
     }
     return title.substring(0, maxLength) + "...";
   };
+  
+  const job = jobs.find(j => session && j.sessionIds.includes(session.id));
 
 
   if (isFetching || !session) {
@@ -199,6 +203,15 @@ export default function SessionDetailPage({
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                 <div className="space-y-4">
+                     {job && (
+                         <div className="flex items-start gap-3">
+                            <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
+                            <div>
+                                <p className="font-semibold">Job Name</p>
+                                <p className="text-muted-foreground">{job.name}</p>
+                            </div>
+                        </div>
+                     )}
                      <div className="flex items-start gap-3">
                         <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
                         <div>
@@ -327,5 +340,7 @@ export default function SessionDetailPage({
     </div>
   );
 }
+
+    
 
     
