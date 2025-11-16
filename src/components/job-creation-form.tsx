@@ -23,12 +23,14 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[]) => void;
+  onCreateJob: (prompt: string, source: Source | null, branch: string | undefined) => Promise<Session | null>;
   disabled?: boolean;
   apiKey: string;
 };
 
 export function JobCreationForm({
   onJobsCreated,
+  onCreateJob,
   disabled,
   apiKey,
 }: JobCreationFormProps) {
@@ -37,6 +39,7 @@ export function JobCreationForm({
   const [isRefreshing, startRefreshTransition] = useTransition();
   const { toast } = useToast();
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<string | undefined>();
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
   const [isClient, setIsClient] = useState(false);
@@ -71,32 +74,33 @@ export function JobCreationForm({
       });
       return;
     }
+     if (!selectedSource || !selectedBranch) {
+      toast({
+        variant: "destructive",
+        title: "Repository and branch must be selected.",
+      });
+      return;
+    }
 
     startTransition(async () => {
-      try {
-        const newSessions: Session[] = await Promise.all(
-          promptLines.map(async (prompt) => {
-            const title = await createTitleForJob(prompt);
-            const id = crypto.randomUUID();
-            return {
-              id: id,
-              name: `sessions/${id}`,
-              title,
-              prompt,
-              status: "Pending",
-              createdAt: new Date().toISOString(),
-            };
-          })
-        );
+      const createdSessions: Session[] = [];
+      for (const prompt of promptLines) {
+        const title = await createTitleForJob(prompt);
+        const newSession = await onCreateJob(prompt, selectedSource, selectedBranch);
+        if (newSession) {
+           createdSessions.push({ ...newSession, title });
+        }
+      }
 
-        onJobsCreated(newSessions);
+      if (createdSessions.length > 0) {
+        onJobsCreated(createdSessions);
         setPrompts("");
-      } catch (error) {
-        toast({
+      } else if (promptLines.length > 0) {
+         toast({
           variant: "destructive",
           title: "Failed to create sessions",
           description:
-            "An error occurred while generating session titles. Please try again.",
+            "An error occurred while creating the sessions. Please try again.",
         });
       }
     });
@@ -108,6 +112,12 @@ export function JobCreationForm({
   
   const branches = selectedSource?.githubRepo?.branches || [];
   const defaultBranch = selectedSource?.githubRepo?.defaultBranch?.displayName;
+
+  useEffect(() => {
+    if (defaultBranch) {
+      setSelectedBranch(defaultBranch);
+    }
+  }, [defaultBranch]);
 
   return (
     <Card className="shadow-md">
@@ -170,6 +180,7 @@ export function JobCreationForm({
             <BranchSelection 
               branches={branches} 
               defaultBranchName={defaultBranch} 
+              onBranchSelected={setSelectedBranch}
               disabled={disabled || isPending || !selectedSource}
             />
           </div>

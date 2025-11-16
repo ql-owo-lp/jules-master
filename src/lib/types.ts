@@ -6,14 +6,50 @@ export type Session = {
   id: string;
   title: string;
   prompt: string;
-  // This is a simplification. The real API has a complex sourceContext.
-  sourceContext?: {
-    source: string;
-  };
+  sourceContext?: SourceContext;
   createTime?: string; // API uses createTime
+  updateTime?: string;
   createdAt: string; // Keep for consistency in our app
-  status: JobStatus; // This is a client-side concept for now to track progress
+  status: JobStatus | State; // This is a client-side concept for now to track progress
+  state?: State;
+  url?: string;
+  outputs?: SessionOutput[];
+  requirePlanApproval?: boolean;
+  automationMode?: AutomationMode;
 };
+
+export type SourceContext = {
+  source: string;
+  githubRepoContext?: GitHubRepoContext;
+};
+
+export type GitHubRepoContext = {
+  startingBranch: string;
+};
+
+export type SessionOutput = {
+  pullRequest?: PullRequest;
+};
+
+export type PullRequest = {
+  url: string;
+  title: string;
+  description: string;
+};
+
+export type AutomationMode = 'AUTOMATION_MODE_UNSPECIFIED' | 'AUTO_CREATE_PR';
+
+export type State =
+  | 'STATE_UNSPECIFIED'
+  | 'QUEUED'
+  | 'PLANNING'
+  | 'AWAITING_PLAN_APPROVAL'
+  | 'AWAITING_USER_FEEDBACK'
+  | 'IN_PROGRESS'
+  | 'PAUSED'
+  | 'FAILED'
+  | 'COMPLETED';
+
 
 export type Branch = {
   displayName: string;
@@ -22,7 +58,7 @@ export type Branch = {
 export type GitHubRepo = {
   owner: string;
   repo: string;
-  isPrivate: boolean;
+isPrivate: boolean;
   defaultBranch: Branch;
   branches: Branch[];
 };

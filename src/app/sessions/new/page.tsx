@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useRouter } from 'next/navigation';
 import { JobCreationForm } from "@/components/job-creation-form";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session } from "@/lib/types";
+import type { Session, Source } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { createSession } from "./actions";
 
 
 export default function NewSessionPage() {
@@ -15,6 +16,35 @@ export default function NewSessionPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+
+  const handleCreateSession = async (prompt: string, source: Source | null, branch: string | undefined): Promise<Session | null> => {
+    if (!source || !branch) {
+        toast({
+            variant: "destructive",
+            title: "Repository and branch must be selected.",
+        });
+        return null;
+    }
+    const newSession = await createSession(apiKey, {
+      prompt: prompt,
+      sourceContext: {
+        source: source.name,
+        githubRepoContext: {
+          startingBranch: branch,
+        }
+      }
+    });
+
+    if (!newSession) {
+      toast({
+        variant: "destructive",
+        title: "Failed to create session.",
+        description: "Please check your API key and try again.",
+      });
+      return null;
+    }
+    return newSession;
+  }
 
   const handleSessionsCreated = (newSessions: Session[]) => {
     toast({
@@ -40,6 +70,7 @@ export default function NewSessionPage() {
           )}
           <JobCreationForm
             onJobsCreated={handleSessionsCreated}
+            onCreateJob={handleCreateSession}
             disabled={!apiKey}
             apiKey={apiKey}
           />

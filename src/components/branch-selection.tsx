@@ -15,22 +15,32 @@ import { useEffect, useState } from 'react';
 type BranchSelectionProps = {
   branches: Branch[];
   defaultBranchName?: string;
+  onBranchSelected: (branch?: string) => void;
   disabled?: boolean;
 };
 
-export function BranchSelection({ branches, defaultBranchName, disabled }: BranchSelectionProps) {
+export function BranchSelection({ branches, defaultBranchName, onBranchSelected, disabled }: BranchSelectionProps) {
   const [selectedBranch, setSelectedBranch] = useState<string | undefined>();
 
   useEffect(() => {
-    setSelectedBranch(defaultBranchName);
+    const newSelectedBranch = defaultBranchName;
+    setSelectedBranch(newSelectedBranch);
+    if(newSelectedBranch){
+      onBranchSelected(newSelectedBranch);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultBranchName]);
 
+  const handleValueChange = (value: string) => {
+    setSelectedBranch(value);
+    onBranchSelected(value);
+  }
 
   return (
     <div className="grid w-full items-center gap-2">
       <Label htmlFor="branch">Branch</Label>
       <Select
-        onValueChange={setSelectedBranch}
+        onValueChange={handleValueChange}
         value={selectedBranch}
         disabled={disabled || branches.length === 0}
         name="branch"
