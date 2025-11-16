@@ -123,7 +123,7 @@ export default function Home() {
         </div>
       </main>
        <div className="fixed bottom-8 right-8">
-        <Button asChild size="lg" className="rounded-full shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button asChild size="lg" className="rounded-lg shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
           <Link href="/sessions/new">
             <Plus className="h-8 w-8" />
             <span className="sr-only">New Session</span>
