@@ -96,7 +96,7 @@ export function SettingsSheet() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="poll-interval">Job Poll Interval (seconds)</Label>
+            <Label htmlFor="poll-interval">Session Poll Interval (seconds)</Label>
             <Input
               id="poll-interval"
               type="number"

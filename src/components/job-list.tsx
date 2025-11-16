@@ -34,7 +34,8 @@ export function JobList({ jobs, lastUpdatedAt, onRefresh }: JobListProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CardTitle>Job Queue</CardTitle>
+              <ClipboardList className="h-6 w-6" />
+              <CardTitle>Session List</CardTitle>
             </div>
           </div>
           <CardDescription>Your created jobs will appear here.</CardDescription>
@@ -57,7 +58,8 @@ export function JobList({ jobs, lastUpdatedAt, onRefresh }: JobListProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CardTitle>Job Queue</CardTitle>
+            <ClipboardList className="h-6 w-6" />
+            <CardTitle>Session List</CardTitle>
             <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh job list">
               <RefreshCw className="h-4 w-4" />
             </Button>
