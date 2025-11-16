@@ -33,3 +33,9 @@ export type Source = {
   id: string;
   githubRepo: GitHubRepo;
 };
+
+export type PredefinedPrompt = {
+  id: string;
+  title: string;
+  prompt: string;
+};
