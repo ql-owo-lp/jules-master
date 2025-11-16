@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
@@ -48,6 +49,8 @@ export default function SessionDetailPage({
   const [isActionPending, startActionTransition] = useTransition();
   const { toast } = useToast();
   const [message, setMessage] = useState("");
+  const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
+
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -104,6 +107,14 @@ export default function SessionDetailPage({
   const repoContext = session?.sourceContext?.githubRepoContext;
   const repoName = session?.sourceContext?.source.split("/").slice(-2).join("/");
 
+  const truncateTitle = (title: string, maxLength: number) => {
+    if (title.length <= maxLength) {
+      return title;
+    }
+    return title.substring(0, maxLength) + "...";
+  };
+
+
   if (isFetching || !session) {
     return (
       <div className="container mx-auto max-w-4xl space-y-8 p-4 sm:p-6 md:p-8">
@@ -125,7 +136,7 @@ export default function SessionDetailPage({
                     <span className="sr-only">Back to list</span>
                 </Link>
             </Button>
-            <h1 className="text-3xl font-bold tracking-tight">{session.title}</h1>
+            <h1 className="text-3xl font-bold tracking-tight" title={session.title}>{truncateTitle(session.title, titleTruncateLength)}</h1>
             {session.state && <JobStatusBadge status={session.state} />}
           </div>
 
@@ -273,3 +284,5 @@ export default function SessionDetailPage({
     </div>
   );
 }
+
+    
