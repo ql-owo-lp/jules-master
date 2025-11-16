@@ -28,31 +28,6 @@ type JobListProps = {
 };
 
 export function JobList({ jobs, lastUpdatedAt, onRefresh }: JobListProps) {
-  if (jobs.length === 0) {
-    return (
-      <Card className="shadow-md">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="h-6 w-6" />
-              <CardTitle>Session List</CardTitle>
-            </div>
-          </div>
-          <CardDescription>Your created jobs will appear here.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
-            <ClipboardList className="h-12 w-12 mb-4" />
-            <p className="font-semibold text-lg">No jobs yet</p>
-            <p className="text-sm">
-              Use the form above to create a new job to get started.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card className="shadow-md">
       <CardHeader>
@@ -71,35 +46,47 @@ export function JobList({ jobs, lastUpdatedAt, onRefresh }: JobListProps) {
             </div>
           )}
         </div>
-        <CardDescription>A list of your most recent jobs.</CardDescription>
+        <CardDescription>
+          {jobs.length > 0 ? "A list of your most recent jobs." : "Your created jobs will appear here."}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead className="w-[130px]">Status</TableHead>
-                <TableHead className="w-[150px] text-right">Created</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {jobs.map((job) => (
-                <TableRow key={job.id}>
-                  <TableCell className="font-medium">{job.title}</TableCell>
-                  <TableCell>
-                    <JobStatusBadge status={job.status} />
-                  </TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(job.createdAt), {
-                      addSuffix: true,
-                    })}
-                  </TableCell>
+        {jobs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
+            <ClipboardList className="h-12 w-12 mb-4" />
+            <p className="font-semibold text-lg">No jobs yet</p>
+            <p className="text-sm">
+              Use the form above to create a new job to get started.
+            </p>
+          </div>
+        ) : (
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead className="w-[130px]">Status</TableHead>
+                  <TableHead className="w-[150px] text-right">Created</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {jobs.map((job) => (
+                  <TableRow key={job.id}>
+                    <TableCell className="font-medium">{job.title}</TableCell>
+                    <TableCell>
+                      <JobStatusBadge status={job.status} />
+                    </TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {formatDistanceToNow(new Date(job.createdAt), {
+                        addSuffix: true,
+                      })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
