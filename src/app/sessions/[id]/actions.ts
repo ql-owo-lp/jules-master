@@ -1,7 +1,13 @@
+
 "use server";
 
-import type { Session } from "@/lib/types";
+import type { Session, Activity } from "@/lib/types";
 import { revalidatePath } from "next/cache";
+
+type ListActivitiesResponse = {
+  activities: Activity[];
+  nextPageToken?: string;
+};
 
 export async function getSession(
   apiKey: string,
@@ -33,6 +39,40 @@ export async function getSession(
     return null;
   }
 }
+
+export async function listActivities(
+  apiKey: string,
+  sessionId: string
+): Promise<Activity[]> {
+  if (!apiKey) {
+    return [];
+  }
+  try {
+    const response = await fetch(
+      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}/activities`,
+      {
+        headers: {
+          "X-Goog-Api-Key": apiKey,
+        },
+        cache: "no-store",
+      }
+    );
+    if (!response.ok) {
+      console.error(
+        `Failed to fetch activities: ${response.status} ${response.statusText}`
+      );
+      const errorBody = await response.text();
+      console.error("Error body:", errorBody);
+      return [];
+    }
+    const data: ListActivitiesResponse = await response.json();
+    return data.activities || [];
+  } catch (error) {
+    console.error("Error fetching activities:", error);
+    return [];
+  }
+}
+
 
 export async function approvePlan(
   apiKey: string,
