@@ -211,6 +211,18 @@ export default function SessionDetailPage({
   const job = jobs.find(j => session && j.sessionIds.includes(session.id));
   const backPath = jobId ? `/?jobId=${jobId}` : (job ? `/?jobId=${job.id}` : '/');
 
+  const getPullRequestUrl = (session: Session | null): string | null => {
+    if (session?.outputs && session.outputs.length > 0) {
+      for (const output of session.outputs) {
+        if (output.pullRequest?.url) {
+          return output.pullRequest.url;
+        }
+      }
+    }
+    return null;
+  }
+  const prUrl = getPullRequestUrl(session);
+
 
   if (isFetching && !session) {
     return (
@@ -382,6 +394,17 @@ export default function SessionDetailPage({
                                 </div>
                             </div>
                         )}
+                         {prUrl && (
+                             <div className="flex items-start gap-3">
+                                <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Pull Request</p>
+                                    <a href={prUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                        View on GitHub
+                                    </a>
+                                </div>
+                            </div>
+                         )}
                     </div>
 
                     {session.outputs && session.outputs.length > 0 && (
@@ -473,5 +496,3 @@ export default function SessionDetailPage({
     </div>
   );
 }
-
-    
