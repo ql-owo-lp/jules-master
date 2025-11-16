@@ -1,6 +1,6 @@
 'use server';
 
-import type { Session, Source, Branch } from '@/lib/types';
+import type { Session, Source } from '@/lib/types';
 import { revalidateTag } from 'next/cache';
 
 type ListSessionsResponse = {
@@ -10,11 +10,6 @@ type ListSessionsResponse = {
 
 type ListSourcesResponse = {
   sources: Source[];
-  nextPageToken?: string;
-};
-
-type ListBranchesResponse = {
-  branches: Branch[];
   nextPageToken?: string;
 };
 
@@ -79,30 +74,6 @@ export async function listSources(apiKey: string): Promise<Source[]> {
     return data.sources || [];
   } catch (error) {
     console.error('Error fetching sources:', error);
-    return [];
-  }
-}
-
-
-export async function listBranches(apiKey: string, sourceName: string): Promise<Branch[]> {
-  if (!apiKey || !sourceName) {
-    return [];
-  }
-  try {
-    const response = await fetch(`https://jules.googleapis.com/v1alpha/${sourceName}:listBranches`, {
-      headers: {
-        'X-Goog-Api-Key': apiKey,
-      },
-      next: { revalidate: 300, tags: [`branches-for-${sourceName}`] },
-    });
-    if (!response.ok) {
-      console.error(`Failed to fetch branches: ${response.status} ${response.statusText}`);
-      return [];
-    }
-    const data: ListBranchesResponse = await response.json();
-    return data.branches || [];
-  } catch (error) {
-    console.error('Error fetching branches:', error);
     return [];
   }
 }
