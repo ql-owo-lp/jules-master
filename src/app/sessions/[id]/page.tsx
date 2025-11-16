@@ -44,7 +44,6 @@ export default function SessionDetailPage({
 }: {
   params: { id: string };
 }) {
-  const { id } = params;
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [session, setSession] = useState<Session | null>(null);
   const [isFetching, startFetching] = useTransition();
@@ -56,6 +55,7 @@ export default function SessionDetailPage({
 
   useEffect(() => {
     const fetchSession = async () => {
+      const id = params.id;
       if (!apiKey || !id) return;
       startFetching(async () => {
         const fetchedSession = await getSession(apiKey, id);
@@ -71,7 +71,7 @@ export default function SessionDetailPage({
       fetchSession();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, id]);
+  }, [apiKey, params]);
 
   const handleApprovePlan = () => {
     if (!session) return;
