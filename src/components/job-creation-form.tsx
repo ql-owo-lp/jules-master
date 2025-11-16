@@ -46,30 +46,20 @@ export function JobCreationForm({
   disabled,
   apiKey,
 }: JobCreationFormProps) {
-  const [prompt, setPrompt] = useState("");
-  const [jobName, setJobName] = useState("");
+  const [prompt, setPrompt] = useLocalStorage("jules-new-job-prompt", "");
+  const [jobName, setJobName] = useLocalStorage("jules-new-job-name", "");
   const [sessionCount, setSessionCount] = useState(1);
   
-  const [defaultRequirePlanApproval] = useLocalStorage<boolean>("jules-default-require-plan-approval", false);
-  const [defaultAutomationMode] = useLocalStorage<AutomationMode>("jules-default-automation-mode", "AUTO_CREATE_PR");
-
-  const [requirePlanApproval, setRequirePlanApproval] = useState(defaultRequirePlanApproval);
-  const [automationMode, setAutomationMode] = useState<AutomationMode>(defaultAutomationMode);
-
-  useEffect(() => {
-    setRequirePlanApproval(defaultRequirePlanApproval);
-  }, [defaultRequirePlanApproval]);
-
-  useEffect(() => {
-    setAutomationMode(defaultAutomationMode);
-  }, [defaultAutomationMode]);
-
+  const [requirePlanApproval, setRequirePlanApproval] = useLocalStorage<boolean>("jules-new-job-require-plan-approval", false);
+  const [automationMode, setAutomationMode] = useLocalStorage<AutomationMode>("jules-new-job-automation-mode", "AUTO_CREATE_PR");
 
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, startRefreshTransition] = useTransition();
   const { toast } = useToast();
-  const [selectedSource, setSelectedSource] = useState<Source | null>(null);
-  const [selectedBranch, setSelectedBranch] = useState<string | undefined>();
+  
+  const [selectedSource, setSelectedSource] = useLocalStorage<Source | null>("jules-last-source", null);
+  const [selectedBranch, setSelectedBranch] = useLocalStorage<string | undefined>("jules-last-branch", undefined);
+
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
   const [isClient, setIsClient] = useState(false);
@@ -167,11 +157,26 @@ export function JobCreationForm({
   const branches = selectedSource?.githubRepo?.branches || [];
   const defaultBranch = selectedSource?.githubRepo?.defaultBranch?.displayName;
 
+  // Effect to auto-select default branch ONLY if there isn't a branch already selected from local storage
   useEffect(() => {
-    if (defaultBranch) {
+    if (!selectedBranch && defaultBranch) {
       setSelectedBranch(defaultBranch);
     }
-  }, [defaultBranch]);
+  }, [defaultBranch, selectedBranch, setSelectedBranch]);
+
+
+  // When selectedSource changes, if the previously selected branch is not in the new list of branches,
+  // then select the default branch for the new source.
+  useEffect(() => {
+    if (selectedSource) {
+      const currentBranchIsValid = branches.some(b => b.displayName === selectedBranch);
+      if (!currentBranchIsValid) {
+        setSelectedBranch(defaultBranch);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSource, branches, defaultBranch]);
+
 
   return (
     <Card className="shadow-md">
@@ -252,14 +257,15 @@ export function JobCreationForm({
                     key={sourceSelectionKey}
                     apiKey={apiKey} 
                     onSourceSelected={setSelectedSource} 
-                    disabled={disabled || isPending} 
+                    disabled={disabled || isPending}
+                    selectedValue={selectedSource}
                 />
             </div>
             <BranchSelection 
               branches={branches} 
-              defaultBranchName={defaultBranch} 
               onBranchSelected={setSelectedBranch}
               disabled={disabled || isPending || !selectedSource}
+              selectedValue={selectedBranch}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">

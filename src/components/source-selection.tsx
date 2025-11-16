@@ -17,11 +17,11 @@ type SourceSelectionProps = {
   apiKey: string;
   onSourceSelected: (source: Source | null) => void;
   disabled?: boolean;
+  selectedValue?: Source | null;
 };
 
-export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSelectionProps) {
+export function SourceSelection({ apiKey, onSourceSelected, disabled, selectedValue }: SourceSelectionProps) {
   const [sources, setSources] = useState<Source[]>([]);
-  const [selectedValue, setSelectedValue] = useState<string | undefined>();
   const [isFetching, startFetching] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -32,13 +32,9 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSe
           setError(null);
           const fetchedSources = await listSources(apiKey);
           setSources(fetchedSources);
-          if (fetchedSources.length > 0) {
-            const defaultSource = fetchedSources[0];
-            setSelectedValue(defaultSource.name);
-            onSourceSelected(defaultSource); // Immediately notify parent of default
-          } else {
-            setSelectedValue(undefined);
-            onSourceSelected(null);
+          // If there's no value from localstorage, select the first one.
+          if (!selectedValue && fetchedSources.length > 0) {
+            onSourceSelected(fetchedSources[0]);
           }
         } catch (e) {
           setError('Failed to load repositories.');
@@ -47,14 +43,12 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSe
       });
     } else {
       setSources([]);
-      setSelectedValue(undefined);
       onSourceSelected(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey]);
 
   const handleValueChange = (sourceName: string) => {
-    setSelectedValue(sourceName);
     const selected = sources.find((s) => s.name === sourceName) || null;
     onSourceSelected(selected);
   };
@@ -83,7 +77,7 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSe
       <Select
         onValueChange={handleValueChange}
         disabled={disabled || sources.length === 0}
-        value={selectedValue}
+        value={selectedValue?.name}
         name="repository"
       >
         <SelectTrigger id="repository">

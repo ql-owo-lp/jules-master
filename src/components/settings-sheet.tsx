@@ -24,24 +24,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { AutomationMode } from "@/lib/types";
-import { Switch } from "./ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 
 export function SettingsSheet() {
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
   const [pollInterval, setPollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
   const [titleTruncateLength, setTitleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
-  const [defaultRequirePlanApproval, setDefaultRequirePlanApproval] = useLocalStorage<boolean>("jules-default-require-plan-approval", false);
-  const [defaultAutomationMode, setDefaultAutomationMode] = useLocalStorage<AutomationMode>("jules-default-automation-mode", "AUTO_CREATE_PR");
-
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [pollIntervalValue, setPollIntervalValue] = useState(pollInterval);
   const [titleTruncateLengthValue, setTitleTruncateLengthValue] = useState(titleTruncateLength);
-  const [requirePlanApprovalValue, setRequirePlanApprovalValue] = useState(defaultRequirePlanApproval);
-  const [automationModeValue, setAutomationModeValue] = useState<AutomationMode>(defaultAutomationMode);
   
   const [showApiKey, setShowApiKey] = useState(false);
   const { toast } = useToast();
@@ -59,20 +51,10 @@ export function SettingsSheet() {
     setTitleTruncateLengthValue(titleTruncateLength);
   }, [titleTruncateLength]);
   
-  useEffect(() => {
-    setRequirePlanApprovalValue(defaultRequirePlanApproval);
-  }, [defaultRequirePlanApproval]);
-
-  useEffect(() => {
-    setAutomationModeValue(defaultAutomationMode);
-  }, [defaultAutomationMode]);
-
   const handleSave = () => {
     setApiKey(apiKeyValue);
     setPollInterval(pollIntervalValue);
     setTitleTruncateLength(titleTruncateLengthValue);
-    setDefaultRequirePlanApproval(requirePlanApprovalValue);
-    setDefaultAutomationMode(automationModeValue);
     toast({
       title: "Settings Saved",
       description: "Your settings have been updated.",
@@ -146,40 +128,6 @@ export function SettingsSheet() {
               min="10"
             />
           </div>
-
-           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-             <div className="space-y-0.5">
-                <Label htmlFor="default-require-plan-approval">Default to Require Plan Approval</Label>
-                 <SheetDescription className="text-xs">
-                    Sets the default for the 'Require Plan Approval' checkbox on the new job form.
-                </SheetDescription>
-             </div>
-             <Switch 
-                id="default-require-plan-approval" 
-                checked={requirePlanApprovalValue} 
-                onCheckedChange={setRequirePlanApprovalValue}
-              />
-          </div>
-
-           <div className="grid gap-2">
-                <Label htmlFor="default-automation-mode">Default Automation Mode</Label>
-                 <Select 
-                    value={automationModeValue}
-                    onValueChange={(value: AutomationMode) => setAutomationModeValue(value)}
-                >
-                    <SelectTrigger id="default-automation-mode">
-                        <SelectValue placeholder="Select mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="AUTO_CREATE_PR">Auto-create Pull Request</SelectItem>
-                        <SelectItem value="AUTOMATION_MODE_UNSPECIFIED">Unspecified</SelectItem>
-                    </SelectContent>
-                </Select>
-                 <SheetDescription className="text-xs">
-                    Sets the default automation mode for new jobs.
-                </SheetDescription>
-            </div>
-
 
           <div className="grid gap-2">
             <Label>Theme</Label>

@@ -10,29 +10,18 @@ import {
 import { Label } from '@/components/ui/label';
 import type { Branch } from '@/lib/types';
 import { GitBranch } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 type BranchSelectionProps = {
   branches: Branch[];
-  defaultBranchName?: string;
+  selectedValue?: string;
   onBranchSelected: (branch?: string) => void;
   disabled?: boolean;
 };
 
-export function BranchSelection({ branches, defaultBranchName, onBranchSelected, disabled }: BranchSelectionProps) {
-  const [selectedBranch, setSelectedBranch] = useState<string | undefined>();
-
-  useEffect(() => {
-    const newSelectedBranch = defaultBranchName;
-    setSelectedBranch(newSelectedBranch);
-    if(newSelectedBranch){
-      onBranchSelected(newSelectedBranch);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultBranchName]);
+export function BranchSelection({ branches, selectedValue, onBranchSelected, disabled }: BranchSelectionProps) {
 
   const handleValueChange = (value: string) => {
-    setSelectedBranch(value);
     onBranchSelected(value);
   }
 
@@ -41,7 +30,7 @@ export function BranchSelection({ branches, defaultBranchName, onBranchSelected,
       <Label htmlFor="branch">Branch</Label>
       <Select
         onValueChange={handleValueChange}
-        value={selectedBranch}
+        value={selectedValue}
         disabled={disabled || branches.length === 0}
         name="branch"
       >
