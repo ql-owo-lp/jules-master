@@ -72,9 +72,9 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[600px] pr-4">
+        <ScrollArea className="h-[700px] pr-4">
             <div className="space-y-8">
-            {activities.map((activity) => (
+            {activities.map((activity, index) => (
                 <div key={activity.id} className="flex gap-4">
                 <div className="flex flex-col items-center">
                     <span
@@ -85,14 +85,13 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
                         <MessageSquare className="h-5 w-5" />
                     )}
                     </span>
-                    {/* Don't draw the line for the last item */}
-                    {activities[activities.length - 1].id !== activity.id && (
+                    {index < activities.length - 1 && (
                        <div className="flex-1 w-px bg-border my-2"></div>
                     )}
                 </div>
-                <div className="flex-1 space-y-1 mt-1">
-                    <div className="flex justify-between items-start">
-                    <p className="font-semibold text-sm">{activity.description}</p>
+                <div className="flex-1 space-y-1 mt-1 min-w-0">
+                    <div className="flex justify-between items-start gap-4">
+                    <p className="font-semibold text-sm break-words">{activity.description}</p>
                     <p className="text-xs text-muted-foreground whitespace-nowrap pl-4">
                         {formatDistanceToNow(new Date(activity.createTime), {
                         addSuffix: true,
@@ -114,10 +113,10 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
 
 function ActivityContent({ activity }: { activity: Activity }) {
   if (activity.agentMessaged) {
-    return <p>{activity.agentMessaged.agentMessage}</p>;
+    return <p className="whitespace-pre-wrap break-words">{activity.agentMessaged.agentMessage}</p>;
   }
   if (activity.userMessaged) {
-    return <p>{activity.userMessaged.userMessage}</p>;
+    return <p className="whitespace-pre-wrap break-words">{activity.userMessaged.userMessage}</p>;
   }
   if (activity.planGenerated) {
     return (
