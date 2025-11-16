@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import Link from "next/link";
-import { notFound, useSearchParams } from "next/navigation";
+import { notFound, useSearchParams, useParams } from "next/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
 import type { Session, Job, Activity } from "@/lib/types";
@@ -53,12 +53,9 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
-export default function SessionDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const { id } = params;
+export default function SessionDetailPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [pollIntervalSetting] = useLocalStorage<number>("jules-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -496,7 +493,5 @@ export default function SessionDetailPage({
     </div>
   );
 }
-
-    
 
     
