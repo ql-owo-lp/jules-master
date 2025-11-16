@@ -49,8 +49,20 @@ export function JobCreationForm({
   const [prompt, setPrompt] = useState("");
   const [jobName, setJobName] = useState("");
   const [sessionCount, setSessionCount] = useState(1);
-  const [requirePlanApproval, setRequirePlanApproval] = useState(true);
-  const [automationMode, setAutomationMode] = useState<AutomationMode>("AUTO_CREATE_PR");
+  
+  const [defaultRequirePlanApproval] = useLocalStorage<boolean>("jules-default-require-plan-approval", false);
+  const [defaultAutomationMode] = useLocalStorage<AutomationMode>("jules-default-automation-mode", "AUTO_CREATE_PR");
+
+  const [requirePlanApproval, setRequirePlanApproval] = useState(defaultRequirePlanApproval);
+  const [automationMode, setAutomationMode] = useState<AutomationMode>(defaultAutomationMode);
+
+  useEffect(() => {
+    setRequirePlanApproval(defaultRequirePlanApproval);
+  }, [defaultRequirePlanApproval]);
+
+  useEffect(() => {
+    setAutomationMode(defaultAutomationMode);
+  }, [defaultAutomationMode]);
 
 
   const [isPending, startTransition] = useTransition();
