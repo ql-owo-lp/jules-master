@@ -36,7 +36,7 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSe
           if (fetchedSources.length > 0) {
             const defaultSource = fetchedSources[0];
             setSelectedValue(defaultSource.name);
-            onSourceSelected(defaultSource);
+            onSourceSelected(defaultSource); // Immediately notify parent of default
           } else {
             setSelectedValue(undefined);
             onSourceSelected(null);
