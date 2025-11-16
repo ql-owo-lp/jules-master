@@ -15,7 +15,7 @@ import {
   SidebarGroup,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { Puppet, Home, PlusCircle, BookText } from 'lucide-react';
+import { Bot, Home, PlusCircle, BookText } from 'lucide-react';
 import { Header } from '@/components/header';
 
 export const metadata: Metadata = {
@@ -57,7 +57,7 @@ export default function RootLayout({
                     href="/"
                     className="flex items-center gap-2 font-bold text-xl"
                   >
-                    <Puppet className="h-7 w-7 text-primary" />
+                    <Bot className="h-7 w-7 text-primary" />
                     <span className='group-data-[collapsible=icon]:hidden'>Jules Master</span>
                   </Link>
                 </SidebarHeader>
