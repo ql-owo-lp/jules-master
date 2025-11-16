@@ -162,8 +162,8 @@ export function SessionList({
                 <SelectValue placeholder="Filter by repository..." />
               </SelectTrigger>
               <SelectContent>
-                {uniqueRepos.map(repo => (
-                  <SelectItem key={repo} value={repo}>{repo === 'all' ? 'All Repositories' : repo}</SelectItem>
+                {uniqueRepos.map((repo, index) => (
+                  <SelectItem key={`${repo}-${index}`} value={repo}>{repo === 'all' ? 'All Repositories' : repo}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -175,8 +175,8 @@ export function SessionList({
                 <SelectValue placeholder="Filter by status..." />
               </SelectTrigger>
               <SelectContent>
-                {uniqueStatuses.map(status => (
-                  <SelectItem key={status} value={status}>{status === 'all' ? 'All Statuses' : status}</SelectItem>
+                {uniqueStatuses.map((status, index) => (
+                  <SelectItem key={`${status}-${index}`} value={status}>{status === 'all' ? 'All Statuses' : status}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -188,8 +188,8 @@ export function SessionList({
                 <SelectValue placeholder="Filter by job..." />
               </SelectTrigger>
               <SelectContent>
-                {uniqueJobNames.map(jobId => (
-                  <SelectItem key={jobId} value={jobId}>{jobId === 'all' ? 'All Jobs' : jobMap.get(jobId) || jobId}</SelectItem>
+                {uniqueJobNames.map((jobId, index) => (
+                  <SelectItem key={`${jobId}-${index}`} value={jobId}>{jobId === 'all' ? 'All Jobs' : jobMap.get(jobId) || jobId}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -300,3 +300,5 @@ export function SessionList({
     </Card>
   );
 }
+
+    
