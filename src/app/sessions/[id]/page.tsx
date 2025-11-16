@@ -130,9 +130,9 @@ export default function SessionDetailPage() {
     return () => clearInterval(timer);
   }, [apiKey, pollInterval, lastUpdatedAt]);
   
-  const scrollToBottom = () => {
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (activityFeedRef.current) {
-        activityFeedRef.current.scrollTo({ top: activityFeedRef.current.scrollHeight, behavior: 'smooth' });
+        activityFeedRef.current.scrollTo({ top: activityFeedRef.current.scrollHeight, behavior });
     }
   };
 
@@ -149,7 +149,7 @@ export default function SessionDetailPage() {
     const currentRef = activityFeedRef.current;
     if (currentRef) {
         // Auto-scroll on new activities
-        currentRef.scrollTop = currentRef.scrollHeight;
+        scrollToBottom('auto');
         
         currentRef.addEventListener('scroll', handleScroll);
         return () => currentRef.removeEventListener('scroll', handleScroll);
@@ -479,7 +479,7 @@ export default function SessionDetailPage() {
                             "fixed bottom-8 right-8 rounded-full shadow-lg transition-opacity",
                             showScroll ? "opacity-100" : "opacity-0 pointer-events-none"
                         )}
-                        onClick={scrollToBottom}
+                        onClick={() => scrollToBottom('smooth')}
                         aria-label="Scroll to bottom"
                         >
                         <ChevronDown className="h-6 w-6" />
@@ -493,3 +493,5 @@ export default function SessionDetailPage() {
     </div>
   );
 }
+
+  
