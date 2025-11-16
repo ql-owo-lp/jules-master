@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
@@ -7,8 +6,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
-import type { Session, Job } from "@/lib/types";
-import { getSession, approvePlan, sendMessage } from "./actions";
+import type { Session, Job, Activity } from "@/lib/types";
+import { getSession, approvePlan, sendMessage, listActivities } from "./actions";
+import { ActivityFeed } from "@/components/activity-feed";
 
 import {
   Card,
@@ -52,21 +52,26 @@ export default function SessionDetailPage({
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [session, setSession] = useState<Session | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [isFetching, startFetching] = useTransition();
   const [isActionPending, startActionTransition] = useTransition();
   const { toast } = useToast();
   const [message, setMessage] = useState("");
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
 
-
   useEffect(() => {
-    const fetchSession = async () => {
+    const fetchSessionData = async () => {
       const id = params.id;
       if (!apiKey || !id) return;
       startFetching(async () => {
-        const fetchedSession = await getSession(apiKey, id);
+        const [fetchedSession, fetchedActivities] = await Promise.all([
+          getSession(apiKey, id),
+          listActivities(apiKey, id)
+        ]);
+        
         if (fetchedSession) {
           setSession(fetchedSession);
+          setActivities(fetchedActivities.sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime()));
         } else {
           notFound();
         }
@@ -74,9 +79,8 @@ export default function SessionDetailPage({
     };
 
     if (apiKey) {
-      fetchSession();
+      fetchSessionData();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, params.id]);
 
   const handleApprovePlan = () => {
@@ -131,6 +135,7 @@ export default function SessionDetailPage({
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-40 w-full" />
         <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -196,6 +201,8 @@ export default function SessionDetailPage({
               </CardFooter>
             </Card>
           )}
+
+          <ActivityFeed activities={activities} />
 
           <Card>
             <CardHeader>

@@ -1,3 +1,4 @@
+
 export type JobStatus = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Unknown';
 
 // Based on the Jules API documentation for a Session
@@ -82,3 +83,88 @@ export type PredefinedPrompt = {
   title: string;
   prompt: string;
 };
+
+// Activity and related types
+export interface Activity {
+  name: string;
+  id: string;
+  description: string;
+  createTime: string;
+  originator: string;
+  artifacts?: Artifact[];
+  agentMessaged?: AgentMessaged;
+  userMessaged?: UserMessaged;
+  planGenerated?: PlanGenerated;
+  planApproved?: PlanApproved;
+  progressUpdated?: ProgressUpdated;
+  sessionCompleted?: SessionCompleted;
+  sessionFailed?: SessionFailed;
+}
+
+export interface AgentMessaged {
+  agentMessage: string;
+}
+
+export interface UserMessaged {
+  userMessage: string;
+}
+
+export interface PlanGenerated {
+  plan: Plan;
+}
+
+export interface Plan {
+  id: string;
+  steps: PlanStep[];
+  createTime: string;
+}
+
+export interface PlanStep {
+  id: string;
+  title: string;
+  description: string;
+  index: number;
+}
+
+export interface PlanApproved {
+  planId: string;
+}
+
+export interface ProgressUpdated {
+  title: string;
+  description: string;
+}
+
+export interface SessionCompleted {}
+
+export interface SessionFailed {
+  reason: string;
+}
+
+export interface Artifact {
+  changeSet?: ChangeSet;
+  media?: Media;
+  bashOutput?: BashOutput;
+}
+
+export interface ChangeSet {
+  source: string;
+  gitPatch?: GitPatch;
+}
+
+export interface GitPatch {
+  unidiffPatch: string;
+  baseCommitId: string;
+  suggestedCommitMessage: string;
+}
+
+export interface Media {
+  data: string; // base64 encoded
+  mimeType: string;
+}
+
+export interface BashOutput {
+  command: string;
+  output: string;
+  exitCode: number;
+}
