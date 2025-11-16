@@ -15,18 +15,30 @@ export default function Home() {
   const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 5);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
 
   useEffect(() => {
     setIsClient(true);
+    setLastUpdatedAt(new Date());
   }, []);
 
   const handleJobsCreated = (newJobs: Job[]) => {
     setJobs((prevJobs) => [...newJobs, ...prevJobs]);
+    setLastUpdatedAt(new Date());
+  };
+
+  const handleRefresh = () => {
+    // In a real app, this would re-fetch jobs.
+    // Here, we'll just update the timestamp.
+    setLastUpdatedAt(new Date());
+    // And we can re-trigger the status simulation for pending jobs
+    // by creating a new array reference for the jobs state.
+    setJobs(prevJobs => [...prevJobs]); 
   };
 
   // Effect to simulate job status progression
   useEffect(() => {
-    if (pollInterval <= 0) return;
+    if (pollInterval <= 0 || !isClient) return;
 
     const timers: NodeJS.Timeout[] = [];
     jobs.forEach((job) => {
@@ -37,6 +49,7 @@ export default function Home() {
               j.id === job.id ? { ...j, status: "Running" } : j
             )
           );
+          setLastUpdatedAt(new Date());
         }, Math.random() * (pollInterval * 1000 * 0.6) + (pollInterval * 1000 * 0.2)); // Start running after 20-80% of interval
         timers.push(timer1);
       } else if (job.status === "Running") {
@@ -48,6 +61,7 @@ export default function Home() {
               j.id === job.id ? { ...j, status: newStatus } : j
             )
           );
+          setLastUpdatedAt(new Date());
         }, Math.random() * (pollInterval * 1000) + (pollInterval * 1000 * 0.5)); // Finish after 50-150% of interval
         timers.push(timer2);
       }
@@ -56,7 +70,7 @@ export default function Home() {
     return () => {
       timers.forEach(clearTimeout);
     };
-  }, [jobs, pollInterval]);
+  }, [jobs, pollInterval, isClient]);
 
   if (!isClient) {
     return (
@@ -101,7 +115,11 @@ export default function Home() {
             onJobsCreated={handleJobsCreated}
             disabled={!apiKey}
           />
-          <JobList jobs={jobs} />
+          <JobList
+            jobs={jobs}
+            lastUpdatedAt={lastUpdatedAt}
+            onRefresh={handleRefresh}
+          />
         </div>
       </main>
     </div>
