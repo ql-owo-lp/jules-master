@@ -12,16 +12,15 @@ export function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-3">
-            <Button asChild variant="ghost" className="p-0 h-auto">
-              <SidebarTrigger>
-                <div className="flex items-center space-x-3">
-                  <Bot className="h-8 w-8 text-primary" />
-                  <h1 className="text-2xl font-bold text-foreground font-headline hidden md:block">
+             <SidebarTrigger>
+                <Bot className="h-8 w-8 text-primary" />
+                 <span className="sr-only">Toggle Sidebar</span>
+            </SidebarTrigger>
+             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
+                <h1 className="text-2xl font-bold text-foreground font-headline hidden md:block">
                     Jules Master
-                  </h1>
-                </div>
-              </SidebarTrigger>
-            </Button>
+                </h1>
+            </Link>
           </div>
           <SettingsSheet />
         </div>
