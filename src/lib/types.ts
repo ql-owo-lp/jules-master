@@ -18,6 +18,13 @@ export type Session = {
   automationMode?: AutomationMode;
 };
 
+export type Job = {
+    id: string;
+    name: string;
+    sessionIds: string[];
+    createdAt: string;
+}
+
 export type SourceContext = {
   source: string;
   githubRepoContext?: GitHubRepoContext;
