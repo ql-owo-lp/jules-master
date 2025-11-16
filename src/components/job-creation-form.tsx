@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -14,40 +14,18 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { createTitleForJob } from "@/app/actions";
 import { refreshSources } from "@/app/sessions/actions";
-import type { Session, Source, Branch } from "@/lib/types";
+import type { Session, Source, Branch, PredefinedPrompt } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2, RefreshCw } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[]) => void;
   disabled?: boolean;
   apiKey: string;
 };
-
-const preCannedPrompts = [
-  {
-    title: "Create React Component",
-    prompt:
-      "Create a new React component for a user profile card. It should display the user's name, avatar, and a short bio.",
-  },
-  {
-    title: "Fix Login Bug",
-    prompt:
-      "There's a bug in the login flow where the redirect after a successful login is not working. Please investigate and fix the issue.",
-  },
-  {
-    title: "Refactor DB Schema",
-    prompt:
-      "Refactor the database schema to normalize the 'user_addresses' table. Create a separate 'addresses' table and a join table.",
-  },
-  {
-    title: "Add User Profile Feature",
-    prompt:
-      "Add a new feature that allows users to upload a profile picture. This should include the frontend UI and the backend API endpoint.",
-  },
-];
 
 export function JobCreationForm({
   onJobsCreated,
@@ -60,6 +38,12 @@ export function JobCreationForm({
   const { toast } = useToast();
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
+  const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     startRefreshTransition(async () => {
@@ -136,23 +120,25 @@ export function JobCreationForm({
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label>Prompt Suggestions</Label>
-            <div className="flex flex-wrap gap-2">
-              {preCannedPrompts.map((p) => (
-                <Button
-                  key={p.title}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePreCannedPromptClick(p.prompt)}
-                  disabled={isPending || disabled}
-                >
-                  {p.title}
-                </Button>
-              ))}
+           {isClient && predefinedPrompts.length > 0 && (
+            <div className="space-y-2">
+              <Label>Prompt Suggestions</Label>
+              <div className="flex flex-wrap gap-2">
+                {predefinedPrompts.map((p) => (
+                  <Button
+                    key={p.id}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePreCannedPromptClick(p.prompt)}
+                    disabled={isPending || disabled}
+                  >
+                    {p.title}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="grid w-full gap-2">
             <Label htmlFor="prompts">Session Prompts</Label>
