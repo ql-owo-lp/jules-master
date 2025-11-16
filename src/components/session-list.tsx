@@ -18,12 +18,14 @@ import {
 import type { Session, Job } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+
 
 type SessionListProps = {
   sessions: Session[];
@@ -31,12 +33,25 @@ type SessionListProps = {
   lastUpdatedAt: Date | null;
   onRefresh: () => void;
   isRefreshing?: boolean;
+  isActionPending?: boolean;
+  onApprovePlan: (sessionId: string) => void;
   countdown: number;
   pollInterval: number;
   titleTruncateLength: number;
 };
 
-export function SessionList({ sessions, jobs, lastUpdatedAt, onRefresh, isRefreshing, countdown, pollInterval, titleTruncateLength }: SessionListProps) {
+export function SessionList({
+  sessions,
+  jobs,
+  lastUpdatedAt,
+  onRefresh,
+  isRefreshing,
+  isActionPending,
+  onApprovePlan,
+  countdown,
+  pollInterval,
+  titleTruncateLength,
+}: SessionListProps) {
   const router = useRouter();
 
   const sessionToJobMap = useMemo(() => {
@@ -48,8 +63,12 @@ export function SessionList({ sessions, jobs, lastUpdatedAt, onRefresh, isRefres
     }
     return map;
   }, [jobs]);
-  
-  const handleRowClick = (sessionId: string) => {
+
+  const handleRowClick = (e: React.MouseEvent, sessionId: string) => {
+    // Prevent navigation if a button inside the row was clicked
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
     router.push(`/sessions/${sessionId}`);
   };
 
@@ -100,21 +119,23 @@ export function SessionList({ sessions, jobs, lastUpdatedAt, onRefresh, isRefres
           </div>
         ) : (
           <div className="border rounded-lg">
+            <TooltipProvider>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Job Name</TableHead>
                   <TableHead className="w-[180px]">Status</TableHead>
-                  <TableHead className="w-[150px] text-right">Created</TableHead>
+                  <TableHead className="w-[150px]">Created</TableHead>
+                  <TableHead className="w-[80px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sessions.map((session) => (
-                  <TableRow 
-                    key={session.id} 
+                  <TableRow
+                    key={session.id}
                     className="cursor-pointer"
-                    onClick={() => handleRowClick(session.id)}
+                    onClick={(e) => handleRowClick(e, session.id)}
                   >
                     <TableCell className="font-medium" title={session.title}>{truncateTitle(session.title, titleTruncateLength)}</TableCell>
                     <TableCell>{sessionToJobMap.get(session.id) || "N/A"}</TableCell>
@@ -126,10 +147,33 @@ export function SessionList({ sessions, jobs, lastUpdatedAt, onRefresh, isRefres
                         addSuffix: true,
                       })}
                     </TableCell>
+                    <TableCell className="text-right">
+                       {session.state === 'AWAITING_PLAN_APPROVAL' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onApprovePlan(session.id)}
+                                disabled={isActionPending}
+                                aria-label="Approve Plan"
+                              >
+                                {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Approve Plan</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <div className="w-10 h-10" />
+                        )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            </TooltipProvider>
           </div>
         )}
       </CardContent>
