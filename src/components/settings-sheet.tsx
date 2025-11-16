@@ -28,8 +28,12 @@ import {
 export function SettingsSheet() {
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
   const [pollInterval, setPollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
+  const [titleTruncateLength, setTitleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
+
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [pollIntervalValue, setPollIntervalValue] = useState(pollInterval);
+  const [titleTruncateLengthValue, setTitleTruncateLengthValue] = useState(titleTruncateLength);
+  
   const [showApiKey, setShowApiKey] = useState(false);
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
@@ -42,9 +46,14 @@ export function SettingsSheet() {
     setPollIntervalValue(pollInterval);
   }, [pollInterval]);
 
+  useEffect(() => {
+    setTitleTruncateLengthValue(titleTruncateLength);
+  }, [titleTruncateLength]);
+
   const handleSave = () => {
     setApiKey(apiKeyValue);
     setPollInterval(pollIntervalValue);
+    setTitleTruncateLength(titleTruncateLengthValue);
     toast({
       title: "Settings Saved",
       description: "Your settings have been updated.",
@@ -103,9 +112,22 @@ export function SettingsSheet() {
               value={pollIntervalValue}
               onChange={(e) => setPollIntervalValue(Number(e.target.value))}
               placeholder="e.g., 60"
-              min="1"
+              min="0"
             />
           </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="title-truncate-length">Title Truncation Length</Label>
+            <Input
+              id="title-truncate-length"
+              type="number"
+              value={titleTruncateLengthValue}
+              onChange={(e) => setTitleTruncateLengthValue(Number(e.target.value))}
+              placeholder="e.g., 50"
+              min="10"
+            />
+          </div>
+
 
           <div className="grid gap-2">
             <Label>Theme</Label>

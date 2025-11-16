@@ -22,6 +22,7 @@ export default function Home() {
   const [isFetching, startFetching] = useTransition();
   const { toast } = useToast();
   const [countdown, setCountdown] = useState(pollInterval);
+  const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
 
 
   const fetchSessions = () => {
@@ -119,6 +120,7 @@ export default function Home() {
             isRefreshing={isFetching}
             countdown={countdown}
             pollInterval={pollInterval}
+            titleTruncateLength={titleTruncateLength}
           />
         </div>
       </main>

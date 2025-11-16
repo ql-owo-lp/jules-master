@@ -33,9 +33,10 @@ type SessionListProps = {
   isRefreshing?: boolean;
   countdown: number;
   pollInterval: number;
+  titleTruncateLength: number;
 };
 
-export function SessionList({ sessions, jobs, lastUpdatedAt, onRefresh, isRefreshing, countdown, pollInterval }: SessionListProps) {
+export function SessionList({ sessions, jobs, lastUpdatedAt, onRefresh, isRefreshing, countdown, pollInterval, titleTruncateLength }: SessionListProps) {
   const router = useRouter();
 
   const sessionToJobMap = useMemo(() => {
@@ -52,7 +53,7 @@ export function SessionList({ sessions, jobs, lastUpdatedAt, onRefresh, isRefres
     router.push(`/sessions/${sessionId}`);
   };
 
-  const truncateTitle = (title: string, maxLength = 20) => {
+  const truncateTitle = (title: string, maxLength: number) => {
     if (title.length <= maxLength) {
       return title;
     }
@@ -115,7 +116,7 @@ export function SessionList({ sessions, jobs, lastUpdatedAt, onRefresh, isRefres
                     className="cursor-pointer"
                     onClick={() => handleRowClick(session.id)}
                   >
-                    <TableCell className="font-medium" title={session.title}>{truncateTitle(session.title)}</TableCell>
+                    <TableCell className="font-medium" title={session.title}>{truncateTitle(session.title, titleTruncateLength)}</TableCell>
                     <TableCell>{sessionToJobMap.get(session.id) || "N/A"}</TableCell>
                     <TableCell>
                       <JobStatusBadge status={session.state || session.status} />
