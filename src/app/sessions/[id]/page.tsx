@@ -26,16 +26,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft,
   Calendar,
+  CheckSquare,
   Clock,
   Code,
   ExternalLink,
   GitMerge,
   Github,
   Hand,
+  Hash,
   Loader2,
   MessageSquare,
+  Package,
   Play,
   Share,
+  Zap,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -193,8 +197,22 @@ export default function SessionDetailPage({
             <CardHeader>
               <CardTitle>Session Details</CardTitle>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-6 text-sm">
+            <CardContent className="grid md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                 <div className="space-y-4">
+                     <div className="flex items-start gap-3">
+                        <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div>
+                            <p className="font-semibold">Session Name</p>
+                            <p className="text-muted-foreground font-mono text-xs">{session.name}</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-3">
+                        <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div>
+                            <p className="font-semibold">Session ID</p>
+                            <p className="text-muted-foreground font-mono text-xs">{session.id}</p>
+                        </div>
+                    </div>
                     <div className="flex items-start gap-3">
                         <Code className="h-5 w-5 text-muted-foreground mt-0.5" />
                         <div>
@@ -220,9 +238,32 @@ export default function SessionDetailPage({
                             </div>
                         </div>
                      )}
+                      {session.sourceContext?.source && (
+                         <div className="flex items-start gap-3">
+                            <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
+                            <div>
+                                <p className="font-semibold">Full Source</p>
+                                <p className="text-muted-foreground font-mono text-xs">{session.sourceContext.source}</p>
+                            </div>
+                        </div>
+                     )}
                 </div>
 
                  <div className="space-y-4">
+                     <div className="flex items-start gap-3">
+                        <CheckSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div>
+                            <p className="font-semibold">Requires Plan Approval</p>
+                            <p className="text-muted-foreground">{session.requirePlanApproval ? 'Yes' : 'No'}</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-3">
+                        <Zap className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div>
+                            <p className="font-semibold">Automation Mode</p>
+                            <p className="text-muted-foreground">{session.automationMode || 'Unspecified'}</p>
+                        </div>
+                    </div>
                      {session.createTime && (
                          <div className="flex items-start gap-3">
                             <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
@@ -286,3 +327,5 @@ export default function SessionDetailPage({
     </div>
   );
 }
+
+    
