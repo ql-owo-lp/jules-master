@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 
 const originatorIcons: Record<string, React.ReactNode> = {
@@ -41,7 +41,7 @@ const originatorIcons: Record<string, React.ReactNode> = {
   system: <Bot className="h-5 w-5 text-purple-500" />,
 };
 
-export function ActivityFeed({ activities }: { activities: Activity[] }) {
+export const ActivityFeed = forwardRef<HTMLDivElement, { activities: Activity[] }>(({ activities }, ref) => {
   if (activities.length === 0) {
      return (
       <Card>
@@ -72,7 +72,7 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[700px] pr-4">
+        <ScrollArea className="h-[700px] pr-4" ref={ref}>
             <div className="space-y-8">
             {activities.map((activity, index) => (
                 <div key={activity.id} className="flex gap-4">
@@ -109,7 +109,8 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
       </CardContent>
     </Card>
   );
-}
+});
+ActivityFeed.displayName = 'ActivityFeed';
 
 function ActivityContent({ activity }: { activity: Activity }) {
   if (activity.agentMessaged) {
@@ -267,3 +268,5 @@ function GitPatchDetails({ patch }: { patch: GitPatch }) {
     </Accordion>
   );
 }
+
+    
