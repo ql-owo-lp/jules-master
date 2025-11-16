@@ -21,6 +21,8 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ClipboardList, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type SessionListProps = {
   sessions: Session[];
@@ -32,6 +34,12 @@ type SessionListProps = {
 };
 
 export function SessionList({ sessions, lastUpdatedAt, onRefresh, isRefreshing, countdown, pollInterval }: SessionListProps) {
+  const router = useRouter();
+  
+  const handleRowClick = (sessionId: string) => {
+    router.push(`/sessions/${sessionId}`);
+  };
+
   return (
     <Card className="shadow-md">
       <CardHeader>
@@ -76,19 +84,23 @@ export function SessionList({ sessions, lastUpdatedAt, onRefresh, isRefreshing, 
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
-                  <TableHead className="w-[130px]">Status</TableHead>
+                  <TableHead className="w-[180px]">Status</TableHead>
                   <TableHead className="w-[150px] text-right">Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sessions.map((session) => (
-                  <TableRow key={session.id}>
+                  <TableRow 
+                    key={session.id} 
+                    className="cursor-pointer"
+                    onClick={() => handleRowClick(session.id)}
+                  >
                     <TableCell className="font-medium">{session.title}</TableCell>
                     <TableCell>
-                      <JobStatusBadge status={session.status} />
+                      <JobStatusBadge status={session.state || session.status} />
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
-                      {formatDistanceToNow(new Date(session.createdAt), {
+                      {formatDistanceToNow(new Date(session.createTime || session.createdAt), {
                         addSuffix: true,
                       })}
                     </TableCell>

@@ -45,7 +45,7 @@ export async function listSessions(
     // And it seems `createTime` is what we should use for `createdAt`.
     return (data.sessions || []).map(session => ({
       ...session,
-      status: 'Succeeded',
+      status: session.state || 'Succeeded',
       createdAt: session.createTime || new Date().toISOString(),
     }));
 
