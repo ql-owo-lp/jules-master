@@ -15,16 +15,25 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { createTitleForJob } from "@/app/actions";
 import { refreshSources } from "@/app/sessions/actions";
-import type { Session, Source, Branch, PredefinedPrompt, Job } from "@/lib/types";
+import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2, RefreshCw } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Switch } from "./ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[]) => void;
-  onCreateJob: (title: string, prompt: string, source: Source | null, branch: string | undefined) => Promise<Session | null>;
+  onCreateJob: (
+    title: string,
+    prompt: string,
+    source: Source | null,
+    branch: string | undefined,
+    requirePlanApproval: boolean,
+    automationMode: AutomationMode
+  ) => Promise<Session | null>;
   disabled?: boolean;
   apiKey: string;
 };
@@ -40,6 +49,9 @@ export function JobCreationForm({
   const [prompt, setPrompt] = useState("");
   const [jobName, setJobName] = useState("");
   const [sessionCount, setSessionCount] = useState(1);
+  const [requirePlanApproval, setRequirePlanApproval] = useState(true);
+  const [automationMode, setAutomationMode] = useState<AutomationMode>("AUTO_CREATE_PR");
+
 
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, startRefreshTransition] = useTransition();
@@ -94,7 +106,7 @@ export function JobCreationForm({
         let retries = 3;
         let newSession: Session | null = null;
         while (retries > 0 && !newSession) {
-            newSession = await onCreateJob(title, prompt, selectedSource, selectedBranch);
+            newSession = await onCreateJob(title, prompt, selectedSource, selectedBranch, requirePlanApproval, automationMode);
             if (!newSession) {
                 retries--;
                 toast({
@@ -237,6 +249,33 @@ export function JobCreationForm({
               onBranchSelected={setSelectedBranch}
               disabled={disabled || isPending || !selectedSource}
             />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="require-plan-approval" 
+                checked={requirePlanApproval} 
+                onCheckedChange={setRequirePlanApproval}
+                disabled={isPending || disabled}
+              />
+              <Label htmlFor="require-plan-approval">Require Plan Approval</Label>
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="automation-mode">Automation Mode</Label>
+                 <Select 
+                    value={automationMode}
+                    onValueChange={(value: AutomationMode) => setAutomationMode(value)}
+                    disabled={isPending || disabled}
+                >
+                    <SelectTrigger id="automation-mode">
+                        <SelectValue placeholder="Select mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="AUTO_CREATE_PR">Auto-create Pull Request</SelectItem>
+                        <SelectItem value="AUTOMATION_MODE_UNSPECIFIED">Unspecified</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
           </div>
         </CardContent>
         <CardFooter>

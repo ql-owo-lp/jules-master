@@ -1,12 +1,12 @@
 "use server";
 
-import type { Session } from "@/lib/types";
+import type { Session, AutomationMode } from "@/lib/types";
 
 // The partial session type for the create request body
 type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
   title?: string;
   requirePlanApproval?: boolean;
-  automationMode?: "AUTOMATION_MODE_UNSPECIFIED" | "AUTO_CREATE_PR";
+  automationMode?: AutomationMode;
 };
 
 
