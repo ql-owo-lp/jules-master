@@ -31,6 +31,8 @@ export function BranchSelection({ apiKey, source, disabled }: BranchSelectionPro
       startFetching(async () => {
         try {
           setError(null);
+          setBranches([]);
+          setSelectedBranch(undefined);
           const fetchedBranches = await listBranches(apiKey, source.name);
           setBranches(fetchedBranches);
           const defaultBranch = fetchedBranches.find(b => b.isDefault) || fetchedBranches[0];
@@ -75,7 +77,7 @@ export function BranchSelection({ apiKey, source, disabled }: BranchSelectionPro
       <Select
         onValueChange={setSelectedBranch}
         value={selectedBranch}
-        disabled={disabled || !source || branches.length === 0}
+        disabled={disabled || !source || branches.length === 0 || isFetching}
         name="branch"
       >
         <SelectTrigger id="branch">
