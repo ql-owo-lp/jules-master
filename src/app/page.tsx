@@ -14,9 +14,11 @@ import { listSessions, revalidateSessions } from "./sessions/actions";
 import { approvePlan } from "./sessions/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { getPullRequestStatus, type PRStatus } from "./github/actions";
 
 function HomePageContent() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [githubToken] = useLocalStorage<string>("jules-github-token", "");
   const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -27,6 +29,7 @@ function HomePageContent() {
   const { toast } = useToast();
   const [countdown, setCountdown] = useState(pollInterval);
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
+  const [prStatuses, setPrStatuses] = useState<Record<string, PRStatus>>({});
 
   const searchParams = useSearchParams();
   const jobIdParam = searchParams.get("jobId");
@@ -44,16 +47,6 @@ function HomePageContent() {
   
   const filteredJob = jobFilter ? jobs.find(j => j.id === jobFilter) : null;
 
-  const getRepoNameFromSource = (source: string | undefined): string => {
-    if (!source) return 'N/A';
-    // Example source: "sources/github/owner/repo"
-    const parts = source.split('/');
-    if (parts.length >= 4) {
-      return `${parts[2]}/${parts[3]}`;
-    }
-    return source;
-  }
-
   const filteredSessions = useMemo(() => {
     return sessions.filter(s => {
       const job = jobs.find(j => j.sessionIds.includes(s.id));
@@ -65,14 +58,33 @@ function HomePageContent() {
       return jobMatch && repoMatch && statusMatch;
     });
   }, [sessions, jobs, jobFilter, repoFilter, statusFilter]);
+  
+  const fetchPrStatuses = useCallback(async (sessionsToFetch: Session[]) => {
+    if (!githubToken) return;
 
-  const uniqueRepos = useMemo(() => ['all', ...Array.from(new Set(jobs.map(j => j.repo)))], [jobs]);
-  const uniqueJobNames = useMemo(() => ['all', ...Array.from(new Set(jobs.map(j => j.id)))], [jobs]);
-  const uniqueStatuses = useMemo(() => ['all', ...Array.from(new Set(sessions.map(s => s.state).filter((s): s is State => !!s)))], [sessions]);
-  const jobMap = useMemo(() => new Map(jobs.map(j => [j.id, j.name])), [jobs]);
+    const statuses: Record<string, PRStatus> = {};
+    const promises = sessionsToFetch.map(async (session) => {
+        const prUrl = session.outputs?.find(o => o.pullRequest?.url)?.pullRequest?.url;
+        if (prUrl) {
+            const urlParts = prUrl.split('/');
+            const owner = urlParts[3];
+            const repo = urlParts[4];
+            const pullNumber = parseInt(urlParts[6], 10);
+
+            if (owner && repo && !isNaN(pullNumber)) {
+                const status = await getPullRequestStatus(owner, repo, pullNumber, githubToken);
+                statuses[session.id] = status;
+            }
+        }
+    });
+
+    await Promise.all(promises);
+    setPrStatuses(prev => ({...prev, ...statuses}));
+
+  }, [githubToken]);
 
 
-  const fetchSessions = useCallback(() => {
+  const fetchSessions = useCallback(async () => {
     if (!apiKey) return;
     startFetching(async () => {
       // Invalidate the cache first
@@ -83,9 +95,11 @@ function HomePageContent() {
       setSessions(validSessions);
       setLastUpdatedAt(new Date());
       setCountdown(pollInterval);
+      // After fetching sessions, fetch their PR statuses
+      fetchPrStatuses(validSessions);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, pollInterval]);
+  }, [apiKey, pollInterval, fetchPrStatuses]);
 
   useEffect(() => {
     setIsClient(true);
@@ -101,6 +115,7 @@ function HomePageContent() {
         setSessions(validSessions);
         setLastUpdatedAt(new Date());
         setCountdown(pollInterval);
+        fetchPrStatuses(validSessions);
       });
 
       const intervalInMs = pollInterval * 1000;
@@ -109,6 +124,7 @@ function HomePageContent() {
         return () => clearInterval(intervalId);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient, apiKey, pollInterval, fetchSessions]);
   
 
@@ -147,6 +163,11 @@ function HomePageContent() {
       }
     });
   };
+  
+  const uniqueRepos = useMemo(() => ['all', ...Array.from(new Set(jobs.map(j => j.repo)))], [jobs]);
+  const uniqueJobNames = useMemo(() => ['all', ...Array.from(new Set(jobs.map(j => j.id)))], [jobs]);
+  const uniqueStatuses = useMemo(() => ['all', ...Array.from(new Set(sessions.map(s => s.state).filter((s): s is State => !!s)))], [sessions]);
+  const jobMap = useMemo(() => new Map(jobs.map(j => [j.id, j.name])), [jobs]);
 
   if (!isClient) {
     return (
@@ -177,6 +198,15 @@ function HomePageContent() {
               </AlertDescription>
             </Alert>
           )}
+           {!githubToken && (
+            <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200">
+              <Terminal className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertTitle>GitHub Token Not Set</AlertTitle>
+              <AlertDescription>
+                To see pull request statuses, please set your GitHub Personal Access Token in the settings menu.
+              </AlertDescription>
+            </Alert>
+          )}
           <SessionList
             sessions={filteredSessions}
             jobs={jobs}
@@ -188,7 +218,6 @@ function HomePageContent() {
             countdown={countdown}
             pollInterval={pollInterval}
             titleTruncateLength={titleTruncateLength}
-            filteredJobName={filteredJob?.name}
             jobFilter={jobFilter}
             repoFilter={repoFilter}
             statusFilter={statusFilter}
@@ -199,6 +228,7 @@ function HomePageContent() {
             uniqueJobNames={uniqueJobNames}
             uniqueStatuses={uniqueStatuses}
             jobMap={jobMap}
+            prStatuses={prStatuses}
           />
         </div>
       </main>

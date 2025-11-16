@@ -19,15 +19,16 @@ import {
 import type { Session, Job, State } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2, X, Github } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2, X, Github, GitMergeIcon, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "./ui/label";
+import { type PRStatus } from "@/app/github/actions";
+import { Badge } from "./ui/badge";
 
 
 type SessionListProps = {
@@ -41,7 +42,6 @@ type SessionListProps = {
   countdown: number;
   pollInterval: number;
   titleTruncateLength: number;
-  filteredJobName?: string;
   jobFilter: string | null;
   repoFilter: string;
   statusFilter: string;
@@ -52,7 +52,41 @@ type SessionListProps = {
   uniqueJobNames: string[];
   uniqueStatuses: string[];
   jobMap: Map<string, string>;
+  prStatuses: Record<string, PRStatus>;
 };
+
+const PRStateBadge = ({ state }: { state: PRStatus['state'] }) => {
+    const config = {
+        OPEN: { icon: <GitMergeIcon className="h-3.5 w-3.5" />, className: "bg-green-100 text-green-800 border-green-200", label: "Open" },
+        CLOSED: { icon: <XCircle className="h-3.5 w-3.5" />, className: "bg-red-100 text-red-800 border-red-200", label: "Closed" },
+        MERGED: { icon: <GitMergeIcon className="h-3.5 w-3.5" />, className: "bg-purple-100 text-purple-800 border-purple-200", label: "Merged" },
+        UNKNOWN: { icon: <AlertCircle className="h-3.5 w-3.5" />, className: "bg-gray-100 text-gray-800 border-gray-200", label: "Unknown" },
+    }[state];
+
+    return (
+        <Badge variant="outline" className={cn("gap-1.5", config.className)}>
+            {config.icon}
+            <span>{config.label}</span>
+        </Badge>
+    );
+};
+
+const CIStatusBadge = ({ status }: { status: PRStatus['ciStatus'] }) => {
+    const config = {
+        SUCCESS: { icon: <CheckCircle2 className="h-3.5 w-3.5" />, className: "bg-green-100 text-green-800 border-green-200", label: "Passing" },
+        PENDING: { icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />, className: "bg-yellow-100 text-yellow-800 border-yellow-200", label: "Pending" },
+        FAILURE: { icon: <XCircle className="h-3.5 w-3.5" />, className: "bg-red-100 text-red-800 border-red-200", label: "Failing" },
+        NONE: { icon: <AlertCircle className="h-3.5 w-3.5" />, className: "bg-gray-100 text-gray-800 border-gray-200", label: "No Checks" },
+        UNKNOWN: { icon: <AlertCircle className="h-3.5 w-3.5" />, className: "bg-gray-100 text-gray-800 border-gray-200", label: "Unknown" },
+    }[status];
+
+    return (
+        <Badge variant="outline" className={cn("gap-1.5", config.className)}>
+            {config.icon}
+            <span>{config.label}</span>
+        </Badge>
+    );
+}
 
 export function SessionList({
   sessions,
@@ -65,7 +99,6 @@ export function SessionList({
   countdown,
   pollInterval,
   titleTruncateLength,
-  filteredJobName,
   jobFilter,
   repoFilter,
   statusFilter,
@@ -76,6 +109,7 @@ export function SessionList({
   uniqueJobNames,
   uniqueStatuses,
   jobMap,
+  prStatuses
 }: SessionListProps) {
   const router = useRouter();
 
@@ -222,6 +256,7 @@ export function SessionList({
                   <TableHead>Branch</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead className="w-[180px]">Session Status</TableHead>
+                  <TableHead className="w-[180px]">GitHub Status</TableHead>
                   <TableHead className="w-[150px]">Created</TableHead>
                   <TableHead className="w-[80px] text-center">GitHub</TableHead>
                   <TableHead className="w-[80px] text-right">Actions</TableHead>
@@ -231,6 +266,7 @@ export function SessionList({
                 {sessions.map((session) => {
                   const job = sessionToJobMap.get(session.id);
                   const prUrl = getPullRequestUrl(session);
+                  const status = prStatuses[session.id];
                   return (
                   <TableRow
                     key={session.id}
@@ -243,6 +279,21 @@ export function SessionList({
                     <TableCell className="font-medium" title={session.title}>{truncateTitle(session.title, titleTruncateLength)}</TableCell>
                     <TableCell>
                       <JobStatusBadge status={session.state || session.status} />
+                    </TableCell>
+                    <TableCell>
+                      {prUrl && status ? (
+                        <div className="flex flex-col gap-1">
+                          <PRStateBadge state={status.state} />
+                          <CIStatusBadge status={status.ciStatus} />
+                        </div>
+                      ) : prUrl ? (
+                         <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                          <Loader2 className="h-3 w-3 animate-spin"/>
+                          <span>Loading...</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">N/A</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(session.createTime || session.createdAt), {
@@ -300,5 +351,3 @@ export function SessionList({
     </Card>
   );
 }
-
-    

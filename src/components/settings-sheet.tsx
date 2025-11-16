@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -28,20 +29,27 @@ import {
 
 export function SettingsSheet() {
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
   const [pollInterval, setPollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
   const [titleTruncateLength, setTitleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
+  const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
   const [pollIntervalValue, setPollIntervalValue] = useState(pollInterval);
   const [titleTruncateLengthValue, setTitleTruncateLengthValue] = useState(titleTruncateLength);
   
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showGithubToken, setShowGithubToken] = useState(false);
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setApiKeyValue(apiKey);
   }, [apiKey]);
+
+  useEffect(() => {
+    setGithubTokenValue(githubToken);
+  }, [githubToken]);
   
   useEffect(() => {
     setPollIntervalValue(pollInterval);
@@ -53,6 +61,7 @@ export function SettingsSheet() {
   
   const handleSave = () => {
     setApiKey(apiKeyValue);
+    setGithubToken(githubTokenValue);
     setPollInterval(pollIntervalValue);
     setTitleTruncateLength(titleTruncateLengthValue);
     toast({
@@ -103,6 +112,37 @@ export function SettingsSheet() {
                 )}
               </Button>
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="github-token">GitHub Personal Access Token</Label>
+            <div className="relative">
+              <Input
+                id="github-token"
+                type={showGithubToken ? "text" : "password"}
+                value={githubTokenValue}
+                onChange={(e) => setGithubTokenValue(e.target.value)}
+                placeholder="Enter your GitHub PAT"
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute inset-y-0 right-0 h-full px-3"
+                onClick={() => setShowGithubToken(!showGithubToken)}
+                aria-label={showGithubToken ? "Hide GitHub token" : "Show GitHub token"}
+              >
+                {showGithubToken ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Required for fetching PR status. Use a classic token with `repo` scope.
+            </p>
           </div>
 
           <div className="grid gap-2">

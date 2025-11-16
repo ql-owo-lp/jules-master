@@ -493,5 +493,3 @@ export default function SessionDetailPage() {
     </div>
   );
 }
-
-    
