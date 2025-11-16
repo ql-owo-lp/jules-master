@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Job } from "@/lib/types";
+import type { Job, Session } from "@/lib/types";
 import {
   Card,
   CardHeader,
@@ -19,25 +19,82 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ClipboardList } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { ClipboardList, CheckCircle2, Loader2, Hand } from "lucide-react";
 import { useRouter } from 'next/navigation';
+import { listSessions } from "@/app/sessions/actions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function JobsPage() {
-  const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
+  const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
+  const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (apiKey) {
+      listSessions(apiKey).then(fetchedSessions => {
+        setSessions(fetchedSessions);
+        setIsLoading(false);
+      });
+    } else {
+      setIsLoading(false);
+    }
+  }, [apiKey]);
 
   const handleJobClick = (jobId: string) => {
     router.push(`/?jobId=${jobId}`);
   };
 
-  if (!isClient) {
-    return null; // or a loading skeleton
+  const jobStatusMap = useMemo(() => {
+    const map = new Map<string, { completed: number; working: number; pending: number }>();
+    const sessionMap = new Map(sessions.map(s => [s.id, s]));
+
+    for (const job of jobs) {
+      let completed = 0;
+      let working = 0;
+      let pending = 0;
+
+      for (const sessionId of job.sessionIds) {
+        const session = sessionMap.get(sessionId);
+        if (session) {
+          switch (session.state) {
+            case 'COMPLETED':
+              completed++;
+              break;
+            case 'AWAITING_PLAN_APPROVAL':
+            case 'AWAITING_USER_FEEDBACK':
+              pending++;
+              break;
+            case 'FAILED':
+              // Not counted for now, can be added later
+              break;
+            default:
+              working++;
+              break;
+          }
+        }
+      }
+      map.set(job.id, { completed, working, pending });
+    }
+    return map;
+  }, [jobs, sessions]);
+
+  if (!isClient || isLoading) {
+    return (
+       <div className="flex flex-col flex-1 bg-background">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
+          <div className="container mx-auto max-w-4xl space-y-8">
+             <div className="space-y-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-48 w-full" />
+              </div>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -70,24 +127,43 @@ export default function JobsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Job Name</TableHead>
-                        <TableHead>Sessions</TableHead>
-                        <TableHead className="text-right">Created</TableHead>
+                        <TableHead>Repository</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {jobs.map((job) => (
-                        <TableRow key={job.id} onClick={() => handleJobClick(job.id)} className="cursor-pointer">
-                          <TableCell className="font-medium">
-                            {job.name}
-                          </TableCell>
-                          <TableCell>{job.sessionIds.length}</TableCell>
-                          <TableCell className="text-right text-sm text-muted-foreground">
-                            {formatDistanceToNow(new Date(job.createdAt), {
-                              addSuffix: true,
-                            })}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {[...jobs].reverse().map((job) => {
+                        const status = jobStatusMap.get(job.id) || { completed: 0, working: 0, pending: 0 };
+                        return (
+                          <TableRow key={job.id} onClick={() => handleJobClick(job.id)} className="cursor-pointer">
+                            <TableCell className="font-medium">
+                              {job.name}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-mono text-sm">{job.repo}</span>
+                                <span className="font-mono text-xs text-muted-foreground">{job.branch}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                               <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1" title={`${status.completed} Completed`}>
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  <span>{status.completed}</span>
+                                </div>
+                                <div className="flex items-center gap-1" title={`${status.working} Working`}>
+                                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                                  <span>{status.working}</span>
+                                </div>
+                                <div className="flex items-center gap-1" title={`${status.pending} Pending Approval`}>
+                                  <Hand className="h-4 w-4 text-yellow-500" />
+                                  <span>{status.pending}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>

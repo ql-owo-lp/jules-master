@@ -1,4 +1,5 @@
 
+
 export type JobStatus = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Unknown';
 
 // Based on the Jules API documentation for a Session
@@ -24,6 +25,8 @@ export type Job = {
     name: string;
     sessionIds: string[];
     createdAt: string;
+    repo: string;
+    branch: string;
 }
 
 export type SourceContext = {
