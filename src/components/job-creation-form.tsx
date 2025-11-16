@@ -135,7 +135,9 @@ export function JobCreationForm({
         id: crypto.randomUUID(),
         name: title,
         sessionIds,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
+        branch: selectedBranch,
       };
       setJobs([...jobs, newJob]);
 

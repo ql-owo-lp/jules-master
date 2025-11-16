@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useSearchParams } from "next/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
 import type { Session, Job, Activity } from "@/lib/types";
@@ -69,6 +69,8 @@ export default function SessionDetailPage({
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const activityFeedRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get('jobId');
 
   // Adjust poll interval based on session state
   const isSessionDone = session?.state === 'COMPLETED' || session?.state === 'FAILED';
@@ -185,6 +187,7 @@ export default function SessionDetailPage({
   };
   
   const job = jobs.find(j => session && j.sessionIds.includes(session.id));
+  const backPath = job ? `/?jobId=${job.id}` : '/';
 
 
   if (isFetching && !session) {
@@ -211,7 +214,7 @@ export default function SessionDetailPage({
         <div className="container mx-auto max-w-4xl space-y-8">
           <div className="flex items-center gap-4">
              <Button variant="outline" size="icon" asChild>
-                <Link href="/">
+                <Link href={backPath}>
                     <ArrowLeft className="h-4 w-4" />
                     <span className="sr-only">Back to list</span>
                 </Link>
@@ -433,9 +436,3 @@ export default function SessionDetailPage({
     </div>
   );
 }
-
-    
-
-    
-
-    
