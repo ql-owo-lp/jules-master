@@ -122,9 +122,9 @@ export default function Home() {
       </main>
        <div className="fixed bottom-8 right-8">
         <Button asChild size="lg" className="rounded-lg shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
-          <Link href="/sessions/new">
+          <Link href="/jobs/new">
             <Plus className="h-8 w-8" />
-            <span className="sr-only">New Session</span>
+            <span className="sr-only">New Job</span>
           </Link>
         </Button>
       </div>

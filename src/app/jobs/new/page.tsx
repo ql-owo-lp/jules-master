@@ -8,7 +8,7 @@ import type { Session, Source } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createSession } from "./actions";
+import { createSession } from "@/app/sessions/new/actions";
 
 
 export default function NewJobPage() {
