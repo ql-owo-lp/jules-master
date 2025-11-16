@@ -1,76 +1,61 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Header } from "@/components/header";
 import { JobCreationForm } from "@/components/job-creation-form";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Session, JobStatus } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
+import { Terminal, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { listSessions } from "./sessions/actions";
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function Home() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 5);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [isFetching, startFetching] = useTransition();
+  const { toast } = useToast();
+
+  const fetchSessions = () => {
+    if (!apiKey) return;
+    startFetching(async () => {
+      const fetchedSessions = await listSessions(apiKey);
+      setSessions(fetchedSessions);
+      setLastUpdatedAt(new Date());
+    });
+  };
 
   useEffect(() => {
     setIsClient(true);
-    setLastUpdatedAt(new Date());
   }, []);
 
+  // Fetch sessions on initial load (if apiKey is present)
+  useEffect(() => {
+    if (isClient && apiKey) {
+      fetchSessions();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, apiKey]);
+
+
   const handleSessionsCreated = (newSessions: Session[]) => {
+    // Add new sessions to the top and refetch the list to get latest status
     setSessions((prevSessions) => [...newSessions, ...prevSessions]);
-    setLastUpdatedAt(new Date());
+    fetchSessions();
   };
 
   const handleRefresh = () => {
-    // In a real app, this would re-fetch sessions.
-    // Here, we'll just update the timestamp.
-    setLastUpdatedAt(new Date());
-    // And we can re-trigger the status simulation for pending sessions
-    // by creating a new array reference for the sessions state.
-    setSessions(prevSessions => [...prevSessions]); 
-  };
-
-  // Effect to simulate session status progression
-  useEffect(() => {
-    if (pollInterval <= 0 || !isClient) return;
-
-    const timers: NodeJS.Timeout[] = [];
-    sessions.forEach((session) => {
-      if (session.status === "Pending") {
-        const timer1 = setTimeout(() => {
-          setSessions((prevSessions) =>
-            prevSessions.map((s) =>
-              s.id === session.id ? { ...s, status: "Running" } : s
-            )
-          );
-          setLastUpdatedAt(new Date());
-        }, Math.random() * (pollInterval * 1000 * 0.6) + (pollInterval * 1000 * 0.2)); // Start running after 20-80% of interval
-        timers.push(timer1);
-      } else if (session.status === "Running") {
-        const timer2 = setTimeout(() => {
-          const newStatus: JobStatus =
-            Math.random() > 0.2 ? "Succeeded" : "Failed";
-          setSessions((prevSessions) =>
-            prevSessions.map((s) =>
-              s.id === session.id ? { ...s, status: newStatus } : s
-            )
-          );
-          setLastUpdatedAt(new Date());
-        }, Math.random() * (pollInterval * 1000) + (pollInterval * 1000 * 0.5)); // Finish after 50-150% of interval
-        timers.push(timer2);
-      }
+    fetchSessions();
+    toast({
+      title: "Refreshing sessions...",
+      description: "Fetching the latest session data.",
     });
-
-    return () => {
-      timers.forEach(clearTimeout);
-    };
-  }, [sessions, pollInterval, isClient]);
+  };
 
   if (!isClient) {
     return (
@@ -107,7 +92,7 @@ export default function Home() {
               <AlertTitle>API Key Not Set</AlertTitle>
               <AlertDescription>
                 Please set your Jules API key in the settings menu (top right
-                corner) to create sessions.
+                corner) to create and view sessions.
               </AlertDescription>
             </Alert>
           )}
@@ -119,6 +104,7 @@ export default function Home() {
             sessions={sessions}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
+            isRefreshing={isFetching}
           />
         </div>
       </main>

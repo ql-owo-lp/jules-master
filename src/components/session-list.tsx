@@ -20,14 +20,16 @@ import { JobStatusBadge } from "./job-status-badge";
 import { formatDistanceToNow } from "date-fns";
 import { ClipboardList, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
 
 type SessionListProps = {
   sessions: Session[];
   lastUpdatedAt: Date | null;
   onRefresh: () => void;
+  isRefreshing?: boolean;
 };
 
-export function SessionList({ sessions, lastUpdatedAt, onRefresh }: SessionListProps) {
+export function SessionList({ sessions, lastUpdatedAt, onRefresh, isRefreshing }: SessionListProps) {
   return (
     <Card className="shadow-md">
       <CardHeader>
@@ -35,8 +37,8 @@ export function SessionList({ sessions, lastUpdatedAt, onRefresh }: SessionListP
           <div className="flex items-center gap-2">
             <ClipboardList className="h-6 w-6" />
             <CardTitle>Session List</CardTitle>
-            <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh session list">
-              <RefreshCw className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh session list" disabled={isRefreshing}>
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             </Button>
           </div>
           {lastUpdatedAt && (
@@ -56,7 +58,7 @@ export function SessionList({ sessions, lastUpdatedAt, onRefresh }: SessionListP
             <ClipboardList className="h-12 w-12 mb-4" />
             <p className="font-semibold text-lg">No sessions yet</p>
             <p className="text-sm">
-              Use the form above to create a new session to get started.
+              Use the form above to create a new session or click refresh to fetch existing ones.
             </p>
           </div>
         ) : (
