@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session } from "@/lib/types";
+import type { Session, Job } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 export default function Home() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
+  const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -112,6 +113,7 @@ export default function Home() {
           )}
           <SessionList
             sessions={sessions}
+            jobs={jobs}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
             isRefreshing={isFetching}
