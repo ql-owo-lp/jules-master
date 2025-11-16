@@ -36,7 +36,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, forwardRef } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CollapsibleMessage } from "./collapsible-message";
 
 const originatorIcons: Record<string, React.ReactNode> = {
   user: <User className="h-5 w-5 text-blue-500" />,
@@ -155,12 +154,48 @@ ActivityFeed.displayName = 'ActivityFeed';
 
 
 function ActivityContent({ activity }: { activity: Activity }) {
-  if (activity.agentMessaged?.agentMessage) {
-    return <CollapsibleMessage content={activity.agentMessaged.agentMessage} />;
+  const agentMessage = activity.agentMessaged?.agentMessage;
+  if (agentMessage) {
+    return (
+        <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="message" className="border-b-0">
+                <AccordionTrigger>
+                <div className="flex items-center gap-2 text-sm">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Expand Message</span>
+                </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto">
+                        <code>{agentMessage}</code>
+                    </pre>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
+    );
   }
-  if (activity.userMessaged?.userMessage) {
-    return <CollapsibleMessage content={activity.userMessaged.userMessage} />;
+  
+  const userMessage = activity.userMessaged?.userMessage;
+  if (userMessage) {
+    return (
+        <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="message" className="border-b-0">
+                <AccordionTrigger>
+                <div className="flex items-center gap-2 text-sm">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Expand Message</span>
+                </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto">
+                        <code>{userMessage}</code>
+                    </pre>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
+    );
   }
+
   if (activity.planGenerated) {
     return (
       <div className="mt-2">
@@ -176,11 +211,27 @@ function ActivityContent({ activity }: { activity: Activity }) {
       </div>
     );
   }
-  if (activity.progressUpdated?.description) {
+  
+  const progressDescription = activity.progressUpdated?.description;
+  if (progressDescription) {
     return (
       <div className="mt-2 space-y-1">
-        <p className="font-medium">{activity.progressUpdated.title}</p>
-        <CollapsibleMessage content={activity.progressUpdated.description} />
+        <p className="font-medium">{activity.progressUpdated!.title}</p>
+         <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="progress" className="border-b-0">
+                <AccordionTrigger>
+                <div className="flex items-center gap-2 text-sm">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>View Details</span>
+                </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto">
+                        <code>{progressDescription}</code>
+                    </pre>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
       </div>
     );
   }
@@ -192,11 +243,27 @@ function ActivityContent({ activity }: { activity: Activity }) {
       </div>
     );
   }
-  if (activity.sessionFailed?.reason) {
+
+  const failureReason = activity.sessionFailed?.reason;
+  if (failureReason) {
     return (
        <div className="flex items-center gap-2 mt-2">
          <XCircle className="h-4 w-4 text-red-500" />
-         <CollapsibleMessage content={activity.sessionFailed.reason} />
+         <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="failure" className="border-b-0">
+                <AccordionTrigger>
+                <div className="flex items-center gap-2 text-sm">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>View Reason</span>
+                </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto">
+                        <code>{failureReason}</code>
+                    </pre>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
        </div>
     );
   }
@@ -210,11 +277,22 @@ function ActivityContent({ activity }: { activity: Activity }) {
               <GitPatchDetails patch={artifact.changeSet.gitPatch} />
             )}
             {artifact.bashOutput?.output && (
-                <div className="p-2 bg-muted rounded-md font-mono text-xs">
-                    <p className="font-semibold mb-2 flex items-center gap-2"><ChevronsRight className="h-4 w-4" /> <span>{artifact.bashOutput.command}</span></p>
-                    <CollapsibleMessage content={artifact.bashOutput.output} isPreformatted />
-                    <p className="mt-2 text-xs">Exit Code: {artifact.bashOutput.exitCode}</p>
-                </div>
+                <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value={`bash-${index}`} className="border-b-0">
+                        <AccordionTrigger>
+                            <div className="flex items-center gap-2 text-sm font-mono">
+                                <ChevronsRight className="h-4 w-4" />
+                                <span>{artifact.bashOutput.command}</span>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto">
+                                <code>{artifact.bashOutput.output}</code>
+                            </pre>
+                             <p className="mt-2 text-xs">Exit Code: {artifact.bashOutput.exitCode}</p>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             )}
           </div>
         ))}
@@ -274,26 +352,37 @@ function GitPatchDetails({ patch }: { patch: GitPatch }) {
             </p>
           </div>
         </div>
-        <div className="relative">
-             <div className="flex items-center gap-2 text-sm font-semibold mb-2">
-                <FileCode className="h-4 w-4" />
-                <span>Code Changes</span>
-             </div>
-             <CollapsibleMessage content={patch.unidiffPatch} isPreformatted />
-             <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-0 right-0 h-7 w-7"
-                onClick={() => handleCopy(patch.unidiffPatch)}
-                >
-                {copied ? (
-                    <ClipboardCheck className="h-4 w-4" />
-                ) : (
-                    <Clipboard className="h-4 w-4" />
-                )}
-                <span className="sr-only">Copy patch</span>
-            </Button>
-        </div>
+        
+        <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="patch" className="border-b-0">
+                <AccordionTrigger>
+                    <div className="flex items-center gap-2 text-sm">
+                        <FileCode className="h-4 w-4" />
+                        <span>View Code Changes</span>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <div className="relative">
+                        <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto">
+                            <code>{patch.unidiffPatch}</code>
+                        </pre>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-0 right-0 h-7 w-7"
+                            onClick={() => handleCopy(patch.unidiffPatch)}
+                            >
+                            {copied ? (
+                                <ClipboardCheck className="h-4 w-4" />
+                            ) : (
+                                <Clipboard className="h-4 w-4" />
+                            )}
+                            <span className="sr-only">Copy patch</span>
+                        </Button>
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
       </div>
   );
 }
