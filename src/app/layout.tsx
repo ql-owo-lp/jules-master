@@ -15,7 +15,7 @@ import {
   SidebarGroup,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { Bot, Home, PlusCircle } from 'lucide-react';
+import { Bot, Home, PlusCircle, BookText } from 'lucide-react';
 import { Header } from '@/components/header';
 
 export const metadata: Metadata = {
@@ -65,17 +65,25 @@ export default function RootLayout({
                   <SidebarMenu>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
-                        <Link href="/">
-                          <Home />
-                          Sessions
+                        <Link href="/sessions/new">
+                          <PlusCircle />
+                          New Session
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
-                        <Link href="/sessions/new">
-                          <PlusCircle />
-                          New Session
+                        <Link href="/">
+                          <Home />
+                          Session List
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link href="/prompts">
+                          <BookText />
+                          Predefined Prompts
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
