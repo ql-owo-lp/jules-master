@@ -27,7 +27,7 @@ import {
 
 export function SettingsSheet() {
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [pollInterval, setPollInterval] = useLocalStorage<number>("jules-poll-interval", 60);
+  const [pollInterval, setPollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [pollIntervalValue, setPollIntervalValue] = useState(pollInterval);
   const [showApiKey, setShowApiKey] = useState(false);
