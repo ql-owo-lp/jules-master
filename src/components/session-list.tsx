@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Session } from "@/lib/types";
+import type { Session, Job } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
 import { ClipboardList, RefreshCw } from "lucide-react";
@@ -23,9 +23,11 @@ import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 
 type SessionListProps = {
   sessions: Session[];
+  jobs: Job[];
   lastUpdatedAt: Date | null;
   onRefresh: () => void;
   isRefreshing?: boolean;
@@ -33,11 +35,28 @@ type SessionListProps = {
   pollInterval: number;
 };
 
-export function SessionList({ sessions, lastUpdatedAt, onRefresh, isRefreshing, countdown, pollInterval }: SessionListProps) {
+export function SessionList({ sessions, jobs, lastUpdatedAt, onRefresh, isRefreshing, countdown, pollInterval }: SessionListProps) {
   const router = useRouter();
+
+  const sessionToJobMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const job of jobs) {
+      for (const sessionId of job.sessionIds) {
+        map.set(sessionId, job.name);
+      }
+    }
+    return map;
+  }, [jobs]);
   
   const handleRowClick = (sessionId: string) => {
     router.push(`/sessions/${sessionId}`);
+  };
+
+  const truncateTitle = (title: string, maxLength = 20) => {
+    if (title.length <= maxLength) {
+      return title;
+    }
+    return title.substring(0, maxLength) + "...";
   };
 
   return (
@@ -84,6 +103,7 @@ export function SessionList({ sessions, lastUpdatedAt, onRefresh, isRefreshing, 
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
+                  <TableHead>Job Name</TableHead>
                   <TableHead className="w-[180px]">Status</TableHead>
                   <TableHead className="w-[150px] text-right">Created</TableHead>
                 </TableRow>
@@ -95,7 +115,8 @@ export function SessionList({ sessions, lastUpdatedAt, onRefresh, isRefreshing, 
                     className="cursor-pointer"
                     onClick={() => handleRowClick(session.id)}
                   >
-                    <TableCell className="font-medium">{session.title}</TableCell>
+                    <TableCell className="font-medium" title={session.title}>{truncateTitle(session.title)}</TableCell>
+                    <TableCell>{sessionToJobMap.get(session.id) || "N/A"}</TableCell>
                     <TableCell>
                       <JobStatusBadge status={session.state || session.status} />
                     </TableCell>
