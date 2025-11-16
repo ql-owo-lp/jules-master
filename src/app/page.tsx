@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "./sessions/actions";
+import { approvePlan } from "./sessions/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +21,7 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [isFetching, startFetching] = useTransition();
+  const [isActionPending, startActionTransition] = useTransition();
   const { toast } = useToast();
   const [countdown, setCountdown] = useState(pollInterval);
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
@@ -75,6 +77,22 @@ export default function Home() {
     });
   };
 
+  const handleApprovePlan = (sessionId: string) => {
+    startActionTransition(async () => {
+      const result = await approvePlan(apiKey, sessionId);
+       if (result) {
+        // Refresh the list to show the updated status
+        fetchSessions();
+        toast({ title: "Plan Approved", description: "The session will now proceed." });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Failed to approve plan",
+        });
+      }
+    });
+  };
+
   if (!isClient) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
@@ -118,6 +136,8 @@ export default function Home() {
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
             isRefreshing={isFetching}
+            isActionPending={isActionPending}
+            onApprovePlan={handleApprovePlan}
             countdown={countdown}
             pollInterval={pollInterval}
             titleTruncateLength={titleTruncateLength}
