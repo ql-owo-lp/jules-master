@@ -2,7 +2,7 @@
 "use client";
 
 import type { Activity, Plan, GitPatch } from "@/lib/types";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import {
   Card,
   CardContent,
@@ -23,6 +23,7 @@ import {
   ChevronsRight,
   Clipboard,
   ClipboardCheck,
+  RefreshCw
 } from "lucide-react";
 import {
   Accordion,
@@ -34,6 +35,7 @@ import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useState, forwardRef } from "react";
 import { ScrollArea } from "./ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 const originatorIcons: Record<string, React.ReactNode> = {
   user: <User className="h-5 w-5 text-blue-500" />,
@@ -41,7 +43,23 @@ const originatorIcons: Record<string, React.ReactNode> = {
   system: <Bot className="h-5 w-5 text-purple-500" />,
 };
 
-export const ActivityFeed = forwardRef<HTMLDivElement, { activities: Activity[] }>(({ activities }, ref) => {
+type ActivityFeedProps = {
+  activities: Activity[];
+  lastUpdatedAt: Date | null;
+  onRefresh: () => void;
+  isRefreshing?: boolean;
+  countdown: number;
+  pollInterval: number;
+};
+
+export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({ 
+    activities, 
+    lastUpdatedAt,
+    onRefresh,
+    isRefreshing,
+    countdown,
+    pollInterval
+}, ref) => {
   if (activities.length === 0) {
      return (
       <Card>
@@ -66,10 +84,32 @@ export const ActivityFeed = forwardRef<HTMLDivElement, { activities: Activity[] 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Activity Feed</CardTitle>
-        <CardDescription>
-          A timeline of events that have occurred during this session.
-        </CardDescription>
+        <div className="flex items-start justify-between gap-4">
+            <div>
+                <CardTitle>Activity Feed</CardTitle>
+                <CardDescription>
+                    A timeline of events that have occurred during this session.
+                </CardDescription>
+            </div>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                 <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh session data" disabled={isRefreshing}>
+                    <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                </Button>
+                {lastUpdatedAt && (
+                    <div className="text-right">
+                        <div>
+                            Last updated:{" "}
+                            {format(lastUpdatedAt, "h:mm:ss a")}
+                        </div>
+                        {pollInterval > 0 && (
+                            <div>
+                            Next poll in: {countdown}s
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[700px] pr-4" ref={ref}>
