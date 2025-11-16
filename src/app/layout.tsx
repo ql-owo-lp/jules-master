@@ -58,7 +58,7 @@ export default function RootLayout({
                     className="flex items-center gap-2 font-bold text-xl"
                   >
                     <Bot className="h-7 w-7 text-primary" />
-                    <span>Jules Master</span>
+                    <span className='group-data-[collapsible=icon]:hidden'>Jules Master</span>
                   </Link>
                 </SidebarHeader>
                 <SidebarGroup>
@@ -67,7 +67,7 @@ export default function RootLayout({
                       <SidebarMenuButton asChild>
                         <Link href="/sessions/new">
                           <PlusCircle />
-                          New Session
+                          <span>New Session</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -75,7 +75,7 @@ export default function RootLayout({
                       <SidebarMenuButton asChild>
                         <Link href="/">
                           <Home />
-                          Session List
+                          <span>Session List</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -83,7 +83,7 @@ export default function RootLayout({
                       <SidebarMenuButton asChild>
                         <Link href="/prompts">
                           <BookText />
-                          Predefined Prompts
+                          <span>Predefined Prompts</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
