@@ -56,7 +56,7 @@ export default function SessionDetailPage({
 }: {
   params: { id: string };
 }) {
-  const { id } = params;
+  const id = params.id;
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [pollIntervalSetting] = useLocalStorage<number>("jules-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -433,6 +433,8 @@ export default function SessionDetailPage({
     </div>
   );
 }
+
+    
 
     
 
