@@ -55,7 +55,6 @@ export default function SessionDetailPage({
 }: {
   params: { id: string };
 }) {
-  const { id } = params;
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [session, setSession] = useState<Session | null>(null);
@@ -68,6 +67,7 @@ export default function SessionDetailPage({
 
   useEffect(() => {
     const fetchSessionData = async () => {
+      const id = params.id;
       if (!apiKey || !id) return;
       startFetching(async () => {
         const [fetchedSession, fetchedActivities] = await Promise.all([
@@ -87,7 +87,7 @@ export default function SessionDetailPage({
     if (apiKey) {
       fetchSessionData();
     }
-  }, [apiKey, id]);
+  }, [apiKey, params]);
 
   const handleApprovePlan = () => {
     if (!session) return;
@@ -115,7 +115,7 @@ export default function SessionDetailPage({
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
         
         // Refresh activities
-        const fetchedActivities = await listActivities(apiKey, id);
+        const fetchedActivities = await listActivities(apiKey, params.id);
         setActivities(fetchedActivities.sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime()));
 
       } else {
