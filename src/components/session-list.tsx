@@ -27,13 +27,15 @@ type SessionListProps = {
   lastUpdatedAt: Date | null;
   onRefresh: () => void;
   isRefreshing?: boolean;
+  countdown: number;
+  pollInterval: number;
 };
 
-export function SessionList({ sessions, lastUpdatedAt, onRefresh, isRefreshing }: SessionListProps) {
+export function SessionList({ sessions, lastUpdatedAt, onRefresh, isRefreshing, countdown, pollInterval }: SessionListProps) {
   return (
     <Card className="shadow-md">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-2">
             <ClipboardList className="h-6 w-6" />
             <CardTitle>Session List</CardTitle>
@@ -42,9 +44,16 @@ export function SessionList({ sessions, lastUpdatedAt, onRefresh, isRefreshing }
             </Button>
           </div>
           {lastUpdatedAt && (
-            <div className="text-sm text-muted-foreground">
-              Last updated:{" "}
-              {format(lastUpdatedAt, "h:mm:ss a")}
+            <div className="text-sm text-muted-foreground text-right flex-shrink-0">
+              <div>
+                Last updated:{" "}
+                {format(lastUpdatedAt, "h:mm:ss a")}
+              </div>
+              {pollInterval > 0 && (
+                 <div>
+                   Next poll in: {countdown}s
+                 </div>
+              )}
             </div>
           )}
         </div>

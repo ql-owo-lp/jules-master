@@ -20,6 +20,8 @@ export default function Home() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [isFetching, startFetching] = useTransition();
   const { toast } = useToast();
+  const [countdown, setCountdown] = useState(pollInterval);
+
 
   const fetchSessions = () => {
     if (!apiKey) return;
@@ -29,12 +31,24 @@ export default function Home() {
       const validSessions = fetchedSessions.filter(s => s);
       setSessions(validSessions);
       setLastUpdatedAt(new Date());
+      setCountdown(pollInterval);
     });
   };
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!isClient || !apiKey || pollInterval <= 0) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isClient, apiKey, pollInterval]);
 
   // Fetch sessions on initial load and set up polling
   useEffect(() => {
@@ -107,12 +121,15 @@ export default function Home() {
           <JobCreationForm
             onJobsCreated={handleSessionsCreated}
             disabled={!apiKey}
+            apiKey={apiKey}
           />
           <SessionList
             sessions={sessions}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
             isRefreshing={isFetching}
+            countdown={countdown}
+            pollInterval={pollInterval}
           />
         </div>
       </main>

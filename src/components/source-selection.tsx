@@ -1,0 +1,103 @@
+'use client';
+
+import { useEffect, useState, useTransition } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { listSources } from '@/app/sessions/actions';
+import type { Source } from '@/lib/types';
+import { AlertCircle, GitMerge } from 'lucide-react';
+
+type SourceSelectionProps = {
+  apiKey: string;
+  onSourceSelected: (source: Source | null) => void;
+  disabled?: boolean;
+};
+
+export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSelectionProps) {
+  const [sources, setSources] = useState<Source[]>([]);
+  const [isFetching, startFetching] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (apiKey) {
+      startFetching(async () => {
+        try {
+          setError(null);
+          const fetchedSources = await listSources(apiKey);
+          setSources(fetchedSources);
+          if (fetchedSources.length > 0) {
+            onSourceSelected(fetchedSources[0]);
+          }
+        } catch (e) {
+          setError('Failed to load repositories.');
+          console.error(e);
+        }
+      });
+    } else {
+      setSources([]);
+      onSourceSelected(null);
+    }
+  }, [apiKey, onSourceSelected]);
+
+  const handleValueChange = (sourceName: string) => {
+    const selected = sources.find((s) => s.name === sourceName) || null;
+    onSourceSelected(selected);
+  };
+  
+  const selectedValue = sources.length > 0 ? sources.find(s => s.name === sources[0].name)?.name : undefined;
+
+
+  if (isFetching) {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor="repository-skeleton">Repository</Label>
+        <Skeleton id="repository-skeleton" className="h-10 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+        <div className="space-y-2">
+            <Label htmlFor="repository-error">Repository</Label>
+            <div id="repository-error" className="flex items-center gap-2 text-sm text-destructive border border-destructive/50 rounded-md p-2 bg-destructive/10">
+                <AlertCircle className="h-4 w-4" />
+                <span>{error}</span>
+            </div>
+        </div>
+    )
+  }
+
+  return (
+    <div className="grid w-full items-center gap-2">
+      <Label htmlFor="repository">Repository</Label>
+      <Select
+        onValueChange={handleValueChange}
+        disabled={disabled || sources.length === 0}
+        defaultValue={selectedValue}
+        name="repository"
+      >
+        <SelectTrigger id="repository">
+          <div className="flex items-center gap-2">
+            <GitMerge className="h-4 w-4 text-muted-foreground" />
+            <SelectValue placeholder="Select a repository" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          {sources.map((source) => (
+            <SelectItem key={source.name} value={source.name}>
+              {source.githubRepo.owner}/{source.githubRepo.repo}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}

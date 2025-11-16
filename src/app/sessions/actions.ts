@@ -1,9 +1,19 @@
 'use server';
 
-import type { Session } from '@/lib/types';
+import type { Session, Source, Branch } from '@/lib/types';
 
 type ListSessionsResponse = {
   sessions: Session[];
+  nextPageToken?: string;
+};
+
+type ListSourcesResponse = {
+  sources: Source[];
+  nextPageToken?: string;
+};
+
+type ListBranchesResponse = {
+  branches: Branch[];
   nextPageToken?: string;
 };
 
@@ -45,6 +55,53 @@ export async function listSessions(
 
   } catch (error) {
     console.error('Error fetching sessions:', error);
+    return [];
+  }
+}
+
+export async function listSources(apiKey: string): Promise<Source[]> {
+  if (!apiKey) {
+    return [];
+  }
+  try {
+    const response = await fetch('https://jules.googleapis.com/v1alpha/sources', {
+      headers: {
+        'X-Goog-Api-Key': apiKey,
+      },
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      console.error(`Failed to fetch sources: ${response.status} ${response.statusText}`);
+      return [];
+    }
+    const data: ListSourcesResponse = await response.json();
+    return data.sources || [];
+  } catch (error) {
+    console.error('Error fetching sources:', error);
+    return [];
+  }
+}
+
+
+export async function listBranches(apiKey: string, sourceName: string): Promise<Branch[]> {
+  if (!apiKey || !sourceName) {
+    return [];
+  }
+  try {
+    const response = await fetch(`https://jules.googleapis.com/v1alpha/${sourceName}:listBranches`, {
+      headers: {
+        'X-Goog-Api-Key': apiKey,
+      },
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      console.error(`Failed to fetch branches: ${response.status} ${response.statusText}`);
+      return [];
+    }
+    const data: ListBranchesResponse = await response.json();
+    return data.branches || [];
+  } catch (error) {
+    console.error('Error fetching branches:', error);
     return [];
   }
 }

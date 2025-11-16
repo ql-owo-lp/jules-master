@@ -13,22 +13,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { createTitleForJob } from "@/app/actions";
-import type { Session } from "@/lib/types";
+import type { Session, Source } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2 } from "lucide-react";
+import { SourceSelection } from "./source-selection";
+import { BranchSelection } from "./branch-selection";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[]) => void;
   disabled?: boolean;
+  apiKey: string;
 };
 
 export function JobCreationForm({
   onJobsCreated,
   disabled,
+  apiKey
 }: JobCreationFormProps) {
   const [prompts, setPrompts] = useState("");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [selectedSource, setSelectedSource] = useState<Source | null>(null);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -90,9 +95,9 @@ export function JobCreationForm({
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid w-full gap-2">
-            <Label htmlFor="prompts" className="sr-only">Session Prompts</Label>
+            <Label htmlFor="prompts">Session Prompts</Label>
             <Textarea
               id="prompts"
               placeholder="e.g., Create a boba app!"
@@ -102,6 +107,10 @@ export function JobCreationForm({
               disabled={isPending || disabled}
               aria-label="Session Prompts"
             />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SourceSelection apiKey={apiKey} onSourceSelected={setSelectedSource} disabled={disabled || isPending} />
+            <BranchSelection apiKey={apiKey} source={selectedSource} disabled={disabled || isPending || !selectedSource}/>
           </div>
         </CardContent>
         <CardFooter>
