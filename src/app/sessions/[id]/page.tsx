@@ -239,25 +239,6 @@ export default function SessionDetailPage({
             </Card>
           )}
 
-          <div className="flex justify-end items-center gap-4 text-sm text-muted-foreground border-b pb-4">
-              <Button variant="ghost" size="icon" onClick={() => fetchSessionData({ showToast: true })} aria-label="Refresh session data" disabled={isFetching}>
-                  <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-              </Button>
-              {lastUpdatedAt && (
-                  <div className="text-right">
-                  <div>
-                      Last updated:{" "}
-                      {format(lastUpdatedAt, "h:mm:ss a")}
-                  </div>
-                  {pollInterval > 0 && (
-                      <div>
-                      Next poll in: {countdown}s
-                      </div>
-                  )}
-                  </div>
-              )}
-          </div>
-
           <Tabs defaultValue="details" className="w-full">
             <TabsList>
               <TabsTrigger value="details">Session Details</TabsTrigger>
@@ -407,7 +388,15 @@ export default function SessionDetailPage({
 
             <TabsContent value="activity">
               <div className="mt-4">
-                <ActivityFeed activities={activities} ref={activityFeedRef} />
+                <ActivityFeed 
+                    activities={activities} 
+                    ref={activityFeedRef}
+                    lastUpdatedAt={lastUpdatedAt}
+                    onRefresh={() => fetchSessionData({ showToast: true })}
+                    isRefreshing={isFetching}
+                    countdown={countdown}
+                    pollInterval={pollInterval}
+                />
 
                 {session.state === "AWAITING_USER_FEEDBACK" && (
                   <Card className="mt-8">
