@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import Link from "next/link";
 import { Header } from "@/components/header";
-import { JobCreationForm } from "@/components/job-creation-form";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Session } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
+import { Terminal, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "./sessions/actions";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
@@ -65,12 +66,6 @@ export default function Home() {
   }, [isClient, apiKey, pollInterval]);
 
 
-  const handleSessionsCreated = (newSessions: Session[]) => {
-    // Add new sessions to the top and refetch the list to get latest status
-    setSessions((prevSessions) => [...newSessions, ...prevSessions]);
-    fetchSessions();
-  };
-
   const handleRefresh = () => {
     fetchSessions();
     toast({
@@ -95,7 +90,6 @@ export default function Home() {
         </header>
         <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
           <div className="container mx-auto max-w-4xl space-y-8">
-            <Skeleton className="h-64 w-full" />
             <Skeleton className="h-96 w-full" />
           </div>
         </main>
@@ -118,11 +112,6 @@ export default function Home() {
               </AlertDescription>
             </Alert>
           )}
-          <JobCreationForm
-            onJobsCreated={handleSessionsCreated}
-            disabled={!apiKey}
-            apiKey={apiKey}
-          />
           <SessionList
             sessions={sessions}
             lastUpdatedAt={lastUpdatedAt}
@@ -133,6 +122,14 @@ export default function Home() {
           />
         </div>
       </main>
+       <div className="fixed bottom-8 right-8">
+        <Button asChild size="lg" className="rounded-full shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
+          <Link href="/sessions/new">
+            <Plus className="h-8 w-8" />
+            <span className="sr-only">New Session</span>
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }

@@ -25,6 +25,13 @@ type JobCreationFormProps = {
   apiKey: string;
 };
 
+const preCannedPrompts = [
+  "Create a new React component",
+  "Fix a bug in the login flow",
+  "Refactor the database schema",
+  "Add a new feature for user profiles",
+];
+
 export function JobCreationForm({
   onJobsCreated,
   disabled,
@@ -70,10 +77,6 @@ export function JobCreationForm({
 
         onJobsCreated(newSessions);
         setPrompts("");
-        toast({
-          title: "Sessions submitted!",
-          description: `${newSessions.length} new session(s) have been created.`,
-        });
       } catch (error) {
         toast({
           variant: "destructive",
@@ -85,17 +88,39 @@ export function JobCreationForm({
     });
   };
 
+  const handlePreCannedPromptClick = (prompt: string) => {
+    setPrompts(prompt);
+  };
+
   return (
     <Card className="shadow-md">
       <CardHeader>
-        <CardTitle>Create Batch Sessions</CardTitle>
+        <CardTitle>New Sessions</CardTitle>
         <CardDescription>
-          Enter your session prompts below, one per line. We'll use AI to generate a
+          Enter your session prompts below, one per line, or use one of the suggestions. We'll use AI to generate a
           suitable title for each session.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Prompt Suggestions</Label>
+            <div className="flex flex-wrap gap-2">
+              {preCannedPrompts.map((prompt) => (
+                <Button
+                  key={prompt}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePreCannedPromptClick(prompt)}
+                  disabled={isPending || disabled}
+                >
+                  {prompt}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid w-full gap-2">
             <Label htmlFor="prompts">Session Prompts</Label>
             <Textarea
