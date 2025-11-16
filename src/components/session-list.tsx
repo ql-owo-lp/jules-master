@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import type { Session } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ClipboardList, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,7 @@ export function SessionList({ sessions, lastUpdatedAt, onRefresh, isRefreshing }
           {lastUpdatedAt && (
             <div className="text-sm text-muted-foreground">
               Last updated:{" "}
-              {formatDistanceToNow(lastUpdatedAt, { addSuffix: true })}
+              {format(lastUpdatedAt, "h:mm:ss a")}
             </div>
           )}
         </div>

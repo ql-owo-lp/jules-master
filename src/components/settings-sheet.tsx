@@ -27,7 +27,7 @@ import {
 
 export function SettingsSheet() {
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [pollInterval, setPollInterval] = useLocalStorage<number>("jules-poll-interval", 5);
+  const [pollInterval, setPollInterval] = useLocalStorage<number>("jules-poll-interval", 60);
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [pollIntervalValue, setPollIntervalValue] = useState(pollInterval);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -102,7 +102,7 @@ export function SettingsSheet() {
               type="number"
               value={pollIntervalValue}
               onChange={(e) => setPollIntervalValue(Number(e.target.value))}
-              placeholder="e.g., 5"
+              placeholder="e.g., 60"
               min="1"
             />
           </div>
@@ -112,11 +112,9 @@ export function SettingsSheet() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="justify-start">
-                  <div className="relative w-5 h-5 mr-2 flex items-center justify-center">
-                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                  </div>
-                  <span>
+                  <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  <span className="ml-2">
                     {theme ? theme.charAt(0).toUpperCase() + theme.slice(1) : "System"}
                   </span>
                   <span className="sr-only">Toggle theme</span>
