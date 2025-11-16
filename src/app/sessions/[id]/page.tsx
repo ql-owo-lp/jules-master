@@ -58,7 +58,6 @@ export default function SessionDetailPage({
 }: {
   params: { id: string };
 }) {
-  const id = params.id;
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [pollIntervalSetting] = useLocalStorage<number>("jules-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -81,6 +80,7 @@ export default function SessionDetailPage({
   const [countdown, setCountdown] = useState(pollInterval);
   
   const fetchSessionData = useCallback(async (options: { showToast?: boolean } = {}) => {
+    const id = params.id;
     if (!apiKey || !id) return;
     
     if (options.showToast) {
@@ -107,14 +107,14 @@ export default function SessionDetailPage({
         notFound();
       }
     });
-  }, [apiKey, id, pollIntervalSetting, toast]);
+  }, [apiKey, params.id, pollIntervalSetting, toast]);
 
   useEffect(() => {
-    if (apiKey && id) {
+    if (apiKey && params.id) {
       fetchSessionData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, id]);
+  }, [apiKey, params.id]);
 
   // Set up polling interval
   useEffect(() => {
@@ -177,6 +177,7 @@ export default function SessionDetailPage({
   };
 
   const handleSendMessage = () => {
+    const id = params.id;
     if (!session || !message.trim()) return;
     startActionTransition(async () => {
       const result = await sendMessage(apiKey, session.id, message);
@@ -496,3 +497,5 @@ export default function SessionDetailPage({
     </div>
   );
 }
+
+    
