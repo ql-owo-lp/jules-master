@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Home() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 5);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isClient, setIsClient] = useState(false);
 
@@ -25,6 +26,8 @@ export default function Home() {
 
   // Effect to simulate job status progression
   useEffect(() => {
+    if (pollInterval <= 0) return;
+
     const timers: NodeJS.Timeout[] = [];
     jobs.forEach((job) => {
       if (job.status === "Pending") {
@@ -34,7 +37,7 @@ export default function Home() {
               j.id === job.id ? { ...j, status: "Running" } : j
             )
           );
-        }, Math.random() * 2000 + 1000); // Start running after 1-3 seconds
+        }, Math.random() * (pollInterval * 1000 * 0.6) + (pollInterval * 1000 * 0.2)); // Start running after 20-80% of interval
         timers.push(timer1);
       } else if (job.status === "Running") {
         const timer2 = setTimeout(() => {
@@ -45,7 +48,7 @@ export default function Home() {
               j.id === job.id ? { ...j, status: newStatus } : j
             )
           );
-        }, Math.random() * 4000 + 2000); // Finish after 2-6 seconds
+        }, Math.random() * (pollInterval * 1000) + (pollInterval * 1000 * 0.5)); // Finish after 50-150% of interval
         timers.push(timer2);
       }
     });
@@ -53,7 +56,7 @@ export default function Home() {
     return () => {
       timers.forEach(clearTimeout);
     };
-  }, [jobs]);
+  }, [jobs, pollInterval]);
 
   if (!isClient) {
     return (

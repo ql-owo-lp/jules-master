@@ -27,20 +27,27 @@ import {
 
 export function SettingsSheet() {
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [inputValue, setInputValue] = useState(apiKey);
+  const [pollInterval, setPollInterval] = useLocalStorage<number>("jules-poll-interval", 5);
+  const [apiKeyValue, setApiKeyValue] = useState(apiKey);
+  const [pollIntervalValue, setPollIntervalValue] = useState(pollInterval);
   const [showApiKey, setShowApiKey] = useState(false);
   const { toast } = useToast();
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    setInputValue(apiKey);
+    setApiKeyValue(apiKey);
   }, [apiKey]);
+  
+  useEffect(() => {
+    setPollIntervalValue(pollInterval);
+  }, [pollInterval]);
 
   const handleSave = () => {
-    setApiKey(inputValue);
+    setApiKey(apiKeyValue);
+    setPollInterval(pollIntervalValue);
     toast({
       title: "Settings Saved",
-      description: "Your API key has been updated.",
+      description: "Your settings have been updated.",
     });
   };
 
@@ -55,7 +62,7 @@ export function SettingsSheet() {
         <SheetHeader className="mb-6">
           <SheetTitle>Settings</SheetTitle>
           <SheetDescription>
-            Configure your Jules API settings here. Your key is saved securely
+            Configure your Jules API settings here. Your settings are saved securely
             in your browser's local storage.
           </SheetDescription>
         </SheetHeader>
@@ -66,8 +73,8 @@ export function SettingsSheet() {
               <Input
                 id="api-key"
                 type={showApiKey ? "text" : "password"}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                value={apiKeyValue}
+                onChange={(e) => setApiKeyValue(e.target.value)}
                 placeholder="Enter your API key"
                 className="pr-10"
               />
@@ -89,13 +96,29 @@ export function SettingsSheet() {
           </div>
 
           <div className="grid gap-2">
+            <Label htmlFor="poll-interval">Job Poll Interval (seconds)</Label>
+            <Input
+              id="poll-interval"
+              type="number"
+              value={pollIntervalValue}
+              onChange={(e) => setPollIntervalValue(Number(e.target.value))}
+              placeholder="e.g., 5"
+              min="1"
+            />
+          </div>
+
+          <div className="grid gap-2">
             <Label>Theme</Label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                  <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                  <span className="ml-2">Toggle theme</span>
+                <Button variant="outline" className="justify-start">
+                  <div className="relative w-5 h-5 mr-2 flex items-center justify-center">
+                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  </div>
+                  <span>
+                    {theme ? theme.charAt(0).toUpperCase() + theme.slice(1) : "System"}
+                  </span>
                   <span className="sr-only">Toggle theme</span>
                 </Button>
               </DropdownMenuTrigger>
