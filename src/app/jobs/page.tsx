@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -20,14 +21,20 @@ import {
 } from "@/components/ui/table";
 import { ClipboardList } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useRouter } from 'next/navigation';
 
 export default function JobsPage() {
   const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const handleJobClick = (jobId: string) => {
+    router.push(`/?jobId=${jobId}`);
+  };
 
   if (!isClient) {
     return null; // or a loading skeleton
@@ -69,7 +76,7 @@ export default function JobsPage() {
                     </TableHeader>
                     <TableBody>
                       {jobs.map((job) => (
-                        <TableRow key={job.id}>
+                        <TableRow key={job.id} onClick={() => handleJobClick(job.id)} className="cursor-pointer">
                           <TableCell className="font-medium">
                             {job.name}
                           </TableCell>

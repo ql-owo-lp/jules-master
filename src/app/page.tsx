@@ -1,19 +1,21 @@
+
 "use client";
 
-import { useState, useEffect, useTransition, useCallback } from "react";
+import { useState, useEffect, useTransition, useCallback, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Session, Job } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, Plus } from "lucide-react";
+import { Terminal, Plus, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions, revalidateSessions } from "./sessions/actions";
 import { approvePlan } from "./sessions/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
-export default function Home() {
+function HomePageContent() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -25,6 +27,15 @@ export default function Home() {
   const { toast } = useToast();
   const [countdown, setCountdown] = useState(pollInterval);
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
+
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get("jobId");
+  
+  const filteredJob = jobId ? jobs.find(j => j.id === jobId) : null;
+
+  const filteredSessions = jobId 
+    ? sessions.filter(s => filteredJob?.sessionIds.includes(s.id))
+    : sessions;
 
 
   const fetchSessions = useCallback(() => {
@@ -133,7 +144,7 @@ export default function Home() {
             </Alert>
           )}
           <SessionList
-            sessions={sessions}
+            sessions={filteredSessions}
             jobs={jobs}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
@@ -143,6 +154,7 @@ export default function Home() {
             countdown={countdown}
             pollInterval={pollInterval}
             titleTruncateLength={titleTruncateLength}
+            filteredJobName={filteredJob?.name}
           />
         </div>
       </main>
@@ -156,4 +168,12 @@ export default function Home() {
       </div>
     </div>
   );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomePageContent />
+    </Suspense>
+  )
 }

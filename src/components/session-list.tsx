@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -18,7 +19,7 @@ import {
 import type { Session, Job } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2 } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -38,6 +39,7 @@ type SessionListProps = {
   countdown: number;
   pollInterval: number;
   titleTruncateLength: number;
+  filteredJobName?: string;
 };
 
 export function SessionList({
@@ -51,6 +53,7 @@ export function SessionList({
   countdown,
   pollInterval,
   titleTruncateLength,
+  filteredJobName,
 }: SessionListProps) {
   const router = useRouter();
 
@@ -105,16 +108,25 @@ export function SessionList({
           )}
         </div>
         <CardDescription>
-          {sessions.length > 0 ? "A list of your most recent sessions." : "Your created sessions will appear here."}
+          {filteredJobName 
+            ? `Showing sessions for job: "${filteredJobName}"` 
+            : (sessions.length > 0 ? "A list of your most recent sessions." : "Your created sessions will appear here.")
+          }
         </CardDescription>
+          {filteredJobName && (
+             <Button variant="outline" size="sm" onClick={() => router.push('/')} className="mt-2">
+                <X className="mr-2 h-4 w-4" />
+                Clear Filter
+            </Button>
+          )}
       </CardHeader>
       <CardContent>
         {sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
             <ClipboardList className="h-12 w-12 mb-4" />
-            <p className="font-semibold text-lg">No sessions yet</p>
+            <p className="font-semibold text-lg">No sessions found</p>
             <p className="text-sm">
-              Use the form above to create a new session or click refresh to fetch existing ones.
+              {filteredJobName ? "No sessions found for this job." : "Create a new job to see sessions here."}
             </p>
           </div>
         ) : (
