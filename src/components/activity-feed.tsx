@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, forwardRef } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { CollapsibleMessage } from "./collapsible-message";
 
 const originatorIcons: Record<string, React.ReactNode> = {
   user: <User className="h-5 w-5 text-blue-500" />,
@@ -154,10 +155,10 @@ ActivityFeed.displayName = 'ActivityFeed';
 
 function ActivityContent({ activity }: { activity: Activity }) {
   if (activity.agentMessaged) {
-    return <p className="whitespace-pre-wrap break-words">{activity.agentMessaged.agentMessage}</p>;
+    return <CollapsibleMessage content={activity.agentMessaged.agentMessage} />;
   }
   if (activity.userMessaged) {
-    return <p className="whitespace-pre-wrap break-words">{activity.userMessaged.userMessage}</p>;
+    return <CollapsibleMessage content={activity.userMessaged.userMessage} />;
   }
   if (activity.planGenerated) {
     return (
@@ -308,5 +309,3 @@ function GitPatchDetails({ patch }: { patch: GitPatch }) {
     </Accordion>
   );
 }
-
-    
