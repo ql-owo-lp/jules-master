@@ -47,9 +47,11 @@ import {
   Share,
   Zap,
   Briefcase,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export default function SessionDetailPage({
   params,
@@ -69,6 +71,7 @@ export default function SessionDetailPage({
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const activityFeedRef = useRef<HTMLDivElement>(null);
+  const [showScroll, setShowScroll] = useState(false);
   const searchParams = useSearchParams();
   const jobId = searchParams.get('jobId');
 
@@ -130,12 +133,31 @@ export default function SessionDetailPage({
     return () => clearInterval(timer);
   }, [apiKey, pollInterval, lastUpdatedAt]);
   
-  // Auto-scroll activity feed
-  useEffect(() => {
+  const scrollToBottom = () => {
     if (activityFeedRef.current) {
-        activityFeedRef.current.scrollTop = activityFeedRef.current.scrollHeight;
+        activityFeedRef.current.scrollTo({ top: activityFeedRef.current.scrollHeight, behavior: 'smooth' });
     }
-  }, [activities]);
+  };
+
+  const handleScroll = useCallback(() => {
+    if (activityFeedRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = activityFeedRef.current;
+      // Show button if user is not at the bottom
+      setShowScroll(scrollTop < scrollHeight - clientHeight - 100);
+    }
+  }, []);
+
+  // Auto-scroll activity feed and add scroll listener
+  useEffect(() => {
+    const currentRef = activityFeedRef.current;
+    if (currentRef) {
+        // Auto-scroll on new activities
+        currentRef.scrollTop = currentRef.scrollHeight;
+        
+        currentRef.addEventListener('scroll', handleScroll);
+        return () => currentRef.removeEventListener('scroll', handleScroll);
+    }
+  }, [activities, handleScroll]);
 
 
   const handleApprovePlan = () => {
@@ -187,7 +209,7 @@ export default function SessionDetailPage({
   };
   
   const job = jobs.find(j => session && j.sessionIds.includes(session.id));
-  const backPath = job ? `/?jobId=${job.id}` : '/';
+  const backPath = jobId ? `/?jobId=${jobId}` : (job ? `/?jobId=${job.id}` : '/');
 
 
   if (isFetching && !session) {
@@ -390,47 +412,60 @@ export default function SessionDetailPage({
             </TabsContent>
 
             <TabsContent value="activity">
-              <div className="mt-4">
-                <ActivityFeed 
-                    activities={activities} 
-                    ref={activityFeedRef}
-                    lastUpdatedAt={lastUpdatedAt}
-                    onRefresh={() => fetchSessionData({ showToast: true })}
-                    isRefreshing={isFetching}
-                    countdown={countdown}
-                    pollInterval={pollInterval}
-                />
+                <div className="mt-4 relative">
+                    <ActivityFeed 
+                        activities={activities} 
+                        ref={activityFeedRef}
+                        lastUpdatedAt={lastUpdatedAt}
+                        onRefresh={() => fetchSessionData({ showToast: true })}
+                        isRefreshing={isFetching}
+                        countdown={countdown}
+                        pollInterval={pollInterval}
+                    />
 
-                {session.state === "AWAITING_USER_FEEDBACK" && (
-                  <Card className="mt-8">
-                    <CardHeader>
-                      <CardTitle>User Feedback Required</CardTitle>
-                      <CardDescription>
-                        The session is waiting for your input to continue.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-2">
-                          <Label htmlFor="message">Your Message</Label>
-                          <Textarea
-                              id="message"
-                              value={message}
-                              onChange={(e) => setMessage(e.target.value)}
-                              placeholder="Type your message here..."
-                              rows={4}
-                              disabled={isActionPending}
-                          />
-                      </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSendMessage} disabled={isActionPending || !message.trim()}>
-                        {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
-                        Send Message
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                )}
-              </div>
+                    {session.state === "AWAITING_USER_FEEDBACK" && (
+                    <Card className="mt-8">
+                        <CardHeader>
+                        <CardTitle>User Feedback Required</CardTitle>
+                        <CardDescription>
+                            The session is waiting for your input to continue.
+                        </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                        <div className="grid gap-2">
+                            <Label htmlFor="message">Your Message</Label>
+                            <Textarea
+                                id="message"
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                placeholder="Type your message here..."
+                                rows={4}
+                                disabled={isActionPending}
+                            />
+                        </div>
+                        </CardContent>
+                        <CardFooter>
+                        <Button onClick={handleSendMessage} disabled={isActionPending || !message.trim()}>
+                            {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
+                            Send Message
+                        </Button>
+                        </CardFooter>
+                    </Card>
+                    )}
+
+                    <Button 
+                        size="icon" 
+                        className={cn(
+                            "fixed bottom-8 right-8 rounded-full shadow-lg transition-opacity",
+                            showScroll ? "opacity-100" : "opacity-0 pointer-events-none"
+                        )}
+                        onClick={scrollToBottom}
+                        aria-label="Scroll to bottom"
+                        >
+                        <ChevronDown className="h-6 w-6" />
+                    </Button>
+
+                </div>
             </TabsContent>
           </Tabs>
         </div>
