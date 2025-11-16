@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { listSources } from '@/app/sessions/actions';
 import type { Source } from '@/lib/types';
@@ -63,7 +62,6 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSe
   if (isFetching) {
     return (
       <div className="space-y-2">
-        <Label htmlFor="repository-skeleton">Repository</Label>
         <Skeleton id="repository-skeleton" className="h-10 w-full" />
       </div>
     );
@@ -72,7 +70,6 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSe
   if (error) {
     return (
         <div className="space-y-2">
-            <Label htmlFor="repository-error">Repository</Label>
             <div id="repository-error" className="flex items-center gap-2 text-sm text-destructive border border-destructive/50 rounded-md p-2 bg-destructive/10">
                 <AlertCircle className="h-4 w-4" />
                 <span>{error}</span>
@@ -83,7 +80,6 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled }: SourceSe
 
   return (
     <div className="grid w-full items-center gap-2">
-      <Label htmlFor="repository">Repository</Label>
       <Select
         onValueChange={handleValueChange}
         disabled={disabled || sources.length === 0}

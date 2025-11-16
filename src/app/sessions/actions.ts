@@ -1,6 +1,7 @@
 'use server';
 
 import type { Session, Source, Branch } from '@/lib/types';
+import { revalidateTag } from 'next/cache';
 
 type ListSessionsResponse = {
   sessions: Session[];
@@ -68,7 +69,7 @@ export async function listSources(apiKey: string): Promise<Source[]> {
       headers: {
         'X-Goog-Api-Key': apiKey,
       },
-      cache: 'no-store',
+      next: { revalidate: 300, tags: ['sources'] },
     });
     if (!response.ok) {
       console.error(`Failed to fetch sources: ${response.status} ${response.statusText}`);
@@ -92,7 +93,7 @@ export async function listBranches(apiKey: string, sourceName: string): Promise<
       headers: {
         'X-Goog-Api-Key': apiKey,
       },
-      cache: 'no-store',
+      next: { revalidate: 300, tags: [`branches-for-${sourceName}`] },
     });
     if (!response.ok) {
       console.error(`Failed to fetch branches: ${response.status} ${response.statusText}`);
@@ -104,4 +105,8 @@ export async function listBranches(apiKey: string, sourceName: string): Promise<
     console.error('Error fetching branches:', error);
     return [];
   }
+}
+
+export async function refreshSources() {
+  revalidateTag('sources');
 }
