@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { createTitleForJob } from "@/app/actions";
 import { refreshSources } from "@/app/sessions/actions";
 import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -102,7 +101,7 @@ export function JobCreationForm({
     startTransition(async () => {
       const createdSessions: Session[] = [];
       const sessionIds: string[] = [];
-      const title = jobName.trim() || await createTitleForJob(prompt);
+      const title = jobName.trim() || new Date().toLocaleString();
 
       for (let i = 0; i < sessionCount; i++) {
         let retries = 3;
