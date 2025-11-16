@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -13,9 +13,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { createTitleForJob } from "@/app/actions";
+import { refreshSources } from "@/app/sessions/actions";
 import type { Session, Source } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Wand2, Loader2 } from "lucide-react";
+import { Wand2, Loader2, RefreshCw } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
 
@@ -55,8 +56,23 @@ export function JobCreationForm({
 }: JobCreationFormProps) {
   const [prompts, setPrompts] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [isRefreshing, startRefreshTransition] = useTransition();
   const { toast } = useToast();
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
+  // Add a key to force re-mounting of the SourceSelection component
+  const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
+
+  const handleRefresh = useCallback(async () => {
+    startRefreshTransition(async () => {
+      await refreshSources();
+      // By changing the key, we force React to re-mount SourceSelection
+      setSourceSelectionKey(Date.now());
+      toast({
+        title: "Refreshed",
+        description: "The list of repositories has been updated.",
+      });
+    });
+  }, [toast]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -150,7 +166,20 @@ export function JobCreationForm({
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SourceSelection apiKey={apiKey} onSourceSelected={setSelectedSource} disabled={disabled || isPending} />
+            <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                    <Label htmlFor="repository">Repository</Label>
+                     <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-6 w-6" disabled={isRefreshing} aria-label="Refresh Repositories">
+                        <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
+                    </Button>
+                </div>
+                <SourceSelection 
+                    key={sourceSelectionKey}
+                    apiKey={apiKey} 
+                    onSourceSelected={setSelectedSource} 
+                    disabled={disabled || isPending} 
+                />
+            </div>
             <BranchSelection apiKey={apiKey} source={selectedSource} disabled={disabled || isPending || !selectedSource}/>
           </div>
         </CardContent>
