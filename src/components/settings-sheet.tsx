@@ -13,16 +13,24 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Eye, EyeOff } from "lucide-react";
+import { Settings, Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "next-themes";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function SettingsSheet() {
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
   const [inputValue, setInputValue] = useState(apiKey);
   const [showApiKey, setShowApiKey] = useState(false);
   const { toast } = useToast();
+  const { setTheme } = useTheme();
 
   useEffect(() => {
     setInputValue(apiKey);
@@ -51,7 +59,7 @@ export function SettingsSheet() {
             in your browser's local storage.
           </SheetDescription>
         </SheetHeader>
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           <div className="grid gap-2">
             <Label htmlFor="api-key">Jules API Key</Label>
             <div className="relative">
@@ -78,6 +86,31 @@ export function SettingsSheet() {
                 )}
               </Button>
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Theme</Label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  <span className="ml-2">Toggle theme</span>
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setTheme("light")}>
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")}>
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         <SheetFooter className="mt-8">
