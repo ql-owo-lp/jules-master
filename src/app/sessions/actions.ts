@@ -13,6 +13,10 @@ type ListSourcesResponse = {
   nextPageToken?: string;
 };
 
+export async function revalidateSessions() {
+  revalidateTag('sessions');
+}
+
 export async function listSessions(
   apiKey: string
 ): Promise<Session[]> {
@@ -27,7 +31,7 @@ export async function listSessions(
         headers: {
           'X-Goog-Api-Key': apiKey,
         },
-        cache: 'no-store', // Ensure we get fresh data
+        next: { revalidate: 3600, tags: ['sessions'] }, 
       }
     );
 
