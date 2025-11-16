@@ -142,7 +142,7 @@ export function SessionList({
                     <TableCell>
                       <JobStatusBadge status={session.state || session.status} />
                     </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(session.createTime || session.createdAt), {
                         addSuffix: true,
                       })}
