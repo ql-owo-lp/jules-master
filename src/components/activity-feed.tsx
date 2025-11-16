@@ -24,7 +24,6 @@ import {
   Clipboard,
   ClipboardCheck,
   RefreshCw,
-  FileText
 } from "lucide-react";
 import {
   Accordion,
@@ -37,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, forwardRef } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { CollapsibleMessage } from "./collapsible-message";
 
 const originatorIcons: Record<string, React.ReactNode> = {
   user: <User className="h-5 w-5 text-blue-500" />,
@@ -153,33 +153,13 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
 });
 ActivityFeed.displayName = 'ActivityFeed';
 
-function CollapsibleContent({ children, triggerTitle, icon: Icon }: { children: React.ReactNode, triggerTitle: string, icon?: React.ElementType }) {
-  const IconComponent = Icon || FileText;
-  return (
-    <Accordion type="single" collapsible className="w-full">
-      <AccordionItem value="content" className="border-b-0">
-        <AccordionTrigger>
-          <div className="flex items-center gap-2 text-sm">
-            <IconComponent className="h-4 w-4" />
-            <span>{triggerTitle}</span>
-          </div>
-        </AccordionTrigger>
-        <AccordionContent>
-          <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto">
-            <code>{children}</code>
-          </pre>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  );
-}
 
 function ActivityContent({ activity }: { activity: Activity }) {
   if (activity.agentMessaged?.agentMessage) {
-    return <CollapsibleContent triggerTitle="View Message">{activity.agentMessaged.agentMessage}</CollapsibleContent>;
+    return <CollapsibleMessage content={activity.agentMessaged.agentMessage} />;
   }
   if (activity.userMessaged?.userMessage) {
-    return <CollapsibleContent triggerTitle="View Message">{activity.userMessaged.userMessage}</CollapsibleContent>;
+    return <CollapsibleMessage content={activity.userMessaged.userMessage} />;
   }
   if (activity.planGenerated) {
     return (
@@ -200,7 +180,7 @@ function ActivityContent({ activity }: { activity: Activity }) {
     return (
       <div className="mt-2 space-y-1">
         <p className="font-medium">{activity.progressUpdated.title}</p>
-        <CollapsibleContent triggerTitle="View Details">{activity.progressUpdated.description}</CollapsibleContent>
+        <CollapsibleMessage content={activity.progressUpdated.description} />
       </div>
     );
   }
@@ -216,7 +196,7 @@ function ActivityContent({ activity }: { activity: Activity }) {
     return (
        <div className="flex items-center gap-2 mt-2">
          <XCircle className="h-4 w-4 text-red-500" />
-         <CollapsibleContent triggerTitle="View Failure Reason">{activity.sessionFailed.reason}</CollapsibleContent>
+         <CollapsibleMessage content={activity.sessionFailed.reason} />
        </div>
     );
   }
@@ -231,9 +211,8 @@ function ActivityContent({ activity }: { activity: Activity }) {
             )}
             {artifact.bashOutput?.output && (
                 <div className="p-2 bg-muted rounded-md font-mono text-xs">
-                    <CollapsibleContent triggerTitle={`View Output for: ${artifact.bashOutput.command}`} icon={ChevronsRight}>
-                      {artifact.bashOutput.output}
-                    </CollapsibleContent>
+                    <p className="font-semibold mb-2 flex items-center gap-2"><ChevronsRight className="h-4 w-4" /> <span>{artifact.bashOutput.command}</span></p>
+                    <CollapsibleMessage content={artifact.bashOutput.output} isPreformatted />
                     <p className="mt-2 text-xs">Exit Code: {artifact.bashOutput.exitCode}</p>
                 </div>
             )}
@@ -296,9 +275,11 @@ function GitPatchDetails({ patch }: { patch: GitPatch }) {
           </div>
         </div>
         <div className="relative">
-            <CollapsibleContent triggerTitle="View Code Changes" icon={FileCode}>
-                {patch.unidiffPatch}
-            </CollapsibleContent>
+             <div className="flex items-center gap-2 text-sm font-semibold mb-2">
+                <FileCode className="h-4 w-4" />
+                <span>Code Changes</span>
+             </div>
+             <CollapsibleMessage content={patch.unidiffPatch} isPreformatted />
              <Button
                 variant="ghost"
                 size="icon"
