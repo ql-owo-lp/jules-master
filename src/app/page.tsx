@@ -5,16 +5,16 @@ import { Header } from "@/components/header";
 import { JobCreationForm } from "@/components/job-creation-form";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, JobStatus } from "@/lib/types";
+import type { Session } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, Loader2 } from "lucide-react";
+import { Terminal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "./sessions/actions";
 import { useToast } from "@/hooks/use-toast";
 
-
 export default function Home() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 60);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -25,7 +25,9 @@ export default function Home() {
     if (!apiKey) return;
     startFetching(async () => {
       const fetchedSessions = await listSessions(apiKey);
-      setSessions(fetchedSessions);
+      // Filter out any sessions that might be null or undefined from the API response
+      const validSessions = fetchedSessions.filter(s => s);
+      setSessions(validSessions);
       setLastUpdatedAt(new Date());
     });
   };
@@ -34,13 +36,19 @@ export default function Home() {
     setIsClient(true);
   }, []);
 
-  // Fetch sessions on initial load (if apiKey is present)
+  // Fetch sessions on initial load and set up polling
   useEffect(() => {
     if (isClient && apiKey) {
-      fetchSessions();
+      fetchSessions(); // Initial fetch
+
+      const intervalInMs = pollInterval * 1000;
+      if (intervalInMs > 0) {
+        const intervalId = setInterval(fetchSessions, intervalInMs);
+        return () => clearInterval(intervalId); // Cleanup on unmount
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, apiKey]);
+  }, [isClient, apiKey, pollInterval]);
 
 
   const handleSessionsCreated = (newSessions: Session[]) => {
