@@ -26,16 +26,32 @@ type JobCreationFormProps = {
 };
 
 const preCannedPrompts = [
-  "Create a new React component",
-  "Fix a bug in the login flow",
-  "Refactor the database schema",
-  "Add a new feature for user profiles",
+  {
+    title: "Create React Component",
+    prompt:
+      "Create a new React component for a user profile card. It should display the user's name, avatar, and a short bio.",
+  },
+  {
+    title: "Fix Login Bug",
+    prompt:
+      "There's a bug in the login flow where the redirect after a successful login is not working. Please investigate and fix the issue.",
+  },
+  {
+    title: "Refactor DB Schema",
+    prompt:
+      "Refactor the database schema to normalize the 'user_addresses' table. Create a separate 'addresses' table and a join table.",
+  },
+  {
+    title: "Add User Profile Feature",
+    prompt:
+      "Add a new feature that allows users to upload a profile picture. This should include the frontend UI and the backend API endpoint.",
+  },
 ];
 
 export function JobCreationForm({
   onJobsCreated,
   disabled,
-  apiKey
+  apiKey,
 }: JobCreationFormProps) {
   const [prompts, setPrompts] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -106,16 +122,16 @@ export function JobCreationForm({
           <div className="space-y-2">
             <Label>Prompt Suggestions</Label>
             <div className="flex flex-wrap gap-2">
-              {preCannedPrompts.map((prompt) => (
+              {preCannedPrompts.map((p) => (
                 <Button
-                  key={prompt}
+                  key={p.title}
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePreCannedPromptClick(prompt)}
+                  onClick={() => handlePreCannedPromptClick(p.prompt)}
                   disabled={isPending || disabled}
                 >
-                  {prompt}
+                  {p.title}
                 </Button>
               ))}
             </div>
