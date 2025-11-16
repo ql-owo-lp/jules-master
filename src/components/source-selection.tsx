@@ -1,17 +1,11 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { listSources } from '@/app/sessions/actions';
 import type { Source } from '@/lib/types';
 import { AlertCircle, GitMerge } from 'lucide-react';
+import { Combobox } from './ui/combobox';
 
 type SourceSelectionProps = {
   apiKey: string;
@@ -48,11 +42,7 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled, selectedVa
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey]);
 
-  const handleValueChange = (sourceName: string) => {
-    const selected = sources.find((s) => s.name === sourceName) || null;
-    onSourceSelected(selected);
-  };
-  
+
   if (isFetching) {
     return (
       <div className="space-y-2">
@@ -71,29 +61,28 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled, selectedVa
         </div>
     )
   }
+  
+  const options = sources.map(source => ({
+    value: source.name,
+    label: `${source.githubRepo.owner}/${source.githubRepo.repo}`
+  }));
+
+  const handleSourceSelected = (sourceName: string) => {
+    const selected = sources.find((s) => s.name === sourceName) || null;
+    onSourceSelected(selected);
+  }
 
   return (
     <div className="grid w-full items-center gap-2">
-      <Select
-        onValueChange={handleValueChange}
+      <Combobox 
+        options={options}
+        selectedValue={selectedValue?.name}
+        onValueChange={handleSourceSelected}
+        placeholder='Select a repository'
+        searchPlaceholder='Search repositories...'
         disabled={disabled || sources.length === 0}
-        value={selectedValue?.name}
-        name="repository"
-      >
-        <SelectTrigger id="repository">
-          <div className="flex items-center gap-2">
-            <GitMerge className="h-4 w-4 text-muted-foreground" />
-            <SelectValue placeholder="Select a repository" />
-          </div>
-        </SelectTrigger>
-        <SelectContent>
-          {sources.map((source) => (
-            <SelectItem key={source.name} value={source.name}>
-              {source.githubRepo.owner}/{source.githubRepo.repo}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        icon={<GitMerge className="h-4 w-4 text-muted-foreground" />}
+      />
     </div>
   );
 }
