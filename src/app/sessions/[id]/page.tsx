@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useRef } from "react";
+import { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -57,7 +57,7 @@ export default function SessionDetailPage({
   params: { id: string };
 }) {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
+  const [pollIntervalSetting] = useLocalStorage<number>("jules-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [session, setSession] = useState<Session | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -67,10 +67,14 @@ export default function SessionDetailPage({
   const [message, setMessage] = useState("");
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
-  const [countdown, setCountdown] = useState(pollInterval);
   const activityFeedRef = useRef<HTMLDivElement>(null);
 
-  const fetchSessionData = async (options: { showToast?: boolean } = {}) => {
+  // Adjust poll interval based on session state
+  const isSessionDone = session?.state === 'COMPLETED' || session?.state === 'FAILED';
+  const pollInterval = isSessionDone ? pollIntervalSetting * 2 : pollIntervalSetting;
+  const [countdown, setCountdown] = useState(pollInterval);
+  
+  const fetchSessionData = useCallback(async (options: { showToast?: boolean } = {}) => {
     const id = params.id;
     if (!apiKey || !id) return;
     
@@ -88,12 +92,18 @@ export default function SessionDetailPage({
         setSession(fetchedSession);
         setActivities(fetchedActivities.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime()));
         setLastUpdatedAt(new Date());
-        setCountdown(pollInterval);
+        
+        // Reset countdown with the potentially new interval
+        const currentIsDone = fetchedSession.state === 'COMPLETED' || fetchedSession.state === 'FAILED';
+        const newInterval = currentIsDone ? pollIntervalSetting * 2 : pollIntervalSetting;
+        setCountdown(newInterval);
+        
       } else {
         notFound();
       }
     });
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, params.id, pollIntervalSetting]);
 
   useEffect(() => {
     if (apiKey && params.id) {
@@ -229,28 +239,29 @@ export default function SessionDetailPage({
             </Card>
           )}
 
+          <div className="flex justify-end items-center gap-4 text-sm text-muted-foreground border-b pb-4">
+              <Button variant="ghost" size="icon" onClick={() => fetchSessionData({ showToast: true })} aria-label="Refresh session data" disabled={isFetching}>
+                  <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+              </Button>
+              {lastUpdatedAt && (
+                  <div className="text-right">
+                  <div>
+                      Last updated:{" "}
+                      {format(lastUpdatedAt, "h:mm:ss a")}
+                  </div>
+                  {pollInterval > 0 && (
+                      <div>
+                      Next poll in: {countdown}s
+                      </div>
+                  )}
+                  </div>
+              )}
+          </div>
+
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="w-full justify-start">
+            <TabsList>
               <TabsTrigger value="details">Session Details</TabsTrigger>
               <TabsTrigger value="activity">Session Activity</TabsTrigger>
-               <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
-                    <Button variant="ghost" size="icon" onClick={() => fetchSessionData({ showToast: true })} aria-label="Refresh session data" disabled={isFetching}>
-                        <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-                    </Button>
-                    {lastUpdatedAt && (
-                        <div className="text-right">
-                        <div>
-                            Last updated:{" "}
-                            {format(lastUpdatedAt, "h:mm:ss a")}
-                        </div>
-                        {pollInterval > 0 && (
-                            <div>
-                            Next poll in: {countdown}s
-                            </div>
-                        )}
-                        </div>
-                    )}
-                </div>
             </TabsList>
 
             <TabsContent value="details">
