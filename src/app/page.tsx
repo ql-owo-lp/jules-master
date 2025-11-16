@@ -14,7 +14,6 @@ import { listSessions, revalidateSessions } from "./sessions/actions";
 import { approvePlan } from "./sessions/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { getPullRequestStatus, type PRStatus } from "./github/actions";
 
 function HomePageContent() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
@@ -29,7 +28,6 @@ function HomePageContent() {
   const { toast } = useToast();
   const [countdown, setCountdown] = useState(pollInterval);
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
-  const [prStatuses, setPrStatuses] = useState<Record<string, PRStatus>>({});
 
   const searchParams = useSearchParams();
   const jobIdParam = searchParams.get("jobId");
@@ -59,30 +57,6 @@ function HomePageContent() {
     });
   }, [sessions, jobs, jobFilter, repoFilter, statusFilter]);
   
-  const fetchPrStatuses = useCallback(async (sessionsToFetch: Session[]) => {
-    if (!githubToken) return;
-
-    const statuses: Record<string, PRStatus> = {};
-    const promises = sessionsToFetch.map(async (session) => {
-        const prUrl = session.outputs?.find(o => o.pullRequest?.url)?.pullRequest?.url;
-        if (prUrl) {
-            const urlParts = prUrl.split('/');
-            const owner = urlParts[3];
-            const repo = urlParts[4];
-            const pullNumber = parseInt(urlParts[6], 10);
-
-            if (owner && repo && !isNaN(pullNumber)) {
-                const status = await getPullRequestStatus(owner, repo, pullNumber, githubToken);
-                statuses[session.id] = status;
-            }
-        }
-    });
-
-    await Promise.all(promises);
-    setPrStatuses(prev => ({...prev, ...statuses}));
-
-  }, [githubToken]);
-
 
   const fetchSessions = useCallback(async () => {
     if (!apiKey) return;
@@ -95,11 +69,9 @@ function HomePageContent() {
       setSessions(validSessions);
       setLastUpdatedAt(new Date());
       setCountdown(pollInterval);
-      // After fetching sessions, fetch their PR statuses
-      fetchPrStatuses(validSessions);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, pollInterval, fetchPrStatuses]);
+  }, [apiKey, pollInterval]);
 
   useEffect(() => {
     setIsClient(true);
@@ -115,7 +87,6 @@ function HomePageContent() {
         setSessions(validSessions);
         setLastUpdatedAt(new Date());
         setCountdown(pollInterval);
-        fetchPrStatuses(validSessions);
       });
 
       const intervalInMs = pollInterval * 1000;
@@ -228,7 +199,6 @@ function HomePageContent() {
             uniqueJobNames={uniqueJobNames}
             uniqueStatuses={uniqueStatuses}
             jobMap={jobMap}
-            prStatuses={prStatuses}
           />
         </div>
       </main>
