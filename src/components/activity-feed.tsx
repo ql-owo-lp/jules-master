@@ -217,7 +217,7 @@ function ActivityContent({ activity }: { activity: Activity }) {
     return (
       <div className="mt-2 space-y-2">
         <p className="font-medium">{activity.progressUpdated!.title}</p>
-        <p className="text-sm text-muted-foreground line-clamp-3">{progressDescription}</p>
+        <pre className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap font-sans">{progressDescription}</pre>
          <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="progress" className="border-b-0">
                 <AccordionTrigger>
@@ -388,4 +388,4 @@ function GitPatchDetails({ patch }: { patch: GitPatch }) {
   );
 }
 
-  
+    
