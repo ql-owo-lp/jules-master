@@ -2,6 +2,8 @@
 
 import { SettingsSheet } from "./settings-sheet";
 import { Bot } from "lucide-react";
+import Link from "next/link";
+import { SidebarTrigger } from "./ui/sidebar";
 
 export function Header() {
   return (
@@ -9,10 +11,13 @@ export function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-3">
-            <Bot className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground font-headline">
-              Jules Hub
-            </h1>
+             <SidebarTrigger className="md:hidden"/>
+            <Link href="/" className="flex items-center space-x-3">
+              <Bot className="h-8 w-8 text-primary" />
+              <h1 className="text-2xl font-bold text-foreground font-headline hidden md:block">
+                Jules Master
+              </h1>
+            </Link>
           </div>
           <SettingsSheet />
         </div>

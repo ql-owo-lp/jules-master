@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from 'next/navigation';
-import { Header } from "@/components/header";
 import { JobCreationForm } from "@/components/job-creation-form";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Session } from "@/lib/types";
@@ -27,8 +26,7 @@ export default function NewSessionPage() {
 
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header />
+    <div className="flex flex-col flex-1 bg-background">
       <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
         <div className="container mx-auto max-w-4xl space-y-8">
           {!apiKey && (
