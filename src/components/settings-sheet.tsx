@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings } from "lucide-react";
+import { Settings, Eye, EyeOff } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 export function SettingsSheet() {
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
   const [inputValue, setInputValue] = useState(apiKey);
+  const [showApiKey, setShowApiKey] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -53,13 +54,30 @@ export function SettingsSheet() {
         <div className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="api-key">Jules API Key</Label>
-            <Input
-              id="api-key"
-              type="password"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Enter your API key"
-            />
+            <div className="relative">
+              <Input
+                id="api-key"
+                type={showApiKey ? "text" : "password"}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Enter your API key"
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute inset-y-0 right-0 h-full px-3"
+                onClick={() => setShowApiKey(!showApiKey)}
+                aria-label={showApiKey ? "Hide API key" : "Show API key"}
+              >
+                {showApiKey ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
         <SheetFooter className="mt-8">
