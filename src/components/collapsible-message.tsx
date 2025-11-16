@@ -8,25 +8,33 @@ import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-const LINE_LIMIT = 4;
+const LINE_LIMIT = 10;
 
 type CollapsibleMessageProps = {
     content: string;
+    isPreformatted?: boolean;
 };
 
-export function CollapsibleMessage({ content }: CollapsibleMessageProps) {
+export function CollapsibleMessage({ content, isPreformatted = false }: CollapsibleMessageProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const lineCount = useMemo(() => (content.match(/\n/g) || '').length + 1, [content]);
     const isCollapsible = lineCount > LINE_LIMIT;
 
-    return (
-        <div className="relative prose prose-sm dark:prose-invert max-w-none">
-             <ReactMarkdown
+    const Wrapper = ({ children }: { children: React.ReactNode }) => 
+        isPreformatted ? (
+            <pre className={cn(
+                'whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs',
+                 isCollapsible && !isExpanded && 'line-clamp-[10]'
+            )}>
+                <code>{children}</code>
+            </pre>
+        ) : (
+            <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 className={cn(
                     'whitespace-pre-wrap', 
-                    isCollapsible && !isExpanded && 'line-clamp-4'
+                    isCollapsible && !isExpanded && 'line-clamp-[10]'
                 )}
                 components={{
                     pre: ({node, ...props}) => <pre {...props} className="bg-muted text-foreground p-2 rounded-md" />,
@@ -35,6 +43,12 @@ export function CollapsibleMessage({ content }: CollapsibleMessageProps) {
              >
                 {content}
             </ReactMarkdown>
+        );
+
+
+    return (
+        <div className="relative prose prose-sm dark:prose-invert max-w-none">
+             <Wrapper>{content}</Wrapper>
 
             {isCollapsible && (
                  <Button
@@ -57,3 +71,5 @@ export function CollapsibleMessage({ content }: CollapsibleMessageProps) {
         </div>
     );
 }
+
+    
