@@ -77,7 +77,7 @@ export default function SessionDetailPage({
       fetchSession();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, params]);
+  }, [apiKey, params.id]);
 
   const handleApprovePlan = () => {
     if (!session) return;
@@ -340,7 +340,3 @@ export default function SessionDetailPage({
     </div>
   );
 }
-
-    
-
-    
