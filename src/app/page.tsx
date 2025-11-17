@@ -51,10 +51,20 @@ function HomePageContent() {
 
   
   const filteredJob = jobFilter ? jobs.find(j => j.id === jobFilter) : null;
+  
+  const sessionToJobMap = useMemo(() => {
+    const map = new Map<string, Job>();
+    for (const job of jobs) {
+      for (const sessionId of job.sessionIds) {
+        map.set(sessionId, job);
+      }
+    }
+    return map;
+  }, [jobs]);
 
   const filteredSessions = useMemo(() => {
     return sessions.filter(s => {
-      const job = jobs.find(j => j.sessionIds.includes(s.id));
+      const job = sessionToJobMap.get(s.id);
       
       const jobMatch = !jobFilter || (job && job.id === jobFilter);
       const repoMatch = repoFilter === 'all' || (job && job.repo === repoFilter);
@@ -62,7 +72,7 @@ function HomePageContent() {
 
       return jobMatch && repoMatch && statusMatch;
     });
-  }, [sessions, jobs, jobFilter, repoFilter, statusFilter]);
+  }, [sessions, sessionToJobMap, jobFilter, repoFilter, statusFilter]);
   
 
   const fetchSessions = useCallback(async () => {

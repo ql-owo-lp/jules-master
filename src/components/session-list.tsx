@@ -21,12 +21,6 @@ import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
 import { ClipboardList, RefreshCw, Hand, Loader2, Github, MessageSquareReply } from "lucide-react";
 import { Button } from "./ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
