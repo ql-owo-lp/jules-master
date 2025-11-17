@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,7 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BookText, Plus, Edit, Trash2, MoreHorizontal, Loader2 } from "lucide-react";
+import { BookText, Plus, Edit, Trash2, MoreHorizontal, MessageSquareReply } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,15 +43,22 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
+type DialogState = {
+  isOpen: boolean;
+  type: 'prompt' | 'reply';
+  data: PredefinedPrompt | null;
+}
+
 export default function PredefinedPromptsPage() {
   const [prompts, setPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
+  const [quickReplies, setQuickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+  
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentPrompt, setCurrentPrompt] = useState<PredefinedPrompt | null>(
-    null
-  );
+  
+  const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, type: 'prompt', data: null });
   const [title, setTitle] = useState("");
   const [promptText, setPromptText] = useState("");
+  
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -59,62 +67,131 @@ export default function PredefinedPromptsPage() {
     setIsLoading(false);
   }, []);
 
-  const handleAddNew = () => {
-    setCurrentPrompt(null);
-    setTitle("");
-    setPromptText("");
-    setIsDialogOpen(true);
+  const openDialog = (type: 'prompt' | 'reply', data: PredefinedPrompt | null = null) => {
+    setDialogState({ isOpen: true, type, data });
+    setTitle(data?.title || "");
+    setPromptText(data?.prompt || "");
   };
 
-  const handleEdit = (prompt: PredefinedPrompt) => {
-    setCurrentPrompt(prompt);
-    setTitle(prompt.title);
-    setPromptText(prompt.prompt);
-    setIsDialogOpen(true);
+  const closeDialog = () => {
+    setDialogState({ isOpen: false, type: 'prompt', data: null });
+  }
+
+  const handleDelete = (type: 'prompt' | 'reply', id: string) => {
+    if (type === 'prompt') {
+      setPrompts(prompts.filter((p) => p.id !== id));
+      toast({
+        title: "Prompt deleted",
+        description: "The predefined prompt has been removed.",
+      });
+    } else {
+      setQuickReplies(quickReplies.filter((r) => r.id !== id));
+       toast({
+        title: "Quick Reply deleted",
+        description: "The quick reply has been removed.",
+      });
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    setPrompts(prompts.filter((p) => p.id !== id));
-    toast({
-      title: "Prompt deleted",
-      description: "The predefined prompt has been removed.",
-    });
-  };
-
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!title.trim() || !promptText.trim()) {
       toast({
         variant: "destructive",
         title: "Missing fields",
-        description: "Both title and prompt text are required.",
+        description: "Both title and content are required.",
       });
       return;
     }
 
-    if (currentPrompt?.id) {
-      setPrompts(
-        prompts.map((p) =>
-          p.id === currentPrompt.id ? { ...p, title, prompt: promptText } : p
-        )
-      );
-      toast({
-        title: "Prompt updated",
-        description: "Your predefined prompt has been saved.",
-      });
-    } else {
-      const newPrompt: PredefinedPrompt = {
-        id: crypto.randomUUID(),
-        title,
-        prompt: promptText,
-      };
-      setPrompts([...prompts, newPrompt]);
-      toast({
-        title: "Prompt added",
-        description: "Your new predefined prompt has been created.",
-      });
+    const { type, data } = dialogState;
+    
+    if (type === 'prompt') {
+      if (data?.id) { // Editing existing prompt
+        setPrompts(prompts.map((p) => p.id === data.id ? { ...p, title, prompt: promptText } : p));
+        toast({ title: "Prompt updated" });
+      } else { // Adding new prompt
+        setPrompts([...prompts, { id: crypto.randomUUID(), title, prompt: promptText }]);
+        toast({ title: "Prompt added" });
+      }
+    } else { // 'reply'
+       if (data?.id) { // Editing existing reply
+        setQuickReplies(quickReplies.map((r) => r.id === data.id ? { ...r, title, prompt: promptText } : r));
+        toast({ title: "Quick Reply updated" });
+      } else { // Adding new reply
+        setQuickReplies([...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText }]);
+        toast({ title: "Quick Reply added" });
+      }
     }
-    setIsDialogOpen(false);
+    
+    closeDialog();
   };
+
+  const renderTable = (type: 'prompt' | 'reply') => {
+    const items = type === 'prompt' ? prompts : quickReplies;
+    const singular = type === 'prompt' ? 'prompt' : 'reply';
+    const plural = type === 'prompt' ? 'prompts' : 'replies';
+
+    if (isLoading) {
+       return (
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      );
+    }
+
+    if (items.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
+          <p className="font-semibold text-lg">No {plural} yet</p>
+          <p className="text-sm">
+            Click "Add New" to create your first {singular}.
+          </p>
+        </div>
+      );
+    }
+    
+    return (
+       <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Title</TableHead>
+              <TableHead>Content (Excerpt)</TableHead>
+              <TableHead className="w-[80px] text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell className="font-medium">{item.title}</TableCell>
+                <TableCell className="text-muted-foreground max-w-sm truncate">{item.prompt}</TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => openDialog(type, item)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDelete(type, item.id!)} className="text-destructive">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    )
+  }
 
   if (!isClient) {
     return (
@@ -122,6 +199,8 @@ export default function PredefinedPromptsPage() {
         <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
           <div className="container mx-auto max-w-4xl space-y-8">
              <div className="space-y-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-48 w-full" />
                 <Skeleton className="h-24 w-full" />
                 <Skeleton className="h-48 w-full" />
               </div>
@@ -144,92 +223,49 @@ export default function PredefinedPromptsPage() {
                     <CardTitle>Predefined Prompts</CardTitle>
                   </div>
                   <CardDescription>
-                    Manage your predefined prompts for session creation.
+                    Manage your reusable prompts for new job creation.
                   </CardDescription>
                 </div>
-                <Button onClick={handleAddNew}>
+                <Button onClick={() => openDialog('prompt')}>
                   <Plus className="mr-2 h-4 w-4" /> Add New
                 </Button>
               </CardHeader>
               <CardContent>
-                {isLoading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
+                {renderTable('prompt')}
+              </CardContent>
+            </Card>
+
+             <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <MessageSquareReply className="h-6 w-6" />
+                    <CardTitle>Quick Replies</CardTitle>
                   </div>
-                ) : prompts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
-                    <p className="font-semibold text-lg">No Prompts Yet</p>
-                    <p className="text-sm">
-                      Click "Add New" to create your first predefined prompt.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="border rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Title</TableHead>
-                          <TableHead>Prompt (Excerpt)</TableHead>
-                          <TableHead className="w-[80px] text-right">
-                            Actions
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {prompts.map((p) => (
-                          <TableRow key={p.id}>
-                            <TableCell className="font-medium">
-                              {p.title}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground max-w-sm truncate">
-                              {p.prompt}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                  <DropdownMenuItem onClick={() => handleEdit(p)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => handleDelete(p.id!)}
-                                    className="text-destructive"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+                  <CardDescription>
+                    Manage your reusable replies for providing session feedback.
+                  </CardDescription>
+                </div>
+                <Button onClick={() => openDialog('reply')}>
+                  <Plus className="mr-2 h-4 w-4" /> Add New
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {renderTable('reply')}
               </CardContent>
             </Card>
           </div>
         </main>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={dialogState.isOpen} onOpenChange={closeDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {currentPrompt ? "Edit Prompt" : "Add New Prompt"}
+              {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Prompt' : 'Quick Reply'}
             </DialogTitle>
             <DialogDescription>
-              {currentPrompt
-                ? "Update the details for your predefined prompt."
-                : "Create a new reusable prompt for faster session creation."}
+               Create a new reusable {dialogState.type === 'prompt' ? 'prompt for faster job creation.' : 'reply for session feedback.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -242,12 +278,12 @@ export default function PredefinedPromptsPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="col-span-3"
-                placeholder="e.g., Create React Component"
+                placeholder="A short, descriptive title"
               />
             </div>
             <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="prompt-text" className="text-right pt-2">
-                Prompt
+                Content
               </Label>
               <Textarea
                 id="prompt-text"
@@ -255,7 +291,7 @@ export default function PredefinedPromptsPage() {
                 onChange={(e) => setPromptText(e.target.value)}
                 className="col-span-3"
                 rows={6}
-                placeholder="Enter the full prompt text here..."
+                placeholder="Enter the full text here..."
               />
             </div>
           </div>
@@ -263,7 +299,7 @@ export default function PredefinedPromptsPage() {
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button onClick={handleSave}>Save Prompt</Button>
+            <Button onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
