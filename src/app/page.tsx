@@ -7,7 +7,7 @@ import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, Wand2, X } from "lucide-react";
+import { Terminal, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "./sessions/actions";
 import { approvePlan, sendMessage } from "./sessions/[id]/actions";
@@ -375,12 +375,7 @@ function HomePageContent() {
         </div>
       </main>
        <div className="fixed bottom-8 right-8 z-20">
-        <NewJobDialog>
-          <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
-            <Wand2 className="h-8 w-8" />
-            <span className="sr-only">New Job</span>
-          </Button>
-        </NewJobDialog>
+        <NewJobDialog />
       </div>
     </div>
   );
@@ -393,5 +388,3 @@ export default function Home() {
     </Suspense>
   )
 }
-
-    
