@@ -34,6 +34,26 @@ export function PrStatus({ prUrl, githubToken }: PrStatusProps) {
     return <div className="w-10 h-10" />;
   }
 
+  // If no token is provided, just show a simple link icon
+  if (!githubToken) {
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <a href={prUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" aria-label="View Pull Request on GitHub">
+                            <GitPullRequest className="h-5 w-5 text-muted-foreground" />
+                        </Button>
+                    </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>View on GitHub</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    )
+  }
+
   if (isLoading || !status) {
     return <Skeleton className="h-8 w-8 rounded-full" />;
   }
@@ -96,7 +116,6 @@ export function PrStatus({ prUrl, githubToken }: PrStatusProps) {
   }
   
   const checkRuns = status.checks.runs;
-  const checksPending = status.checks.status === 'pending';
 
   return (
     <TooltipProvider>
