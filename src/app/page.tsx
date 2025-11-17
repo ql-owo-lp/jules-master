@@ -217,6 +217,27 @@ function HomePageContent() {
     });
   };
 
+  const handleBulkSendMessage = (sessionIds: string[], message: string) => {
+    startActionTransition(async () => {
+      const messagePromises = sessionIds.map(id => sendMessage(apiKey, id, message));
+        try {
+            const results = await Promise.all(messagePromises);
+            const successfulMessages = results.filter(r => r).length;
+            toast({
+                title: "Bulk Message Sent",
+                description: `Successfully sent message to ${successfulMessages} of ${sessionIds.length} sessions.`,
+            });
+            fetchSessions();
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Bulk Message Failed",
+                description: "An error occurred while sending messages.",
+            });
+        }
+    });
+  }
+
   const handleClearFilters = () => {
     onJobFilterChange(null);
     onRepoFilterChange('all');
@@ -303,6 +324,7 @@ function HomePageContent() {
             isActionPending={isActionPending}
             onApprovePlan={handleApprovePlan}
             onSendMessage={handleSendMessage}
+            onBulkSendMessage={handleBulkSendMessage}
             countdown={countdown}
             pollInterval={sessionListPollInterval}
             titleTruncateLength={titleTruncateLength}
@@ -358,10 +380,10 @@ function HomePageContent() {
           </SessionList>
         </div>
       </main>
-       <div className="fixed bottom-8 right-8">
+       <div className="fixed bottom-8 right-8 z-20">
         <NewJobDialog
             trigger={
-                <Button size="lg" className="rounded-lg shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
+                <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
                     <Plus className="h-8 w-8" />
                     <span className="sr-only">New Job</span>
                 </Button>
