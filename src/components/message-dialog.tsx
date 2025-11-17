@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, ReactNode, cloneElement, ReactElement } from "react";
+import { useState, ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -44,8 +44,6 @@ export function MessageDialog({
     const handleSend = () => {
         if (!message.trim()) return;
         onSendMessage(message);
-        // The parent component will handle closing the dialog if needed,
-        // or we can close it optimistically.
         setOpen(false);
         setMessage("");
     };

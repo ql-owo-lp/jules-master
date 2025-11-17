@@ -73,31 +73,24 @@ export default function JobsPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (!isLoading && !lastUpdatedAt) {
-        setLastUpdatedAt(new Date());
+    if (apiKey && !isLoading) {
+       if (!lastUpdatedAt) {
+          setLastUpdatedAt(new Date());
+       }
+       fetchJobSessions();
+    } else if (!apiKey) {
+      setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, isLoading]);
+  }, [isClient, apiKey]);
 
-  // Initial fetch and set up polling
+  // Set up polling
   useEffect(() => {
-    if (isClient && apiKey) {
-        if (sessions.length === 0) {
-            fetchJobSessions();
-        } else {
-            setIsLoading(false);
-            if (!lastUpdatedAt) {
-                setLastUpdatedAt(new Date());
-            }
-        }
+    if (!isClient || !apiKey || pollInterval <= 0) return;
 
-        if (pollInterval > 0) {
-            const intervalId = setInterval(fetchJobSessions, pollInterval * 1000);
-            return () => clearInterval(intervalId);
-        }
-    } else if (isClient) {
-        setIsLoading(false);
-    }
+    const intervalId = setInterval(fetchJobSessions, pollInterval * 1000);
+    return () => clearInterval(intervalId);
+    
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient, apiKey, pollInterval]);
 
@@ -241,7 +234,7 @@ export default function JobsPage() {
     return map;
   }, [jobs, sessions]);
 
-  if (!isClient || (isLoading && sessions.length === 0)) {
+  if (!isClient || isLoading) {
     return (
        <div className="flex flex-col flex-1 bg-background">
         <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
