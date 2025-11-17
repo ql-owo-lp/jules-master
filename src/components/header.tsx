@@ -17,7 +17,7 @@ export function Header() {
           <div className="flex items-center space-x-3">
              {!open && (
                 <SidebarTrigger>
-                    <PanelLeft className="h-6 w-6" />
+                    <PanelLeft className="h-5 w-5" />
                     <span className="sr-only">Toggle Sidebar</span>
                 </SidebarTrigger>
              )}
