@@ -86,6 +86,9 @@ export default function JobsPage() {
             fetchJobSessions();
         } else {
             setIsLoading(false);
+            if (!lastUpdatedAt) {
+                setLastUpdatedAt(new Date());
+            }
         }
 
         if (pollInterval > 0) {
@@ -361,7 +364,7 @@ export default function JobsPage() {
                                         triggerButton={
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message to Job">
+                                                    <Button variant="ghost" size="icon" aria-label="Send Message to Job">
                                                         <MessageSquare className="h-4 w-4" />
                                                     </Button>
                                                 </TooltipTrigger>
