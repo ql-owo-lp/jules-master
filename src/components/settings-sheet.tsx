@@ -30,12 +30,14 @@ import {
 export function SettingsSheet() {
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
   const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
-  const [pollInterval, setPollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
+  const [idlePollInterval, setIdlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
+  const [activePollInterval, setActivePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [titleTruncateLength, setTitleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
-  const [pollIntervalValue, setPollIntervalValue] = useState(pollInterval);
+  const [idlePollIntervalValue, setIdlePollIntervalValue] = useState(idlePollInterval);
+  const [activePollIntervalValue, setActivePollIntervalValue] = useState(activePollInterval);
   const [titleTruncateLengthValue, setTitleTruncateLengthValue] = useState(titleTruncateLength);
   
   const [showApiKey, setShowApiKey] = useState(false);
@@ -52,8 +54,12 @@ export function SettingsSheet() {
   }, [githubToken]);
   
   useEffect(() => {
-    setPollIntervalValue(pollInterval);
-  }, [pollInterval]);
+    setIdlePollIntervalValue(idlePollInterval);
+  }, [idlePollInterval]);
+
+  useEffect(() => {
+    setActivePollIntervalValue(activePollInterval);
+  }, [activePollInterval]);
 
   useEffect(() => {
     setTitleTruncateLengthValue(titleTruncateLength);
@@ -62,7 +68,8 @@ export function SettingsSheet() {
   const handleSave = () => {
     setApiKey(apiKeyValue);
     setGithubToken(githubTokenValue);
-    setPollInterval(pollIntervalValue);
+    setIdlePollInterval(idlePollIntervalValue);
+    setActivePollInterval(activePollIntervalValue);
     setTitleTruncateLength(titleTruncateLengthValue);
     toast({
       title: "Settings Saved",
@@ -146,15 +153,33 @@ export function SettingsSheet() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="poll-interval">Session Poll Interval (seconds)</Label>
+            <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
             <Input
-              id="poll-interval"
+              id="idle-poll-interval"
               type="number"
-              value={pollIntervalValue}
-              onChange={(e) => setPollIntervalValue(Number(e.target.value))}
-              placeholder="e.g., 60"
+              value={idlePollIntervalValue}
+              onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
+              placeholder="e.g., 120"
               min="0"
             />
+             <p className="text-xs text-muted-foreground">
+              How often to check for updates in the background. Set to 0 to disable.
+            </p>
+          </div>
+          
+           <div className="grid gap-2">
+            <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
+            <Input
+              id="active-poll-interval"
+              type="number"
+              value={activePollIntervalValue}
+              onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
+              placeholder="e.g., 30"
+              min="1"
+            />
+             <p className="text-xs text-muted-foreground">
+              A shorter interval used after sending a message to a session.
+            </p>
           </div>
 
           <div className="grid gap-2">

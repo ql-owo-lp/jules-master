@@ -16,17 +16,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Session, Job, State } from "@/lib/types";
+import type { Session, Job } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2, X, Github } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2, Github } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Label } from "./ui/label";
 
 
 type SessionListProps = {
@@ -41,15 +39,8 @@ type SessionListProps = {
   pollInterval: number;
   titleTruncateLength: number;
   jobFilter: string | null;
-  repoFilter: string;
-  statusFilter: string;
-  onJobFilterChange: (value: string | null) => void;
-  onRepoFilterChange: (value: string) => void;
-  onStatusFilterChange: (value: string) => void;
-  uniqueRepos: string[];
-  uniqueJobNames: string[];
-  uniqueStatuses: string[];
-  jobMap: Map<string, string>;
+  githubTokenSet: boolean;
+  children: React.ReactNode;
 };
 
 
@@ -65,15 +56,8 @@ export function SessionList({
   pollInterval,
   titleTruncateLength,
   jobFilter,
-  repoFilter,
-  statusFilter,
-  onJobFilterChange,
-  onRepoFilterChange,
-  onStatusFilterChange,
-  uniqueRepos,
-  uniqueJobNames,
-  uniqueStatuses,
-  jobMap,
+  githubTokenSet,
+  children
 }: SessionListProps) {
   const router = useRouter();
 
@@ -102,15 +86,6 @@ export function SessionList({
     }
     return title.substring(0, maxLength) + "...";
   };
-
-  const handleClearFilters = () => {
-    onJobFilterChange(null);
-    onRepoFilterChange('all');
-    onStatusFilterChange('all');
-    router.push('/');
-  }
-
-  const isAnyFilterActive = jobFilter || repoFilter !== 'all' || statusFilter !== 'all';
 
   const getPullRequestUrl = (session: Session): string | null => {
     if (session.outputs && session.outputs.length > 0) {
@@ -152,53 +127,8 @@ export function SessionList({
           {sessions.length > 0 ? "A list of your most recent sessions." : "Your created sessions will appear here."}
         </CardDescription>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-          <div className="space-y-2">
-            <Label htmlFor="filter-repo">Repository</Label>
-            <Select value={repoFilter} onValueChange={onRepoFilterChange}>
-              <SelectTrigger id="filter-repo">
-                <SelectValue placeholder="Filter by repository..." />
-              </SelectTrigger>
-              <SelectContent>
-                {uniqueRepos.map((repo, index) => (
-                  <SelectItem key={`${repo}-${index}`} value={repo}>{repo === 'all' ? 'All Repositories' : repo}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="filter-status">Session Status</Label>
-            <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-              <SelectTrigger id="filter-status">
-                <SelectValue placeholder="Filter by status..." />
-              </SelectTrigger>
-              <SelectContent>
-                {uniqueStatuses.map((status, index) => (
-                  <SelectItem key={`${status}-${index}`} value={status}>{status === 'all' ? 'All Statuses' : status}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="filter-job">Job Name</Label>
-            <Select value={jobFilter || 'all'} onValueChange={(value) => onJobFilterChange(value === 'all' ? null : value)}>
-              <SelectTrigger id="filter-job">
-                <SelectValue placeholder="Filter by job..." />
-              </SelectTrigger>
-              <SelectContent>
-                {uniqueJobNames.map((jobId, index) => (
-                  <SelectItem key={`${jobId}-${index}`} value={jobId}>{jobId === 'all' ? 'All Jobs' : jobMap.get(jobId) || jobId}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        {isAnyFilterActive && (
-          <Button variant="outline" size="sm" onClick={handleClearFilters} className="mt-4">
-              <X className="mr-2 h-4 w-4" />
-              Clear All Filters
-          </Button>
-        )}
+        {children}
+
       </CardHeader>
       <CardContent>
         {sessions.length === 0 ? (
@@ -206,7 +136,7 @@ export function SessionList({
             <ClipboardList className="h-12 w-12 mb-4" />
             <p className="font-semibold text-lg">No sessions found</p>
             <p className="text-sm">
-              {isAnyFilterActive ? "No sessions match the current filters." : "Create a new job to see sessions here."}
+             Create a new job to see sessions here.
             </p>
           </div>
         ) : (
@@ -248,7 +178,7 @@ export function SessionList({
                       })}
                     </TableCell>
                      <TableCell className="text-center">
-                      {prUrl ? (
+                      {prUrl && githubTokenSet ? (
                          <Tooltip>
                             <TooltipTrigger asChild>
                               <a href={prUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
