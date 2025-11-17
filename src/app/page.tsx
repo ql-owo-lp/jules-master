@@ -375,14 +375,12 @@ function HomePageContent() {
         </div>
       </main>
        <div className="fixed bottom-8 right-8 z-20">
-        <NewJobDialog
-            triggerButton={
-                <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
-                    <Wand2 className="h-8 w-8" />
-                    <span className="sr-only">New Job</span>
-                </Button>
-            }
-        />
+        <NewJobDialog>
+          <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
+            <Wand2 className="h-8 w-8" />
+            <span className="sr-only">New Job</span>
+          </Button>
+        </NewJobDialog>
       </div>
     </div>
   );
