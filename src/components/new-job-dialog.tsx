@@ -12,11 +12,11 @@ import { revalidateSessions } from "@/app/sessions/actions";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 type NewJobDialogProps = {
-    trigger?: React.ReactNode;
+    triggerButton?: React.ReactNode;
     isPage?: boolean;
 }
 
-export function NewJobDialog({ trigger, isPage = false }: NewJobDialogProps) {
+export function NewJobDialog({ triggerButton, isPage = false }: NewJobDialogProps) {
     const [apiKey] = useLocalStorage<string>("jules-api-key", "");
     const router = useRouter();
     const { toast } = useToast();
@@ -96,7 +96,7 @@ export function NewJobDialog({ trigger, isPage = false }: NewJobDialogProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                {trigger}
+                {triggerButton}
             </DialogTrigger>
             <DialogContent className="w-3/4 max-w-4xl max-h-[90vh] flex flex-col">
                 <DialogHeader>
@@ -112,3 +112,5 @@ export function NewJobDialog({ trigger, isPage = false }: NewJobDialogProps) {
         </Dialog>
     );
 }
+
+    
