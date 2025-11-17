@@ -24,7 +24,7 @@ function HomePageContent() {
   const [githubToken] = useLocalStorage<string>("jules-github-token", "");
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [isFetching, startFetching] = useTransition();
@@ -76,7 +76,7 @@ function HomePageContent() {
       setCountdown(sessionListPollInterval);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, sessionListPollInterval]);
+  }, [apiKey, sessionListPollInterval, setSessions]);
 
   useEffect(() => {
     setIsClient(true);
@@ -85,14 +85,20 @@ function HomePageContent() {
   // Initial fetch and set up polling interval
   useEffect(() => {
     if (isClient && apiKey) {
-      // Fetch initial data (will use cache if available and not stale)
-      startFetching(async () => {
-        const fetchedSessions = await listSessions(apiKey);
-        const validSessions = fetchedSessions.filter(s => s);
-        setSessions(validSessions);
+      // Fetch initial data if cache is empty, otherwise use cache and fetch in background
+      if (sessions.length === 0) {
+        startFetching(async () => {
+          const fetchedSessions = await listSessions(apiKey);
+          const validSessions = fetchedSessions.filter(s => s);
+          setSessions(validSessions);
+          setLastUpdatedAt(new Date());
+          setCountdown(sessionListPollInterval);
+        });
+      } else {
+        // Immediately set update time for cached data
         setLastUpdatedAt(new Date());
         setCountdown(sessionListPollInterval);
-      });
+      }
 
       const intervalInMs = sessionListPollInterval * 1000;
       if (intervalInMs > 0) {
@@ -296,3 +302,5 @@ export default function Home() {
     </Suspense>
   )
 }
+
+    

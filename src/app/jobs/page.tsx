@@ -30,7 +30,7 @@ import { format } from "date-fns";
 export default function JobsPage() {
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -59,7 +59,7 @@ export default function JobsPage() {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, pollInterval]);
+  }, [apiKey, pollInterval, setSessions, isLoading]);
 
 
   useEffect(() => {
@@ -69,7 +69,14 @@ export default function JobsPage() {
   // Initial fetch and set up polling
   useEffect(() => {
     if (isClient && apiKey) {
-        fetchJobSessions(); // Initial fetch
+        // We still show loading on first visit even with cache
+        // to ensure we get latest data initially.
+        if (sessions.length === 0) {
+            fetchJobSessions();
+        } else {
+            setIsLoading(false);
+        }
+
         if (pollInterval > 0) {
             const intervalId = setInterval(fetchJobSessions, pollInterval * 1000);
             return () => clearInterval(intervalId);
@@ -77,6 +84,7 @@ export default function JobsPage() {
     } else if (isClient) {
         setIsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient, apiKey, pollInterval, fetchJobSessions]);
 
 
@@ -245,3 +253,5 @@ export default function JobsPage() {
     </div>
   );
 }
+
+    
