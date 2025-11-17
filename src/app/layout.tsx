@@ -16,7 +16,7 @@ import {
   SidebarGroup,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { Bot, Home, PlusCircle, BookText, ClipboardList, ExternalLink } from 'lucide-react';
+import { Bot, MessageSquare, PlusCircle, BookText, ClipboardList, ExternalLink } from 'lucide-react';
 import { Header } from '@/components/header';
 import { NewJobDialog } from '@/components/new-job-dialog';
 
@@ -89,7 +89,7 @@ export default function RootLayout({
                      <SidebarMenuItem>
                       <SidebarMenuButton asChild>
                         <Link href="/">
-                          <Home />
+                          <MessageSquare />
                           <span>Session List</span>
                         </Link>
                       </SidebarMenuButton>
@@ -117,5 +117,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    

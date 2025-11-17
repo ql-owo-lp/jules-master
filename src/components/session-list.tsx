@@ -21,7 +21,7 @@ import {
 import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2, MessageSquare, Briefcase, MessageSquareReply, X } from "lucide-react";
+import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, MessageSquareReply, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -175,7 +175,7 @@ export function SessionList({
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                  <ClipboardList className="h-6 w-6" />
+                  <MessageSquare className="h-6 w-6" />
                   <CardTitle>Session List</CardTitle>
                   <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh session list" disabled={isRefreshing}>
                   <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
@@ -208,7 +208,7 @@ export function SessionList({
         <CardContent>
           {sessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
-              <ClipboardList className="h-12 w-12 mb-4" />
+              <MessageSquare className="h-12 w-12 mb-4" />
               <p className="font-semibold text-lg">No sessions found</p>
               <p className="text-sm">
               Create a new job to see sessions here.
@@ -443,5 +443,3 @@ export function SessionList({
     </>
   );
 }
-
-    
