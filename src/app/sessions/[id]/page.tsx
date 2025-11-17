@@ -326,7 +326,7 @@ export default function SessionDetailPage() {
                             <Code className="h-5 w-5 text-muted-foreground mt-0.5" />
                             <div>
                                 <p className="font-semibold">Prompt</p>
-                                <p className="text-muted-foreground bg-muted p-3 rounded-md mt-1">{session.prompt}</p>
+                                <p className="text-muted-foreground bg-muted p-3 rounded-md mt-1 whitespace-pre-wrap">{session.prompt}</p>
                             </div>
                         </div>
                         {repoContext && (
@@ -433,7 +433,7 @@ export default function SessionDetailPage() {
                                                     {output.pullRequest.title}
                                                 </a>
                                                 {output.pullRequest.description && (
-                                                    <p className="text-muted-foreground mt-1 text-xs">{output.pullRequest.description}</p>
+                                                    <p className="text-muted-foreground mt-1 text-xs whitespace-pre-wrap">{output.pullRequest.description}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -525,3 +525,5 @@ export default function SessionDetailPage() {
     </div>
   );
 }
+
+    
