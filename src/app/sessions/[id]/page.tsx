@@ -57,7 +57,8 @@ export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [pollIntervalSetting] = useLocalStorage<number>("jules-poll-interval", 120);
+  const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
+  const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [session, setSession] = useState<Session | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -72,10 +73,12 @@ export default function SessionDetailPage() {
   const searchParams = useSearchParams();
   const jobId = searchParams.get('jobId');
 
-  // Adjust poll interval based on session state
+  const [isPollingActive, setIsPollingActive] = useState(false);
+  
+  // Determine current poll interval
   const isSessionDone = session?.state === 'COMPLETED' || session?.state === 'FAILED';
-  const pollInterval = isSessionDone ? pollIntervalSetting * 2 : pollIntervalSetting;
-  const [countdown, setCountdown] = useState(pollInterval);
+  const currentPollInterval = isSessionDone ? idlePollInterval : (isPollingActive ? activePollInterval : idlePollInterval);
+  const [countdown, setCountdown] = useState(currentPollInterval);
   
   const fetchSessionData = useCallback(async (options: { showToast?: boolean } = {}) => {
     if (!apiKey || !id) return;
@@ -91,20 +94,26 @@ export default function SessionDetailPage() {
       ]);
       
       if (fetchedSession) {
+        const wasDone = session?.state === 'COMPLETED' || session?.state === 'FAILED';
+        const isNowDone = fetchedSession.state === 'COMPLETED' || fetchedSession.state === 'FAILED';
+        
         setSession(fetchedSession);
         setActivities(fetchedActivities.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime()));
         setLastUpdatedAt(new Date());
         
-        // Reset countdown with the potentially new interval
-        const currentIsDone = fetchedSession.state === 'COMPLETED' || fetchedSession.state === 'FAILED';
-        const newInterval = currentIsDone ? pollIntervalSetting * 2 : pollIntervalSetting;
+        // If the session just finished, deactivate active polling
+        if (isNowDone && !wasDone) {
+            setIsPollingActive(false);
+        }
+
+        const newInterval = isNowDone ? idlePollInterval : (isPollingActive ? activePollInterval : idlePollInterval);
         setCountdown(newInterval);
         
       } else {
         notFound();
       }
     });
-  }, [apiKey, id, pollIntervalSetting, toast]);
+  }, [apiKey, id, idlePollInterval, activePollInterval, isPollingActive, toast, session]);
 
   useEffect(() => {
     if (apiKey && id) {
@@ -115,20 +124,20 @@ export default function SessionDetailPage() {
 
   // Set up polling interval
   useEffect(() => {
-    if (apiKey && pollInterval > 0) {
-      const intervalId = setInterval(() => fetchSessionData(), pollInterval * 1000);
+    if (apiKey && currentPollInterval > 0) {
+      const intervalId = setInterval(() => fetchSessionData(), currentPollInterval * 1000);
       return () => clearInterval(intervalId);
     }
-  }, [apiKey, pollInterval, fetchSessionData]);
+  }, [apiKey, currentPollInterval, fetchSessionData]);
 
   // Countdown timer
   useEffect(() => {
-    if (!apiKey || pollInterval <= 0) return;
+    if (!apiKey || currentPollInterval <= 0) return;
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
-  }, [apiKey, pollInterval, lastUpdatedAt]);
+  }, [apiKey, currentPollInterval, lastUpdatedAt]);
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (activityFeedRef.current) {
@@ -148,13 +157,15 @@ export default function SessionDetailPage() {
   useEffect(() => {
     const currentRef = activityFeedRef.current;
     if (currentRef) {
-        // Auto-scroll on new activities
-        scrollToBottom('auto');
+        // Auto-scroll on new activities, but only if user isn't trying to scroll up
+        if (!showScroll) {
+          scrollToBottom('auto');
+        }
         
         currentRef.addEventListener('scroll', handleScroll);
         return () => currentRef.removeEventListener('scroll', handleScroll);
     }
-  }, [activities, handleScroll]);
+  }, [activities, showScroll, handleScroll]);
 
 
   const handleApprovePlan = () => {
@@ -163,6 +174,8 @@ export default function SessionDetailPage() {
       const result = await approvePlan(apiKey, session.id);
       if (result) {
         setSession(result);
+        setIsPollingActive(true); // Start active polling
+        setCountdown(activePollInterval); // Reset timer immediately
         toast({ title: "Plan Approved", description: "The session will now proceed." });
       } else {
         toast({
@@ -181,8 +194,10 @@ export default function SessionDetailPage() {
         setMessage("");
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
         
-        // Refresh session data to get latest activities
+        // Activate faster polling and refresh data immediately
+        setIsPollingActive(true);
         fetchSessionData();
+        setCountdown(activePollInterval);
 
       } else {
         toast({
@@ -438,7 +453,7 @@ export default function SessionDetailPage() {
                         onRefresh={() => fetchSessionData({ showToast: true })}
                         isRefreshing={isFetching}
                         countdown={countdown}
-                        pollInterval={pollInterval}
+                        pollInterval={currentPollInterval}
                     />
 
                     <Card className="mt-8">
