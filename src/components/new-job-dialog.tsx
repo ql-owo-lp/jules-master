@@ -9,7 +9,7 @@ import type { Session, Source, AutomationMode } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/sessions/new/actions";
 import { revalidateSessions } from "@/app/sessions/actions";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 type NewJobDialogProps = {
     trigger?: React.ReactNode;
@@ -99,6 +99,12 @@ export function NewJobDialog({ trigger, isPage = false }: NewJobDialogProps) {
                 {trigger}
             </DialogTrigger>
             <DialogContent className="w-3/4 max-w-4xl max-h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Create a New Job</DialogTitle>
+                    <DialogDescription>
+                        Fill out the details below to start a new job with one or more sessions.
+                    </DialogDescription>
+                </DialogHeader>
                 <div className="overflow-y-auto p-1">
                     {form}
                 </div>
@@ -106,5 +112,3 @@ export function NewJobDialog({ trigger, isPage = false }: NewJobDialogProps) {
         </Dialog>
     );
 }
-
-    
