@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, forwardRef } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 const originatorIcons: Record<string, React.ReactNode> = {
   user: <User className="h-5 w-5 text-blue-500" />,
@@ -154,6 +155,7 @@ ActivityFeed.displayName = 'ActivityFeed';
 
 
 function ActivityContent({ activity }: { activity: Activity }) {
+  const [lineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
   const agentMessage = activity.agentMessaged?.agentMessage;
   if (agentMessage) {
     return (
@@ -217,7 +219,11 @@ function ActivityContent({ activity }: { activity: Activity }) {
     return (
       <div className="mt-2 space-y-2">
         <p className="font-medium">{activity.progressUpdated!.title}</p>
-        <pre className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap font-sans">{progressDescription}</pre>
+        <pre 
+            className={cn("text-sm text-muted-foreground whitespace-pre-wrap font-sans", `line-clamp-${lineClamp}`)}
+        >
+            {progressDescription}
+        </pre>
          <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="progress" className="border-b-0">
                 <AccordionTrigger>

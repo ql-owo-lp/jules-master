@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -6,6 +7,18 @@ export default {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  safelist: [
+    'line-clamp-1',
+    'line-clamp-2',
+    'line-clamp-3',
+    'line-clamp-4',
+    'line-clamp-5',
+    'line-clamp-6',
+    'line-clamp-7',
+    'line-clamp-8',
+    'line-clamp-9',
+    'line-clamp-10',
   ],
   theme: {
     extend: {
@@ -142,3 +155,5 @@ export default {
     require('@tailwindcss/line-clamp'),
   ],
 } satisfies Config;
+
+    
