@@ -295,7 +295,7 @@ export function SessionList({
                           triggerButton={
                               <Tooltip>
                                   <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message to Session">
+                                      <Button variant="ghost" size="icon" aria-label="Send Message to Session">
                                           <MessageSquare className="h-4 w-4" />
                                       </Button>
                                   </TooltipTrigger>
