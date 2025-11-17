@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { useRouter } from 'next/navigation';
 import { JobCreationForm } from "@/components/job-creation-form";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -10,14 +10,13 @@ import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/sessions/new/actions";
 import { revalidateSessions } from "@/app/sessions/actions";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "./ui/button";
-import { Plus } from "lucide-react";
 
 type NewJobDialogProps = {
     isPage?: boolean;
+    children?: ReactNode;
 }
 
-export function NewJobDialog({ isPage = false }: NewJobDialogProps) {
+export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
     const [apiKey] = useLocalStorage<string>("jules-api-key", "");
     const router = useRouter();
     const { toast } = useToast();
@@ -97,10 +96,7 @@ export function NewJobDialog({ isPage = false }: NewJobDialogProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                 <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-primary hover:bg-primary/90">
-                    <Plus className="h-8 w-8 text-white" />
-                    <span className="sr-only">New Job</span>
-                </Button>
+                 {children}
             </DialogTrigger>
             <DialogContent className="w-3/4 max-w-4xl max-h-[90vh] flex flex-col">
                 <DialogHeader>
@@ -116,3 +112,5 @@ export function NewJobDialog({ isPage = false }: NewJobDialogProps) {
         </Dialog>
     );
 }
+
+    
