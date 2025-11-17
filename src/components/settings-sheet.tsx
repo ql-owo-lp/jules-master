@@ -37,6 +37,8 @@ export function SettingsSheet() {
   const [activePollInterval, setActivePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [titleTruncateLength, setTitleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
   const [lineClamp, setLineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
+  const [jobListItemsPerPage, setJobListItemsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
+  const [sessionListItemsPerPage, setSessionListItemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
 
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
@@ -46,6 +48,8 @@ export function SettingsSheet() {
   const [activePollIntervalValue, setActivePollIntervalValue] = useState(activePollInterval);
   const [titleTruncateLengthValue, setTitleTruncateLengthValue] = useState(titleTruncateLength);
   const [lineClampValue, setLineClampValue] = useState(lineClamp);
+  const [jobListItemsPerPageValue, setJobListItemsPerPageValue] = useState(jobListItemsPerPage);
+  const [sessionListItemsPerPageValue, setSessionListItemsPerPageValue] = useState(sessionListItemsPerPage);
   
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -59,6 +63,8 @@ export function SettingsSheet() {
   useEffect(() => { setActivePollIntervalValue(activePollInterval); }, [activePollInterval]);
   useEffect(() => { setTitleTruncateLengthValue(titleTruncateLength); }, [titleTruncateLength]);
   useEffect(() => { setLineClampValue(lineClamp); }, [lineClamp]);
+  useEffect(() => { setJobListItemsPerPageValue(jobListItemsPerPage); }, [jobListItemsPerPage]);
+  useEffect(() => { setSessionListItemsPerPageValue(sessionListItemsPerPage); }, [sessionListItemsPerPage]);
   
   const handleSave = () => {
     setApiKey(apiKeyValue);
@@ -68,6 +74,8 @@ export function SettingsSheet() {
     setActivePollInterval(activePollIntervalValue);
     setTitleTruncateLength(titleTruncateLengthValue);
     setLineClamp(lineClampValue);
+    setJobListItemsPerPage(jobListItemsPerPageValue);
+    setSessionListItemsPerPage(sessionListItemsPerPageValue);
     toast({
       title: "Settings Saved",
       description: "Your settings have been updated.",
@@ -203,6 +211,17 @@ export function SettingsSheet() {
                         How often to check for job status updates. Set to 0 to disable.
                     </p>
                 </div>
+                 <div className="grid gap-2">
+                    <Label htmlFor="job-items-per-page">Items Per Page</Label>
+                    <Input
+                    id="job-items-per-page"
+                    type="number"
+                    value={jobListItemsPerPageValue}
+                    onChange={(e) => setJobListItemsPerPageValue(Number(e.target.value))}
+                    placeholder="e.g., 10"
+                    min="1"
+                    />
+                </div>
             </div>
 
             <Separator />
@@ -236,6 +255,17 @@ export function SettingsSheet() {
                     onChange={(e) => setTitleTruncateLengthValue(Number(e.target.value))}
                     placeholder="e.g., 50"
                     min="10"
+                    />
+                </div>
+                 <div className="grid gap-2">
+                    <Label htmlFor="session-items-per-page">Items Per Page</Label>
+                    <Input
+                    id="session-items-per-page"
+                    type="number"
+                    value={sessionListItemsPerPageValue}
+                    onChange={(e) => setSessionListItemsPerPageValue(Number(e.target.value))}
+                    placeholder="e.g., 10"
+                    min="1"
                     />
                 </div>
             </div>
