@@ -191,7 +191,7 @@ export type CheckRun = {
   name: string;
   status: 'queued' | 'in_progress' | 'completed';
   conclusion: 'success' | 'failure' | 'neutral' | 'cancelled' | 'skipped' | 'timed_out' | 'action_required' | null;
-}
+};
 
 export type PullRequestStatus = {
   state: 'OPEN' | 'MERGED' | 'CLOSED' | 'NO_TOKEN' | 'ERROR' | 'NOT_FOUND' | 'UNAUTHORIZED';
@@ -199,6 +199,8 @@ export type PullRequestStatus = {
     status: 'pending' | 'success' | 'failure' | 'unknown';
     total: number;
     passed: number;
-    runs: CheckRun[];
+    runs: Pick<CheckRun, 'name' | 'status' | 'conclusion'>[];
   }
 };
+
+    

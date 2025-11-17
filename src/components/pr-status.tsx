@@ -13,23 +13,11 @@ import type { PullRequestStatus } from "@/lib/types";
 type PrStatusProps = {
   prUrl: string | null;
   githubToken: string;
+  status: PullRequestStatus | null | undefined; // Can be undefined while loading
+  isLoading: boolean;
 };
 
-export function PrStatus({ prUrl, githubToken }: PrStatusProps) {
-  const [status, setStatus] = useState<PullRequestStatus | null>(null);
-  const [isLoading, startLoading] = useTransition();
-
-  useEffect(() => {
-    if (prUrl && githubToken) {
-      startLoading(async () => {
-        const result = await getPullRequestStatus(prUrl, githubToken);
-        setStatus(result);
-      });
-    } else {
-        setStatus(null);
-    }
-  }, [prUrl, githubToken]);
-
+export function PrStatus({ prUrl, githubToken, status, isLoading }: PrStatusProps) {
   if (!prUrl) {
     return <div className="w-10 h-10" />;
   }
@@ -54,13 +42,12 @@ export function PrStatus({ prUrl, githubToken }: PrStatusProps) {
     )
   }
 
-  if (isLoading) {
+  if (isLoading || status === undefined) {
     return <Skeleton className="h-8 w-8 rounded-full" />;
   }
   
   if (!status) {
-    // This can happen if the fetch completes but returns null, or if there's no token.
-    // Render the default icon as a fallback.
+    // This can happen if the fetch completes but returns null.
      return (
         <TooltipProvider>
             <Tooltip>
@@ -184,3 +171,5 @@ export function PrStatus({ prUrl, githubToken }: PrStatusProps) {
     </TooltipProvider>
   );
 }
+
+    
