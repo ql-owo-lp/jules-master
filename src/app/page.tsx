@@ -6,12 +6,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Job, State, PredefinedPrompt } from "@/lib/types";
+import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, Plus, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions, revalidateSessions } from "./sessions/actions";
 import { approvePlan, sendMessage } from "./sessions/[id]/actions";
+import { getPullRequestStatus } from "./github/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -42,7 +43,9 @@ function HomePageContent() {
   const [jobFilter, setJobFilter] = useState<string | null>(jobIdParam);
   const [repoFilter, setRepoFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-
+  
+  const [prStatuses, setPrStatuses] = useState<Record<string, PullRequestStatus | null>>({});
+  const [isFetchingPrStatus, startPrStatusFetch] = useTransition();
 
   // Effect to sync job filter with URL param
   useEffect(() => {
@@ -62,6 +65,17 @@ function HomePageContent() {
     return map;
   }, [jobs]);
 
+  const getPullRequestUrl = (session: Session): string | null => {
+    if (session.outputs && session.outputs.length > 0) {
+      for (const output of session.outputs) {
+        if (output.pullRequest?.url) {
+          return output.pullRequest.url;
+        }
+      }
+    }
+    return null;
+  }
+  
   const filteredSessions = useMemo(() => {
     return sessions.filter(s => {
       const job = sessionToJobMap.get(s.id);
@@ -89,6 +103,28 @@ function HomePageContent() {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, sessionListPollInterval, setSessions]);
+
+
+  // Effect to fetch PR statuses for visible sessions
+  useEffect(() => {
+    if (githubToken && filteredSessions.length > 0) {
+        startPrStatusFetch(async () => {
+            const newStatuses: Record<string, PullRequestStatus | null> = {};
+            const promises = filteredSessions.map(async (session) => {
+                const prUrl = getPullRequestUrl(session);
+                if (prUrl) {
+                    const status = await getPullRequestStatus(prUrl, githubToken);
+                    newStatuses[prUrl] = status;
+                }
+            });
+            await Promise.all(promises);
+            setPrStatuses(prev => ({...prev, ...newStatuses}));
+        });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredSessions, githubToken]);
+
+
 
   useEffect(() => {
     setIsClient(true);
@@ -265,6 +301,8 @@ function HomePageContent() {
             titleTruncateLength={titleTruncateLength}
             jobFilter={jobFilter}
             githubToken={githubToken}
+            prStatuses={prStatuses}
+            isFetchingPrStatus={isFetchingPrStatus}
           >
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div className="space-y-2">
@@ -332,3 +370,5 @@ export default function Home() {
     </Suspense>
   )
 }
+
+    

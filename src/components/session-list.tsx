@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Session, Job, PredefinedPrompt } from "@/lib/types";
+import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
 import { ClipboardList, RefreshCw, Hand, Loader2, Github, MessageSquareReply } from "lucide-react";
@@ -45,6 +45,8 @@ type SessionListProps = {
   titleTruncateLength: number;
   jobFilter: string | null;
   githubToken: string;
+  prStatuses: Record<string, PullRequestStatus | null>;
+  isFetchingPrStatus: boolean;
   children: React.ReactNode;
 };
 
@@ -115,6 +117,8 @@ export function SessionList({
   titleTruncateLength,
   jobFilter,
   githubToken,
+  prStatuses,
+  isFetchingPrStatus,
   children
 }: SessionListProps) {
   const router = useRouter();
@@ -236,7 +240,12 @@ export function SessionList({
                       })}
                     </TableCell>
                      <TableCell className="text-center">
-                        <PrStatus prUrl={prUrl} githubToken={githubToken} />
+                        <PrStatus 
+                            prUrl={prUrl} 
+                            githubToken={githubToken} 
+                            status={prUrl ? prStatuses[prUrl] : null}
+                            isLoading={isFetchingPrStatus}
+                        />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -279,3 +288,5 @@ export function SessionList({
     </Card>
   );
 }
+
+    
