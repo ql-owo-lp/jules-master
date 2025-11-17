@@ -15,10 +15,12 @@ export function Header() {
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-3">
-             <SidebarTrigger>
-                <PanelLeft className="h-6 w-6" />
-                 <span className="sr-only">Toggle Sidebar</span>
-            </SidebarTrigger>
+             {!open && (
+                <SidebarTrigger>
+                    <PanelLeft className="h-6 w-6" />
+                    <span className="sr-only">Toggle Sidebar</span>
+                </SidebarTrigger>
+             )}
              <div className={cn("flex items-center gap-2 transition-opacity", !open ? "opacity-100" : "opacity-0")}>
                 <Link href="/" className="flex items-center gap-2 font-bold text-xl">
                     <Bot className="h-8 w-8 text-primary" />
