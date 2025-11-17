@@ -14,9 +14,10 @@ import {
   SidebarInset,
   SidebarHeader,
   SidebarGroup,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { Bot, MessageSquare, PlusCircle, BookText, ClipboardList, ExternalLink } from 'lucide-react';
+import { Bot, MessageSquare, PlusCircle, BookText, ClipboardList, ExternalLink, PanelLeft } from 'lucide-react';
 import { Header } from '@/components/header';
 import { NewJobDialog } from '@/components/new-job-dialog';
 
@@ -54,7 +55,7 @@ export default function RootLayout({
           <SidebarProvider>
             <Sidebar>
               <SidebarContent>
-                <SidebarHeader>
+                <SidebarHeader className='justify-between'>
                   <Link
                     href="/"
                     className="flex items-center gap-2 font-bold text-xl"
@@ -62,6 +63,10 @@ export default function RootLayout({
                     <Bot className="h-7 w-7 text-primary" />
                     <span className='group-data-[collapsible=icon]:hidden'>Jules Master</span>
                   </Link>
+                   <SidebarTrigger>
+                      <PanelLeft className="h-6 w-6" />
+                      <span className="sr-only">Toggle Sidebar</span>
+                   </SidebarTrigger>
                 </SidebarHeader>
                 <SidebarGroup>
                   <SidebarMenu>
