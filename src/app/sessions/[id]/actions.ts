@@ -113,9 +113,9 @@ export async function sendMessage(
   apiKey: string,
   sessionId: string,
   message: string
-): Promise<boolean> {
+): Promise<Session | null> {
   if (!apiKey) {
-    return false;
+    return null;
   }
   try {
     const response = await fetch(
@@ -135,14 +135,14 @@ export async function sendMessage(
         );
         const errorBody = await response.text();
         console.error("Error body:", errorBody);
-      return false;
+      return null;
     }
-    // Successful response is empty, so we just revalidate and return true
+    const updatedSession: Session = await response.json();
     revalidatePath(`/sessions/${sessionId}`);
     revalidatePath(`/`);
-    return true;
+    return updatedSession;
   } catch (error) {
     console.error("Error sending message:", error);
-    return false;
+    return null;
   }
 }

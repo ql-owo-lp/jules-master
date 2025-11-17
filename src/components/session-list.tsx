@@ -16,11 +16,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Session, Job } from "@/lib/types";
+import type { Session, Job, PredefinedPrompt } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2, Github } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2, Github, MessageSquareReply } from "lucide-react";
 import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
@@ -30,11 +36,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 type SessionListProps = {
   sessions: Session[];
   jobs: Job[];
+  quickReplies: PredefinedPrompt[];
   lastUpdatedAt: Date | null;
   onRefresh: () => void;
   isRefreshing?: boolean;
   isActionPending?: boolean;
   onApprovePlan: (sessionId: string) => void;
+  onSendMessage: (sessionId: string, message: string) => void;
   countdown: number;
   pollInterval: number;
   titleTruncateLength: number;
@@ -47,11 +55,13 @@ type SessionListProps = {
 export function SessionList({
   sessions,
   jobs,
+  quickReplies,
   lastUpdatedAt,
   onRefresh,
   isRefreshing,
   isActionPending,
   onApprovePlan,
+  onSendMessage,
   countdown,
   pollInterval,
   titleTruncateLength,
@@ -73,7 +83,7 @@ export function SessionList({
 
   const handleRowClick = (e: React.MouseEvent, sessionId: string) => {
     // Prevent navigation if a button or link inside the row was clicked
-    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a') || (e.target as HTMLElement).closest('[role="menu"]')) {
       return;
     }
     const path = jobFilter ? `/sessions/${sessionId}?jobId=${jobFilter}` : `/sessions/${sessionId}`;
@@ -152,7 +162,7 @@ export function SessionList({
                   <TableHead className="w-[180px]">Session Status</TableHead>
                   <TableHead className="w-[150px]">Created</TableHead>
                   <TableHead className="w-[80px] text-center">GitHub</TableHead>
-                  <TableHead className="w-[80px] text-right">Actions</TableHead>
+                  <TableHead className="w-[120px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -196,6 +206,7 @@ export function SessionList({
                       )}
                     </TableCell>
                     <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
                        {session.state === 'AWAITING_PLAN_APPROVAL' ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -213,9 +224,35 @@ export function SessionList({
                               <p>Approve Plan</p>
                             </TooltipContent>
                           </Tooltip>
-                        ) : (
-                          <div className="w-10 h-10" />
+                        ) : null}
+
+                        {quickReplies.length > 0 && (
+                          <DropdownMenu>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                    <MessageSquareReply className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Send Quick Reply</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <DropdownMenuContent align="end">
+                              {quickReplies.map((reply) => (
+                                <DropdownMenuItem
+                                  key={reply.id}
+                                  onClick={() => onSendMessage(session.id, reply.prompt)}
+                                >
+                                  {reply.title}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
+                       </div>
                     </TableCell>
                   </TableRow>
                 )})}
