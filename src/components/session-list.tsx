@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { ClipboardList, RefreshCw, Hand, Loader2, MessageSquare, Briefcase, MessageSquareReply, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -365,8 +365,6 @@ export function SessionList({
                                                           value={`${option.label} ${option.content}`}
                                                           onSelect={() => {
                                                               onSendMessage(session.id, option.content);
-                                                              // We can't easily close the popover here without more complex state
-                                                              // but it will close on blur which is acceptable.
                                                           }}
                                                       >
                                                           {option.label}
@@ -377,25 +375,6 @@ export function SessionList({
                                       </Command>
                                   </PopoverContent>
                                 </Popover>
-
-                                <MessageDialog
-                                  triggerButton={
-                                      <Tooltip>
-                                          <TooltipTrigger asChild>
-                                              <Button variant="ghost" size="icon" aria-label="Send Message to Session" disabled={isActionPending}>
-                                                  <MessageSquare className="h-4 w-4" />
-                                              </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>Send Message</TooltipContent>
-                                      </Tooltip>
-                                  }
-                                  predefinedPrompts={predefinedPrompts}
-                                  quickReplies={quickReplies}
-                                  onSendMessage={(message) => onSendMessage(session.id, message)}
-                                  dialogTitle="Send Message to Session"
-                                  dialogDescription={`This message will be sent to the session: "${truncate(session.title, 50) || session.id}"`}
-                                  isActionPending={isActionPending}
-                                />
                               </div>
                             </TableCell>
                           </TableRow>
@@ -465,5 +444,3 @@ export function SessionList({
     </>
   );
 }
-
-    
