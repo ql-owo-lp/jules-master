@@ -74,6 +74,7 @@ export default function SessionDetailPage() {
   const jobId = searchParams.get('jobId');
 
   const [isPollingActive, setIsPollingActive] = useState(false);
+  const [activeTab, setActiveTab] = useLocalStorage<string>("jules-session-detail-tab", "details");
   
   // Determine current poll interval
   const isSessionDone = session?.state === 'COMPLETED' || session?.state === 'FAILED';
@@ -284,7 +285,7 @@ export default function SessionDetailPage() {
             </Card>
           )}
 
-          <Tabs defaultValue="details" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList>
               <TabsTrigger value="details">Session Details</TabsTrigger>
               <TabsTrigger value="activity">Session Activity</TabsTrigger>
