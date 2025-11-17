@@ -30,6 +30,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MessageDialog } from "@/components/message-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 export default function JobsPage() {
@@ -73,12 +74,12 @@ export default function JobsPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (apiKey && !isLoading) {
+    if (apiKey) {
        if (!lastUpdatedAt) {
           setLastUpdatedAt(new Date());
        }
        fetchJobSessions();
-    } else if (!apiKey) {
+    } else {
       setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -265,7 +266,7 @@ export default function JobsPage() {
                             </Button>
                         )}
                     </div>
-                    {apiKey && lastUpdatedAt && (
+                    {isClient && apiKey && lastUpdatedAt && (
                         <div className="text-sm text-muted-foreground text-right flex-shrink-0">
                            <div>
                                Last updated:{" "}
@@ -292,93 +293,95 @@ export default function JobsPage() {
                   </p>
                 </div>
               ) : (
-                <div className="border rounded-lg">
-                 <TooltipProvider>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Job Name</TableHead>
-                        <TableHead>Repository / Branch</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {[...jobs].reverse().map((job) => {
-                        const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };
-                        const isApprovingCurrent = isBulkApproving === job.id;
-                        return (
-                          <TableRow key={job.id} onClick={(e) => handleJobClick(e, job.id)} className="cursor-pointer">
-                            <TableCell className="font-medium">
-                              {job.name}
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex flex-col">
-                                    <span className="font-mono text-sm">{details.repo || 'N/A'}</span>
-                                    <span className="font-mono text-xs text-muted-foreground">{details.branch || 'N/A'}</span>
+                <ScrollArea className="h-[60vh]">
+                  <div className="border rounded-lg">
+                  <TooltipProvider>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Job Name</TableHead>
+                          <TableHead>Repository / Branch</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {[...jobs].reverse().map((job) => {
+                          const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };
+                          const isApprovingCurrent = isBulkApproving === job.id;
+                          return (
+                            <TableRow key={job.id} onClick={(e) => handleJobClick(e, job.id)} className="cursor-pointer">
+                              <TableCell className="font-medium">
+                                {job.name}
+                              </TableCell>
+                              <TableCell>
+                                  <div className="flex flex-col">
+                                      <span className="font-mono text-sm">{details.repo || 'N/A'}</span>
+                                      <span className="font-mono text-xs text-muted-foreground">{details.branch || 'N/A'}</span>
+                                  </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1" title={`${details.completed} Completed`}>
+                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                    <span>{details.completed}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1" title={`${details.working} Working`}>
+                                    <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                                    <span>{details.working}</span>
+                                  </div>
+                                  <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <Button 
+                                              variant="ghost" 
+                                              size="sm" 
+                                              className="flex items-center gap-1 p-1 h-auto text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
+                                              onClick={(e) => handleBulkApprove(e, job.id)}
+                                              disabled={isApprovingCurrent || details.pending === 0 || isBulkApproving !== null || isActionPending}
+                                              aria-label="Approve all pending sessions"
+                                          >
+                                              {isApprovingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                                              <span>{details.pending}</span>
+                                          </Button>
+                                      </TooltipTrigger>
+                                      {details.pending > 0 && (
+                                          <TooltipContent>
+                                              <p>Approve all {details.pending} pending session(s)</p>
+                                          </TooltipContent>
+                                      )}
+                                  </Tooltip>
                                 </div>
-                            </TableCell>
-                            <TableCell>
-                               <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1" title={`${details.completed} Completed`}>
-                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                  <span>{details.completed}</span>
-                                </div>
-                                <div className="flex items-center gap-1" title={`${details.working} Working`}>
-                                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-                                  <span>{details.working}</span>
-                                </div>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="flex items-center gap-1 p-1 h-auto text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
-                                            onClick={(e) => handleBulkApprove(e, job.id)}
-                                            disabled={isApprovingCurrent || details.pending === 0 || isBulkApproving !== null || isActionPending}
-                                            aria-label="Approve all pending sessions"
-                                        >
-                                            {isApprovingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
-                                            <span>{details.pending}</span>
-                                        </Button>
-                                    </TooltipTrigger>
-                                     {details.pending > 0 && (
-                                        <TooltipContent>
-                                            <p>Approve all {details.pending} pending session(s)</p>
-                                        </TooltipContent>
-                                     )}
-                                </Tooltip>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                    <MessageDialog
-                                        triggerButton={
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button variant="ghost" size="icon" aria-label="Send Message to Job">
-                                                        <MessageSquare className="h-4 w-4" />
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>Send Message to all sessions</TooltipContent>
-                                            </Tooltip>
-                                        }
-                                        predefinedPrompts={predefinedPrompts}
-                                        quickReplies={quickReplies}
-                                        onSendMessage={(message) => handleBulkSendMessage(job.id, message)}
-                                        dialogTitle="Send Message to Job"
-                                        dialogDescription={`This message will be sent to all ${job.sessionIds.length} sessions in the "${job.name}" job.`}
-                                        isActionPending={isActionPending}
-                                    />
-                                </div>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                  </TooltipProvider>
-                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-1">
+                                      <MessageDialog
+                                          triggerButton={
+                                              <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                      <Button variant="ghost" size="icon" aria-label="Send Message to Job">
+                                                          <MessageSquare className="h-4 w-4" />
+                                                      </Button>
+                                                  </TooltipTrigger>
+                                                  <TooltipContent>Send Message to all sessions</TooltipContent>
+                                              </Tooltip>
+                                          }
+                                          predefinedPrompts={predefinedPrompts}
+                                          quickReplies={quickReplies}
+                                          onSendMessage={(message) => handleBulkSendMessage(job.id, message)}
+                                          dialogTitle="Send Message to Job"
+                                          dialogDescription={`This message will be sent to all ${job.sessionIds.length} sessions in the "${job.name}" job.`}
+                                          isActionPending={isActionPending}
+                                      />
+                                  </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                    </TooltipProvider>
+                  </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
@@ -387,5 +390,7 @@ export default function JobsPage() {
     </div>
   );
 }
+
+    
 
     
