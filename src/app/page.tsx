@@ -21,7 +21,7 @@ import { useRouter } from "next/navigation";
 function HomePageContent() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [githubToken] = useLocalStorage<string>("jules-github-token", "");
-  const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
+  const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isClient, setIsClient] = useState(false);
@@ -29,7 +29,7 @@ function HomePageContent() {
   const [isFetching, startFetching] = useTransition();
   const [isActionPending, startActionTransition] = useTransition();
   const { toast } = useToast();
-  const [countdown, setCountdown] = useState(idlePollInterval);
+  const [countdown, setCountdown] = useState(sessionListPollInterval);
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
 
   const searchParams = useSearchParams();
@@ -72,10 +72,10 @@ function HomePageContent() {
       const validSessions = fetchedSessions.filter(s => s);
       setSessions(validSessions);
       setLastUpdatedAt(new Date());
-      setCountdown(idlePollInterval);
+      setCountdown(sessionListPollInterval);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, idlePollInterval]);
+  }, [apiKey, sessionListPollInterval]);
 
   useEffect(() => {
     setIsClient(true);
@@ -90,29 +90,29 @@ function HomePageContent() {
         const validSessions = fetchedSessions.filter(s => s);
         setSessions(validSessions);
         setLastUpdatedAt(new Date());
-        setCountdown(idlePollInterval);
+        setCountdown(sessionListPollInterval);
       });
 
-      const intervalInMs = idlePollInterval * 1000;
+      const intervalInMs = sessionListPollInterval * 1000;
       if (intervalInMs > 0) {
         const intervalId = setInterval(fetchSessions, intervalInMs);
         return () => clearInterval(intervalId);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, apiKey, idlePollInterval, fetchSessions]);
+  }, [isClient, apiKey, sessionListPollInterval, fetchSessions]);
   
 
   // Countdown timer
   useEffect(() => {
-    if (!isClient || !apiKey || idlePollInterval <= 0) return;
+    if (!isClient || !apiKey || sessionListPollInterval <= 0) return;
 
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isClient, apiKey, idlePollInterval, lastUpdatedAt]);
+  }, [isClient, apiKey, sessionListPollInterval, lastUpdatedAt]);
 
 
   const handleRefresh = () => {
@@ -213,7 +213,7 @@ function HomePageContent() {
             isActionPending={isActionPending}
             onApprovePlan={handleApprovePlan}
             countdown={countdown}
-            pollInterval={idlePollInterval}
+            pollInterval={sessionListPollInterval}
             titleTruncateLength={titleTruncateLength}
             jobFilter={jobFilter}
             githubTokenSet={!!githubToken}
