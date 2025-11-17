@@ -31,7 +31,7 @@ import { MessageDialog } from "./message-dialog";
 import { ScrollArea } from "./ui/scroll-area";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 
 type SessionListProps = {
@@ -298,6 +298,8 @@ export function SessionList({
                                                         value={`${option.label} ${option.content}`}
                                                         onSelect={() => {
                                                             onSendMessage(session.id, option.content);
+                                                            // We can't easily close the popover here without more complex state
+                                                            // but it will close on blur which is acceptable.
                                                         }}
                                                     >
                                                         {option.label}
