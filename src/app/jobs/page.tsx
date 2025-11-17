@@ -36,13 +36,336 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 
+function JobsTable({
+  jobs,
+  sessions,
+  quickReplies,
+  isFetching,
+  isActionPending,
+  isBulkApproving,
+  onJobClick,
+  onBulkApprove,
+  onBulkSendMessage
+}: {
+  jobs: Job[],
+  sessions: Session[],
+  quickReplies: PredefinedPrompt[],
+  isFetching: boolean,
+  isActionPending: boolean,
+  isBulkApproving: string | null,
+  onJobClick: (e: React.MouseEvent, jobId: string) => void,
+  onBulkApprove: (e: React.MouseEvent, jobId: string) => void,
+  onBulkSendMessage: (jobIds: string[], message: string) => void
+}) {
+  const [itemsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
+
+  const jobDetailsMap = useMemo(() => {
+    const map = new Map<string, { completed: number; working: number; pending: number; repo: string | null; branch: string | null }>();
+    const sessionMap = new Map(sessions.map(s => [s.id, s]));
+
+    for (const job of jobs) {
+      let completed = 0;
+      let working = 0;
+      let pending = 0;
+      let repo: string | null = null;
+      let branch: string | null = null;
+
+      if (job.sessionIds.length > 0) {
+        const firstSession = sessionMap.get(job.sessionIds[0]);
+        if (firstSession?.sourceContext) {
+           const sourceParts = firstSession.sourceContext.source.split('/');
+           if (sourceParts.length >= 4 && sourceParts[1] === 'github') {
+              repo = sourceParts.slice(2).join('/');
+           }
+           branch = firstSession.sourceContext.githubRepoContext?.startingBranch || null;
+        }
+      }
+
+      for (const sessionId of job.sessionIds) {
+        const session = sessionMap.get(sessionId);
+        if (session) {
+          switch (session.state) {
+            case 'COMPLETED':
+              completed++;
+              break;
+            case 'AWAITING_PLAN_APPROVAL':
+            case 'AWAITING_USER_FEEDBACK':
+              pending++;
+              break;
+            case 'FAILED':
+              break;
+            default:
+              working++;
+              break;
+          }
+        }
+      }
+      map.set(job.id, { completed, working, pending, repo, branch });
+    }
+    return map;
+  }, [jobs, sessions]);
+
+  const sortedJobs = useMemo(() => [...jobs].reverse(), [jobs]);
+  const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
+  const paginatedJobs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedJobs.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedJobs, currentPage, itemsPerPage]);
+  
+  const quickReplyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
+
+  const paginatedJobIds = useMemo(() => paginatedJobs.map(j => j.id), [paginatedJobs]);
+
+  const handleSelectAll = (checked: boolean | 'indeterminate') => {
+    if (checked) {
+      setSelectedJobIds(ids => [...new Set([...ids, ...paginatedJobIds])]);
+    } else {
+      setSelectedJobIds(ids => ids.filter(id => !paginatedJobIds.includes(id)));
+    }
+  };
+
+  const handleSelectRow = (jobId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedJobIds(ids => [...ids, jobId]);
+    } else {
+      setSelectedJobIds(ids => ids.filter(id => id !== jobId));
+    }
+  }
+
+  const isAllOnPageSelected = paginatedJobIds.length > 0 && paginatedJobIds.every(id => selectedJobIds.includes(id));
+  const isSomeOnPageSelected = paginatedJobIds.some(id => selectedJobIds.includes(id));
+  const selectAllState = isAllOnPageSelected ? true : (isSomeOnPageSelected ? 'indeterminate' : false);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  // Clear selection when jobs list changes
+  useEffect(() => {
+    setSelectedJobIds([]);
+  }, [jobs]);
+
+
+  return (
+     <>
+        {jobs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
+            <p className="font-semibold text-lg">No Jobs Yet</p>
+            <p className="text-sm">
+              Click "New Job" to create your first job.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="border-t border-x rounded-t-lg z-10 sticky top-0 bg-background">
+              <Table>
+                <colgroup>
+                    <col style={{ width: '40px' }} />
+                    <col style={{ width: '30%' }} />
+                    <col style={{ width: '25%' }} />
+                    <col style={{ width: '25%' }} />
+                    <col style={{ width: '20%' }} />
+                  </colgroup>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
+                        <Checkbox 
+                          checked={selectAllState}
+                          onCheckedChange={handleSelectAll}
+                          aria-label="Select all jobs on this page"
+                        />
+                    </TableHead>
+                    <TableHead>Job Name</TableHead>
+                    <TableHead>Repository / Branch</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+              </Table>
+            </div>
+            <ScrollArea className="h-[60vh]">
+              <div className="border-x border-b rounded-b-lg">
+                <TooltipProvider>
+                  <Table>
+                    <colgroup>
+                        <col style={{ width: '40px' }} />
+                        <col style={{ width: '30%' }} />
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '20%' }} />
+                      </colgroup>
+                    <TableBody>
+                      {paginatedJobs.map((job) => {
+                        const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };
+                        const isApprovingCurrent = isBulkApproving === job.id;
+                        return (
+                          <TableRow 
+                            key={job.id} 
+                            data-state={selectedJobIds.includes(job.id) ? "selected" : undefined}
+                            onClick={(e) => onJobClick(e, job.id)} 
+                            className="cursor-pointer"
+                          >
+                            <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
+                                <Checkbox
+                                  checked={selectedJobIds.includes(job.id)}
+                                  onCheckedChange={(checked) => handleSelectRow(job.id, !!checked)}
+                                  aria-label={`Select job ${job.name}`}
+                                />
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {job.name}
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex flex-col">
+                                    <span className="font-mono text-sm">{details.repo || 'N/A'}</span>
+                                    <span className="font-mono text-xs text-muted-foreground">{details.branch || 'N/A'}</span>
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1" title={`${details.completed} Completed`}>
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  <span>{details.completed}</span>
+                                </div>
+                                <div className="flex items-center gap-1" title={`${details.working} Working`}>
+                                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                                  <span>{details.working}</span>
+                                </div>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="flex items-center gap-1 p-1 h-auto text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
+                                            onClick={(e) => onBulkApprove(e, job.id)}
+                                            disabled={isApprovingCurrent || details.pending === 0 || isBulkApproving !== null || isActionPending}
+                                            aria-label="Approve all pending sessions"
+                                        >
+                                            {isApprovingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                                            <span>{details.pending}</span>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    {details.pending > 0 && (
+                                        <TooltipContent>
+                                            <p>Approve all {details.pending} pending session(s)</p>
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                <Popover>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <PopoverTrigger asChild>
+                                        <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                          <MessageSquareReply className="h-4 w-4" />
+                                        </Button>
+                                      </PopoverTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Send a Quick Reply</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  <PopoverContent className="p-0 w-64" align="end">
+                                      <Command>
+                                          <CommandInput placeholder="Search replies..." />
+                                          <CommandList>
+                                              <CommandEmpty>No replies found.</CommandEmpty>
+                                              <CommandGroup>
+                                                  {quickReplyOptions.map((option) => (
+                                                      <CommandItem
+                                                          key={option.value}
+                                                          value={`${option.label} ${option.content}`}
+                                                          onSelect={() => {
+                                                              onBulkSendMessage([job.id], option.content);
+                                                          }}
+                                                      >
+                                                          {option.label}
+                                                      </CommandItem>
+                                                  ))}
+                                              </CommandGroup>
+                                          </CommandList>
+                                      </Command>
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </TooltipProvider>
+              </div>
+            </ScrollArea>
+             {totalPages > 1 && (
+                  <CardFooter className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                          Page {currentPage} of {totalPages}
+                      </span>
+                      <div className="flex items-center gap-2">
+                          <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                              disabled={currentPage === 1}
+                          >
+                              Previous
+                          </Button>
+                          <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                              disabled={currentPage === totalPages}
+                          >
+                              Next
+                          </Button>
+                      </div>
+                  </CardFooter>
+              )}
+          </>
+        )}
+        {selectedJobIds.length > 0 && (
+            <div className="fixed bottom-4 inset-x-4 flex justify-center z-20">
+                <Card className="flex items-center gap-4 p-3 shadow-2xl animate-in fade-in-0 slide-in-from-bottom-5">
+                    <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium">{selectedJobIds.length} job(s) selected</div>
+                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedJobIds([])}>
+                            <X className="h-4 w-4"/>
+                            <span className="sr-only">Clear selection</span>
+                        </Button>
+                    </div>
+                     <MessageDialog
+                        triggerButton={
+                            <Button size="sm">
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Send Bulk Message
+                            </Button>
+                        }
+                        storageKey="jules-bulk-job-message"
+                        onSendMessage={(message) => onBulkSendMessage(selectedJobIds, message)}
+                        dialogTitle="Send Bulk Message"
+                        dialogDescription={`This message will be sent to all sessions in the ${selectedJobIds.length} selected job(s).`}
+                        isActionPending={isActionPending}
+                    />
+                </Card>
+            </div>
+        )}
+    </>
+  );
+}
+
 
 export default function JobsPage() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
-  const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
-  const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
   
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,10 +378,7 @@ export default function JobsPage() {
   const [isActionPending, startActionTransition] = useTransition();
   const [countdown, setCountdown] = useState(pollInterval);
   const [isBulkApproving, setIsBulkApproving] = useState<string | null>(null);
-  const [itemsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
-
+  
 
   const fetchJobSessions = useCallback(() => {
     if (!apiKey) {
@@ -116,7 +436,7 @@ export default function JobsPage() {
 
 
   const handleJobClick = (e: React.MouseEvent, jobId: string) => {
-    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a') || (e.target as HTMLElement).closest('[role="checkbox"]')) {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a') || (e.target as HTMLElement).closest('[role="checkbox"]') || (e.target as HTMLElement).closest('[role="combobox"]')) {
       return;
     }
     router.push(`/?jobId=${jobId}`);
@@ -197,91 +517,7 @@ export default function JobsPage() {
     });
   };
 
-  const jobDetailsMap = useMemo(() => {
-    const map = new Map<string, { completed: number; working: number; pending: number; repo: string | null; branch: string | null }>();
-    const sessionMap = new Map(sessions.map(s => [s.id, s]));
-
-    for (const job of jobs) {
-      let completed = 0;
-      let working = 0;
-      let pending = 0;
-      let repo: string | null = null;
-      let branch: string | null = null;
-
-      // Get repo/branch from the first session in the job
-      if (job.sessionIds.length > 0) {
-        const firstSession = sessionMap.get(job.sessionIds[0]);
-        if (firstSession?.sourceContext) {
-           const sourceParts = firstSession.sourceContext.source.split('/');
-           if (sourceParts.length >= 4 && sourceParts[1] === 'github') {
-              repo = sourceParts.slice(2).join('/');
-           }
-           branch = firstSession.sourceContext.githubRepoContext?.startingBranch || null;
-        }
-      }
-
-      for (const sessionId of job.sessionIds) {
-        const session = sessionMap.get(sessionId);
-        if (session) {
-          switch (session.state) {
-            case 'COMPLETED':
-              completed++;
-              break;
-            case 'AWAITING_PLAN_APPROVAL':
-            case 'AWAITING_USER_FEEDBACK':
-              pending++;
-              break;
-            case 'FAILED':
-              // Not counted for now, can be added later
-              break;
-            default:
-              working++;
-              break;
-          }
-        }
-      }
-      map.set(job.id, { completed, working, pending, repo, branch });
-    }
-    return map;
-  }, [jobs, sessions]);
-
-  const sortedJobs = useMemo(() => [...jobs].reverse(), [jobs]);
-  const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
-  const paginatedJobs = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return sortedJobs.slice(startIndex, startIndex + itemsPerPage);
-  }, [sortedJobs, currentPage, itemsPerPage]);
-  
-  const quickReplyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
-
-  const paginatedJobIds = useMemo(() => paginatedJobs.map(j => j.id), [paginatedJobs]);
-
-  const handleSelectAll = (checked: boolean | 'indeterminate') => {
-    if (checked) {
-      setSelectedJobIds(ids => [...new Set([...ids, ...paginatedJobIds])]);
-    } else {
-      setSelectedJobIds(ids => ids.filter(id => !paginatedJobIds.includes(id)));
-    }
-  };
-
-  const handleSelectRow = (jobId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedJobIds(ids => [...ids, jobId]);
-    } else {
-      setSelectedJobIds(ids => ids.filter(id => id !== jobId));
-    }
-  }
-
-  const isAllOnPageSelected = paginatedJobIds.length > 0 && paginatedJobIds.every(id => selectedJobIds.includes(id));
-  const isSomeOnPageSelected = paginatedJobIds.some(id => selectedJobIds.includes(id));
-  const selectAllState = isAllOnPageSelected ? true : (isSomeOnPageSelected ? 'indeterminate' : false);
-
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
+  const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
 
 
   if (!isClient || isLoading) {
@@ -335,218 +571,22 @@ export default function JobsPage() {
                   </CardDescription>
               </CardHeader>
               <CardContent>
-                {jobs.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
-                    <p className="font-semibold text-lg">No Jobs Yet</p>
-                    <p className="text-sm">
-                      Click "New Job" to create your first job.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="border-t border-x rounded-t-lg z-10 sticky top-0 bg-background">
-                      <Table>
-                        <colgroup>
-                            <col style={{ width: '40px' }} />
-                            <col style={{ width: '30%' }} />
-                            <col style={{ width: '25%' }} />
-                            <col style={{ width: '25%' }} />
-                            <col style={{ width: '20%' }} />
-                          </colgroup>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>
-                                <Checkbox 
-                                  checked={selectAllState}
-                                  onCheckedChange={handleSelectAll}
-                                  aria-label="Select all jobs on this page"
-                                />
-                            </TableHead>
-                            <TableHead>Job Name</TableHead>
-                            <TableHead>Repository / Branch</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                      </Table>
-                    </div>
-                    <ScrollArea className="h-[60vh]">
-                      <div className="border-x border-b rounded-b-lg">
-                        <TooltipProvider>
-                          <Table>
-                            <colgroup>
-                                <col style={{ width: '40px' }} />
-                                <col style={{ width: '30%' }} />
-                                <col style={{ width: '25%' }} />
-                                <col style={{ width: '25%' }} />
-                                <col style={{ width: '20%' }} />
-                              </colgroup>
-                            <TableBody>
-                              {paginatedJobs.map((job) => {
-                                const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };
-                                const isApprovingCurrent = isBulkApproving === job.id;
-                                return (
-                                  <TableRow 
-                                    key={job.id} 
-                                    data-state={selectedJobIds.includes(job.id) && "selected"}
-                                    onClick={(e) => handleJobClick(e, job.id)} 
-                                    className="cursor-pointer"
-                                  >
-                                    <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
-                                        <Checkbox
-                                          checked={selectedJobIds.includes(job.id)}
-                                          onCheckedChange={(checked) => handleSelectRow(job.id, !!checked)}
-                                          aria-label={`Select job ${job.name}`}
-                                        />
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                      {job.name}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <span className="font-mono text-sm">{details.repo || 'N/A'}</span>
-                                            <span className="font-mono text-xs text-muted-foreground">{details.branch || 'N/A'}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                        <div className="flex items-center gap-1" title={`${details.completed} Completed`}>
-                                          <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                          <span>{details.completed}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1" title={`${details.working} Working`}>
-                                          <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-                                          <span>{details.working}</span>
-                                        </div>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm" 
-                                                    className="flex items-center gap-1 p-1 h-auto text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
-                                                    onClick={(e) => handleBulkApprove(e, job.id)}
-                                                    disabled={isApprovingCurrent || details.pending === 0 || isBulkApproving !== null || isActionPending}
-                                                    aria-label="Approve all pending sessions"
-                                                >
-                                                    {isApprovingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
-                                                    <span>{details.pending}</span>
-                                                </Button>
-                                            </TooltipTrigger>
-                                            {details.pending > 0 && (
-                                                <TooltipContent>
-                                                    <p>Approve all {details.pending} pending session(s)</p>
-                                                </TooltipContent>
-                                            )}
-                                        </Tooltip>
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                                        <Popover>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <PopoverTrigger asChild>
-                                                <Button variant="ghost" size="icon" disabled={isActionPending}>
-                                                  <MessageSquareReply className="h-4 w-4" />
-                                                </Button>
-                                              </PopoverTrigger>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>Send a Quick Reply</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                          <PopoverContent className="p-0 w-64" align="end">
-                                              <Command>
-                                                  <CommandInput placeholder="Search replies..." />
-                                                  <CommandList>
-                                                      <CommandEmpty>No replies found.</CommandEmpty>
-                                                      <CommandGroup>
-                                                          {quickReplyOptions.map((option) => (
-                                                              <CommandItem
-                                                                  key={option.value}
-                                                                  value={`${option.label} ${option.content}`}
-                                                                  onSelect={() => {
-                                                                      handleBulkSendMessage([job.id], option.content);
-                                                                  }}
-                                                              >
-                                                                  {option.label}
-                                                              </CommandItem>
-                                                          ))}
-                                                      </CommandGroup>
-                                                  </CommandList>
-                                              </Command>
-                                          </PopoverContent>
-                                        </Popover>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                )
-                              })}
-                            </TableBody>
-                          </Table>
-                        </TooltipProvider>
-                      </div>
-                    </ScrollArea>
-                  </>
-                )}
+                <JobsTable
+                  jobs={jobs}
+                  sessions={sessions}
+                  quickReplies={quickReplies}
+                  isFetching={isFetching}
+                  isActionPending={isActionPending}
+                  isBulkApproving={isBulkApproving}
+                  onJobClick={handleJobClick}
+                  onBulkApprove={handleBulkApprove}
+                  onBulkSendMessage={handleBulkSendMessage}
+                />
               </CardContent>
-              {totalPages > 1 && (
-                  <CardFooter className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                          Page {currentPage} of {totalPages}
-                      </span>
-                      <div className="flex items-center gap-2">
-                          <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                              disabled={currentPage === 1}
-                          >
-                              Previous
-                          </Button>
-                          <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                              disabled={currentPage === totalPages}
-                          >
-                              Next
-                          </Button>
-                      </div>
-                  </CardFooter>
-              )}
             </Card>
           </div>
         </main>
       </div>
-
-       {selectedJobIds.length > 0 && (
-            <div className="fixed bottom-4 inset-x-4 flex justify-center">
-                <Card className="flex items-center gap-4 p-3 shadow-2xl animate-in fade-in-0 slide-in-from-bottom-5">
-                    <div className="flex items-center gap-2">
-                        <div className="text-sm font-medium">{selectedJobIds.length} job(s) selected</div>
-                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedJobIds([])}>
-                            <X className="h-4 w-4"/>
-                            <span className="sr-only">Clear selection</span>
-                        </Button>
-                    </div>
-                     <MessageDialog
-                        triggerButton={
-                            <Button size="sm">
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                                Send Bulk Message
-                            </Button>
-                        }
-                        predefinedPrompts={predefinedPrompts}
-                        quickReplies={quickReplies}
-                        onSendMessage={(message) => handleBulkSendMessage(selectedJobIds, message)}
-                        dialogTitle="Send Bulk Message"
-                        dialogDescription={`This message will be sent to all sessions in the ${selectedJobIds.length} selected job(s).`}
-                        isActionPending={isActionPending}
-                    />
-                </Card>
-            </div>
-        )}
     </>
   );
 }
