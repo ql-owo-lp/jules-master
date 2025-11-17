@@ -11,7 +11,7 @@ import { createSession } from "@/app/sessions/new/actions";
 import { revalidateSessions } from "@/app/sessions/actions";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "./ui/button";
-import { Wand2 } from "lucide-react";
+import { Plus } from "lucide-react";
 
 type NewJobDialogProps = {
     isPage?: boolean;
@@ -97,8 +97,8 @@ export function NewJobDialog({ isPage = false }: NewJobDialogProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                 <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
-                    <Wand2 className="h-8 w-8" />
+                 <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Plus className="h-8 w-8" />
                     <span className="sr-only">New Job</span>
                 </Button>
             </DialogTrigger>
