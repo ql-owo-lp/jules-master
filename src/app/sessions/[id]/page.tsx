@@ -73,7 +73,6 @@ export default function SessionDetailPage() {
   const [isActionPending, startActionTransition] = useTransition();
   const { toast } = useToast();
   const [message, setMessage] = useState("");
-  const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const activityFeedRef = useRef<HTMLDivElement>(null);
   const [showScroll, setShowScroll] = useState(false);
@@ -223,13 +222,6 @@ export default function SessionDetailPage() {
   
   const repoContext = session?.sourceContext?.githubRepoContext;
   const repoName = session?.sourceContext?.source.split("/").slice(-2).join("/");
-
-  const truncateTitle = (title: string, maxLength: number) => {
-    if (title.length <= maxLength) {
-      return title;
-    }
-    return title.substring(0, maxLength) + "...";
-  };
   
   const job = jobs.find(j => session && j.sessionIds.includes(session.id));
   const backPath = jobId ? `/?jobId=${jobId}` : (job ? `/?jobId=${job.id}` : '/');
@@ -282,7 +274,7 @@ export default function SessionDetailPage() {
                     <span className="sr-only">Back to list</span>
                 </Link>
             </Button>
-            <h1 className="text-3xl font-bold tracking-tight" title={session.title}>{truncateTitle(session.title, titleTruncateLength)}</h1>
+            <h1 className="text-3xl font-bold tracking-tight" title={session.title}>{job?.name || session.title}</h1>
             {session.state && <JobStatusBadge status={session.state} />}
           </div>
 
@@ -546,3 +538,5 @@ export default function SessionDetailPage() {
     </div>
   );
 }
+
+    
