@@ -179,9 +179,9 @@ export function SessionList({
             <div className="border rounded-lg">
               <TooltipProvider>
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-10 bg-card">
                   <TableRow>
-                    <TableHead>Job / Session</TableHead>
+                    <TableHead>Job / Session Name</TableHead>
                     <TableHead>Repository / Branch</TableHead>
                     <TableHead className="w-[180px]">Session Status</TableHead>
                     <TableHead className="w-[150px]">Created</TableHead>
@@ -311,5 +311,3 @@ export function SessionList({
     </Card>
   );
 }
-
-    

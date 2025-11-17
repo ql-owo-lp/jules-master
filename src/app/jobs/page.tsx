@@ -314,7 +314,7 @@ export default function JobsPage() {
                   <div className="border rounded-lg">
                   <TooltipProvider>
                     <Table>
-                      <TableHeader>
+                      <TableHeader className="sticky top-0 z-10 bg-card">
                         <TableRow>
                           <TableHead>Job Name</TableHead>
                           <TableHead>Repository / Branch</TableHead>
@@ -432,5 +432,3 @@ export default function JobsPage() {
     </div>
   );
 }
-
-    
