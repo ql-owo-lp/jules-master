@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Session, Job, Activity, PredefinedPrompt } from "@/lib/types";
 import { getSession, approvePlan, sendMessage, listActivities } from "./actions";
 import { ActivityFeed } from "@/components/activity-feed";
+import { PrStatus } from "@/components/pr-status";
 
 import {
   Card,
@@ -59,6 +60,7 @@ export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [githubToken] = useLocalStorage<string>("jules-github-token", "");
   const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -416,13 +418,14 @@ export default function SessionDetailPage() {
                                 </div>
                             )}
                             {prUrl && (
-                                <div className="flex items-start gap-3">
-                                    <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                    <div>
-                                        <p className="font-semibold">Pull Request</p>
-                                        <a href={prUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                            View on GitHub
+                                 <div className="flex items-center gap-3">
+                                    <Github className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-semibold">Pull Request:</p>
+                                        <a href={prUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                                            {prUrl}
                                         </a>
+                                        <PrStatus prUrl={prUrl} githubToken={githubToken} />
                                     </div>
                                 </div>
                             )}
@@ -543,6 +546,3 @@ export default function SessionDetailPage() {
     </div>
   );
 }
-
-
-    

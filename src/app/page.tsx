@@ -192,7 +192,7 @@ function HomePageContent() {
   
   const jobOptions = useMemo(() => [
     { value: 'all', label: 'All Jobs' },
-    ...jobs.map(j => ({ value: j.id, label: j.name })).reverse()
+    ...[...jobs].reverse().map(j => ({ value: j.id, label: j.name }))
   ], [jobs]);
 
   const statusOptions = useMemo(() => [
