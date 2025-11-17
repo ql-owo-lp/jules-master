@@ -75,6 +75,8 @@ export default function JobsPage() {
             fetchJobSessions();
         } else {
             setIsLoading(false);
+            // If we have cached data, set the update time immediately.
+            setLastUpdatedAt(new Date()); 
         }
 
         if (pollInterval > 0) {
@@ -108,14 +110,28 @@ export default function JobsPage() {
     fetchJobSessions();
   }
 
-  const jobStatusMap = useMemo(() => {
-    const map = new Map<string, { completed: number; working: number; pending: number }>();
+  const jobDetailsMap = useMemo(() => {
+    const map = new Map<string, { completed: number; working: number; pending: number; repo: string | null; branch: string | null }>();
     const sessionMap = new Map(sessions.map(s => [s.id, s]));
 
     for (const job of jobs) {
       let completed = 0;
       let working = 0;
       let pending = 0;
+      let repo: string | null = null;
+      let branch: string | null = null;
+
+      // Get repo/branch from the first session in the job
+      if (job.sessionIds.length > 0) {
+        const firstSession = sessionMap.get(job.sessionIds[0]);
+        if (firstSession?.sourceContext) {
+           const sourceParts = firstSession.sourceContext.source.split('/');
+           if (sourceParts.length >= 4 && sourceParts[1] === 'github') {
+              repo = sourceParts.slice(2).join('/');
+           }
+           branch = firstSession.sourceContext.githubRepoContext?.startingBranch || null;
+        }
+      }
 
       for (const sessionId of job.sessionIds) {
         const session = sessionMap.get(sessionId);
@@ -137,12 +153,12 @@ export default function JobsPage() {
           }
         }
       }
-      map.set(job.id, { completed, working, pending });
+      map.set(job.id, { completed, working, pending, repo, branch });
     }
     return map;
   }, [jobs, sessions]);
 
-  if (!isClient || isLoading) {
+  if (!isClient || (isLoading && sessions.length === 0)) {
     return (
        <div className="flex flex-col flex-1 bg-background">
         <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
@@ -168,22 +184,24 @@ export default function JobsPage() {
                         <ClipboardList className="h-6 w-6" />
                         <CardTitle>Job List</CardTitle>
                     </div>
-                    {apiKey && lastUpdatedAt && (
+                    {apiKey && (
                         <div className="text-sm text-muted-foreground text-right flex-shrink-0 flex items-center gap-4">
                            <Button variant="ghost" size="icon" onClick={handleRefresh} aria-label="Refresh job list" disabled={isFetching}>
                                 <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
                             </Button>
-                            <div>
-                                <div>
-                                    Last updated:{" "}
-                                    {format(lastUpdatedAt, "h:mm:ss a")}
-                                </div>
-                                {pollInterval > 0 && (
-                                    <div>
-                                    Next poll in: {countdown}s
-                                    </div>
-                                )}
-                            </div>
+                            {lastUpdatedAt && (
+                              <div>
+                                  <div>
+                                      Last updated:{" "}
+                                      {format(lastUpdatedAt, "h:mm:ss a")}
+                                  </div>
+                                  {pollInterval > 0 && (
+                                      <div>
+                                      Next poll in: {countdown}s
+                                      </div>
+                                  )}
+                              </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -212,31 +230,31 @@ export default function JobsPage() {
                     </TableHeader>
                     <TableBody>
                       {[...jobs].reverse().map((job) => {
-                        const status = jobStatusMap.get(job.id) || { completed: 0, working: 0, pending: 0 };
+                        const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };
                         return (
                           <TableRow key={job.id} onClick={() => handleJobClick(job.id)} className="cursor-pointer">
                             <TableCell className="font-medium">
                               {job.name}
                             </TableCell>
                             <TableCell>
-                              <span className="font-mono text-sm">{job.repo || 'N/A'}</span>
+                              <span className="font-mono text-sm">{details.repo || 'N/A'}</span>
                             </TableCell>
                              <TableCell>
-                              <span className="font-mono text-sm text-muted-foreground">{job.branch || 'N/A'}</span>
+                              <span className="font-mono text-sm text-muted-foreground">{details.branch || 'N/A'}</span>
                             </TableCell>
                             <TableCell>
                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1" title={`${status.completed} Completed`}>
+                                <div className="flex items-center gap-1" title={`${details.completed} Completed`}>
                                   <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                  <span>{status.completed}</span>
+                                  <span>{details.completed}</span>
                                 </div>
-                                <div className="flex items-center gap-1" title={`${status.working} Working`}>
+                                <div className="flex items-center gap-1" title={`${details.working} Working`}>
                                   <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-                                  <span>{status.working}</span>
+                                  <span>{details.working}</span>
                                 </div>
-                                <div className="flex items-center gap-1" title={`${status.pending} Pending Approval`}>
+                                <div className="flex items-center gap-1" title={`${details.pending} Pending Approval`}>
                                   <Hand className="h-4 w-4 text-yellow-500" />
-                                  <span>{status.pending}</span>
+                                  <span>{details.pending}</span>
                                 </div>
                               </div>
                             </TableCell>
