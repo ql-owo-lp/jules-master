@@ -97,8 +97,8 @@ export function NewJobDialog({ isPage = false }: NewJobDialogProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                 <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-primary text-primary-foreground hover:bg-primary/90">
-                    <Plus className="h-8 w-8" />
+                 <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-primary hover:bg-primary/90">
+                    <Plus className="h-8 w-8 text-white" />
                     <span className="sr-only">New Job</span>
                 </Button>
             </DialogTrigger>
