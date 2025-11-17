@@ -100,7 +100,7 @@ export default function RootLayout({
                 </SidebarGroup>
               </SidebarContent>
             </Sidebar>
-            <SidebarInset>
+            <SidebarInset className="min-w-[1024px]">
               <Header />
               {children}
             </SidebarInset>
@@ -111,5 +111,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
