@@ -206,6 +206,7 @@ export default function JobsPage() {
                       <TableRow>
                         <TableHead>Job Name</TableHead>
                         <TableHead>Repository</TableHead>
+                        <TableHead>Branch</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -218,10 +219,10 @@ export default function JobsPage() {
                               {job.name}
                             </TableCell>
                             <TableCell>
-                              <div className="flex flex-col">
-                                <span className="font-mono text-sm">{job.repo}</span>
-                                <span className="font-mono text-xs text-muted-foreground">{job.branch}</span>
-                              </div>
+                              <span className="font-mono text-sm">{job.repo || 'N/A'}</span>
+                            </TableCell>
+                             <TableCell>
+                              <span className="font-mono text-sm text-muted-foreground">{job.branch || 'N/A'}</span>
                             </TableCell>
                             <TableCell>
                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -253,5 +254,3 @@ export default function JobsPage() {
     </div>
   );
 }
-
-    
