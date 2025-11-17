@@ -22,10 +22,14 @@ import {
 import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { listSessions, revalidateSessions } from "@/app/sessions/actions";
+import { approvePlan } from "@/app/sessions/[id]/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 export default function JobsPage() {
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -34,10 +38,12 @@ export default function JobsPage() {
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { toast } = useToast();
 
   const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [isFetching, startFetching] = useTransition();
+  const [isBulkApproving, setIsBulkApproving] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(pollInterval);
 
 
@@ -102,13 +108,57 @@ export default function JobsPage() {
   }, [isClient, apiKey, pollInterval, lastUpdatedAt]);
 
 
-  const handleJobClick = (jobId: string) => {
+  const handleJobClick = (e: React.MouseEvent, jobId: string) => {
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
     router.push(`/?jobId=${jobId}`);
   };
 
   const handleRefresh = () => {
     fetchJobSessions();
   }
+
+  const handleBulkApprove = async (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    setIsBulkApproving(jobId);
+
+    const pendingSessionIds = job.sessionIds.filter(sessionId => {
+      const session = sessions.find(s => s.id === sessionId);
+      return session?.state === 'AWAITING_PLAN_APPROVAL';
+    });
+
+    if (pendingSessionIds.length === 0) {
+      toast({ title: "No sessions to approve."});
+      setIsBulkApproving(null);
+      return;
+    }
+
+    const approvalPromises = pendingSessionIds.map(id => approvePlan(apiKey, id));
+    
+    try {
+      const results = await Promise.all(approvalPromises);
+      const successfulApprovals = results.filter(r => r).length;
+
+      toast({
+        title: "Bulk Approval Complete",
+        description: `Successfully approved ${successfulApprovals} of ${pendingSessionIds.length} pending sessions.`,
+      });
+
+      // Refresh data to reflect new states
+      fetchJobSessions();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Bulk Approval Failed",
+        description: "An error occurred while approving sessions.",
+      });
+    } finally {
+      setIsBulkApproving(null);
+    }
+  };
 
   const jobDetailsMap = useMemo(() => {
     const map = new Map<string, { completed: number; working: number; pending: number; repo: string | null; branch: string | null }>();
@@ -219,6 +269,7 @@ export default function JobsPage() {
                 </div>
               ) : (
                 <div className="border rounded-lg">
+                 <TooltipProvider>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -226,13 +277,15 @@ export default function JobsPage() {
                         <TableHead>Repository</TableHead>
                         <TableHead>Branch</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {[...jobs].reverse().map((job) => {
                         const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };
+                        const isApprovingCurrent = isBulkApproving === job.id;
                         return (
-                          <TableRow key={job.id} onClick={() => handleJobClick(job.id)} className="cursor-pointer">
+                          <TableRow key={job.id} onClick={(e) => handleJobClick(e, job.id)} className="cursor-pointer">
                             <TableCell className="font-medium">
                               {job.name}
                             </TableCell>
@@ -258,11 +311,32 @@ export default function JobsPage() {
                                 </div>
                               </div>
                             </TableCell>
+                             <TableCell className="text-right">
+                                {details.pending > 0 && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => handleBulkApprove(job.id)}
+                                        disabled={isApprovingCurrent || isBulkApproving !== null}
+                                        aria-label="Approve all pending sessions"
+                                      >
+                                        {isApprovingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Approve all {details.pending} pending session(s)</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                            </TableCell>
                           </TableRow>
                         )
                       })}
                     </TableBody>
                   </Table>
+                  </TooltipProvider>
                 </div>
               )}
             </CardContent>
@@ -272,3 +346,5 @@ export default function JobsPage() {
     </div>
   );
 }
+
+    
