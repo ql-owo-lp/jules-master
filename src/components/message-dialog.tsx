@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, MessageSquare, BookText, MessageSquareReply } from "lucide-react";
 import type { PredefinedPrompt } from "@/lib/types";
 import { Combobox } from "./ui/combobox";
+import { ScrollArea } from "./ui/scroll-area";
 
 type MessageDialogProps = {
     triggerButton: ReactElement;
@@ -56,54 +57,57 @@ export function MessageDialog({
             <DialogTrigger asChild>
                 {triggerButton}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="md:w-1/2 md:h-3/5 max-w-4xl flex flex-col">
                 <DialogHeader>
                     <DialogTitle>{dialogTitle}</DialogTitle>
                     <DialogDescription>{dialogDescription}</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="message-suggestions">Message Suggestions</Label>
-                             <Combobox
-                                options={promptOptions}
-                                onValueChange={(val) => {
-                                    const selected = predefinedPrompts.find(p => p.id === val);
-                                    if (selected) setMessage(selected.prompt);
-                                }}
-                                selectedValue={null}
-                                placeholder="Select a predefined message..."
-                                searchPlaceholder="Search messages..."
-                                icon={<BookText className="h-4 w-4 text-muted-foreground" />}
-                            />
+                <ScrollArea className="flex-1 pr-6">
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="message-suggestions">Message Suggestions</Label>
+                                <Combobox
+                                    options={promptOptions}
+                                    onValueChange={(val) => {
+                                        const selected = predefinedPrompts.find(p => p.id === val);
+                                        if (selected) setMessage(selected.prompt);
+                                    }}
+                                    selectedValue={null}
+                                    placeholder="Select a predefined message..."
+                                    searchPlaceholder="Search messages..."
+                                    icon={<BookText className="h-4 w-4 text-muted-foreground" />}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="quick-replies">Quick Replies</Label>
+                                <Combobox
+                                    options={replyOptions}
+                                    onValueChange={(val) => {
+                                        const selected = quickReplies.find(r => r.id === val);
+                                        if (selected) setMessage(selected.prompt);
+                                    }}
+                                    selectedValue={null}
+                                    placeholder="Select a quick reply..."
+                                    searchPlaceholder="Search replies..."
+                                    icon={<MessageSquareReply className="h-4 w-4 text-muted-foreground" />}
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                             <Label htmlFor="quick-replies">Quick Replies</Label>
-                             <Combobox
-                                options={replyOptions}
-                                onValueChange={(val) => {
-                                    const selected = quickReplies.find(r => r.id === val);
-                                    if (selected) setMessage(selected.prompt);
-                                }}
-                                selectedValue={null}
-                                placeholder="Select a quick reply..."
-                                searchPlaceholder="Search replies..."
-                                icon={<MessageSquareReply className="h-4 w-4 text-muted-foreground" />}
+                        <div className="grid w-full gap-2">
+                            <Label htmlFor="message-text">Message</Label>
+                            <Textarea
+                                id="message-text"
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                placeholder="Type your message here..."
+                                rows={10}
+                                disabled={isActionPending}
+                                className="min-h-[200px]"
                             />
                         </div>
                     </div>
-                     <div className="grid w-full gap-2">
-                        <Label htmlFor="message-text">Message</Label>
-                        <Textarea
-                            id="message-text"
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            placeholder="Type your message here..."
-                            rows={6}
-                            disabled={isActionPending}
-                        />
-                    </div>
-                </div>
+                </ScrollArea>
                 <DialogFooter>
                     <DialogClose asChild>
                         <Button variant="outline">Cancel</Button>
