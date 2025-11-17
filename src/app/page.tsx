@@ -6,12 +6,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Job, State } from "@/lib/types";
+import type { Session, Job, State, PredefinedPrompt } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, Plus, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions, revalidateSessions } from "./sessions/actions";
-import { approvePlan } from "./sessions/[id]/actions";
+import { approvePlan, sendMessage } from "./sessions/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,8 @@ function HomePageContent() {
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
+  const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+  
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [isFetching, startFetching] = useTransition();
@@ -146,6 +148,22 @@ function HomePageContent() {
     });
   };
 
+  const handleSendMessage = (sessionId: string, message: string) => {
+    startActionTransition(async () => {
+      const result = await sendMessage(apiKey, sessionId, message);
+      if (result) {
+        // Refresh the list to show the updated status
+        fetchSessions();
+        toast({ title: "Message Sent", description: "Your message has been sent to the session." });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Failed to send message",
+        });
+      }
+    });
+  };
+
   const handleClearFilters = () => {
     onJobFilterChange(null);
     onRepoFilterChange('all');
@@ -225,11 +243,13 @@ function HomePageContent() {
           <SessionList
             sessions={filteredSessions}
             jobs={jobs}
+            quickReplies={quickReplies}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
             isRefreshing={isFetching}
             isActionPending={isActionPending}
             onApprovePlan={handleApprovePlan}
+            onSendMessage={handleSendMessage}
             countdown={countdown}
             pollInterval={sessionListPollInterval}
             titleTruncateLength={titleTruncateLength}
@@ -302,5 +322,3 @@ export default function Home() {
     </Suspense>
   )
 }
-
-    
