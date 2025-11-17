@@ -318,6 +318,12 @@ export default function JobsPage() {
                 <>
                   <div className="border-t border-x rounded-t-lg z-10 sticky top-0 bg-background">
                     <Table>
+                       <colgroup>
+                          <col style={{ width: '30%' }} />
+                          <col style={{ width: '25%' }} />
+                          <col style={{ width: '25%' }} />
+                          <col style={{ width: '20%' }} />
+                        </colgroup>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Job Name</TableHead>
@@ -332,6 +338,12 @@ export default function JobsPage() {
                     <div className="border-x border-b rounded-b-lg">
                       <TooltipProvider>
                         <Table>
+                           <colgroup>
+                              <col style={{ width: '30%' }} />
+                              <col style={{ width: '25%' }} />
+                              <col style={{ width: '25%' }} />
+                              <col style={{ width: '20%' }} />
+                            </colgroup>
                           <TableBody>
                             {paginatedJobs.map((job) => {
                               const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };

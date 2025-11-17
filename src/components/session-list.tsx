@@ -28,9 +28,9 @@ import { useMemo, useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { PrStatus } from "./pr-status";
 import { MessageDialog } from "./message-dialog";
-import { ScrollArea } from "./ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 
@@ -186,14 +186,22 @@ export function SessionList({
           <>
             <div className="border-t border-x rounded-t-lg z-10 sticky top-0 bg-background">
                 <Table>
+                    <colgroup>
+                        <col style={{ width: '30%' }} />
+                        <col style={{ width: '20%' }} />
+                        <col style={{ width: '180px' }} />
+                        <col style={{ width: '150px' }} />
+                        <col style={{ width: '80px' }} />
+                        <col style={{ width: '120px' }} />
+                    </colgroup>
                     <TableHeader>
                         <TableRow>
                             <TableHead>Job / Session Name</TableHead>
                             <TableHead>Repository / Branch</TableHead>
-                            <TableHead className="w-[180px]">Session Status</TableHead>
-                            <TableHead className="w-[150px]">Created</TableHead>
-                            <TableHead className="w-[80px] text-center">GitHub</TableHead>
-                            <TableHead className="w-[120px] text-right">Actions</TableHead>
+                            <TableHead>Session Status</TableHead>
+                            <TableHead>Created</TableHead>
+                            <TableHead className="text-center">GitHub</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                 </Table>
@@ -202,6 +210,14 @@ export function SessionList({
               <div className="border-x border-b rounded-b-lg">
                 <TooltipProvider>
                   <Table>
+                    <colgroup>
+                        <col style={{ width: '30%' }} />
+                        <col style={{ width: '20%' }} />
+                        <col style={{ width: '180px' }} />
+                        <col style={{ width: '150px' }} />
+                        <col style={{ width: '80px' }} />
+                        <col style={{ width: '120px' }} />
+                    </colgroup>
                     <TableBody>
                       {paginatedSessions.map((session) => {
                         const job = sessionToJobMap.get(session.id);
