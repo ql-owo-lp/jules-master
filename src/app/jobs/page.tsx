@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw, MessageSquare, X } from "lucide-react";
+import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw, MessageSquare, X, Trash2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { listSessions } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
@@ -35,7 +35,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
-import { NewJobDialog } from "@/components/new-job-dialog";
 import { MessageSquareReply } from "lucide-react";
 
 function JobsTable({
@@ -286,6 +285,7 @@ function JobsTable({
                                                           value={`${option.label} ${option.content}`}
                                                           onSelect={() => {
                                                               onBulkSendMessage([job.id], option.content);
+                                                              document.body.click(); // Close popover
                                                           }}
                                                       >
                                                           {option.label}
@@ -589,9 +589,8 @@ export default function JobsPage() {
           </div>
         </main>
       </div>
-       <div className="fixed bottom-8 right-8 z-20">
-        <NewJobDialog />
-      </div>
     </>
   );
 }
+
+    

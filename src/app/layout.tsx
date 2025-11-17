@@ -6,20 +6,21 @@ import { ThemeProvider } from '@/components/theme-provider';
 import {
   SidebarProvider,
   Sidebar,
-  SidebarTrigger,
   SidebarContent,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuAction,
   SidebarInset,
   SidebarHeader,
   SidebarGroup,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { Bot, Home, PlusCircle, BookText, ClipboardList } from 'lucide-react';
+import { Bot, Home, PlusCircle, BookText, ClipboardList, ExternalLink } from 'lucide-react';
 import { Header } from '@/components/header';
+import { NewJobDialog } from '@/components/new-job-dialog';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Jules Master',
   description: 'A hub to manage your Jules API jobs.',
 };
@@ -65,12 +66,17 @@ export default function RootLayout({
                 <SidebarGroup>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <Link href="/jobs/new">
-                          <PlusCircle />
-                          <span>New Job</span>
-                        </Link>
-                      </SidebarMenuButton>
+                       <NewJobDialog>
+                          <SidebarMenuButton>
+                              <PlusCircle />
+                              <span>New Job</span>
+                          </SidebarMenuButton>
+                       </NewJobDialog>
+                       <SidebarMenuAction asChild>
+                          <Link href="/jobs/new" target="_blank">
+                            <ExternalLink />
+                          </Link>
+                       </SidebarMenuAction>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
@@ -111,3 +117,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

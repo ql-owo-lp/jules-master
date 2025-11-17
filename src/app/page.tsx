@@ -7,7 +7,7 @@ import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, X } from "lucide-react";
+import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "./sessions/actions";
 import { approvePlan, sendMessage } from "./sessions/[id]/actions";
@@ -17,8 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
-import { GitMerge, Activity, Briefcase } from "lucide-react";
-import { NewJobDialog } from "@/components/new-job-dialog";
 
 function HomePageContent() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
@@ -374,9 +372,6 @@ function HomePageContent() {
           </SessionList>
         </div>
       </main>
-       <div className="fixed bottom-8 right-8 z-20">
-        <NewJobDialog />
-      </div>
     </div>
   );
 }
@@ -388,3 +383,5 @@ export default function Home() {
     </Suspense>
   )
 }
+
+    
