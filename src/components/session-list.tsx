@@ -137,12 +137,17 @@ export function SessionList({
     <Card className="shadow-md">
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <ClipboardList className="h-6 w-6" />
-            <CardTitle>Session List</CardTitle>
-            <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh session list" disabled={isRefreshing}>
-              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-            </Button>
+          <div>
+            <div className="flex items-center gap-2">
+                <ClipboardList className="h-6 w-6" />
+                <CardTitle>Session List</CardTitle>
+                <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh session list" disabled={isRefreshing}>
+                <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                </Button>
+            </div>
+            <CardDescription className="mt-2">
+                {sessions.length > 0 ? "A list of your most recent sessions." : "Your created sessions will appear here."}
+            </CardDescription>
           </div>
           {lastUpdatedAt && (
             <div className="text-sm text-muted-foreground text-right flex-shrink-0">
@@ -158,9 +163,6 @@ export function SessionList({
             </div>
           )}
         </div>
-        <CardDescription>
-          {sessions.length > 0 ? "A list of your most recent sessions." : "Your created sessions will appear here."}
-        </CardDescription>
 
         {children}
 
@@ -176,7 +178,7 @@ export function SessionList({
           </div>
         ) : (
           <>
-            <div className="border rounded-t-lg">
+            <div className="border rounded-t-lg z-10 sticky top-0 bg-background">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -274,7 +276,7 @@ export function SessionList({
                                 quickReplies={quickReplies}
                                 onSendMessage={(message) => onSendMessage(session.id, message)}
                                 dialogTitle="Send Message to Session"
-                                dialogDescription={`This message will be sent to the session: "${session.title || session.id}"`}
+                                dialogDescription={`This message will be sent to the session: "${truncate(session.title, 50) || session.id}"`}
                                 isActionPending={isActionPending}
                               />
                             </div>
