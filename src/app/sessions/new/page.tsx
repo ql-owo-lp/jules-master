@@ -1,56 +1,13 @@
+
 "use client";
 
-import { useState } from "react";
-import { useRouter } from 'next/navigation';
-import { JobCreationForm } from "@/components/job-creation-form";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Source } from "@/lib/types";
+import { NewJobDialog } from "@/components/new-job-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { createSession } from "./actions";
-
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 export default function NewJobPage() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
-  const router = useRouter();
-  const { toast } = useToast();
-
-
-  const handleCreateSession = async (title: string, prompt: string, source: Source | null, branch: string | undefined): Promise<Session | null> => {
-    if (!source || !branch) {
-        toast({
-            variant: "destructive",
-            title: "Repository and branch must be selected.",
-        });
-        return null;
-    }
-    const newSession = await createSession(apiKey, {
-      title: title,
-      prompt: prompt,
-      sourceContext: {
-        source: source.name,
-        githubRepoContext: {
-          startingBranch: branch,
-        }
-      }
-    });
-
-    if (!newSession) {
-      // The error toast is handled inside the creation form's retry loop
-      return null;
-    }
-    return newSession;
-  }
-
-  const handleJobsCreated = (newSessions: Session[]) => {
-    toast({
-      title: "Job submitted!",
-      description: `${newSessions.length} new session(s) have been created.`,
-    });
-    router.push('/jobs');
-  };
-
 
   return (
     <div className="flex flex-col flex-1 bg-background">
@@ -65,14 +22,11 @@ export default function NewJobPage() {
               </AlertDescription>
             </Alert>
           )}
-          <JobCreationForm
-            onJobsCreated={handleJobsCreated}
-            onCreateJob={handleCreateSession}
-            disabled={!apiKey}
-            apiKey={apiKey}
-          />
+          <NewJobDialog isPage />
         </div>
       </main>
     </div>
   );
 }
+
+    

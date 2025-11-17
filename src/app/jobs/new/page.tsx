@@ -2,74 +2,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from 'next/navigation';
-import { JobCreationForm } from "@/components/job-creation-form";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Source, AutomationMode } from "@/lib/types";
+import { NewJobDialog } from "@/components/new-job-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { createSession } from "@/app/sessions/new/actions";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Skeleton } from "@/components/ui/skeleton";
-import { revalidateSessions } from "@/app/sessions/actions";
-
 
 export default function NewJobPage() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
-  const router = useRouter();
-  const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-
-  const handleCreateSession = async (
-    title: string, 
-    prompt: string, 
-    source: Source | null, 
-    branch: string | undefined,
-    requirePlanApproval: boolean,
-    automationMode: AutomationMode
-  ): Promise<Session | null> => {
-    if (!source || !branch) {
-        toast({
-            variant: "destructive",
-            title: "Repository and branch must be selected.",
-        });
-        return null;
-    }
-    const newSession = await createSession(apiKey, {
-      title: title,
-      prompt: prompt,
-      sourceContext: {
-        source: source.name,
-        githubRepoContext: {
-          startingBranch: branch,
-        }
-      },
-      requirePlanApproval,
-      automationMode
-    });
-
-    if (!newSession) {
-      // The error toast is handled inside the creation form's retry loop
-      return null;
-    }
-    return newSession;
-  }
-
-  const handleJobsCreated = (newSessions: Session[]) => {
-    toast({
-      title: "Job submitted!",
-      description: `${newSessions.length} new session(s) have been created.`,
-    });
-    // Revalidate in the background, don't need to await
-    revalidateSessions();
-    router.push('/jobs');
-  };
-
 
   return (
     <div className="flex flex-col flex-1 bg-background">
@@ -91,12 +36,7 @@ export default function NewJobPage() {
                   </AlertDescription>
                 </Alert>
               )}
-              <JobCreationForm
-                onJobsCreated={handleJobsCreated}
-                onCreateJob={handleCreateSession}
-                disabled={!apiKey}
-                apiKey={apiKey}
-              />
+               <NewJobDialog isPage />
             </>
           )}
         </div>
@@ -104,3 +44,5 @@ export default function NewJobPage() {
     </div>
   );
 }
+
+    
