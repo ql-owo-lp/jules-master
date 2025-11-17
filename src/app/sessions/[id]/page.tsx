@@ -30,6 +30,12 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   ArrowLeft,
   Calendar,
   CheckSquare,
@@ -48,7 +54,8 @@ import {
   Zap,
   Briefcase,
   RefreshCw,
-  ChevronDown
+  ChevronDown,
+  MessageSquareReply
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -341,7 +348,7 @@ export default function SessionDetailPage() {
                                     </div>
                                 </div>
                             )}
-                            {session.sourceContext?.source && (
+                             {session.sourceContext?.source && (
                                 <div className="flex items-start gap-3">
                                     <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
                                     <div>
@@ -471,42 +478,43 @@ export default function SessionDetailPage() {
                         </CardDescription>
                         </CardHeader>
                         <CardContent>
-                        {quickReplies.length > 0 && (
-                            <div className="mb-4 space-y-2">
-                                <Label>Quick Replies</Label>
-                                <div className="flex flex-wrap gap-2">
-                                {quickReplies.map((reply) => (
-                                    <Button
-                                    key={reply.id}
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setMessage(reply.prompt)}
+                            <div className="grid gap-2">
+                                <Label htmlFor="message">Your Message</Label>
+                                <Textarea
+                                    id="message"
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    placeholder="Type your message here..."
+                                    rows={4}
                                     disabled={isActionPending}
-                                    >
-                                    {reply.title}
-                                    </Button>
-                                ))}
-                                </div>
+                                />
                             </div>
-                        )}
-                        <div className="grid gap-2">
-                            <Label htmlFor="message">Your Message</Label>
-                            <Textarea
-                                id="message"
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                placeholder="Type your message here..."
-                                rows={4}
-                                disabled={isActionPending}
-                            />
-                        </div>
                         </CardContent>
-                        <CardFooter className="flex justify-end">
-                        <Button onClick={handleSendMessage} disabled={isActionPending || !message.trim()}>
-                            {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
-                            Send Message
-                        </Button>
+                        <CardFooter className="flex justify-between items-center">
+                            {quickReplies.length > 0 ? (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline">
+                                            <MessageSquareReply className="mr-2 h-4 w-4" />
+                                            Quick Replies
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        {quickReplies.map((reply) => (
+                                            <DropdownMenuItem
+                                                key={reply.id}
+                                                onSelect={() => setMessage(reply.prompt)}
+                                            >
+                                                {reply.title}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : <div></div>}
+                            <Button onClick={handleSendMessage} disabled={isActionPending || !message.trim()}>
+                                {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
+                                Send Message
+                            </Button>
                         </CardFooter>
                     </Card>
 
@@ -530,3 +538,5 @@ export default function SessionDetailPage() {
     </div>
   );
 }
+
+    
