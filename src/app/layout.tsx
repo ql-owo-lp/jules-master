@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -91,7 +92,7 @@ export default function RootLayout({
                       <SidebarMenuButton asChild>
                         <Link href="/prompts">
                           <BookText />
-                          <span>Predefined Prompts</span>
+                          <span>Messages</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -110,3 +111,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
