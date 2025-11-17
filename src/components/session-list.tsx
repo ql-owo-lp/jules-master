@@ -159,6 +159,16 @@ export function SessionList({
     }
     return null;
   }
+  
+  const getRepoNameFromSource = (source?: string): string | null => {
+    if (!source) return null;
+    // Example source: "sources/github/owner/repo"
+    const parts = source.split('/');
+    if (parts.length >= 4 && parts[1] === 'github') {
+        return parts.slice(2).join('/');
+    }
+    return null;
+  }
 
   return (
     <Card className="shadow-md">
@@ -221,15 +231,18 @@ export function SessionList({
                 {sessions.map((session) => {
                   const job = sessionToJobMap.get(session.id);
                   const prUrl = getPullRequestUrl(session);
+                  const repoName = getRepoNameFromSource(session.sourceContext?.source);
+                  const branchName = session.sourceContext?.githubRepoContext?.startingBranch;
+
                   return (
                   <TableRow
                     key={session.id}
                     className="cursor-pointer"
                     onClick={(e) => handleRowClick(e, session.id)}
                   >
-                    <TableCell>{job?.name || "N/A"}</TableCell>
-                    <TableCell>{job?.repo || "N/A"}</TableCell>
-                    <TableCell>{job?.branch || "N/A"}</TableCell>
+                    <TableCell>{job?.name || truncateTitle(session.title, titleTruncateLength) || "N/A"}</TableCell>
+                    <TableCell>{repoName || "N/A"}</TableCell>
+                    <TableCell>{branchName || "N/A"}</TableCell>
                     <TableCell className="font-medium" title={session.title}>{truncateTitle(session.title, titleTruncateLength)}</TableCell>
                     <TableCell>
                       <JobStatusBadge status={session.state || session.status} />
@@ -244,7 +257,7 @@ export function SessionList({
                             prUrl={prUrl} 
                             githubToken={githubToken} 
                             status={prUrl ? prStatuses[prUrl] : null}
-                            isLoading={isFetchingPrStatus}
+                            isLoading={isFetchingPrStatus && prUrl ? prStatuses[prUrl] === undefined : false}
                         />
                     </TableCell>
                     <TableCell className="text-right">
@@ -288,5 +301,3 @@ export function SessionList({
     </Card>
   );
 }
-
-    
