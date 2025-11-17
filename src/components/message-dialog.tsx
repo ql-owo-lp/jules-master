@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, cloneElement, ReactElement } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import type { PredefinedPrompt } from "@/lib/types";
 import { Combobox } from "./ui/combobox";
 
 type MessageDialogProps = {
-    triggerButton: ReactNode;
+    triggerButton: ReactElement;
     predefinedPrompts: PredefinedPrompt[];
     quickReplies: PredefinedPrompt[];
     onSendMessage: (message: string) => void;
