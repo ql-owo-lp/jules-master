@@ -263,25 +263,23 @@ export default function JobsPage() {
                     <div className="flex items-center gap-2">
                         <ClipboardList className="h-6 w-6" />
                         <CardTitle>Job List</CardTitle>
-                    </div>
-                    {apiKey && (
-                        <div className="text-sm text-muted-foreground text-right flex-shrink-0 flex items-center gap-4">
-                           <Button variant="ghost" size="icon" onClick={handleRefresh} aria-label="Refresh job list" disabled={isFetching}>
+                        {apiKey && (
+                            <Button variant="ghost" size="icon" onClick={handleRefresh} aria-label="Refresh job list" disabled={isFetching}>
                                 <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
                             </Button>
-                            {lastUpdatedAt && (
-                              <div>
-                                  <div>
-                                      Last updated:{" "}
-                                      {format(lastUpdatedAt, "h:mm:ss a")}
-                                  </div>
-                                  {pollInterval > 0 && (
-                                      <div>
-                                      Next poll in: {countdown}s
-                                      </div>
-                                  )}
-                              </div>
-                            )}
+                        )}
+                    </div>
+                    {apiKey && lastUpdatedAt && (
+                        <div className="text-sm text-muted-foreground text-right flex-shrink-0">
+                           <div>
+                               Last updated:{" "}
+                               {format(lastUpdatedAt, "h:mm:ss a")}
+                           </div>
+                           {pollInterval > 0 && (
+                               <div>
+                               Next poll in: {countdown}s
+                               </div>
+                           )}
                         </div>
                     )}
                 </div>
@@ -375,6 +373,7 @@ export default function JobsPage() {
                                         onSendMessage={(message) => handleBulkSendMessage(job.id, message)}
                                         dialogTitle="Send Message to Job"
                                         dialogDescription={`This message will be sent to all ${job.sessionIds.length} sessions in the "${job.name}" job.`}
+                                        isActionPending={isActionPending}
                                     />
                                 </div>
                             </TableCell>
