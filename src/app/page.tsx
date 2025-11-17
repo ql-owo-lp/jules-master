@@ -14,9 +14,10 @@ import { listSessions, revalidateSessions } from "./sessions/actions";
 import { approvePlan } from "./sessions/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
+import { Combobox } from "@/components/ui/combobox";
+import { GitMerge, Activity, Briefcase } from "lucide-react";
 
 function HomePageContent() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
@@ -160,10 +161,21 @@ function HomePageContent() {
   const onRepoFilterChange = (value: string) => setRepoFilter(value);
   const onStatusFilterChange = (value: string) => setStatusFilter(value);
   
-  const uniqueRepos = useMemo(() => ['all', ...Array.from(new Set(jobs.map(j => j.repo)))], [jobs]);
-  const uniqueJobNames = useMemo(() => ['all', ...Array.from(new Set(jobs.map(j => j.id)))], [jobs]);
-  const uniqueStatuses = useMemo(() => ['all', ...Array.from(new Set(sessions.map(s => s.state).filter((s): s is State => !!s)))], [sessions]);
-  const jobMap = useMemo(() => new Map(jobs.map(j => [j.id, j.name])), [jobs]);
+  const repoOptions = useMemo(() => [
+    { value: 'all', label: 'All Repositories'}, 
+    ...Array.from(new Set(jobs.map(j => j.repo))).map(r => ({ value: r, label: r }))
+  ], [jobs]);
+  
+  const jobOptions = useMemo(() => [
+    { value: 'all', label: 'All Jobs' },
+    ...jobs.map(j => ({ value: j.id, label: j.name })).reverse()
+  ], [jobs]);
+
+  const statusOptions = useMemo(() => [
+    { value: 'all', label: 'All Statuses' },
+    ...Array.from(new Set(sessions.map(s => s.state).filter((s): s is State => !!s))).map(s => ({ value: s, label: s }))
+  ], [sessions]);
+  
   const isAnyFilterActive = jobFilter || repoFilter !== 'all' || statusFilter !== 'all';
 
   if (!isClient) {
@@ -219,45 +231,42 @@ function HomePageContent() {
             githubTokenSet={!!githubToken}
           >
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="filter-repo">Repository</Label>
-                <Select value={repoFilter} onValueChange={onRepoFilterChange}>
-                  <SelectTrigger id="filter-repo">
-                    <SelectValue placeholder="Filter by repository..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueRepos.map((repo, index) => (
-                      <SelectItem key={`${repo}-${index}`} value={repo}>{repo === 'all' ? 'All Repositories' : repo}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="filter-status">Session Status</Label>
-                <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-                  <SelectTrigger id="filter-status">
-                    <SelectValue placeholder="Filter by status..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueStatuses.map((status, index) => (
-                      <SelectItem key={`${status}-${index}`} value={status}>{status === 'all' ? 'All Statuses' : status}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="filter-job">Job Name</Label>
-                <Select value={jobFilter || 'all'} onValueChange={(value) => onJobFilterChange(value === 'all' ? null : value)}>
-                  <SelectTrigger id="filter-job">
-                    <SelectValue placeholder="Filter by job..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueJobNames.map((jobId, index) => (
-                      <SelectItem key={`${jobId}-${index}`} value={jobId}>{jobId === 'all' ? 'All Jobs' : jobMap.get(jobId) || jobId}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="filter-repo">Repository</Label>
+                  <Combobox 
+                    options={repoOptions}
+                    selectedValue={repoFilter}
+                    onValueChange={(val) => onRepoFilterChange(val || 'all')}
+                    placeholder="Filter by repository..."
+                    searchPlaceholder="Search repositories..."
+                    name="filter-repo"
+                    icon={<GitMerge className="h-4 w-4 text-muted-foreground" />}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="filter-status">Session Status</Label>
+                  <Combobox 
+                    options={statusOptions}
+                    selectedValue={statusFilter}
+                    onValueChange={(val) => onStatusFilterChange(val || 'all')}
+                    placeholder="Filter by status..."
+                    searchPlaceholder="Search statuses..."
+                    name="filter-status"
+                    icon={<Activity className="h-4 w-4 text-muted-foreground" />}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="filter-job">Job Name</Label>
+                   <Combobox 
+                    options={jobOptions}
+                    selectedValue={jobFilter || 'all'}
+                    onValueChange={(val) => onJobFilterChange(val === 'all' ? null : val)}
+                    placeholder="Filter by job..."
+                    searchPlaceholder="Search jobs..."
+                    name="filter-job"
+                    icon={<Briefcase className="h-4 w-4 text-muted-foreground" />}
+                  />
+                </div>
             </div>
             {isAnyFilterActive && (
               <Button variant="outline" size="sm" onClick={handleClearFilters} className="mt-4">
