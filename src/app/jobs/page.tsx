@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useTransition, useCallback } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Job, Session } from "@/lib/types";
+import type { Job, Session, PredefinedPrompt } from "@/lib/types";
 import {
   Card,
   CardHeader,
@@ -19,22 +19,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw } from "lucide-react";
+import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw, MessageSquare } from "lucide-react";
 import { useRouter } from 'next/navigation';
-import { listSessions, revalidateSessions } from "@/app/sessions/actions";
-import { approvePlan } from "@/app/sessions/[id]/actions";
+import { listSessions } from "@/app/sessions/actions";
+import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { MessageDialog } from "@/components/message-dialog";
 
 
 export default function JobsPage() {
-  const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
+  const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
+  const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+  
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -43,8 +47,9 @@ export default function JobsPage() {
   const [pollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [isFetching, startFetching] = useTransition();
-  const [isBulkApproving, setIsBulkApproving] = useState<string | null>(null);
+  const [isActionPending, startActionTransition] = useTransition();
   const [countdown, setCountdown] = useState(pollInterval);
+  const [isBulkApproving, setIsBulkApproving] = useState<string | null>(null);
 
 
   const fetchJobSessions = useCallback(() => {
@@ -54,8 +59,6 @@ export default function JobsPage() {
     };
 
     startFetching(async () => {
-      // Don't need to revalidate here as the main session list will do it.
-      // This is just for calculating stats.
       const fetchedSessions = await listSessions(apiKey);
       setSessions(fetchedSessions);
       setLastUpdatedAt(new Date());
@@ -70,19 +73,19 @@ export default function JobsPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (!isLoading && !lastUpdatedAt) {
+        setLastUpdatedAt(new Date());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, isLoading]);
 
   // Initial fetch and set up polling
   useEffect(() => {
     if (isClient && apiKey) {
-        // We still show loading on first visit even with cache
-        // to ensure we get latest data initially.
         if (sessions.length === 0) {
             fetchJobSessions();
         } else {
             setIsLoading(false);
-            // If we have cached data, set the update time immediately.
-            setLastUpdatedAt(new Date()); 
         }
 
         if (pollInterval > 0) {
@@ -93,7 +96,7 @@ export default function JobsPage() {
         setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, apiKey, pollInterval, fetchJobSessions]);
+  }, [isClient, apiKey, pollInterval]);
 
 
   // Countdown timer
@@ -137,28 +140,54 @@ export default function JobsPage() {
       return;
     }
 
-    const approvalPromises = pendingSessionIds.map(id => approvePlan(apiKey, id));
-    
-    try {
-      const results = await Promise.all(approvalPromises);
-      const successfulApprovals = results.filter(r => r).length;
+    startActionTransition(async () => {
+        const approvalPromises = pendingSessionIds.map(id => approvePlan(apiKey, id));
+        
+        try {
+            const results = await Promise.all(approvalPromises);
+            const successfulApprovals = results.filter(r => r).length;
 
-      toast({
-        title: "Bulk Approval Complete",
-        description: `Successfully approved ${successfulApprovals} of ${pendingSessionIds.length} pending sessions.`,
-      });
+            toast({
+                title: "Bulk Approval Complete",
+                description: `Successfully approved ${successfulApprovals} of ${pendingSessionIds.length} pending sessions.`,
+            });
 
-      // Refresh data to reflect new states
-      fetchJobSessions();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Bulk Approval Failed",
-        description: "An error occurred while approving sessions.",
-      });
-    } finally {
-      setIsBulkApproving(null);
-    }
+            // Refresh data to reflect new states
+            fetchJobSessions();
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Bulk Approval Failed",
+                description: "An error occurred while approving sessions.",
+            });
+        } finally {
+            setIsBulkApproving(null);
+        }
+    });
+  };
+
+  const handleBulkSendMessage = (jobId: string, message: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    startActionTransition(async () => {
+        const messagePromises = job.sessionIds.map(id => sendMessage(apiKey, id, message));
+        try {
+            const results = await Promise.all(messagePromises);
+            const successfulMessages = results.filter(r => r).length;
+            toast({
+                title: "Bulk Message Sent",
+                description: `Successfully sent message to ${successfulMessages} of ${job.sessionIds.length} sessions.`,
+            });
+            fetchJobSessions();
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Bulk Message Failed",
+                description: "An error occurred while sending messages.",
+            });
+        }
+    });
   };
 
   const jobDetailsMap = useMemo(() => {
@@ -278,6 +307,7 @@ export default function JobsPage() {
                         <TableHead>Repository</TableHead>
                         <TableHead>Branch</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -312,7 +342,7 @@ export default function JobsPage() {
                                             size="sm" 
                                             className="flex items-center gap-1 p-1 h-auto text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
                                             onClick={(e) => handleBulkApprove(e, job.id)}
-                                            disabled={isApprovingCurrent || details.pending === 0 || isBulkApproving !== null}
+                                            disabled={isApprovingCurrent || details.pending === 0 || isBulkApproving !== null || isActionPending}
                                             aria-label="Approve all pending sessions"
                                         >
                                             {isApprovingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
@@ -326,6 +356,27 @@ export default function JobsPage() {
                                      )}
                                 </Tooltip>
                               </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                    <MessageDialog
+                                        triggerButton={
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message to Job">
+                                                        <MessageSquare className="h-4 w-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>Send Message to all sessions</TooltipContent>
+                                            </Tooltip>
+                                        }
+                                        predefinedPrompts={predefinedPrompts}
+                                        quickReplies={quickReplies}
+                                        onSendMessage={(message) => handleBulkSendMessage(job.id, message)}
+                                        dialogTitle="Send Message to Job"
+                                        dialogDescription={`This message will be sent to all ${job.sessionIds.length} sessions in the "${job.name}" job.`}
+                                    />
+                                </div>
                             </TableCell>
                           </TableRow>
                         )

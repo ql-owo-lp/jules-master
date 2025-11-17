@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { Session, Source } from '@/lib/types';
@@ -18,7 +19,8 @@ export async function revalidateSessions() {
 }
 
 export async function listSessions(
-  apiKey: string
+  apiKey: string,
+  pageSize: number = 50
 ): Promise<Session[]> {
   if (!apiKey) {
     return [];
@@ -26,17 +28,16 @@ export async function listSessions(
 
   try {
     const response = await fetch(
-      'https://jules.googleapis.com/v1alpha/sessions?pageSize=20',
+      `https://jules.googleapis.com/v1alpha/sessions?pageSize=${pageSize}`,
       {
         headers: {
           'X-Goog-Api-Key': apiKey,
         },
-        next: { revalidate: 3600, tags: ['sessions'] }, 
+        next: { revalidate: 0, tags: ['sessions'] }, 
       }
     );
 
     if (!response.ok) {
-      // Log the error for debugging, but return an empty array to the client
       console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
       const errorBody = await response.text();
       console.error('Error body:', errorBody);
@@ -45,8 +46,6 @@ export async function listSessions(
 
     const data: ListSessionsResponse = await response.json();
     
-    // The API doesn't provide a status, so we'll default to 'Succeeded' for now.
-    // And it seems `createTime` is what we should use for `createdAt`.
     return (data.sessions || []).map(session => ({
       ...session,
       status: session.state || 'Succeeded',
