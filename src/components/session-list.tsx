@@ -30,7 +30,8 @@ import { PrStatus } from "./pr-status";
 import { MessageDialog } from "./message-dialog";
 import { ScrollArea } from "./ui/scroll-area";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command";
 
 
 type SessionListProps = {
@@ -77,6 +78,7 @@ export function SessionList({
   const router = useRouter();
   const [itemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [quickReplyPopoverOpen, setQuickReplyPopoverOpen] = useState(false);
 
   const sessionToJobMap = useMemo(() => {
     const map = new Map<string, Job>();
@@ -126,6 +128,8 @@ export function SessionList({
     const startIndex = (currentPage - 1) * itemsPerPage;
     return sessions.slice(startIndex, startIndex + itemsPerPage);
   }, [sessions, currentPage, itemsPerPage]);
+
+  const quickReplyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -261,32 +265,43 @@ export function SessionList({
                                   </TooltipContent>
                                 </Tooltip>
                               ) : null}
-
-                              <DropdownMenu>
+                              
+                              <Popover open={quickReplyPopoverOpen} onOpenChange={setQuickReplyPopoverOpen}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <DropdownMenuTrigger asChild>
+                                    <PopoverTrigger asChild>
                                       <Button variant="ghost" size="icon" disabled={isActionPending}>
                                         <MessageSquareReply className="h-4 w-4" />
                                       </Button>
-                                    </DropdownMenuTrigger>
+                                    </PopoverTrigger>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Send a Quick Reply</p>
                                   </TooltipContent>
                                 </Tooltip>
-                                <DropdownMenuContent>
-                                  {quickReplies.length > 0 ? (
-                                    quickReplies.map((reply) => (
-                                      <DropdownMenuItem key={reply.id} onClick={() => onSendMessage(session.id, reply.prompt)}>
-                                        {reply.title}
-                                      </DropdownMenuItem>
-                                    ))
-                                  ) : (
-                                    <DropdownMenuItem disabled>No quick replies</DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                                <PopoverContent className="p-0 w-64">
+                                    <Command>
+                                        <CommandInput placeholder="Search replies..." />
+                                        <CommandList>
+                                            <CommandEmpty>No replies found.</CommandEmpty>
+                                            <CommandGroup>
+                                                {quickReplyOptions.map((option) => (
+                                                    <CommandItem
+                                                        key={option.value}
+                                                        value={`${option.label} ${option.content}`}
+                                                        onSelect={() => {
+                                                            onSendMessage(session.id, option.content);
+                                                            setQuickReplyPopoverOpen(false);
+                                                        }}
+                                                    >
+                                                        {option.label}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                              </Popover>
 
                               <MessageDialog
                                 triggerButton={

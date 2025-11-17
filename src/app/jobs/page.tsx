@@ -32,7 +32,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MessageDialog } from "@/components/message-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 
 export default function JobsPage() {
@@ -55,6 +56,7 @@ export default function JobsPage() {
   const [isBulkApproving, setIsBulkApproving] = useState<string | null>(null);
   const [itemsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [quickReplyPopoverOpen, setQuickReplyPopoverOpen] = useState(false);
 
 
   const fetchJobSessions = useCallback(() => {
@@ -245,6 +247,9 @@ export default function JobsPage() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return sortedJobs.slice(startIndex, startIndex + itemsPerPage);
   }, [sortedJobs, currentPage, itemsPerPage]);
+  
+  const quickReplyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
+
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -377,31 +382,42 @@ export default function JobsPage() {
                                   </TableCell>
                                   <TableCell className="text-right">
                                     <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                                      <DropdownMenu>
+                                      <Popover open={quickReplyPopoverOpen} onOpenChange={setQuickReplyPopoverOpen}>
                                         <Tooltip>
                                           <TooltipTrigger asChild>
-                                            <DropdownMenuTrigger asChild>
+                                            <PopoverTrigger asChild>
                                               <Button variant="ghost" size="icon" disabled={isActionPending}>
                                                 <MessageSquareReply className="h-4 w-4" />
                                               </Button>
-                                            </DropdownMenuTrigger>
+                                            </PopoverTrigger>
                                           </TooltipTrigger>
                                           <TooltipContent>
                                             <p>Send a Quick Reply</p>
                                           </TooltipContent>
                                         </Tooltip>
-                                        <DropdownMenuContent>
-                                          {quickReplies.length > 0 ? (
-                                            quickReplies.map((reply) => (
-                                              <DropdownMenuItem key={reply.id} onClick={() => handleBulkSendMessage(job.id, reply.prompt)}>
-                                                {reply.title}
-                                              </DropdownMenuItem>
-                                            ))
-                                          ) : (
-                                            <DropdownMenuItem disabled>No quick replies</DropdownMenuItem>
-                                          )}
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
+                                        <PopoverContent className="p-0 w-64">
+                                            <Command>
+                                                <CommandInput placeholder="Search replies..." />
+                                                <CommandList>
+                                                    <CommandEmpty>No replies found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {quickReplyOptions.map((option) => (
+                                                            <CommandItem
+                                                                key={option.value}
+                                                                value={`${option.label} ${option.content}`}
+                                                                onSelect={() => {
+                                                                    handleBulkSendMessage(job.id, option.content);
+                                                                    setQuickReplyPopoverOpen(false);
+                                                                }}
+                                                            >
+                                                                {option.label}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                      </Popover>
 
                                       <MessageDialog
                                           triggerButton={
