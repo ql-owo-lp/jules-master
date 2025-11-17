@@ -78,7 +78,6 @@ export function SessionList({
   const router = useRouter();
   const [itemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [quickReplyPopoverOpen, setQuickReplyPopoverOpen] = useState(false);
 
   const sessionToJobMap = useMemo(() => {
     const map = new Map<string, Job>();
@@ -92,7 +91,7 @@ export function SessionList({
 
   const handleRowClick = (e: React.MouseEvent, sessionId: string) => {
     // Prevent navigation if a button or link inside the row was clicked
-    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a') || (e.target as HTMLElement).closest('[role="menu"]')) {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a') || (e.target as HTMLElement).closest('[role="combobox"]')) {
       return;
     }
     const path = jobFilter ? `/sessions/${sessionId}?jobId=${jobFilter}` : `/sessions/${sessionId}`;
@@ -217,10 +216,18 @@ export function SessionList({
                         >
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2">
-                              {job && <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />}
-                              <span className="truncate" title={job?.name || session.title}>
-                                {job?.name || truncate(session.title, titleTruncateLength)}
-                              </span>
+                              {job ? (
+                                <>
+                                  <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  <span className="truncate" title={job.name}>
+                                    {truncate(job.name, titleTruncateLength)}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="truncate" title={session.title}>
+                                  {truncate(session.title, titleTruncateLength)}
+                                </span>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -266,7 +273,7 @@ export function SessionList({
                                 </Tooltip>
                               ) : null}
                               
-                              <Popover open={quickReplyPopoverOpen} onOpenChange={setQuickReplyPopoverOpen}>
+                              <Popover>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <PopoverTrigger asChild>
@@ -291,7 +298,6 @@ export function SessionList({
                                                         value={`${option.label} ${option.content}`}
                                                         onSelect={() => {
                                                             onSendMessage(session.id, option.content);
-                                                            setQuickReplyPopoverOpen(false);
                                                         }}
                                                     >
                                                         {option.label}
