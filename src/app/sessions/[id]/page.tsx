@@ -277,7 +277,7 @@ export default function SessionDetailPage() {
                   The session has generated a plan and is awaiting your approval to proceed.
                 </CardDescription>
               </CardHeader>
-              <CardFooter>
+              <CardFooter className="flex justify-end">
                 <Button onClick={handleApprovePlan} disabled={isActionPending}>
                   {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Hand className="mr-2 h-4 w-4" />}
                   Approve Plan
@@ -462,7 +462,7 @@ export default function SessionDetailPage() {
                         <CardHeader>
                         <CardTitle>Send a Message</CardTitle>
                         <CardDescription>
-                            {session.state === 'AWAITING_USER_FEEDBACK' ? 'The session is waiting for your input to continue.' : 'Send a message or notes to this session.'}
+                            Send a message or notes to this session.
                         </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -497,7 +497,7 @@ export default function SessionDetailPage() {
                             />
                         </div>
                         </CardContent>
-                        <CardFooter>
+                        <CardFooter className="flex justify-end">
                         <Button onClick={handleSendMessage} disabled={isActionPending || !message.trim()}>
                             {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
                             Send Message

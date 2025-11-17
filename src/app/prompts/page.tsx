@@ -247,7 +247,7 @@ export default function PredefinedPromptsPage() {
                     />
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex justify-end">
                  <Button onClick={handleSaveGlobalPrompt}>Save Global Prompt</Button>
               </CardFooter>
             </Card>
