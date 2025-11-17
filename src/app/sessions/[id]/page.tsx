@@ -297,58 +297,124 @@ export default function SessionDetailPage() {
                 <CardHeader>
                   <CardTitle>Session Details</CardTitle>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                    <div className="space-y-4">
-                        {job && (
-                            <div className="flex items-start gap-3">
-                                <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                <div>
-                                    <p className="font-semibold">Job Name</p>
-                                    <p className="text-muted-foreground">{job.name}</p>
+                <CardContent className="space-y-4 text-sm">
+                    <div className="grid md:grid-cols-2 gap-x-6 gap-y-4">
+                        <div className="space-y-4">
+                            {job && (
+                                <div className="flex items-start gap-3">
+                                    <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold">Job Name</p>
+                                        <p className="text-muted-foreground">{job.name}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                        <div className="flex items-start gap-3">
-                            <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Session Name</p>
-                                <p className="text-muted-foreground font-mono text-xs">{session.name}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Session ID</p>
-                                <p className="text-muted-foreground font-mono text-xs">{session.id}</p>
-                            </div>
-                        </div>
-                        {repoContext && (
-                            <div className="flex items-start gap-3">
-                                <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                <div>
-                                    <p className="font-semibold">Repository</p>
-                                    <p className="text-muted-foreground">{repoName}</p>
-                                </div>
-                            </div>
-                        )}
-                          {repoContext?.startingBranch && (
-                            <div className="flex items-start gap-3">
-                                <GitMerge className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                <div>
-                                    <p className="font-semibold">Starting Branch</p>
-                                    <p className="text-muted-foreground">{repoContext.startingBranch}</p>
-                                </div>
-                            </div>
-                        )}
-                          {session.sourceContext?.source && (
+                            )}
                             <div className="flex items-start gap-3">
                                 <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div>
-                                    <p className="font-semibold">Full Source</p>
-                                    <p className="text-muted-foreground font-mono text-xs">{session.sourceContext.source}</p>
+                                    <p className="font-semibold">Session Name</p>
+                                    <p className="text-muted-foreground font-mono text-xs">{session.name}</p>
                                 </div>
                             </div>
-                        )}
+                            <div className="flex items-start gap-3">
+                                <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Session ID</p>
+                                    <p className="text-muted-foreground font-mono text-xs">{session.id}</p>
+                                </div>
+                            </div>
+                            {repoContext && (
+                                <div className="flex items-start gap-3">
+                                    <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold">Repository</p>
+                                        <p className="text-muted-foreground">{repoName}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {repoContext?.startingBranch && (
+                                <div className="flex items-start gap-3">
+                                    <GitMerge className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold">Starting Branch</p>
+                                        <p className="text-muted-foreground">{repoContext.startingBranch}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {session.sourceContext?.source && (
+                                <div className="flex items-start gap-3">
+                                    <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold">Full Source</p>
+                                        <p className="text-muted-foreground font-mono text-xs">{session.sourceContext.source}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-start gap-3">
+                                <CheckSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Requires Plan Approval</p>
+                                    <p className="text-muted-foreground">{session.requirePlanApproval ? 'Yes' : 'No'}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <Zap className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Automation Mode</p>
+                                    <p className="text-muted-foreground">{session.automationMode || 'Unspecified'}</p>
+                                </div>
+                            </div>
+                            {session.createTime && (
+                                <div className="flex items-start gap-3">
+                                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold">Created</p>
+                                        <p className="text-muted-foreground" title={new Date(session.createTime).toISOString()}>
+                                            {format(new Date(session.createTime), "PPP p")} ({formatDistanceToNow(new Date(session.createTime), { addSuffix: true })})
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            {session.updateTime && (
+                                <div className="flex items-start gap-3">
+                                    <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold">Last Updated</p>
+                                        <p className="text-muted-foreground" title={new Date(session.updateTime).toISOString()}>
+                                            {format(new Date(session.updateTime), "PPP p")} ({formatDistanceToNow(new Date(session.updateTime), { addSuffix: true })})
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            {session.url && (
+                                <div className="flex items-start gap-3">
+                                    <ExternalLink className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold">Jules UI Link</p>
+                                        <a href={session.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                            View Session in Jules
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
+                            {prUrl && (
+                                <div className="flex items-start gap-3">
+                                    <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold">Pull Request</p>
+                                        <a href={prUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                            View on GitHub
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t">
                          <div className="flex items-start gap-3">
                             <Code className="h-5 w-5 text-muted-foreground mt-0.5" />
                             <div>
@@ -358,69 +424,8 @@ export default function SessionDetailPage() {
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                            <CheckSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Requires Plan Approval</p>
-                                <p className="text-muted-foreground">{session.requirePlanApproval ? 'Yes' : 'No'}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <Zap className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Automation Mode</p>
-                                <p className="text-muted-foreground">{session.automationMode || 'Unspecified'}</p>
-                            </div>
-                        </div>
-                        {session.createTime && (
-                            <div className="flex items-start gap-3">
-                                <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                <div>
-                                    <p className="font-semibold">Created</p>
-                                    <p className="text-muted-foreground" title={new Date(session.createTime).toISOString()}>
-                                        {format(new Date(session.createTime), "PPP p")} ({formatDistanceToNow(new Date(session.createTime), { addSuffix: true })})
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                        {session.updateTime && (
-                            <div className="flex items-start gap-3">
-                                <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                <div>
-                                    <p className="font-semibold">Last Updated</p>
-                                    <p className="text-muted-foreground" title={new Date(session.updateTime).toISOString()}>
-                                        {format(new Date(session.updateTime), "PPP p")} ({formatDistanceToNow(new Date(session.updateTime), { addSuffix: true })})
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                          {session.url && (
-                            <div className="flex items-start gap-3">
-                                <ExternalLink className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                <div>
-                                    <p className="font-semibold">Jules UI Link</p>
-                                    <a href={session.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                        View Session in Jules
-                                    </a>
-                                </div>
-                            </div>
-                        )}
-                         {prUrl && (
-                             <div className="flex items-start gap-3">
-                                <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                <div>
-                                    <p className="font-semibold">Pull Request</p>
-                                    <a href={prUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                        View on GitHub
-                                    </a>
-                                </div>
-                            </div>
-                         )}
-                    </div>
-
                     {session.outputs && session.outputs.length > 0 && (
-                        <div className="md:col-span-2 space-y-4 pt-4 mt-4 border-t">
+                        <div className="space-y-4 pt-4 mt-4 border-t">
                             <h3 className="text-lg font-semibold">Outputs</h3>
                             {session.outputs.map((output, index) => (
                                 <div key={index}>
