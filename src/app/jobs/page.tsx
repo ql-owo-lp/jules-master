@@ -467,8 +467,6 @@ export default function JobsPage() {
                                                                   value={`${option.label} ${option.content}`}
                                                                   onSelect={() => {
                                                                       handleBulkSendMessage([job.id], option.content);
-                                                                      // We can't easily close the popover here without more complex state
-                                                                      // but it will close on blur which is acceptable.
                                                                   }}
                                                               >
                                                                   {option.label}
@@ -479,25 +477,6 @@ export default function JobsPage() {
                                               </Command>
                                           </PopoverContent>
                                         </Popover>
-
-                                        <MessageDialog
-                                            triggerButton={
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Button variant="ghost" size="icon" aria-label="Send Message to Job" disabled={isActionPending}>
-                                                            <MessageSquare className="h-4 w-4" />
-                                                        </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>Send Message to all sessions</TooltipContent>
-                                                </Tooltip>
-                                            }
-                                            predefinedPrompts={predefinedPrompts}
-                                            quickReplies={quickReplies}
-                                            onSendMessage={(message) => handleBulkSendMessage([job.id], message)}
-                                            dialogTitle="Send Message to Job"
-                                            dialogDescription={`This message will be sent to all ${job.sessionIds.length} sessions in the "${job.name}" job.`}
-                                            isActionPending={isActionPending}
-                                        />
                                       </div>
                                     </TableCell>
                                   </TableRow>
@@ -571,5 +550,3 @@ export default function JobsPage() {
     </>
   );
 }
-
-    
