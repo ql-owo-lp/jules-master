@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -21,8 +22,8 @@ import {
 
 type ComboboxProps = {
     options: { value: string; label: string }[];
-    selectedValue?: string;
-    onValueChange: (value: string) => void;
+    selectedValue?: string | null;
+    onValueChange: (value: string | null) => void;
     placeholder: string;
     searchPlaceholder: string;
     disabled?: boolean;
@@ -73,7 +74,7 @@ export function Combobox({
                   key={option.value}
                   value={option.value}
                   onSelect={(currentValue) => {
-                    onValueChange(currentValue === selectedValue ? "" : currentValue)
+                    onValueChange(currentValue === selectedValue ? null : currentValue)
                     setOpen(false)
                   }}
                 >
