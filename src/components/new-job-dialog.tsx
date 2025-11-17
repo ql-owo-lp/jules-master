@@ -10,13 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/sessions/new/actions";
 import { revalidateSessions } from "@/app/sessions/actions";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "./ui/button";
+import { Wand2 } from "lucide-react";
 
 type NewJobDialogProps = {
-    children?: React.ReactNode;
     isPage?: boolean;
 }
 
-export function NewJobDialog({ children, isPage = false }: NewJobDialogProps) {
+export function NewJobDialog({ isPage = false }: NewJobDialogProps) {
     const [apiKey] = useLocalStorage<string>("jules-api-key", "");
     const router = useRouter();
     const { toast } = useToast();
@@ -96,7 +97,10 @@ export function NewJobDialog({ children, isPage = false }: NewJobDialogProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                {children}
+                 <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Wand2 className="h-8 w-8" />
+                    <span className="sr-only">New Job</span>
+                </Button>
             </DialogTrigger>
             <DialogContent className="w-3/4 max-w-4xl max-h-[90vh] flex flex-col">
                 <DialogHeader>
@@ -112,5 +116,3 @@ export function NewJobDialog({ children, isPage = false }: NewJobDialogProps) {
         </Dialog>
     );
 }
-
-    
