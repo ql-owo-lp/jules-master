@@ -1,4 +1,5 @@
 
+
 export type JobStatus = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Unknown';
 
 // Based on the Jules API documentation for a Session
@@ -43,7 +44,7 @@ export type SessionOutput = {
 };
 
 export type PullRequest = {
-  url: string;
+  url:string;
   title: string;
   description: string;
 };
@@ -186,7 +187,18 @@ export type GitHubPullRequest = {
   };
 };
 
+export type CheckRun = {
+  name: string;
+  status: 'queued' | 'in_progress' | 'completed';
+  conclusion: 'success' | 'failure' | 'neutral' | 'cancelled' | 'skipped' | 'timed_out' | 'action_required' | null;
+}
+
 export type PullRequestStatus = {
   state: 'OPEN' | 'MERGED' | 'CLOSED' | 'NO_TOKEN' | 'ERROR' | 'NOT_FOUND' | 'UNAUTHORIZED';
-  checks: 'pending' | 'success' | 'failure' | 'unknown';
+  checks: {
+    status: 'pending' | 'success' | 'failure' | 'unknown';
+    total: number;
+    passed: number;
+    runs: CheckRun[];
+  }
 };
