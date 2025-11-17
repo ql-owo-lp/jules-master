@@ -175,112 +175,118 @@ export function SessionList({
             </p>
           </div>
         ) : (
-          <ScrollArea className="h-[60vh]">
-            <div className="border rounded-lg">
-              <TooltipProvider>
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-card">
-                  <TableRow>
-                    <TableHead>Job / Session Name</TableHead>
-                    <TableHead>Repository / Branch</TableHead>
-                    <TableHead className="w-[180px]">Session Status</TableHead>
-                    <TableHead className="w-[150px]">Created</TableHead>
-                    <TableHead className="w-[80px] text-center">GitHub</TableHead>
-                    <TableHead className="w-[120px] text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedSessions.map((session) => {
-                    const job = sessionToJobMap.get(session.id);
-                    const prUrl = getPullRequestUrl(session);
-                    const repoName = getRepoNameFromSource(session.sourceContext?.source);
-                    const branchName = session.sourceContext?.githubRepoContext?.startingBranch;
-                    const isLoadingPrStatus = isFetchingPrStatus && prUrl ? prStatuses[prUrl] === undefined : false;
-
-                    return (
-                    <TableRow
-                      key={session.id}
-                      className="cursor-pointer"
-                      onClick={(e) => handleRowClick(e, session.id)}
-                    >
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                           {job && <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />}
-                           <span className="truncate" title={job?.name || session.title}>
-                             {job?.name || truncate(session.title, titleTruncateLength)}
-                           </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                          <div className="flex flex-col">
-                              <span className="font-mono text-sm">{repoName || 'N/A'}</span>
-                              <span className="font-mono text-xs text-muted-foreground">{branchName || 'N/A'}</span>
-                          </div>
-                      </TableCell>
-                      <TableCell>
-                        <JobStatusBadge status={session.state || session.status} />
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(session.createTime || session.createdAt), {
-                          addSuffix: true,
-                        })}
-                      </TableCell>
-                      <TableCell className="text-center">
-                          <PrStatus 
-                              prUrl={prUrl} 
-                              githubToken={githubToken} 
-                              status={prUrl ? prStatuses[prUrl] : null}
-                              isLoading={isLoadingPrStatus}
-                          />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                        {session.state === 'AWAITING_PLAN_APPROVAL' ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => onApprovePlan(session.id)}
-                                  disabled={isActionPending}
-                                  aria-label="Approve Plan"
-                                >
-                                  {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Approve Plan</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : null}
-
-                          <MessageDialog
-                            triggerButton={
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" aria-label="Send Message to Session">
-                                            <MessageSquare className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Send Message</TooltipContent>
-                                </Tooltip>
-                            }
-                            predefinedPrompts={predefinedPrompts}
-                            quickReplies={quickReplies}
-                            onSendMessage={(message) => onSendMessage(session.id, message)}
-                            dialogTitle="Send Message to Session"
-                            dialogDescription={`This message will be sent to the session: "${session.title || session.id}"`}
-                            isActionPending={isActionPending}
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )})}
-                </TableBody>
-              </Table>
-              </TooltipProvider>
+          <>
+            <div className="border rounded-t-lg">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Job / Session Name</TableHead>
+                            <TableHead>Repository / Branch</TableHead>
+                            <TableHead className="w-[180px]">Session Status</TableHead>
+                            <TableHead className="w-[150px]">Created</TableHead>
+                            <TableHead className="w-[80px] text-center">GitHub</TableHead>
+                            <TableHead className="w-[120px] text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                </Table>
             </div>
-          </ScrollArea>
+            <ScrollArea className="h-[60vh]">
+              <div className="border-x border-b rounded-b-lg">
+                <TooltipProvider>
+                  <Table>
+                    <TableBody>
+                      {paginatedSessions.map((session) => {
+                        const job = sessionToJobMap.get(session.id);
+                        const prUrl = getPullRequestUrl(session);
+                        const repoName = getRepoNameFromSource(session.sourceContext?.source);
+                        const branchName = session.sourceContext?.githubRepoContext?.startingBranch;
+                        const isLoadingPrStatus = isFetchingPrStatus && prUrl ? prStatuses[prUrl] === undefined : false;
+
+                        return (
+                        <TableRow
+                          key={session.id}
+                          className="cursor-pointer"
+                          onClick={(e) => handleRowClick(e, session.id)}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {job && <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />}
+                              <span className="truncate" title={job?.name || session.title}>
+                                {job?.name || truncate(session.title, titleTruncateLength)}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                              <div className="flex flex-col">
+                                  <span className="font-mono text-sm">{repoName || 'N/A'}</span>
+                                  <span className="font-mono text-xs text-muted-foreground">{branchName || 'N/A'}</span>
+                              </div>
+                          </TableCell>
+                          <TableCell>
+                            <JobStatusBadge status={session.state || session.status} />
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {formatDistanceToNow(new Date(session.createTime || session.createdAt), {
+                              addSuffix: true,
+                            })}
+                          </TableCell>
+                          <TableCell className="text-center">
+                              <PrStatus 
+                                  prUrl={prUrl} 
+                                  githubToken={githubToken} 
+                                  status={prUrl ? prStatuses[prUrl] : null}
+                                  isLoading={isLoadingPrStatus}
+                              />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            {session.state === 'AWAITING_PLAN_APPROVAL' ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => onApprovePlan(session.id)}
+                                      disabled={isActionPending}
+                                      aria-label="Approve Plan"
+                                    >
+                                      {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Approve Plan</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : null}
+
+                              <MessageDialog
+                                triggerButton={
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" aria-label="Send Message to Session">
+                                                <MessageSquare className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Send Message</TooltipContent>
+                                    </Tooltip>
+                                }
+                                predefinedPrompts={predefinedPrompts}
+                                quickReplies={quickReplies}
+                                onSendMessage={(message) => onSendMessage(session.id, message)}
+                                dialogTitle="Send Message to Session"
+                                dialogDescription={`This message will be sent to the session: "${session.title || session.id}"`}
+                                isActionPending={isActionPending}
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )})}
+                    </TableBody>
+                  </Table>
+                </TooltipProvider>
+              </div>
+            </ScrollArea>
+        </>
         )}
       </CardContent>
         {totalPages > 1 && (
