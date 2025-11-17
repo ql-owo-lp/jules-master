@@ -322,13 +322,6 @@ export default function SessionDetailPage() {
                                 <p className="text-muted-foreground font-mono text-xs">{session.id}</p>
                             </div>
                         </div>
-                        <div className="flex items-start gap-3">
-                            <Code className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Prompt</p>
-                                <p className="text-muted-foreground bg-muted p-3 rounded-md mt-1 whitespace-pre-wrap">{session.prompt}</p>
-                            </div>
-                        </div>
                         {repoContext && (
                             <div className="flex items-start gap-3">
                                 <Github className="h-5 w-5 text-muted-foreground mt-0.5" />
@@ -356,6 +349,13 @@ export default function SessionDetailPage() {
                                 </div>
                             </div>
                         )}
+                         <div className="flex items-start gap-3">
+                            <Code className="h-5 w-5 text-muted-foreground mt-0.5" />
+                            <div>
+                                <p className="font-semibold">Prompt</p>
+                                <p className="text-muted-foreground bg-muted p-3 rounded-md mt-1 whitespace-pre-wrap">{session.prompt}</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="space-y-4">
@@ -433,7 +433,7 @@ export default function SessionDetailPage() {
                                                     {output.pullRequest.title}
                                                 </a>
                                                 {output.pullRequest.description && (
-                                                    <p className="text-muted-foreground mt-1 text-xs whitespace-pre-wrap">{output.pullRequest.description}</p>
+                                                    <p className="text-muted-foreground bg-muted p-3 rounded-md mt-1 whitespace-pre-wrap">{output.pullRequest.description}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -525,5 +525,3 @@ export default function SessionDetailPage() {
     </div>
   );
 }
-
-    
