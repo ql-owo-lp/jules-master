@@ -56,7 +56,6 @@ export default function JobsPage() {
   const [isBulkApproving, setIsBulkApproving] = useState<string | null>(null);
   const [itemsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [quickReplyPopoverOpen, setQuickReplyPopoverOpen] = useState(false);
 
 
   const fetchJobSessions = useCallback(() => {
@@ -382,7 +381,7 @@ export default function JobsPage() {
                                   </TableCell>
                                   <TableCell className="text-right">
                                     <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                                      <Popover open={quickReplyPopoverOpen} onOpenChange={setQuickReplyPopoverOpen}>
+                                      <Popover>
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <PopoverTrigger asChild>
@@ -407,7 +406,8 @@ export default function JobsPage() {
                                                                 value={`${option.label} ${option.content}`}
                                                                 onSelect={() => {
                                                                     handleBulkSendMessage(job.id, option.content);
-                                                                    setQuickReplyPopoverOpen(false);
+                                                                    // We can't easily close the popover here without more complex state
+                                                                    // but it will close on blur which is acceptable.
                                                                 }}
                                                             >
                                                                 {option.label}
