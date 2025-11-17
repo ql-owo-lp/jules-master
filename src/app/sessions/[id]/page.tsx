@@ -30,12 +30,6 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   ArrowLeft,
   Calendar,
   CheckSquare,
@@ -59,6 +53,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Combobox } from "@/components/ui/combobox";
 
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -241,6 +236,12 @@ export default function SessionDetailPage() {
     return null;
   }
   const prUrl = getPullRequestUrl(session);
+
+  const quickReplyOptions = quickReplies.map(reply => ({
+    value: reply.id,
+    label: reply.title,
+    content: reply.prompt,
+  }));
 
 
   if (isFetching && !session) {
@@ -491,25 +492,21 @@ export default function SessionDetailPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="flex justify-between items-center">
-                            {quickReplies.length > 0 ? (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline">
-                                            <MessageSquareReply className="mr-2 h-4 w-4" />
-                                            Quick Replies
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        {quickReplies.map((reply) => (
-                                            <DropdownMenuItem
-                                                key={reply.id}
-                                                onSelect={() => setMessage(reply.prompt)}
-                                            >
-                                                {reply.title}
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                           {quickReplies.length > 0 ? (
+                                <div className="w-1/2">
+                                    <Combobox
+                                        options={quickReplyOptions}
+                                        onValueChange={(val) => {
+                                            const selectedReply = quickReplies.find(r => r.id === val);
+                                            if (selectedReply) {
+                                                setMessage(selectedReply.prompt);
+                                            }
+                                        }}
+                                        placeholder="Select a quick reply..."
+                                        searchPlaceholder="Search replies..."
+                                        icon={<MessageSquareReply className="h-4 w-4 text-muted-foreground" />}
+                                    />
+                                </div>
                             ) : <div></div>}
                             <Button onClick={handleSendMessage} disabled={isActionPending || !message.trim()}>
                                 {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}

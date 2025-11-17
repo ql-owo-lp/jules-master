@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/popover"
 
 type ComboboxProps = {
-    options: { value: string; label: string }[];
+    options: { value: string; label: string; [key: string]: any }[];
     selectedValue?: string | null;
     onValueChange: (value: string | null) => void;
     placeholder: string;
@@ -54,11 +54,13 @@ export function Combobox({
           disabled={disabled}
           name={name}
         >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 truncate">
                 {icon}
-                {selectedValue
-                    ? options.find((option) => option.value === selectedValue)?.label
-                    : placeholder}
+                <span className="truncate">
+                    {selectedValue
+                        ? options.find((option) => option.value === selectedValue)?.label
+                        : placeholder}
+                </span>
             </div>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -72,9 +74,11 @@ export function Combobox({
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.value}
+                  value={`${option.value} ${option.label} ${option.content || ''}`}
                   onSelect={(currentValue) => {
-                    onValueChange(currentValue === selectedValue ? null : currentValue)
+                    // Find the option by its value, which is what we get from onSelect
+                    const selectedOption = options.find(o => `${o.value} ${o.label} ${o.content || ''}` === currentValue);
+                    onValueChange(selectedOption ? selectedOption.value : null)
                     setOpen(false)
                   }}
                 >
