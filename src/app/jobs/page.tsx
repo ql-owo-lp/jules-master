@@ -108,7 +108,7 @@ export default function JobsPage() {
 
 
   const handleJobClick = (e: React.MouseEvent, jobId: string) => {
-    if ((e.target as HTMLElement).closest('button')) {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) {
       return;
     }
     router.push(`/?jobId=${jobId}`);
@@ -298,8 +298,7 @@ export default function JobsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Job Name</TableHead>
-                        <TableHead>Repository</TableHead>
-                        <TableHead>Branch</TableHead>
+                        <TableHead>Repository / Branch</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -314,10 +313,10 @@ export default function JobsPage() {
                               {job.name}
                             </TableCell>
                             <TableCell>
-                              <span className="font-mono text-sm">{details.repo || 'N/A'}</span>
-                            </TableCell>
-                             <TableCell>
-                              <span className="font-mono text-sm text-muted-foreground">{details.branch || 'N/A'}</span>
+                                <div className="flex flex-col">
+                                    <span className="font-mono text-sm">{details.repo || 'N/A'}</span>
+                                    <span className="font-mono text-xs text-muted-foreground">{details.branch || 'N/A'}</span>
+                                </div>
                             </TableCell>
                             <TableCell>
                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -388,3 +387,5 @@ export default function JobsPage() {
     </div>
   );
 }
+
+    

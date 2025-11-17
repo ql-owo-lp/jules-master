@@ -19,14 +19,12 @@ import {
 import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2, Github, MessageSquareReply, MessageSquare } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2, MessageSquare, MessageSquareReply } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { PrStatus } from "./pr-status";
 import { MessageDialog } from "./message-dialog";
 
@@ -44,65 +42,12 @@ type SessionListProps = {
   onSendMessage: (sessionId: string, message: string) => void;
   countdown: number;
   pollInterval: number;
-  titleTruncateLength: number;
   jobFilter: string | null;
   githubToken: string;
   prStatuses: Record<string, PullRequestStatus | null>;
   isFetchingPrStatus: boolean;
   children: React.ReactNode;
 };
-
-function QuickReplyPopover({
-  quickReplies,
-  onSelect,
-  isActionPending,
-}: {
-  quickReplies: PredefinedPrompt[],
-  onSelect: (prompt: string) => void,
-  isActionPending?: boolean
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-     <Popover open={open} onOpenChange={setOpen}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" disabled={isActionPending}>
-              <MessageSquareReply className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Send Quick Reply</p>
-        </TooltipContent>
-      </Tooltip>
-      <PopoverContent className="w-[250px] p-0">
-        <Command>
-          <CommandInput placeholder="Search replies..." />
-          <CommandList>
-            <CommandEmpty>No replies found.</CommandEmpty>
-            <CommandGroup>
-              {quickReplies.map((reply) => (
-                <CommandItem
-                  key={reply.id}
-                  value={`${reply.title} ${reply.prompt}`}
-                  onSelect={() => {
-                    onSelect(reply.prompt);
-                    setOpen(false);
-                  }}
-                >
-                  {reply.title}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  )
-}
-
 
 export function SessionList({
   sessions,
@@ -117,7 +62,6 @@ export function SessionList({
   onSendMessage,
   countdown,
   pollInterval,
-  titleTruncateLength,
   jobFilter,
   githubToken,
   prStatuses,
@@ -143,13 +87,6 @@ export function SessionList({
     }
     const path = jobFilter ? `/sessions/${sessionId}?jobId=${jobFilter}` : `/sessions/${sessionId}`;
     router.push(path);
-  };
-
-  const truncateTitle = (title: string, maxLength: number) => {
-    if (title.length <= maxLength) {
-      return title;
-    }
-    return title.substring(0, maxLength) + "...";
   };
 
   const getPullRequestUrl = (session: Session): string | null => {
@@ -220,9 +157,7 @@ export function SessionList({
               <TableHeader>
                 <TableRow>
                   <TableHead>Job Name</TableHead>
-                  <TableHead>Repository</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Title</TableHead>
+                  <TableHead>Repository / Branch</TableHead>
                   <TableHead className="w-[180px]">Session Status</TableHead>
                   <TableHead className="w-[150px]">Created</TableHead>
                   <TableHead className="w-[80px] text-center">GitHub</TableHead>
@@ -243,10 +178,13 @@ export function SessionList({
                     className="cursor-pointer"
                     onClick={(e) => handleRowClick(e, session.id)}
                   >
-                    <TableCell>{job?.name || truncateTitle(session.title, titleTruncateLength) || "N/A"}</TableCell>
-                    <TableCell>{repoName || "N/A"}</TableCell>
-                    <TableCell>{branchName || "N/A"}</TableCell>
-                    <TableCell className="font-medium" title={session.title}>{truncateTitle(session.title, titleTruncateLength)}</TableCell>
+                    <TableCell className="font-medium">{job?.name || "N/A"}</TableCell>
+                    <TableCell>
+                        <div className="flex flex-col">
+                            <span className="font-mono text-sm">{repoName || 'N/A'}</span>
+                            <span className="font-mono text-xs text-muted-foreground">{branchName || 'N/A'}</span>
+                        </div>
+                    </TableCell>
                     <TableCell>
                       <JobStatusBadge status={session.state || session.status} />
                     </TableCell>
@@ -284,13 +222,6 @@ export function SessionList({
                           </Tooltip>
                         ) : null}
 
-                        {quickReplies.length > 0 && (
-                           <QuickReplyPopover
-                            quickReplies={quickReplies}
-                            onSelect={(prompt) => onSendMessage(session.id, prompt)}
-                            isActionPending={isActionPending}
-                          />
-                        )}
                         <MessageDialog
                           triggerButton={
                               <Tooltip>
@@ -306,7 +237,7 @@ export function SessionList({
                           quickReplies={quickReplies}
                           onSendMessage={(message) => onSendMessage(session.id, message)}
                           dialogTitle="Send Message to Session"
-                          dialogDescription={`This message will be sent to the session: "${truncateTitle(session.title, 50)}"`}
+                          dialogDescription={`This message will be sent to the session: "${session.title || session.id}"`}
                           isActionPending={isActionPending}
                         />
                        </div>
@@ -322,3 +253,5 @@ export function SessionList({
     </Card>
   );
 }
+
+    
