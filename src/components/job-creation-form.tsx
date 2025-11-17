@@ -24,6 +24,7 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Switch } from "./ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[]) => void;
@@ -201,6 +202,7 @@ export function JobCreationForm({
 
   return (
     <Card className="shadow-md">
+      <TooltipProvider>
       <CardHeader className="relative">
         <div>
             <CardTitle>New Job</CardTitle>
@@ -209,10 +211,17 @@ export function JobCreationForm({
             </CardDescription>
         </div>
          {onReset && (
-            <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-4 right-4">
-                <Trash2 className="h-4 w-4"/>
-                <span className="sr-only">Reset Form</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-4 right-4">
+                    <Trash2 className="h-4 w-4"/>
+                    <span className="sr-only">Reset Form</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Reset Form</p>
+              </TooltipContent>
+            </Tooltip>
         )}
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -266,10 +275,17 @@ export function JobCreationForm({
             <div className="flex items-center justify-between">
                 <Label htmlFor="prompts">Prompt</Label>
                 {prompt && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPrompt("")}>
-                        <X className="h-4 w-4" />
-                        <span className="sr-only">Clear prompt</span>
-                    </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPrompt("")}>
+                          <X className="h-4 w-4" />
+                          <span className="sr-only">Clear prompt</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Clear prompt</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
             </div>
             <Textarea
@@ -353,6 +369,7 @@ export function JobCreationForm({
           </Button>
         </CardFooter>
       </form>
+      </TooltipProvider>
     </Card>
   );
 }

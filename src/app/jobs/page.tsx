@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw, MessageSquare, MessageSquareReply, X } from "lucide-react";
+import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw, MessageSquare, MessageSquareReply, X, Wand2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { listSessions } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
@@ -35,6 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
+import { NewJobDialog } from "@/components/new-job-dialog";
 
 function JobsTable({
   jobs,
@@ -587,6 +588,16 @@ export default function JobsPage() {
           </div>
         </main>
       </div>
+       <div className="fixed bottom-8 right-8 z-20">
+        <NewJobDialog>
+          <Button size="lg" className="rounded-full shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
+            <Wand2 className="h-8 w-8" />
+            <span className="sr-only">New Job</span>
+          </Button>
+        </NewJobDialog>
+      </div>
     </>
   );
 }
+
+    
