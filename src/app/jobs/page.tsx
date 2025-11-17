@@ -406,7 +406,7 @@ export default function JobsPage() {
                                             <p>Send a Quick Reply</p>
                                           </TooltipContent>
                                         </Tooltip>
-                                        <PopoverContent className="p-0 w-64">
+                                        <PopoverContent className="p-0 w-64" align="end">
                                             <Command>
                                                 <CommandInput placeholder="Search replies..." />
                                                 <CommandList>
