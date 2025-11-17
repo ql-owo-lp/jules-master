@@ -176,15 +176,13 @@ export default function SessionDetailPage() {
   const handleSendMessage = () => {
     if (!session || !message.trim()) return;
     startActionTransition(async () => {
-      const result = await sendMessage(apiKey, session.id, message);
-      if (result) {
-        setSession(result);
+      const success = await sendMessage(apiKey, session.id, message);
+      if (success) {
         setMessage("");
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
         
-        // Refresh activities
-        const fetchedActivities = await listActivities(apiKey, id);
-        setActivities(fetchedActivities.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime()));
+        // Refresh session data to get latest activities
+        fetchSessionData();
 
       } else {
         toast({
@@ -491,5 +489,3 @@ export default function SessionDetailPage() {
     </div>
   );
 }
-
-    

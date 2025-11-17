@@ -113,9 +113,9 @@ export async function sendMessage(
   apiKey: string,
   sessionId: string,
   message: string
-): Promise<Session | null> {
+): Promise<boolean> {
   if (!apiKey) {
-    return null;
+    return false;
   }
   try {
     const response = await fetch(
@@ -126,7 +126,7 @@ export async function sendMessage(
           "X-Goog-Api-Key": apiKey,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: { text: message } }),
+        body: JSON.stringify({ prompt: message }),
       }
     );
      if (!response.ok) {
@@ -135,16 +135,14 @@ export async function sendMessage(
         );
         const errorBody = await response.text();
         console.error("Error body:", errorBody);
-      return null;
+      return false;
     }
-    const updatedSession: Session = await response.json();
+    // Successful response is empty, so we just revalidate and return true
     revalidatePath(`/sessions/${sessionId}`);
     revalidatePath(`/`);
-    return updatedSession;
+    return true;
   } catch (error) {
     console.error("Error sending message:", error);
-    return null;
+    return false;
   }
 }
-
-    
