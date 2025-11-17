@@ -69,6 +69,7 @@ export default function SessionDetailPage() {
   const [session, setSession] = useLocalStorage<Session | null>(`jules-session-${id}`, null);
   const [activities, setActivities] = useLocalStorage<Activity[]>(`jules-activities-${id}`, []);
   
+  const [isClient, setIsClient] = useState(false);
   const [isFetching, startFetching] = useTransition();
   const [isActionPending, startActionTransition] = useTransition();
   const { toast } = useToast();
@@ -87,6 +88,10 @@ export default function SessionDetailPage() {
   const currentPollInterval = isSessionDone ? idlePollInterval : (isPollingActive ? activePollInterval : idlePollInterval);
   const [countdown, setCountdown] = useState(currentPollInterval);
   
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const fetchSessionData = useCallback(async (options: { showToast?: boolean } = {}) => {
     if (!apiKey || !id) return;
     
@@ -245,20 +250,28 @@ export default function SessionDetailPage() {
   }));
 
 
-  if (isFetching && !session) {
+  if (!isClient || (isFetching && !session)) {
     return (
-      <div className="space-y-8 px-4 sm:px-6 lg:px-8">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-96 w-full" />
+      <div className="flex flex-col flex-1 bg-background">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
+          <div className="space-y-8 px-4 sm:px-6 lg:px-8">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+        </main>
       </div>
     );
   }
   
   if (!session) {
      return (
-       <div className="space-y-8 px-4 sm:px-6 lg:px-8">
-        <p>No session found. Make sure your API key is set correctly.</p>
+      <div className="flex flex-col flex-1 bg-background">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
+           <div className="space-y-8 px-4 sm:px-6 lg:px-8">
+            <p>No session found. Make sure your API key is set correctly.</p>
+          </div>
+        </main>
       </div>
      )
   }
@@ -538,5 +551,3 @@ export default function SessionDetailPage() {
     </div>
   );
 }
-
-    
