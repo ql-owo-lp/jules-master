@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect, useTransition, useCallback, Suspense, useMemo } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -19,7 +18,6 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
 import { GitMerge, Activity, Briefcase } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { NewJobDialog } from "@/components/new-job-dialog";
 
 function HomePageContent() {
@@ -28,8 +26,6 @@ function HomePageContent() {
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
-  const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
-  const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
   
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -164,7 +160,7 @@ function HomePageContent() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, apiKey, sessionListPollInterval, fetchSessions]);
+  }, [isClient, apiKey, sessionListPollInterval]);
   
 
   // Countdown timer
@@ -316,8 +312,6 @@ function HomePageContent() {
           <SessionList
             sessions={filteredSessions}
             jobs={jobs}
-            quickReplies={quickReplies}
-            predefinedPrompts={predefinedPrompts}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
             isRefreshing={isFetching}

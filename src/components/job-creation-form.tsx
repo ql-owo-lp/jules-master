@@ -17,12 +17,13 @@ import { Input } from "@/components/ui/input";
 import { refreshSources } from "@/app/sessions/actions";
 import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Wand2, Loader2, RefreshCw } from "lucide-react";
+import { Wand2, Loader2, RefreshCw, X, RotateCcw } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Switch } from "./ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { cn } from "@/lib/utils";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[]) => void;
@@ -36,6 +37,7 @@ type JobCreationFormProps = {
   ) => Promise<Session | null>;
   disabled?: boolean;
   apiKey: string;
+  onReset?: () => void;
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -45,6 +47,7 @@ export function JobCreationForm({
   onCreateJob,
   disabled,
   apiKey,
+  onReset
 }: JobCreationFormProps) {
   const [prompt, setPrompt] = useLocalStorage("jules-new-job-prompt", "");
   const [jobName, setJobName] = useLocalStorage("jules-new-job-name", "");
@@ -86,6 +89,14 @@ export function JobCreationForm({
       });
     });
   }, [toast]);
+
+  const handleReset = () => {
+    setJobName("");
+    setPrompt("");
+    setSessionCount(defaultSessionCount);
+    if (onReset) onReset();
+    toast({ title: "Form Reset", description: "The new job form has been cleared."});
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -190,11 +201,19 @@ export function JobCreationForm({
 
   return (
     <Card className="shadow-md">
-      <CardHeader>
-        <CardTitle>New Job</CardTitle>
-        <CardDescription>
-          Create a new job by providing a prompt. You can create multiple sessions for the same job.
-        </CardDescription>
+      <CardHeader className="relative">
+        <div>
+            <CardTitle>New Job</CardTitle>
+            <CardDescription>
+            Create a new job by providing a prompt. You can create multiple sessions for the same job.
+            </CardDescription>
+        </div>
+         {onReset && (
+            <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-4 right-4">
+                <RotateCcw className="h-4 w-4"/>
+                <span className="sr-only">Reset Form</span>
+            </Button>
+        )}
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
@@ -244,7 +263,15 @@ export function JobCreationForm({
           </div>
 
           <div className="grid w-full gap-2">
-            <Label htmlFor="prompts">Prompt</Label>
+            <div className="flex items-center justify-between">
+                <Label htmlFor="prompts">Prompt</Label>
+                {prompt && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPrompt("")}>
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Clear prompt</span>
+                    </Button>
+                )}
+            </div>
             <Textarea
               id="prompts"
               placeholder="e.g., Create a boba app!"
@@ -260,7 +287,7 @@ export function JobCreationForm({
                 <div className="flex items-center gap-2">
                     <Label htmlFor="repository">Repository</Label>
                      <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-6 w-6" disabled={isRefreshing} aria-label="Refresh Repositories">
-                        <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
+                        <RefreshCw className={cn("h-4 w-4", isRefreshing ? "animate-spin" : "")} />
                     </Button>
                 </div>
                 <SourceSelection 

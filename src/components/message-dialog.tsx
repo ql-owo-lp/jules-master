@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, ReactElement } from "react";
+import { useState, ReactElement, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,15 +15,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, MessageSquare, BookText, MessageSquareReply } from "lucide-react";
+import { Loader2, MessageSquare, BookText, MessageSquareReply, X, RotateCcw } from "lucide-react";
 import type { PredefinedPrompt } from "@/lib/types";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Combobox } from "./ui/combobox";
 import { ScrollArea } from "./ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 
 type MessageDialogProps = {
     triggerButton: ReactElement;
-    predefinedPrompts: PredefinedPrompt[];
-    quickReplies: PredefinedPrompt[];
+    storageKey: string;
     onSendMessage: (message: string) => void;
     dialogTitle?: string;
     dialogDescription?: string;
@@ -32,15 +33,27 @@ type MessageDialogProps = {
 
 export function MessageDialog({ 
     triggerButton,
-    predefinedPrompts, 
-    quickReplies, 
+    storageKey,
     onSendMessage,
     dialogTitle = "Send Message",
     dialogDescription = "Compose and send a message.",
     isActionPending
 }: MessageDialogProps) {
     const [open, setOpen] = useState(false);
-    const [message, setMessage] = useState("");
+    const [message, setMessage] = useLocalStorage(storageKey, "");
+    const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
+    const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+    const { toast } = useToast();
+
+    // When the dialog opens, re-read from local storage, in case another dialog updated it.
+    useEffect(() => {
+        if (open) {
+            const storedMessage = localStorage.getItem(storageKey);
+            if (storedMessage) {
+                setMessage(JSON.parse(storedMessage));
+            }
+        }
+    }, [open, storageKey, setMessage]);
 
     const handleSend = () => {
         if (!message.trim()) return;
@@ -48,6 +61,11 @@ export function MessageDialog({
         setOpen(false);
         setMessage("");
     };
+
+    const handleReset = () => {
+        setMessage("");
+        toast({ title: "Message Cleared", description: "The message has been cleared."});
+    }
     
     const promptOptions = predefinedPrompts.map(p => ({ value: p.id, label: p.title, content: p.prompt }));
     const replyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
@@ -58,12 +76,16 @@ export function MessageDialog({
                 {triggerButton}
             </DialogTrigger>
             <DialogContent className="md:w-1/2 md:h-3/5 max-w-4xl flex flex-col">
-                <DialogHeader>
+                <DialogHeader className="relative pr-10">
                     <DialogTitle>{dialogTitle}</DialogTitle>
                     <DialogDescription>{dialogDescription}</DialogDescription>
+                    <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-0 right-0">
+                        <RotateCcw className="h-4 w-4"/>
+                        <span className="sr-only">Reset Message</span>
+                    </Button>
                 </DialogHeader>
-                <ScrollArea className="flex-1 pr-6">
-                    <div className="grid gap-4 py-4">
+                <ScrollArea className="flex-1 pr-6 -mr-6">
+                    <div className="grid gap-4 py-4 pr-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="message-suggestions">Message Suggestions</Label>
@@ -95,7 +117,15 @@ export function MessageDialog({
                             </div>
                         </div>
                         <div className="grid w-full gap-2">
-                            <Label htmlFor="message-text">Message</Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="message-text">Message</Label>
+                                {message && (
+                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setMessage("")}>
+                                        <X className="h-4 w-4" />
+                                        <span className="sr-only">Clear message</span>
+                                    </Button>
+                                )}
+                            </div>
                             <Textarea
                                 id="message-text"
                                 value={message}

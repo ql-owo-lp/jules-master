@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -38,8 +39,6 @@ import { Checkbox } from "./ui/checkbox";
 type SessionListProps = {
   sessions: Session[];
   jobs: Job[];
-  quickReplies: PredefinedPrompt[];
-  predefinedPrompts: PredefinedPrompt[];
   lastUpdatedAt: Date | null;
   onRefresh: () => void;
   isRefreshing?: boolean;
@@ -60,8 +59,6 @@ type SessionListProps = {
 export function SessionList({
   sessions,
   jobs,
-  quickReplies,
-  predefinedPrompts,
   lastUpdatedAt,
   onRefresh,
   isRefreshing,
@@ -80,6 +77,8 @@ export function SessionList({
 }: SessionListProps) {
   const router = useRouter();
   const [itemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
+  const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
 
@@ -271,8 +270,9 @@ export function SessionList({
                           return (
                           <TableRow
                             key={session.id}
-                            data-state={selectedSessionIds.includes(session.id) && "selected"}
+                            data-state={selectedSessionIds.includes(session.id) ? "selected" : undefined}
                             onClick={(e) => handleRowClick(e, session.id)}
+                            className="cursor-pointer"
                           >
                             <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
                                 <Checkbox
@@ -415,7 +415,7 @@ export function SessionList({
       </Card>
       
        {selectedSessionIds.length > 0 && (
-            <div className="fixed bottom-4 inset-x-4 flex justify-center">
+            <div className="fixed bottom-4 inset-x-4 flex justify-center z-20">
                 <Card className="flex items-center gap-4 p-3 shadow-2xl animate-in fade-in-0 slide-in-from-bottom-5">
                     <div className="flex items-center gap-2">
                         <div className="text-sm font-medium">{selectedSessionIds.length} item(s) selected</div>
@@ -431,8 +431,7 @@ export function SessionList({
                                 Send Bulk Message
                             </Button>
                         }
-                        predefinedPrompts={predefinedPrompts}
-                        quickReplies={quickReplies}
+                        storageKey="jules-bulk-session-message"
                         onSendMessage={(message) => onBulkSendMessage(selectedSessionIds, message)}
                         dialogTitle="Send Bulk Message"
                         dialogDescription={`This message will be sent to all ${selectedSessionIds.length} selected sessions.`}

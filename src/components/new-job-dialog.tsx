@@ -73,12 +73,19 @@ export function NewJobDialog({ trigger, isPage = false }: NewJobDialogProps) {
         }
     };
     
+    // Function to clear local storage cache for the form
+    const handleReset = () => {
+        localStorage.removeItem("jules-new-job-prompt");
+        localStorage.removeItem("jules-new-job-name");
+    };
+
     const form = (
         <JobCreationForm
             onJobsCreated={handleJobsCreated}
             onCreateJob={handleCreateSession}
             disabled={!apiKey}
             apiKey={apiKey}
+            onReset={isPage ? undefined : handleReset}
         />
     );
 
@@ -91,8 +98,10 @@ export function NewJobDialog({ trigger, isPage = false }: NewJobDialogProps) {
             <DialogTrigger asChild>
                 {trigger}
             </DialogTrigger>
-            <DialogContent className="max-w-[90vw] md:max-w-4xl lg:max-w-[75vw] max-h-[90vh] overflow-y-auto">
-                {form}
+            <DialogContent className="w-3/4 max-w-4xl max-h-[90vh] flex flex-col">
+                <div className="overflow-y-auto p-1">
+                    {form}
+                </div>
             </DialogContent>
         </Dialog>
     );
