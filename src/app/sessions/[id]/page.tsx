@@ -63,8 +63,10 @@ export default function SessionDetailPage() {
   const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
-  const [session, setSession] = useState<Session | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
+  
+  const [session, setSession] = useLocalStorage<Session | null>(`jules-session-${id}`, null);
+  const [activities, setActivities] = useLocalStorage<Activity[]>(`jules-activities-${id}`, []);
+  
   const [isFetching, startFetching] = useTransition();
   const [isActionPending, startActionTransition] = useTransition();
   const { toast } = useToast();
@@ -77,7 +79,7 @@ export default function SessionDetailPage() {
   const jobId = searchParams.get('jobId');
 
   const [isPollingActive, setIsPollingActive] = useState(false);
-  const [activeTab, setActiveTab] = useLocalStorage<string>("jules-session-detail-tab", "details");
+  const [activeTab, setActiveTab] = useLocalStorage<string>(`jules-session-detail-tab-${id}`, "details");
   
   // Determine current poll interval
   const isSessionDone = session?.state === 'COMPLETED' || session?.state === 'FAILED';
@@ -114,10 +116,15 @@ export default function SessionDetailPage() {
         setCountdown(newInterval);
         
       } else {
-        notFound();
+        // If fetch fails, we don't call notFound(), we rely on the cached version if it exists.
+        // We could show a toast here to indicate the fetch failed but we're showing cached data.
+        if (!session) {
+            notFound();
+        }
       }
     });
-  }, [apiKey, id, idlePollInterval, activePollInterval, isPollingActive, toast, session]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, id, idlePollInterval, activePollInterval, isPollingActive, toast, setSession, setActivities]);
 
   useEffect(() => {
     if (apiKey && id) {
@@ -502,6 +509,7 @@ export default function SessionDetailPage() {
                                                 setMessage(selectedReply.prompt);
                                             }
                                         }}
+                                        selectedValue={null}
                                         placeholder="Select a quick reply..."
                                         searchPlaceholder="Search replies..."
                                         icon={<MessageSquareReply className="h-4 w-4 text-muted-foreground" />}
@@ -535,5 +543,6 @@ export default function SessionDetailPage() {
     </div>
   );
 }
+
 
     
