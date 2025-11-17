@@ -311,7 +311,7 @@ export default function JobsPage() {
                 </div>
               ) : (
                 <>
-                  <div className="border rounded-t-lg">
+                  <div className="border rounded-t-lg z-10 sticky top-0 bg-background">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -324,7 +324,7 @@ export default function JobsPage() {
                     </Table>
                   </div>
                   <ScrollArea className="h-[60vh]">
-                    <div className="border border-t-0 rounded-b-lg">
+                    <div className="border-x border-b rounded-b-lg">
                       <TooltipProvider>
                         <Table>
                           <TableBody>
