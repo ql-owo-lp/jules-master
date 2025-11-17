@@ -119,7 +119,8 @@ export default function JobsPage() {
     fetchJobSessions();
   }
 
-  const handleBulkApprove = async (jobId: string) => {
+  const handleBulkApprove = async (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation(); // Prevent row click
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
@@ -277,7 +278,6 @@ export default function JobsPage() {
                         <TableHead>Repository</TableHead>
                         <TableHead>Branch</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -305,31 +305,27 @@ export default function JobsPage() {
                                   <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
                                   <span>{details.working}</span>
                                 </div>
-                                <div className="flex items-center gap-1" title={`${details.pending} Pending Approval`}>
-                                  <Hand className="h-4 w-4 text-yellow-500" />
-                                  <span>{details.pending}</span>
-                                </div>
-                              </div>
-                            </TableCell>
-                             <TableCell className="text-right">
-                                {details.pending > 0 && (
-                                  <Tooltip>
+                                <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        onClick={() => handleBulkApprove(job.id)}
-                                        disabled={isApprovingCurrent || isBulkApproving !== null}
-                                        aria-label="Approve all pending sessions"
-                                      >
-                                        {isApprovingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
-                                      </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="flex items-center gap-1 p-1 h-auto text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
+                                            onClick={(e) => handleBulkApprove(e, job.id)}
+                                            disabled={isApprovingCurrent || details.pending === 0 || isBulkApproving !== null}
+                                            aria-label="Approve all pending sessions"
+                                        >
+                                            {isApprovingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                                            <span>{details.pending}</span>
+                                        </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Approve all {details.pending} pending session(s)</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
+                                     {details.pending > 0 && (
+                                        <TooltipContent>
+                                            <p>Approve all {details.pending} pending session(s)</p>
+                                        </TooltipContent>
+                                     )}
+                                </Tooltip>
+                              </div>
                             </TableCell>
                           </TableRow>
                         )
@@ -346,5 +342,3 @@ export default function JobsPage() {
     </div>
   );
 }
-
-    
