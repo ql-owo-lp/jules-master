@@ -45,7 +45,7 @@ function HomePageContent() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
   const [prStatuses, setPrStatuses] = useState<Record<string, PullRequestStatus | null>>({});
-  const [isFetchingPrStatus, startPrStatusFetch] = useTransition();
+  const [isFetchingPrStatus, setIsFetchingPrStatus] = useState(false);
 
   // Effect to sync job filter with URL param
   useEffect(() => {
@@ -107,20 +107,31 @@ function HomePageContent() {
 
   // Effect to fetch PR statuses for visible sessions
   useEffect(() => {
-    if (githubToken && filteredSessions.length > 0) {
-        startPrStatusFetch(async () => {
+    const fetchStatuses = async () => {
+        if (!githubToken || filteredSessions.length === 0) {
+            return;
+        }
+
+        setIsFetchingPrStatus(true);
+        const urlsToFetch = filteredSessions
+            .map(getPullRequestUrl)
+            .filter((url): url is string => !!url && prStatuses[url] === undefined);
+
+        if (urlsToFetch.length > 0) {
             const newStatuses: Record<string, PullRequestStatus | null> = {};
-            const promises = filteredSessions.map(async (session) => {
-                const prUrl = getPullRequestUrl(session);
-                if (prUrl) {
-                    const status = await getPullRequestStatus(prUrl, githubToken);
-                    newStatuses[prUrl] = status;
-                }
+            const promises = urlsToFetch.map(async (prUrl) => {
+                const status = await getPullRequestStatus(prUrl, githubToken);
+                newStatuses[prUrl] = status;
             });
+            
             await Promise.all(promises);
-            setPrStatuses(prev => ({...prev, ...newStatuses}));
-        });
-    }
+
+            setPrStatuses(prev => ({ ...prev, ...newStatuses }));
+        }
+        setIsFetchingPrStatus(false);
+    };
+
+    fetchStatuses();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredSessions, githubToken]);
 
@@ -214,7 +225,7 @@ function HomePageContent() {
     onJobFilterChange(null);
     onRepoFilterChange('all');
     onStatusFilterChange('all');
-    router.push('/');
+    // router.push('/'); // This seems to be the cause of some re-rendering issues. The filters are cleared above.
   }
 
   const onJobFilterChange = (value: string | null) => {
