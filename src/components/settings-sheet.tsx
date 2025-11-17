@@ -36,6 +36,8 @@ export function SettingsSheet() {
   const [sessionListPollInterval, setSessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval, setActivePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [titleTruncateLength, setTitleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
+  const [lineClamp, setLineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
+
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
@@ -43,6 +45,7 @@ export function SettingsSheet() {
   const [sessionListPollIntervalValue, setSessionListPollIntervalValue] = useState(sessionListPollInterval);
   const [activePollIntervalValue, setActivePollIntervalValue] = useState(activePollInterval);
   const [titleTruncateLengthValue, setTitleTruncateLengthValue] = useState(titleTruncateLength);
+  const [lineClampValue, setLineClampValue] = useState(lineClamp);
   
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -55,6 +58,7 @@ export function SettingsSheet() {
   useEffect(() => { setSessionListPollIntervalValue(sessionListPollInterval); }, [sessionListPollInterval]);
   useEffect(() => { setActivePollIntervalValue(activePollInterval); }, [activePollInterval]);
   useEffect(() => { setTitleTruncateLengthValue(titleTruncateLength); }, [titleTruncateLength]);
+  useEffect(() => { setLineClampValue(lineClamp); }, [lineClamp]);
   
   const handleSave = () => {
     setApiKey(apiKeyValue);
@@ -63,6 +67,7 @@ export function SettingsSheet() {
     setSessionListPollInterval(sessionListPollIntervalValue);
     setActivePollInterval(activePollIntervalValue);
     setTitleTruncateLength(titleTruncateLengthValue);
+    setLineClamp(lineClampValue);
     toast({
       title: "Settings Saved",
       description: "Your settings have been updated.",
@@ -272,6 +277,21 @@ export function SettingsSheet() {
                     Shorter interval used after sending a message to a session.
                     </p>
                 </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="line-clamp">Activity Feed Line Clamp</Label>
+                    <Input
+                    id="line-clamp"
+                    type="number"
+                    value={lineClampValue}
+                    onChange={(e) => setLineClampValue(Number(e.target.value))}
+                    placeholder="e.g., 1"
+                    min="1"
+                    max="10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Number of lines to show for progress descriptions before truncating.
+                    </p>
+                </div>
             </div>
         </div>
         <SheetFooter className="mt-8">
@@ -289,3 +309,5 @@ export function SettingsSheet() {
     </Sheet>
   );
 }
+
+    
