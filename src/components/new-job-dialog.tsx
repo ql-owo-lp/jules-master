@@ -91,7 +91,7 @@ export function NewJobDialog({ trigger, isPage = false }: NewJobDialogProps) {
             <DialogTrigger asChild>
                 {trigger}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[90vw] md:max-w-4xl lg:max-w-[75vw] max-h-[90vh] overflow-y-auto">
                 {form}
             </DialogContent>
         </Dialog>
