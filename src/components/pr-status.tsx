@@ -54,8 +54,29 @@ export function PrStatus({ prUrl, githubToken }: PrStatusProps) {
     )
   }
 
-  if (isLoading || !status) {
+  if (isLoading) {
     return <Skeleton className="h-8 w-8 rounded-full" />;
+  }
+  
+  if (!status) {
+    // This can happen if the fetch completes but returns null, or if there's no token.
+    // Render the default icon as a fallback.
+     return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <a href={prUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" aria-label="View Pull Request on GitHub">
+                            <GitPullRequest className="h-5 w-5 text-muted-foreground" />
+                        </Button>
+                    </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>View on GitHub (status unavailable)</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    )
   }
   
   let Icon;
