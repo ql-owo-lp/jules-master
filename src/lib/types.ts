@@ -171,3 +171,22 @@ export interface BashOutput {
   output: string;
   exitCode: number;
 }
+
+
+// From GitHub API
+export type GitHubPullRequest = {
+  url: string;
+  id: number;
+  number: number;
+  state: 'open' | 'closed';
+  title: string;
+  merged: boolean;
+  head: {
+    sha: string;
+  };
+};
+
+export type PullRequestStatus = {
+  state: 'OPEN' | 'MERGED' | 'CLOSED' | 'NO_TOKEN' | 'ERROR' | 'NOT_FOUND' | 'UNAUTHORIZED';
+  checks: 'pending' | 'success' | 'failure' | 'unknown';
+};

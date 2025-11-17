@@ -19,7 +19,7 @@ import {
 import type { Session, Job, PredefinedPrompt } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2, Github, MessageSquareReply, ChevronsUpDown } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2, Github, MessageSquareReply } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -33,6 +33,7 @@ import { useMemo, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command";
+import { PrStatus } from "./pr-status";
 
 
 type SessionListProps = {
@@ -49,7 +50,7 @@ type SessionListProps = {
   pollInterval: number;
   titleTruncateLength: number;
   jobFilter: string | null;
-  githubTokenSet: boolean;
+  githubToken: string;
   children: React.ReactNode;
 };
 
@@ -119,7 +120,7 @@ export function SessionList({
   pollInterval,
   titleTruncateLength,
   jobFilter,
-  githubTokenSet,
+  githubToken,
   children
 }: SessionListProps) {
   const router = useRouter();
@@ -241,22 +242,7 @@ export function SessionList({
                       })}
                     </TableCell>
                      <TableCell className="text-center">
-                      {prUrl && githubTokenSet ? (
-                         <Tooltip>
-                            <TooltipTrigger asChild>
-                              <a href={prUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
-                                <Button variant="ghost" size="icon" aria-label="View Pull Request">
-                                  <Github className="h-4 w-4" />
-                                </Button>
-                              </a>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>View Pull Request on GitHub</p>
-                            </TooltipContent>
-                          </Tooltip>
-                      ): (
-                         <div className="w-10 h-10" />
-                      )}
+                        <PrStatus prUrl={prUrl} githubToken={githubToken} />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
