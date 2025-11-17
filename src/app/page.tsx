@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
 import { GitMerge, Activity, Briefcase } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { NewJobDialog } from "@/components/new-job-dialog";
 
 function HomePageContent() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
@@ -358,12 +359,14 @@ function HomePageContent() {
         </div>
       </main>
        <div className="fixed bottom-8 right-8">
-        <Button asChild size="lg" className="rounded-lg shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
-          <Link href="/jobs/new">
-            <Plus className="h-8 w-8" />
-            <span className="sr-only">New Job</span>
-          </Link>
-        </Button>
+        <NewJobDialog
+            trigger={
+                <Button size="lg" className="rounded-lg shadow-lg w-16 h-16 bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Plus className="h-8 w-8" />
+                    <span className="sr-only">New Job</span>
+                </Button>
+            }
+        />
       </div>
     </div>
   );
