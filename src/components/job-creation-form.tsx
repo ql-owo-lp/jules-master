@@ -48,7 +48,8 @@ export function JobCreationForm({
 }: JobCreationFormProps) {
   const [prompt, setPrompt] = useLocalStorage("jules-new-job-prompt", "");
   const [jobName, setJobName] = useLocalStorage("jules-new-job-name", "");
-  const [sessionCount, setSessionCount] = useState(1);
+  const [defaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 3);
+  const [sessionCount, setSessionCount] = useState(defaultSessionCount);
   
   const [requirePlanApproval, setRequirePlanApproval] = useLocalStorage<boolean>("jules-new-job-require-plan-approval", false);
   const [automationMode, setAutomationMode] = useLocalStorage<AutomationMode>("jules-new-job-automation-mode", "AUTO_CREATE_PR");
@@ -69,6 +70,11 @@ export function JobCreationForm({
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Update sessionCount if the default value from storage changes
+  useEffect(() => {
+    setSessionCount(defaultSessionCount);
+  }, [defaultSessionCount]);
 
   const handleRefresh = useCallback(async () => {
     startRefreshTransition(async () => {
@@ -148,7 +154,7 @@ export function JobCreationForm({
         onJobsCreated(createdSessions);
         setPrompt("");
         setJobName("");
-        setSessionCount(1);
+        setSessionCount(defaultSessionCount);
       }
     });
   };
@@ -323,5 +329,3 @@ export function JobCreationForm({
     </Card>
   );
 }
-
-    
