@@ -6,7 +6,7 @@ import Link from "next/link";
 import { notFound, useSearchParams, useParams } from "next/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
-import type { Session, Job, Activity } from "@/lib/types";
+import type { Session, Job, Activity, PredefinedPrompt } from "@/lib/types";
 import { getSession, approvePlan, sendMessage, listActivities } from "./actions";
 import { ActivityFeed } from "@/components/activity-feed";
 
@@ -60,6 +60,7 @@ export default function SessionDetailPage() {
   const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
+  const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
   const [session, setSession] = useState<Session | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isFetching, startFetching] = useTransition();
@@ -465,6 +466,25 @@ export default function SessionDetailPage() {
                         </CardDescription>
                         </CardHeader>
                         <CardContent>
+                        {quickReplies.length > 0 && (
+                            <div className="mb-4 space-y-2">
+                                <Label>Quick Replies</Label>
+                                <div className="flex flex-wrap gap-2">
+                                {quickReplies.map((reply) => (
+                                    <Button
+                                    key={reply.id}
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setMessage(reply.prompt)}
+                                    disabled={isActionPending}
+                                    >
+                                    {reply.title}
+                                    </Button>
+                                ))}
+                                </div>
+                            </div>
+                        )}
                         <div className="grid gap-2">
                             <Label htmlFor="message">Your Message</Label>
                             <Textarea
