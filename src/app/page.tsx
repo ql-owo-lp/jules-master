@@ -10,7 +10,7 @@ import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, Plus, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listSessions, revalidateSessions } from "./sessions/actions";
+import { listSessions } from "./sessions/actions";
 import { approvePlan, sendMessage } from "./sessions/[id]/actions";
 import { getPullRequestStatus } from "./github/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,7 @@ function HomePageContent() {
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
   const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+  const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
   
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -78,10 +79,10 @@ function HomePageContent() {
   
   const filteredSessions = useMemo(() => {
     return sessions.filter(s => {
-      const job = sessionToJobMap.get(s.id);
+      const repoName = s.sourceContext?.source.split('/').slice(2).join('/');
       
-      const jobMatch = !jobFilter || (job && job.id === jobFilter);
-      const repoMatch = repoFilter === 'all' || (job && job.repo === repoFilter);
+      const jobMatch = !jobFilter || (sessionToJobMap.has(s.id) && sessionToJobMap.get(s.id)?.id === jobFilter);
+      const repoMatch = repoFilter === 'all' || repoName === repoFilter;
       const statusMatch = statusFilter === 'all' || s.state === statusFilter;
 
       return jobMatch && repoMatch && statusMatch;
@@ -92,9 +93,6 @@ function HomePageContent() {
   const fetchSessions = useCallback(async () => {
     if (!apiKey) return;
     startFetching(async () => {
-      // Invalidate the cache first
-      await revalidateSessions();
-      // Then fetch the latest data
       const fetchedSessions = await listSessions(apiKey);
       const validSessions = fetchedSessions.filter(s => s);
       setSessions(validSessions);
@@ -144,7 +142,6 @@ function HomePageContent() {
   // Initial fetch and set up polling interval
   useEffect(() => {
     if (isClient && apiKey) {
-      // Fetch initial data if cache is empty, otherwise use cache and fetch in background
       if (sessions.length === 0) {
         startFetching(async () => {
           const fetchedSessions = await listSessions(apiKey);
@@ -154,7 +151,6 @@ function HomePageContent() {
           setCountdown(sessionListPollInterval);
         });
       } else {
-        // Immediately set update time for cached data
         setLastUpdatedAt(new Date());
         setCountdown(sessionListPollInterval);
       }
@@ -193,7 +189,6 @@ function HomePageContent() {
     startActionTransition(async () => {
       const result = await approvePlan(apiKey, sessionId);
        if (result) {
-        // Refresh the list to show the updated status
         fetchSessions();
         toast({ title: "Plan Approved", description: "The session will now proceed." });
       } else {
@@ -209,7 +204,6 @@ function HomePageContent() {
     startActionTransition(async () => {
       const result = await sendMessage(apiKey, sessionId, message);
       if (result) {
-        // Refresh the list to show the updated status
         fetchSessions();
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
       } else {
@@ -225,7 +219,6 @@ function HomePageContent() {
     onJobFilterChange(null);
     onRepoFilterChange('all');
     onStatusFilterChange('all');
-    // router.push('/'); // This seems to be the cause of some re-rendering issues. The filters are cleared above.
   }
 
   const onJobFilterChange = (value: string | null) => {
@@ -244,8 +237,8 @@ function HomePageContent() {
   
   const repoOptions = useMemo(() => [
     { value: 'all', label: 'All Repositories'}, 
-    ...Array.from(new Set(jobs.map(j => j.repo))).map(r => ({ value: r, label: r }))
-  ], [jobs]);
+    ...Array.from(new Set(sessions.map(s => s.sourceContext?.source.split('/').slice(2).join('/')).filter((r): r is string => !!r))).map(r => ({ value: r, label: r }))
+  ], [sessions]);
   
   const jobOptions = useMemo(() => [
     { value: 'all', label: 'All Jobs' },
@@ -301,6 +294,7 @@ function HomePageContent() {
             sessions={filteredSessions}
             jobs={jobs}
             quickReplies={quickReplies}
+            predefinedPrompts={predefinedPrompts}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
             isRefreshing={isFetching}
@@ -381,5 +375,3 @@ export default function Home() {
     </Suspense>
   )
 }
-
-    

@@ -202,5 +202,3 @@ export type PullRequestStatus = {
     runs: Pick<CheckRun, 'name' | 'status' | 'conclusion'>[];
   }
 };
-
-    

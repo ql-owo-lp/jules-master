@@ -19,7 +19,7 @@ import {
 import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2, Github, MessageSquareReply } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2, Github, MessageSquareReply, MessageSquare } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -28,12 +28,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { PrStatus } from "./pr-status";
+import { MessageDialog } from "./message-dialog";
 
 
 type SessionListProps = {
   sessions: Session[];
   jobs: Job[];
   quickReplies: PredefinedPrompt[];
+  predefinedPrompts: PredefinedPrompt[];
   lastUpdatedAt: Date | null;
   onRefresh: () => void;
   isRefreshing?: boolean;
@@ -106,6 +108,7 @@ export function SessionList({
   sessions,
   jobs,
   quickReplies,
+  predefinedPrompts,
   lastUpdatedAt,
   onRefresh,
   isRefreshing,
@@ -162,7 +165,6 @@ export function SessionList({
   
   const getRepoNameFromSource = (source?: string): string | null => {
     if (!source) return null;
-    // Example source: "sources/github/owner/repo"
     const parts = source.split('/');
     if (parts.length >= 4 && parts[1] === 'github') {
         return parts.slice(2).join('/');
@@ -233,6 +235,7 @@ export function SessionList({
                   const prUrl = getPullRequestUrl(session);
                   const repoName = getRepoNameFromSource(session.sourceContext?.source);
                   const branchName = session.sourceContext?.githubRepoContext?.startingBranch;
+                  const isLoadingPrStatus = isFetchingPrStatus && prUrl ? prStatuses[prUrl] === undefined : false;
 
                   return (
                   <TableRow
@@ -257,7 +260,7 @@ export function SessionList({
                             prUrl={prUrl} 
                             githubToken={githubToken} 
                             status={prUrl ? prStatuses[prUrl] : null}
-                            isLoading={isFetchingPrStatus && prUrl ? prStatuses[prUrl] === undefined : false}
+                            isLoading={isLoadingPrStatus}
                         />
                     </TableCell>
                     <TableCell className="text-right">
@@ -288,6 +291,24 @@ export function SessionList({
                             isActionPending={isActionPending}
                           />
                         )}
+                        <MessageDialog
+                          triggerButton={
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message to Session">
+                                          <MessageSquare className="h-4 w-4" />
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Send Message</TooltipContent>
+                              </Tooltip>
+                          }
+                          predefinedPrompts={predefinedPrompts}
+                          quickReplies={quickReplies}
+                          onSendMessage={(message) => onSendMessage(session.id, message)}
+                          dialogTitle="Send Message to Session"
+                          dialogDescription={`This message will be sent to the session: "${truncateTitle(session.title, 50)}"`}
+                          isActionPending={isActionPending}
+                        />
                        </div>
                     </TableCell>
                   </TableRow>
