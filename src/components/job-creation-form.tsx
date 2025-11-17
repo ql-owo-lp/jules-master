@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { refreshSources } from "@/app/sessions/actions";
 import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Wand2, Loader2, RefreshCw, X, RotateCcw } from "lucide-react";
+import { Wand2, Loader2, RefreshCw, X, Trash2 } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -210,7 +210,7 @@ export function JobCreationForm({
         </div>
          {onReset && (
             <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-4 right-4">
-                <RotateCcw className="h-4 w-4"/>
+                <Trash2 className="h-4 w-4"/>
                 <span className="sr-only">Reset Form</span>
             </Button>
         )}
@@ -356,3 +356,5 @@ export function JobCreationForm({
     </Card>
   );
 }
+
+    
