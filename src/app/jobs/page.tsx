@@ -10,6 +10,7 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Table,
@@ -51,6 +52,8 @@ export default function JobsPage() {
   const [isActionPending, startActionTransition] = useTransition();
   const [countdown, setCountdown] = useState(pollInterval);
   const [isBulkApproving, setIsBulkApproving] = useState<string | null>(null);
+  const [itemsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
+  const [currentPage, setCurrentPage] = useState(1);
 
 
   const fetchJobSessions = useCallback(() => {
@@ -235,6 +238,20 @@ export default function JobsPage() {
     return map;
   }, [jobs, sessions]);
 
+  const sortedJobs = useMemo(() => [...jobs].reverse(), [jobs]);
+  const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
+  const paginatedJobs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedJobs.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedJobs, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+
   if (!isClient || isLoading) {
     return (
        <div className="flex flex-col flex-1 bg-background">
@@ -306,7 +323,7 @@ export default function JobsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {[...jobs].reverse().map((job) => {
+                        {paginatedJobs.map((job) => {
                           const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };
                           const isApprovingCurrent = isBulkApproving === job.id;
                           return (
@@ -384,13 +401,36 @@ export default function JobsPage() {
                 </ScrollArea>
               )}
             </CardContent>
+             {totalPages > 1 && (
+                <CardFooter className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </CardFooter>
+            )}
           </Card>
         </div>
       </main>
     </div>
   );
 }
-
-    
 
     

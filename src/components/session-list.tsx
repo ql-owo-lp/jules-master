@@ -5,6 +5,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -23,11 +24,12 @@ import { ClipboardList, RefreshCw, Hand, Loader2, MessageSquare, Briefcase } fro
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { PrStatus } from "./pr-status";
 import { MessageDialog } from "./message-dialog";
 import { ScrollArea } from "./ui/scroll-area";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 
 type SessionListProps = {
@@ -72,6 +74,8 @@ export function SessionList({
   titleTruncateLength
 }: SessionListProps) {
   const router = useRouter();
+  const [itemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const sessionToJobMap = useMemo(() => {
     const map = new Map<string, Job>();
@@ -115,6 +119,18 @@ export function SessionList({
   const truncate = (str: string, length: number) => {
     return str.length > length ? str.substring(0, length) + "..." : str;
   }
+
+  const totalPages = Math.ceil(sessions.length / itemsPerPage);
+  const paginatedSessions = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sessions.slice(startIndex, startIndex + itemsPerPage);
+  }, [sessions, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages, sessions]);
 
 
   return (
@@ -174,7 +190,7 @@ export function SessionList({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sessions.map((session) => {
+                  {paginatedSessions.map((session) => {
                     const job = sessionToJobMap.get(session.id);
                     const prUrl = getPullRequestUrl(session);
                     const repoName = getRepoNameFromSource(session.sourceContext?.source);
@@ -267,6 +283,31 @@ export function SessionList({
           </ScrollArea>
         )}
       </CardContent>
+        {totalPages > 1 && (
+            <CardFooter className="flex items-center justify-between pt-4">
+                <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                </span>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                    >
+                        Previous
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                    >
+                        Next
+                    </Button>
+                </div>
+            </CardFooter>
+        )}
     </Card>
   );
 }
