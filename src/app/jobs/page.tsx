@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw, MessageSquare } from "lucide-react";
+import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw, MessageSquare, MessageSquareReply } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { listSessions } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MessageDialog } from "@/components/message-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 
 export default function JobsPage() {
@@ -311,7 +312,7 @@ export default function JobsPage() {
                 </div>
               ) : (
                 <>
-                  <div className="border rounded-t-lg z-10 sticky top-0 bg-background">
+                  <div className="border-t border-x rounded-t-lg z-10 sticky top-0 bg-background">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -375,11 +376,38 @@ export default function JobsPage() {
                                     </div>
                                   </TableCell>
                                   <TableCell className="text-right">
+                                    <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                      <DropdownMenu>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <DropdownMenuTrigger asChild>
+                                              <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                                <MessageSquareReply className="h-4 w-4" />
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Send a Quick Reply</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                        <DropdownMenuContent>
+                                          {quickReplies.length > 0 ? (
+                                            quickReplies.map((reply) => (
+                                              <DropdownMenuItem key={reply.id} onClick={() => handleBulkSendMessage(job.id, reply.prompt)}>
+                                                {reply.title}
+                                              </DropdownMenuItem>
+                                            ))
+                                          ) : (
+                                            <DropdownMenuItem disabled>No quick replies</DropdownMenuItem>
+                                          )}
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+
                                       <MessageDialog
                                           triggerButton={
                                               <Tooltip>
                                                   <TooltipTrigger asChild>
-                                                      <Button variant="ghost" size="icon" aria-label="Send Message to Job" onClick={e => e.stopPropagation()}>
+                                                      <Button variant="ghost" size="icon" aria-label="Send Message to Job" disabled={isActionPending}>
                                                           <MessageSquare className="h-4 w-4" />
                                                       </Button>
                                                   </TooltipTrigger>
@@ -393,6 +421,7 @@ export default function JobsPage() {
                                           dialogDescription={`This message will be sent to all ${job.sessionIds.length} sessions in the "${job.name}" job.`}
                                           isActionPending={isActionPending}
                                       />
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               )
