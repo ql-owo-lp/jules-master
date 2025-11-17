@@ -443,12 +443,11 @@ export default function SessionDetailPage() {
                         pollInterval={pollInterval}
                     />
 
-                    {session.state === "AWAITING_USER_FEEDBACK" && (
                     <Card className="mt-8">
                         <CardHeader>
-                        <CardTitle>User Feedback Required</CardTitle>
+                        <CardTitle>Send a Message</CardTitle>
                         <CardDescription>
-                            The session is waiting for your input to continue.
+                            {session.state === 'AWAITING_USER_FEEDBACK' ? 'The session is waiting for your input to continue.' : 'Send a message or notes to this session.'}
                         </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -471,7 +470,6 @@ export default function SessionDetailPage() {
                         </Button>
                         </CardFooter>
                     </Card>
-                    )}
 
                     <Button 
                         size="icon" 
@@ -493,7 +491,5 @@ export default function SessionDetailPage() {
     </div>
   );
 }
-
-  
 
     
