@@ -254,7 +254,7 @@ function HomePageContent() {
             pollInterval={sessionListPollInterval}
             titleTruncateLength={titleTruncateLength}
             jobFilter={jobFilter}
-            githubTokenSet={!!githubToken}
+            githubToken={githubToken}
           >
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div className="space-y-2">
