@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
 import { GitMerge, Activity, Briefcase } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 function HomePageContent() {
   const [apiKey] = useLocalStorage<string>("jules-api-key", "");
@@ -375,3 +376,5 @@ export default function Home() {
     </Suspense>
   )
 }
+
+    
