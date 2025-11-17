@@ -39,6 +39,7 @@ export function SettingsSheet() {
   const [lineClamp, setLineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
   const [jobListItemsPerPage, setJobListItemsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
   const [sessionListItemsPerPage, setSessionListItemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
+  const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 3);
 
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
@@ -50,6 +51,7 @@ export function SettingsSheet() {
   const [lineClampValue, setLineClampValue] = useState(lineClamp);
   const [jobListItemsPerPageValue, setJobListItemsPerPageValue] = useState(jobListItemsPerPage);
   const [sessionListItemsPerPageValue, setSessionListItemsPerPageValue] = useState(sessionListItemsPerPage);
+  const [defaultSessionCountValue, setDefaultSessionCountValue] = useState(defaultSessionCount);
   
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -65,6 +67,7 @@ export function SettingsSheet() {
   useEffect(() => { setLineClampValue(lineClamp); }, [lineClamp]);
   useEffect(() => { setJobListItemsPerPageValue(jobListItemsPerPage); }, [jobListItemsPerPage]);
   useEffect(() => { setSessionListItemsPerPageValue(sessionListItemsPerPage); }, [sessionListItemsPerPage]);
+  useEffect(() => { setDefaultSessionCountValue(defaultSessionCount); }, [defaultSessionCount]);
   
   const handleSave = () => {
     setApiKey(apiKeyValue);
@@ -76,6 +79,7 @@ export function SettingsSheet() {
     setLineClamp(lineClampValue);
     setJobListItemsPerPage(jobListItemsPerPageValue);
     setSessionListItemsPerPage(sessionListItemsPerPageValue);
+    setDefaultSessionCount(defaultSessionCountValue);
     toast({
       title: "Settings Saved",
       description: "Your settings have been updated.",
@@ -222,6 +226,20 @@ export function SettingsSheet() {
                     min="1"
                     />
                 </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="default-session-count">Default Session Count</Label>
+                    <Input
+                    id="default-session-count"
+                    type="number"
+                    value={defaultSessionCountValue}
+                    onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
+                    placeholder="e.g., 3"
+                    min="1"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        The default number of sessions to create for a new job.
+                    </p>
+                </div>
             </div>
 
             <Separator />
@@ -339,5 +357,3 @@ export function SettingsSheet() {
     </Sheet>
   );
 }
-
-    
