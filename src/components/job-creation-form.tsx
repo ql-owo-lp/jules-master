@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition, useCallback, useEffect } from "react";
@@ -61,6 +62,7 @@ export function JobCreationForm({
 
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
+  const [globalPrompt] = useLocalStorage<string>("jules-global-prompt", "");
   const [isClient, setIsClient] = useState(false);
   const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
 
@@ -81,8 +83,9 @@ export function JobCreationForm({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const finalPrompt = (globalPrompt ? `${globalPrompt}\n\n---\n\n` : "") + prompt;
 
-    if (!prompt.trim()) {
+    if (!finalPrompt.trim()) {
       toast({
         variant: "destructive",
         title: "No prompt entered",
@@ -107,7 +110,7 @@ export function JobCreationForm({
         let retries = 3;
         let newSession: Session | null = null;
         while (retries > 0 && !newSession) {
-            newSession = await onCreateJob(title, prompt, selectedSource, selectedBranch, requirePlanApproval, automationMode);
+            newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode);
             if (!newSession) {
                 retries--;
                 toast({
@@ -191,7 +194,7 @@ export function JobCreationForm({
         <CardContent className="space-y-6">
            {isClient && predefinedPrompts.length > 0 && (
             <div className="space-y-2">
-              <Label>Prompt Suggestions</Label>
+              <Label>Message Suggestions</Label>
               <div className="flex flex-wrap gap-2">
                 {predefinedPrompts.map((p) => (
                   <Button
@@ -320,3 +323,5 @@ export function JobCreationForm({
     </Card>
   );
 }
+
+    

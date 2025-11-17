@@ -9,6 +9,7 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
+  CardFooter
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BookText, Plus, Edit, Trash2, MoreHorizontal, MessageSquareReply } from "lucide-react";
+import { BookText, Plus, Edit, Trash2, MoreHorizontal, MessageSquareReply, Globe } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +53,7 @@ type DialogState = {
 export default function PredefinedPromptsPage() {
   const [prompts, setPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
   const [quickReplies, setQuickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+  const [globalPrompt, setGlobalPrompt] = useLocalStorage<string>("jules-global-prompt", "");
   
   const [isLoading, setIsLoading] = useState(true);
   
@@ -81,8 +83,8 @@ export default function PredefinedPromptsPage() {
     if (type === 'prompt') {
       setPrompts(prompts.filter((p) => p.id !== id));
       toast({
-        title: "Prompt deleted",
-        description: "The predefined prompt has been removed.",
+        title: "Message deleted",
+        description: "The predefined message has been removed.",
       });
     } else {
       setQuickReplies(quickReplies.filter((r) => r.id !== id));
@@ -108,10 +110,10 @@ export default function PredefinedPromptsPage() {
     if (type === 'prompt') {
       if (data?.id) { // Editing existing prompt
         setPrompts(prompts.map((p) => p.id === data.id ? { ...p, title, prompt: promptText } : p));
-        toast({ title: "Prompt updated" });
+        toast({ title: "Message updated" });
       } else { // Adding new prompt
         setPrompts([...prompts, { id: crypto.randomUUID(), title, prompt: promptText }]);
-        toast({ title: "Prompt added" });
+        toast({ title: "Message added" });
       }
     } else { // 'reply'
        if (data?.id) { // Editing existing reply
@@ -126,10 +128,18 @@ export default function PredefinedPromptsPage() {
     closeDialog();
   };
 
+  const handleSaveGlobalPrompt = () => {
+    // The useLocalStorage hook handles saving, so we just show a toast
+    toast({
+      title: "Global Prompt Saved",
+      description: "Your global prompt has been updated.",
+    });
+  }
+
   const renderTable = (type: 'prompt' | 'reply') => {
     const items = type === 'prompt' ? prompts : quickReplies;
-    const singular = type === 'prompt' ? 'prompt' : 'reply';
-    const plural = type === 'prompt' ? 'prompts' : 'replies';
+    const singular = type === 'prompt' ? 'message' : 'reply';
+    const plural = type === 'prompt' ? 'messages' : 'replies';
 
     if (isLoading) {
        return (
@@ -216,14 +226,42 @@ export default function PredefinedPromptsPage() {
         <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
           <div className="container mx-auto max-w-4xl space-y-8">
             <Card>
+              <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-6 w-6" />
+                    <CardTitle>Global Prompt</CardTitle>
+                  </div>
+                  <CardDescription>
+                    This prompt will be automatically prepended to every new job you create.
+                  </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid w-full gap-2">
+                    <Label htmlFor="global-prompt">Global Prompt Text</Label>
+                    <Textarea
+                        id="global-prompt"
+                        placeholder="e.g., Always follow the existing coding style..."
+                        rows={5}
+                        value={globalPrompt}
+                        onChange={(e) => setGlobalPrompt(e.target.value)}
+                    />
+                </div>
+              </CardContent>
+              <CardFooter>
+                 <Button onClick={handleSaveGlobalPrompt}>Save Global Prompt</Button>
+              </CardFooter>
+            </Card>
+
+
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <BookText className="h-6 w-6" />
-                    <CardTitle>Predefined Prompts</CardTitle>
+                    <CardTitle>Predefined Messages</CardTitle>
                   </div>
                   <CardDescription>
-                    Manage your reusable prompts for new job creation.
+                    Manage your reusable messages for new job creation.
                   </CardDescription>
                 </div>
                 <Button onClick={() => openDialog('prompt')}>
@@ -262,10 +300,10 @@ export default function PredefinedPromptsPage() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Prompt' : 'Quick Reply'}
+              {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Message' : 'Quick Reply'}
             </DialogTitle>
             <DialogDescription>
-               Create a new reusable {dialogState.type === 'prompt' ? 'prompt for faster job creation.' : 'reply for session feedback.'}
+               Create a new reusable {dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -306,3 +344,5 @@ export default function PredefinedPromptsPage() {
     </>
   );
 }
+
+    
