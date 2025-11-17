@@ -64,7 +64,7 @@ export default function RootLayout({
                     <span className='group-data-[collapsible=icon]:hidden'>Jules Master</span>
                   </Link>
                    <SidebarTrigger>
-                      <PanelLeft className="h-6 w-6" />
+                      <PanelLeft className="h-5 w-5" />
                       <span className="sr-only">Toggle Sidebar</span>
                    </SidebarTrigger>
                 </SidebarHeader>
