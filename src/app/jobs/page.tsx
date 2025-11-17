@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw, MessageSquare, MessageSquareReply } from "lucide-react";
+import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw, MessageSquare, MessageSquareReply, X } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { listSessions } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
@@ -34,6 +34,7 @@ import { MessageDialog } from "@/components/message-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 export default function JobsPage() {
@@ -56,6 +57,7 @@ export default function JobsPage() {
   const [isBulkApproving, setIsBulkApproving] = useState<string | null>(null);
   const [itemsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
 
 
   const fetchJobSessions = useCallback(() => {
@@ -114,7 +116,7 @@ export default function JobsPage() {
 
 
   const handleJobClick = (e: React.MouseEvent, jobId: string) => {
-    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a') || (e.target as HTMLElement).closest('[role="checkbox"]')) {
       return;
     }
     router.push(`/?jobId=${jobId}`);
@@ -168,18 +170,21 @@ export default function JobsPage() {
     });
   };
 
-  const handleBulkSendMessage = (jobId: string, message: string) => {
-    const job = jobs.find(j => j.id === jobId);
-    if (!job) return;
-
+  const handleBulkSendMessage = (jobIds: string[], message: string) => {
+    const sessionIdsToSend = jobs.filter(j => jobIds.includes(j.id)).flatMap(j => j.sessionIds);
+    if (sessionIdsToSend.length === 0) {
+      toast({ title: "No sessions to message." });
+      return;
+    }
+    
     startActionTransition(async () => {
-        const messagePromises = job.sessionIds.map(id => sendMessage(apiKey, id, message));
+        const messagePromises = sessionIdsToSend.map(id => sendMessage(apiKey, id, message));
         try {
             const results = await Promise.all(messagePromises);
             const successfulMessages = results.filter(r => r).length;
             toast({
                 title: "Bulk Message Sent",
-                description: `Successfully sent message to ${successfulMessages} of ${job.sessionIds.length} sessions.`,
+                description: `Successfully sent message to ${successfulMessages} of ${sessionIdsToSend.length} sessions.`,
             });
             fetchJobSessions();
         } catch (error) {
@@ -249,6 +254,28 @@ export default function JobsPage() {
   
   const quickReplyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
 
+  const paginatedJobIds = useMemo(() => paginatedJobs.map(j => j.id), [paginatedJobs]);
+
+  const handleSelectAll = (checked: boolean | 'indeterminate') => {
+    if (checked) {
+      setSelectedJobIds(ids => [...new Set([...ids, ...paginatedJobIds])]);
+    } else {
+      setSelectedJobIds(ids => ids.filter(id => !paginatedJobIds.includes(id)));
+    }
+  };
+
+  const handleSelectRow = (jobId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedJobIds(ids => [...ids, jobId]);
+    } else {
+      setSelectedJobIds(ids => ids.filter(id => id !== jobId));
+    }
+  }
+
+  const isAllOnPageSelected = paginatedJobIds.length > 0 && paginatedJobIds.every(id => selectedJobIds.includes(id));
+  const isSomeOnPageSelected = paginatedJobIds.some(id => selectedJobIds.includes(id));
+  const selectAllState = isAllOnPageSelected ? true : (isSomeOnPageSelected ? 'indeterminate' : false);
+
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -273,223 +300,276 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="flex flex-col flex-1 bg-background">
-      <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
-        <div className="space-y-8 px-4 sm:px-6 lg:px-8">
-          <Card>
-            <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                        <ClipboardList className="h-6 w-6" />
-                        <CardTitle>Job List</CardTitle>
-                        {apiKey && (
-                            <Button variant="ghost" size="icon" onClick={handleRefresh} aria-label="Refresh job list" disabled={isFetching}>
-                                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-                            </Button>
-                        )}
-                    </div>
-                    {isClient && apiKey && lastUpdatedAt && (
-                        <div className="text-sm text-muted-foreground text-right flex-shrink-0">
-                           <div>
-                               Last updated:{" "}
-                               {format(lastUpdatedAt, "h:mm:ss a")}
-                           </div>
-                           {pollInterval > 0 && (
-                               <div>
-                               Next poll in: {countdown}s
-                               </div>
-                           )}
-                        </div>
-                    )}
-                </div>
-                <CardDescription>
-                  A list of all the jobs you have created.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {jobs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
-                  <p className="font-semibold text-lg">No Jobs Yet</p>
-                  <p className="text-sm">
-                    Click "New Job" to create your first job.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="border-t border-x rounded-t-lg z-10 sticky top-0 bg-background">
-                    <Table>
-                       <colgroup>
-                          <col style={{ width: '30%' }} />
-                          <col style={{ width: '25%' }} />
-                          <col style={{ width: '25%' }} />
-                          <col style={{ width: '20%' }} />
-                        </colgroup>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Job Name</TableHead>
-                          <TableHead>Repository / Branch</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                    </Table>
+    <>
+      <div className="flex flex-col flex-1 bg-background">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
+          <div className="space-y-8 px-4 sm:px-6 lg:px-8">
+            <Card>
+              <CardHeader>
+                  <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                          <ClipboardList className="h-6 w-6" />
+                          <CardTitle>Job List</CardTitle>
+                          {apiKey && (
+                              <Button variant="ghost" size="icon" onClick={handleRefresh} aria-label="Refresh job list" disabled={isFetching}>
+                                  <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+                              </Button>
+                          )}
+                      </div>
+                      {isClient && apiKey && lastUpdatedAt && (
+                          <div className="text-sm text-muted-foreground text-right flex-shrink-0">
+                            <div>
+                                Last updated:{" "}
+                                {format(lastUpdatedAt, "h:mm:ss a")}
+                            </div>
+                            {pollInterval > 0 && (
+                                <div>
+                                Next poll in: {countdown}s
+                                </div>
+                            )}
+                          </div>
+                      )}
                   </div>
-                  <ScrollArea className="h-[60vh]">
-                    <div className="border-x border-b rounded-b-lg">
-                      <TooltipProvider>
-                        <Table>
-                           <colgroup>
-                              <col style={{ width: '30%' }} />
-                              <col style={{ width: '25%' }} />
-                              <col style={{ width: '25%' }} />
-                              <col style={{ width: '20%' }} />
-                            </colgroup>
-                          <TableBody>
-                            {paginatedJobs.map((job) => {
-                              const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };
-                              const isApprovingCurrent = isBulkApproving === job.id;
-                              return (
-                                <TableRow key={job.id} onClick={(e) => handleJobClick(e, job.id)} className="cursor-pointer">
-                                  <TableCell className="font-medium">
-                                    {job.name}
-                                  </TableCell>
-                                  <TableCell>
-                                      <div className="flex flex-col">
-                                          <span className="font-mono text-sm">{details.repo || 'N/A'}</span>
-                                          <span className="font-mono text-xs text-muted-foreground">{details.branch || 'N/A'}</span>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                      <div className="flex items-center gap-1" title={`${details.completed} Completed`}>
-                                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                        <span>{details.completed}</span>
-                                      </div>
-                                      <div className="flex items-center gap-1" title={`${details.working} Working`}>
-                                        <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-                                        <span>{details.working}</span>
-                                      </div>
-                                      <Tooltip>
-                                          <TooltipTrigger asChild>
-                                              <Button 
-                                                  variant="ghost" 
-                                                  size="sm" 
-                                                  className="flex items-center gap-1 p-1 h-auto text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
-                                                  onClick={(e) => handleBulkApprove(e, job.id)}
-                                                  disabled={isApprovingCurrent || details.pending === 0 || isBulkApproving !== null || isActionPending}
-                                                  aria-label="Approve all pending sessions"
-                                              >
-                                                  {isApprovingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
-                                                  <span>{details.pending}</span>
-                                              </Button>
-                                          </TooltipTrigger>
-                                          {details.pending > 0 && (
-                                              <TooltipContent>
-                                                  <p>Approve all {details.pending} pending session(s)</p>
-                                              </TooltipContent>
-                                          )}
-                                      </Tooltip>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                                      <Popover>
+                  <CardDescription>
+                    A list of all the jobs you have created.
+                  </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {jobs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
+                    <p className="font-semibold text-lg">No Jobs Yet</p>
+                    <p className="text-sm">
+                      Click "New Job" to create your first job.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="border-t border-x rounded-t-lg z-10 sticky top-0 bg-background">
+                      <Table>
+                        <colgroup>
+                            <col style={{ width: '40px' }} />
+                            <col style={{ width: '30%' }} />
+                            <col style={{ width: '25%' }} />
+                            <col style={{ width: '25%' }} />
+                            <col style={{ width: '20%' }} />
+                          </colgroup>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>
+                                <Checkbox 
+                                  checked={selectAllState}
+                                  onCheckedChange={handleSelectAll}
+                                  aria-label="Select all jobs on this page"
+                                />
+                            </TableHead>
+                            <TableHead>Job Name</TableHead>
+                            <TableHead>Repository / Branch</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                      </Table>
+                    </div>
+                    <ScrollArea className="h-[60vh]">
+                      <div className="border-x border-b rounded-b-lg">
+                        <TooltipProvider>
+                          <Table>
+                            <colgroup>
+                                <col style={{ width: '40px' }} />
+                                <col style={{ width: '30%' }} />
+                                <col style={{ width: '25%' }} />
+                                <col style={{ width: '25%' }} />
+                                <col style={{ width: '20%' }} />
+                              </colgroup>
+                            <TableBody>
+                              {paginatedJobs.map((job) => {
+                                const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };
+                                const isApprovingCurrent = isBulkApproving === job.id;
+                                return (
+                                  <TableRow 
+                                    key={job.id} 
+                                    data-state={selectedJobIds.includes(job.id) && "selected"}
+                                    onClick={(e) => handleJobClick(e, job.id)} 
+                                    className="cursor-pointer"
+                                  >
+                                    <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
+                                        <Checkbox
+                                          checked={selectedJobIds.includes(job.id)}
+                                          onCheckedChange={(checked) => handleSelectRow(job.id, !!checked)}
+                                          aria-label={`Select job ${job.name}`}
+                                        />
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                      {job.name}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span className="font-mono text-sm">{details.repo || 'N/A'}</span>
+                                            <span className="font-mono text-xs text-muted-foreground">{details.branch || 'N/A'}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                        <div className="flex items-center gap-1" title={`${details.completed} Completed`}>
+                                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                          <span>{details.completed}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1" title={`${details.working} Working`}>
+                                          <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                                          <span>{details.working}</span>
+                                        </div>
                                         <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <PopoverTrigger asChild>
-                                              <Button variant="ghost" size="icon" disabled={isActionPending}>
-                                                <MessageSquareReply className="h-4 w-4" />
-                                              </Button>
-                                            </PopoverTrigger>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            <p>Send a Quick Reply</p>
-                                          </TooltipContent>
+                                            <TooltipTrigger asChild>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="flex items-center gap-1 p-1 h-auto text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
+                                                    onClick={(e) => handleBulkApprove(e, job.id)}
+                                                    disabled={isApprovingCurrent || details.pending === 0 || isBulkApproving !== null || isActionPending}
+                                                    aria-label="Approve all pending sessions"
+                                                >
+                                                    {isApprovingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                                                    <span>{details.pending}</span>
+                                                </Button>
+                                            </TooltipTrigger>
+                                            {details.pending > 0 && (
+                                                <TooltipContent>
+                                                    <p>Approve all {details.pending} pending session(s)</p>
+                                                </TooltipContent>
+                                            )}
                                         </Tooltip>
-                                        <PopoverContent className="p-0 w-64" align="end">
-                                            <Command>
-                                                <CommandInput placeholder="Search replies..." />
-                                                <CommandList>
-                                                    <CommandEmpty>No replies found.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {quickReplyOptions.map((option) => (
-                                                            <CommandItem
-                                                                key={option.value}
-                                                                value={`${option.label} ${option.content}`}
-                                                                onSelect={() => {
-                                                                    handleBulkSendMessage(job.id, option.content);
-                                                                    // We can't easily close the popover here without more complex state
-                                                                    // but it will close on blur which is acceptable.
-                                                                }}
-                                                            >
-                                                                {option.label}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                      </Popover>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                        <Popover>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <PopoverTrigger asChild>
+                                                <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                                  <MessageSquareReply className="h-4 w-4" />
+                                                </Button>
+                                              </PopoverTrigger>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              <p>Send a Quick Reply</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                          <PopoverContent className="p-0 w-64" align="end">
+                                              <Command>
+                                                  <CommandInput placeholder="Search replies..." />
+                                                  <CommandList>
+                                                      <CommandEmpty>No replies found.</CommandEmpty>
+                                                      <CommandGroup>
+                                                          {quickReplyOptions.map((option) => (
+                                                              <CommandItem
+                                                                  key={option.value}
+                                                                  value={`${option.label} ${option.content}`}
+                                                                  onSelect={() => {
+                                                                      handleBulkSendMessage([job.id], option.content);
+                                                                      // We can't easily close the popover here without more complex state
+                                                                      // but it will close on blur which is acceptable.
+                                                                  }}
+                                                              >
+                                                                  {option.label}
+                                                              </CommandItem>
+                                                          ))}
+                                                      </CommandGroup>
+                                                  </CommandList>
+                                              </Command>
+                                          </PopoverContent>
+                                        </Popover>
 
-                                      <MessageDialog
-                                          triggerButton={
-                                              <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                      <Button variant="ghost" size="icon" aria-label="Send Message to Job" disabled={isActionPending}>
-                                                          <MessageSquare className="h-4 w-4" />
-                                                      </Button>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent>Send Message to all sessions</TooltipContent>
-                                              </Tooltip>
-                                          }
-                                          predefinedPrompts={predefinedPrompts}
-                                          quickReplies={quickReplies}
-                                          onSendMessage={(message) => handleBulkSendMessage(job.id, message)}
-                                          dialogTitle="Send Message to Job"
-                                          dialogDescription={`This message will be sent to all ${job.sessionIds.length} sessions in the "${job.name}" job.`}
-                                          isActionPending={isActionPending}
-                                      />
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              )
-                            })}
-                          </TableBody>
-                        </Table>
-                      </TooltipProvider>
-                    </div>
-                  </ScrollArea>
-                </>
+                                        <MessageDialog
+                                            triggerButton={
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button variant="ghost" size="icon" aria-label="Send Message to Job" disabled={isActionPending}>
+                                                            <MessageSquare className="h-4 w-4" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>Send Message to all sessions</TooltipContent>
+                                                </Tooltip>
+                                            }
+                                            predefinedPrompts={predefinedPrompts}
+                                            quickReplies={quickReplies}
+                                            onSendMessage={(message) => handleBulkSendMessage([job.id], message)}
+                                            dialogTitle="Send Message to Job"
+                                            dialogDescription={`This message will be sent to all ${job.sessionIds.length} sessions in the "${job.name}" job.`}
+                                            isActionPending={isActionPending}
+                                        />
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })}
+                            </TableBody>
+                          </Table>
+                        </TooltipProvider>
+                      </div>
+                    </ScrollArea>
+                  </>
+                )}
+              </CardContent>
+              {totalPages > 1 && (
+                  <CardFooter className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                          Page {currentPage} of {totalPages}
+                      </span>
+                      <div className="flex items-center gap-2">
+                          <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                              disabled={currentPage === 1}
+                          >
+                              Previous
+                          </Button>
+                          <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                              disabled={currentPage === totalPages}
+                          >
+                              Next
+                          </Button>
+                      </div>
+                  </CardFooter>
               )}
-            </CardContent>
-             {totalPages > 1 && (
-                <CardFooter className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                        Page {currentPage} of {totalPages}
-                    </span>
+            </Card>
+          </div>
+        </main>
+      </div>
+
+       {selectedJobIds.length > 0 && (
+            <div className="fixed bottom-4 inset-x-4 flex justify-center">
+                <Card className="flex items-center gap-4 p-3 shadow-2xl animate-in fade-in-0 slide-in-from-bottom-5">
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                        >
-                            Next
+                        <div className="text-sm font-medium">{selectedJobIds.length} job(s) selected</div>
+                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedJobIds([])}>
+                            <X className="h-4 w-4"/>
+                            <span className="sr-only">Clear selection</span>
                         </Button>
                     </div>
-                </CardFooter>
-            )}
-          </Card>
-        </div>
-      </main>
-    </div>
+                     <MessageDialog
+                        triggerButton={
+                            <Button size="sm">
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Send Bulk Message
+                            </Button>
+                        }
+                        predefinedPrompts={predefinedPrompts}
+                        quickReplies={quickReplies}
+                        onSendMessage={(message) => handleBulkSendMessage(selectedJobIds, message)}
+                        dialogTitle="Send Bulk Message"
+                        dialogDescription={`This message will be sent to all sessions in the ${selectedJobIds.length} selected job(s).`}
+                        isActionPending={isActionPending}
+                    />
+                </Card>
+            </div>
+        )}
+    </>
   );
 }
+
+    
