@@ -20,7 +20,7 @@ import {
 import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2, MessageSquare, Briefcase } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2, MessageSquare, Briefcase, MessageSquareReply } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -30,6 +30,7 @@ import { PrStatus } from "./pr-status";
 import { MessageDialog } from "./message-dialog";
 import { ScrollArea } from "./ui/scroll-area";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 
 type SessionListProps = {
@@ -178,7 +179,7 @@ export function SessionList({
           </div>
         ) : (
           <>
-            <div className="border rounded-t-lg z-10 sticky top-0 bg-background">
+            <div className="border-t border-x rounded-t-lg z-10 sticky top-0 bg-background">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -261,11 +262,37 @@ export function SessionList({
                                 </Tooltip>
                               ) : null}
 
+                              <DropdownMenu>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                        <MessageSquareReply className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Send a Quick Reply</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <DropdownMenuContent>
+                                  {quickReplies.length > 0 ? (
+                                    quickReplies.map((reply) => (
+                                      <DropdownMenuItem key={reply.id} onClick={() => onSendMessage(session.id, reply.prompt)}>
+                                        {reply.title}
+                                      </DropdownMenuItem>
+                                    ))
+                                  ) : (
+                                    <DropdownMenuItem disabled>No quick replies</DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+
                               <MessageDialog
                                 triggerButton={
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" aria-label="Send Message to Session">
+                                            <Button variant="ghost" size="icon" aria-label="Send Message to Session" disabled={isActionPending}>
                                                 <MessageSquare className="h-4 w-4" />
                                             </Button>
                                         </TooltipTrigger>
