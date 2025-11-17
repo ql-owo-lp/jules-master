@@ -300,7 +300,7 @@ export function JobCreationForm({
             </div>
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex justify-end">
           <Button
             type="submit"
             disabled={isPending || disabled || !prompt.trim()}
