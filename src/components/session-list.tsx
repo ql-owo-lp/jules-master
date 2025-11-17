@@ -19,7 +19,7 @@ import {
 import type { Session, Job, PredefinedPrompt } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ClipboardList, RefreshCw, Hand, Loader2, Github, MessageSquareReply } from "lucide-react";
+import { ClipboardList, RefreshCw, Hand, Loader2, Github, MessageSquareReply, ChevronsUpDown } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -29,8 +29,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command";
 
 
 type SessionListProps = {
@@ -50,6 +52,57 @@ type SessionListProps = {
   githubTokenSet: boolean;
   children: React.ReactNode;
 };
+
+function QuickReplyPopover({
+  quickReplies,
+  onSelect,
+  isActionPending,
+}: {
+  quickReplies: PredefinedPrompt[],
+  onSelect: (prompt: string) => void,
+  isActionPending?: boolean
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+     <Popover open={open} onOpenChange={setOpen}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" disabled={isActionPending}>
+              <MessageSquareReply className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Send Quick Reply</p>
+        </TooltipContent>
+      </Tooltip>
+      <PopoverContent className="w-[250px] p-0">
+        <Command>
+          <CommandInput placeholder="Search replies..." />
+          <CommandList>
+            <CommandEmpty>No replies found.</CommandEmpty>
+            <CommandGroup>
+              {quickReplies.map((reply) => (
+                <CommandItem
+                  key={reply.id}
+                  value={`${reply.title} ${reply.prompt}`}
+                  onSelect={() => {
+                    onSelect(reply.prompt);
+                    setOpen(false);
+                  }}
+                >
+                  {reply.title}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 
 export function SessionList({
@@ -206,7 +259,7 @@ export function SessionList({
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
+                      <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                        {session.state === 'AWAITING_PLAN_APPROVAL' ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -227,30 +280,11 @@ export function SessionList({
                         ) : null}
 
                         {quickReplies.length > 0 && (
-                          <DropdownMenu>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" disabled={isActionPending}>
-                                    <MessageSquareReply className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Send Quick Reply</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <DropdownMenuContent align="end">
-                              {quickReplies.map((reply) => (
-                                <DropdownMenuItem
-                                  key={reply.id}
-                                  onClick={() => onSendMessage(session.id, reply.prompt)}
-                                >
-                                  {reply.title}
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                           <QuickReplyPopover
+                            quickReplies={quickReplies}
+                            onSelect={(prompt) => onSendMessage(session.id, prompt)}
+                            isActionPending={isActionPending}
+                          />
                         )}
                        </div>
                     </TableCell>
