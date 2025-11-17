@@ -116,7 +116,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
         <ScrollArea className="h-[700px] pr-4" ref={ref}>
             <div className="space-y-8">
             {activities.map((activity, index) => (
-                <div key={activity.id} className="flex gap-4">
+                <div key={activity.id} className="flex gap-4 items-start">
                 <div className="flex flex-col items-center">
                     <span
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
@@ -130,10 +130,10 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
                        <div className="flex-1 w-px bg-border my-2"></div>
                     )}
                 </div>
-                <div className="flex-1 space-y-1 mt-1 min-w-0">
+                <div className="flex-1 space-y-1 min-w-0">
                     <div className="flex justify-between items-start gap-4">
-                    <p className="font-semibold text-sm break-words">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground whitespace-nowrap pl-4">
+                    <p className="font-semibold text-sm break-words pt-1">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground whitespace-nowrap pl-4 pt-1.5">
                         {formatDistanceToNow(new Date(activity.createTime), {
                         addSuffix: true,
                         })}
@@ -159,42 +159,18 @@ function ActivityContent({ activity }: { activity: Activity }) {
   const agentMessage = activity.agentMessaged?.agentMessage;
   if (agentMessage) {
     return (
-        <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="message" className="border-b-0">
-                <AccordionTrigger>
-                <div className="flex items-center gap-2 text-sm">
-                    <MessageSquare className="h-4 w-4" />
-                    <span>Expand Message</span>
-                </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                    <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto">
-                        <code>{agentMessage}</code>
-                    </pre>
-                </AccordionContent>
-            </AccordionItem>
-        </Accordion>
+        <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto mt-2">
+            <code>{agentMessage}</code>
+        </pre>
     );
   }
   
   const userMessage = activity.userMessaged?.userMessage;
   if (userMessage) {
     return (
-        <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="message" className="border-b-0">
-                <AccordionTrigger>
-                <div className="flex items-center gap-2 text-sm">
-                    <MessageSquare className="h-4 w-4" />
-                    <span>Expand Message</span>
-                </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                    <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto">
-                        <code>{userMessage}</code>
-                    </pre>
-                </AccordionContent>
-            </AccordionItem>
-        </Accordion>
+        <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto mt-2">
+            <code>{userMessage}</code>
+        </pre>
     );
   }
 
@@ -219,12 +195,7 @@ function ActivityContent({ activity }: { activity: Activity }) {
     return (
       <div className="mt-2 space-y-2">
         <p className="font-medium">{activity.progressUpdated!.title}</p>
-        <pre 
-            className={cn("text-sm text-muted-foreground whitespace-pre-wrap font-sans", `line-clamp-${lineClamp}`)}
-        >
-            {progressDescription}
-        </pre>
-         <Accordion type="single" collapsible className="w-full">
+         <Accordion type="single" collapsible defaultValue="progress">
             <AccordionItem value="progress" className="border-b-0">
                 <AccordionTrigger>
                 <div className="flex items-center gap-2 text-sm">
@@ -393,5 +364,3 @@ function GitPatchDetails({ patch }: { patch: GitPatch }) {
       </div>
   );
 }
-
-    
