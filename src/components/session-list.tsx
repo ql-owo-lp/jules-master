@@ -149,9 +149,11 @@ export function SessionList({
                 <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
                 </Button>
             </div>
-            <CardDescription className="mt-2">
-                {sessions.length > 0 ? "A list of your most recent sessions." : "Your created sessions will appear here."}
-            </CardDescription>
+            <div className="mt-2">
+                <CardDescription>
+                    {sessions.length > 0 ? "A list of your most recent sessions." : "Your created sessions will appear here."}
+                </CardDescription>
+            </div>
           </div>
           {lastUpdatedAt && (
             <div className="text-sm text-muted-foreground text-right flex-shrink-0">
@@ -370,4 +372,3 @@ export function SessionList({
   );
 }
 
-    
