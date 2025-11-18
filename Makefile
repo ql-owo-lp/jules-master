@@ -1,5 +1,5 @@
 IMAGE_NAME := iowoi/jules-master
-PLATFORMS ?= linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+PLATFORMS ?= linux/amd64,linux/arm64,linux/ppc64le
 
 .PHONY: build
 build:
