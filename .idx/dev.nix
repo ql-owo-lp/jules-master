@@ -7,6 +7,7 @@
     pkgs.nodejs_22
     pkgs.zulu
     pkgs.docker
+    pkgs.docker-buildx
   ];
   # Sets environment variables in the workspace
   env = {};
