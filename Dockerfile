@@ -27,13 +27,9 @@ WORKDIR /app
 USER nonroot
 
 # Copy built assets from the builder stage
-COPY --from=builder --chown=nonroot:nonroot /app/public ./public
 COPY --from=builder --chown=nonroot:nonroot /app/.next ./.next
 COPY --from=builder --chown=nonroot:nonroot /app/node_modules ./node_modules
 COPY --from=builder --chown=nonroot:nonroot /app/package.json ./package.json
 
 # Expose the port the app runs on
 EXPOSE 9002
-
-# Set the default command to start the Next.js server
-CMD ["server.js"]
