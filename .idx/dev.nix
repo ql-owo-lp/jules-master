@@ -9,6 +9,7 @@
     pkgs.zulu
     pkgs.docker
     pkgs.docker-buildx
+    pkgs.gnumake42
   ];
   # Sets environment variables in the workspace
   env = {};
@@ -19,6 +20,11 @@
     detect = false;
     projectId = "demo-app";
     services = ["auth" "firestore"];
+  };
+  services = {
+    docker = {
+      enable = true;
+    };
   };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
