@@ -1,5 +1,5 @@
 # 1. Builder Stage: Build the Next.js application
-FROM node:22-slim AS builder
+FROM node:22 AS builder
 
 # Set working directory
 WORKDIR /app
