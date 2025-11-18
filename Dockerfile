@@ -33,3 +33,6 @@ COPY --from=builder --chown=nonroot:nonroot /app/package.json ./package.json
 
 # Expose the port the app runs on
 EXPOSE 9002
+
+# Start the Next.js application
+CMD ["./node_modules/next/dist/bin/next", "start", "-p", "9002"]
