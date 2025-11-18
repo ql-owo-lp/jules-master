@@ -31,4 +31,4 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and push
-      run: make build
+      run: make build-multiarch
