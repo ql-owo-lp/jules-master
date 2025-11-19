@@ -37,7 +37,6 @@ type JobCreationFormProps = {
     automationMode: AutomationMode
   ) => Promise<Session | null>;
   disabled?: boolean;
-  apiKey: string;
   onReset?: () => void;
 };
 
@@ -47,7 +46,6 @@ export function JobCreationForm({
   onJobsCreated,
   onCreateJob,
   disabled,
-  apiKey,
   onReset
 }: JobCreationFormProps) {
   const [prompt, setPrompt] = useLocalStorage("jules-new-job-prompt", "");
@@ -308,7 +306,6 @@ export function JobCreationForm({
                 </div>
                 <SourceSelection 
                     key={sourceSelectionKey}
-                    apiKey={apiKey} 
                     onSourceSelected={setSelectedSource} 
                     disabled={disabled || isPending}
                     selectedValue={selectedSource}
@@ -373,5 +370,3 @@ export function JobCreationForm({
     </Card>
   );
 }
-
-    
