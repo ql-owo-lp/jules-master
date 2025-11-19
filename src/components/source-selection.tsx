@@ -23,13 +23,10 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue }: S
 
 
   useEffect(() => {
-    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
-    if (!effectiveApiKey) return;
-
     startFetching(async () => {
       try {
         setError(null);
-        const fetchedSources = await listSources();
+        const fetchedSources = await listSources(apiKey);
         setSources(fetchedSources);
         // If there's no value from localstorage, select the first one.
         if (!selectedValue && fetchedSources.length > 0) {

@@ -14,19 +14,16 @@ type ListSourcesResponse = {
   nextPageToken?: string;
 };
 
-function getApiKey(): string | undefined {
-    return process.env.JULES_API_KEY;
-}
-
 export async function revalidateSessions() {
   revalidateTag('sessions');
 }
 
 export async function listSessions(
+  apiKey: string | null,
   pageSize: number = 50
 ): Promise<Session[]> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
+  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+  if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
     return [];
   }
@@ -36,7 +33,7 @@ export async function listSessions(
       `https://jules.googleapis.com/v1alpha/sessions?pageSize=${pageSize}`,
       {
         headers: {
-          'X-Goog-Api-Key': apiKey,
+          'X-Goog-Api-Key': effectiveApiKey,
         },
         next: { revalidate: 0, tags: ['sessions'] }, 
       }
@@ -63,16 +60,16 @@ export async function listSessions(
   }
 }
 
-export async function listSources(): Promise<Source[]> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
+export async function listSources(apiKey: string | null): Promise<Source[]> {
+  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+  if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
     return [];
   }
   try {
     const response = await fetch('https://jules.googleapis.com/v1alpha/sources', {
       headers: {
-        'X-Goog-Api-Key': apiKey,
+        'X-Goog-Api-Key': effectiveApiKey,
       },
       next: { revalidate: 300, tags: ['sources'] },
     });

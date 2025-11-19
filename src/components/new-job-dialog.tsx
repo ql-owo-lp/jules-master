@@ -48,7 +48,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             },
             requirePlanApproval,
             automationMode
-        });
+        }, apiKey);
 
         if (!newSession) {
             // The error toast is handled inside the creation form's retry loop

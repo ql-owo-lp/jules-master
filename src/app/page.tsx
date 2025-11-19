@@ -89,12 +89,9 @@ function HomePageContent() {
   
 
   const fetchSessions = useCallback(async () => {
-    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
-    if (!effectiveApiKey) return;
-
     startFetching(async () => {
       const [fetchedSessions, fetchedJobs] = await Promise.all([
-        listSessions(),
+        listSessions(apiKey),
         getJobs()
       ]);
       const validSessions = fetchedSessions.filter(s => s);
@@ -110,8 +107,10 @@ function HomePageContent() {
   // Effect to fetch PR statuses for visible sessions
   useEffect(() => {
     const fetchStatuses = async () => {
-        const effectiveGithubToken = process.env.GITHUB_TOKEN || githubToken;
-        if (!effectiveGithubToken || filteredSessions.length === 0) {
+        if (!githubToken && !process.env.GITHUB_TOKEN) {
+            return;
+        }
+        if (filteredSessions.length === 0) {
             return;
         }
 
@@ -123,7 +122,7 @@ function HomePageContent() {
         if (urlsToFetch.length > 0) {
             const newStatuses: Record<string, PullRequestStatus | null> = {};
             const promises = urlsToFetch.map(async (prUrl) => {
-                const status = await getPullRequestStatus(prUrl);
+                const status = await getPullRequestStatus(prUrl, githubToken);
                 newStatuses[prUrl] = status;
             });
             
@@ -147,12 +146,11 @@ function HomePageContent() {
   // Initial fetch and set up polling interval
   useEffect(() => {
     if (isClient) {
-      const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
-      if (effectiveApiKey) {
+      if (apiKey || process.env.JULES_API_KEY) {
         if (sessions.length === 0) {
           startFetching(async () => {
             const [fetchedSessions, fetchedJobs] = await Promise.all([
-                listSessions(),
+                listSessions(apiKey),
                 getJobs()
             ]);
             const validSessions = fetchedSessions.filter(s => s);
@@ -179,8 +177,7 @@ function HomePageContent() {
 
   // Countdown timer
   useEffect(() => {
-    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
-    if (!isClient || !effectiveApiKey || sessionListPollInterval <= 0) return;
+    if (!isClient || (!apiKey && !process.env.JULES_API_KEY) || sessionListPollInterval <= 0) return;
 
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
@@ -200,7 +197,7 @@ function HomePageContent() {
 
   const handleApprovePlan = (sessionId: string) => {
     startActionTransition(async () => {
-      const result = await approvePlan(sessionId);
+      const result = await approvePlan(sessionId, apiKey);
        if (result) {
         fetchSessions();
         toast({ title: "Plan Approved", description: "The session will now proceed." });
@@ -215,7 +212,7 @@ function HomePageContent() {
 
   const handleSendMessage = (sessionId: string, message: string) => {
     startActionTransition(async () => {
-      const result = await sendMessage(sessionId, message);
+      const result = await sendMessage(sessionId, message, apiKey);
       if (result) {
         fetchSessions();
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
@@ -230,7 +227,7 @@ function HomePageContent() {
 
   const handleBulkSendMessage = (sessionIds: string[], message: string) => {
     startActionTransition(async () => {
-      const messagePromises = sessionIds.map(id => sendMessage(id, message));
+      const messagePromises = sessionIds.map(id => sendMessage(id, message, apiKey));
         try {
             const results = await Promise.all(messagePromises);
             const successfulMessages = results.filter(r => r).length;

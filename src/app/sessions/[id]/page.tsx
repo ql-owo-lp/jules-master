@@ -61,6 +61,7 @@ export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
   const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -95,8 +96,7 @@ export default function SessionDetailPage() {
   }, []);
 
   const fetchSessionData = useCallback(async (options: { showToast?: boolean } = {}) => {
-    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
-    if (!effectiveApiKey || !id) return;
+    if (!id) return;
     
     if (options.showToast) {
         toast({ title: "Refreshing session..." });
@@ -104,8 +104,8 @@ export default function SessionDetailPage() {
 
     startFetching(async () => {
       const [fetchedSession, fetchedActivities] = await Promise.all([
-        getSession(id),
-        listActivities(id)
+        getSession(id, apiKey),
+        listActivities(id, apiKey)
       ]);
       
       if (fetchedSession) {
@@ -136,17 +136,17 @@ export default function SessionDetailPage() {
   }, [apiKey, id, idlePollInterval, activePollInterval, isPollingActive, toast, setSession, setActivities]);
 
   useEffect(() => {
-    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
-    if (effectiveApiKey && id) {
-      fetchSessionData();
+    if (apiKey || process.env.JULES_API_KEY) {
+      if (id) {
+        fetchSessionData();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, id]);
 
   // Set up polling interval
   useEffect(() => {
-    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
-    if (effectiveApiKey && currentPollInterval > 0) {
+    if ((apiKey || process.env.JULES_API_KEY) && currentPollInterval > 0) {
       const intervalId = setInterval(() => fetchSessionData(), currentPollInterval * 1000);
       return () => clearInterval(intervalId);
     }
@@ -154,8 +154,7 @@ export default function SessionDetailPage() {
 
   // Countdown timer
   useEffect(() => {
-    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
-    if (!effectiveApiKey || currentPollInterval <= 0) return;
+    if (!(apiKey || process.env.JULES_API_KEY) || currentPollInterval <= 0) return;
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
@@ -194,7 +193,7 @@ export default function SessionDetailPage() {
   const handleApprovePlan = () => {
     if (!session) return;
     startActionTransition(async () => {
-      const result = await approvePlan(session.id);
+      const result = await approvePlan(session.id, apiKey);
       if (result) {
         setSession(result);
         setIsPollingActive(true); // Start active polling
@@ -212,7 +211,7 @@ export default function SessionDetailPage() {
   const handleSendMessage = () => {
     if (!session || !message.trim()) return;
     startActionTransition(async () => {
-      const success = await sendMessage(session.id, message);
+      const success = await sendMessage(session.id, message, apiKey);
       if (success) {
         setMessage("");
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });

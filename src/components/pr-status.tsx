@@ -8,6 +8,7 @@ import { Skeleton } from "./ui/skeleton";
 import type { PullRequestStatus } from "@/lib/types";
 import { getPullRequestStatus } from "@/app/github/actions";
 import { useEffect, useState } from "react";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 
 type PrStatusProps = {
@@ -17,18 +18,19 @@ type PrStatusProps = {
 export function PrStatus({ prUrl }: PrStatusProps) {
   const [status, setStatus] = useState<PullRequestStatus | null | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
+  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
   
   useEffect(() => {
     async function fetchStatus() {
       if (!prUrl) return;
 
       setIsLoading(true);
-      const prStatus = await getPullRequestStatus(prUrl);
+      const prStatus = await getPullRequestStatus(prUrl, githubToken);
       setStatus(prStatus);
       setIsLoading(false);
     }
     fetchStatus();
-  }, [prUrl]);
+  }, [prUrl, githubToken]);
 
   if (!prUrl) {
     return <div className="w-10 h-10" />;
