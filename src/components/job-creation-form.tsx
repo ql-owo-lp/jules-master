@@ -18,14 +18,15 @@ import { refreshSources } from "@/app/sessions/actions";
 import { getPredefinedPrompts, getGlobalPrompt, addJob } from "@/app/config/actions";
 import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Wand2, Loader2, RefreshCw, X, Trash2 } from "lucide-react";
+import { Wand2, Loader2, RefreshCw, X, Trash2, BookText } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Switch } from "./ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Combobox } from "@/components/ui/combobox";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[]) => void;
@@ -180,9 +181,13 @@ export function JobCreationForm({
     });
   };
 
-  const handlePreCannedPromptClick = (p: PredefinedPrompt) => {
-    setPrompt(p.prompt);
-    setJobName(p.title);
+  const handlePreCannedPromptSelect = (promptId: string | null) => {
+    if (!promptId) return;
+    const selectedPrompt = predefinedPrompts.find(p => p.id === promptId);
+    if (selectedPrompt) {
+        setPrompt(selectedPrompt.prompt);
+        setJobName(selectedPrompt.title);
+    }
   };
   
   const branches = selectedSource?.githubRepo?.branches || [];
@@ -208,6 +213,11 @@ export function JobCreationForm({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSource, branches, defaultBranch]);
 
+  const promptOptions = predefinedPrompts.map(p => ({
+    value: p.id,
+    label: p.title,
+    content: p.prompt
+  }));
 
   return (
     <Card className="shadow-md">
@@ -238,20 +248,15 @@ export function JobCreationForm({
            {isClient && predefinedPrompts.length > 0 && (
             <div className="space-y-2">
               <Label>Message Suggestions</Label>
-              <div className="flex flex-wrap gap-2">
-                {predefinedPrompts.map((p) => (
-                  <Button
-                    key={p.id}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePreCannedPromptClick(p)}
-                    disabled={isPending || disabled}
-                  >
-                    {p.title}
-                  </Button>
-                ))}
-              </div>
+              <Combobox
+                options={promptOptions}
+                selectedValue={null}
+                onValueChange={handlePreCannedPromptSelect}
+                placeholder="Select a predefined message..."
+                searchPlaceholder="Search messages..."
+                disabled={isPending || disabled}
+                icon={<BookText className="h-4 w-4 text-muted-foreground" />}
+              />
             </div>
           )}
           
@@ -272,7 +277,6 @@ export function JobCreationForm({
                 id="session-count"
                 type="number"
                 min="1"
-                max="10"
                 value={sessionCount}
                 onChange={(e) => setSessionCount(parseInt(e.target.value, 10))}
                 disabled={isPending || disabled}
@@ -381,3 +385,5 @@ export function JobCreationForm({
     </Card>
   );
 }
+
+    
