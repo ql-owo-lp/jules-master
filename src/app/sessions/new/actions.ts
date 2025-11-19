@@ -10,15 +10,12 @@ type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
   automationMode?: AutomationMode;
 };
 
-function getApiKey(): string | undefined {
-    return process.env.JULES_API_KEY;
-}
-
 export async function createSession(
-  sessionData: CreateSessionBody
+  sessionData: CreateSessionBody,
+  apiKey: string | null
 ): Promise<Session | null> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
+  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+  if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
     return null;
   }
@@ -29,7 +26,7 @@ export async function createSession(
       {
         method: "POST",
         headers: {
-          "X-Goog-Api-Key": apiKey,
+          "X-Goog-Api-Key": effectiveApiKey,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(sessionData),

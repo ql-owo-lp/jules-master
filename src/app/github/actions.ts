@@ -28,11 +28,11 @@ const unknownChecks = { status: 'unknown' as const, total: 0, passed: 0, runs: [
 // This function is cached to avoid hitting the GitHub API too frequently for the same PR.
 // The cache is invalidated based on a revalidation time or when the underlying data changes.
 const getPullRequestStatusFromApi = unstable_cache(
-  async (prUrl: string): Promise<PullRequestStatus | null> => {
+  async (prUrl: string, token: string | null): Promise<PullRequestStatus | null> => {
     
-    const token = process.env.GITHUB_TOKEN;
+    const effectiveToken = token || process.env.GITHUB_TOKEN;
 
-    if (!token) {
+    if (!effectiveToken) {
       return { state: 'NO_TOKEN', checks: unknownChecks };
     }
 
@@ -48,7 +48,7 @@ const getPullRequestStatusFromApi = unstable_cache(
     try {
       const prResponse = await fetch(apiUrl, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${effectiveToken}`,
           Accept: 'application/vnd.github.v3+json',
         },
       });
@@ -82,7 +82,7 @@ const getPullRequestStatusFromApi = unstable_cache(
         const checkRunsUrl = `https://api.github.com/repos/${owner}/${repo}/commits/${prData.head.sha}/check-runs`;
         const checkRunsResponse = await fetch(checkRunsUrl, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${effectiveToken}`,
             Accept: 'application/vnd.github.v3+json',
           },
         });
@@ -128,6 +128,6 @@ const getPullRequestStatusFromApi = unstable_cache(
 );
 
 
-export async function getPullRequestStatus(prUrl: string): Promise<PullRequestStatus | null> {
-    return getPullRequestStatusFromApi(prUrl);
+export async function getPullRequestStatus(prUrl: string, token: string | null): Promise<PullRequestStatus | null> {
+    return getPullRequestStatusFromApi(prUrl, token);
 }

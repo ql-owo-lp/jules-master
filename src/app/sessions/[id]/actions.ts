@@ -9,15 +9,12 @@ type ListActivitiesResponse = {
   nextPageToken?: string;
 };
 
-function getApiKey(): string | undefined {
-    return process.env.JULES_API_KEY;
-}
-
 export async function getSession(
-  sessionId: string
+  sessionId: string,
+  apiKey: string | null
 ): Promise<Session | null> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
+  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+  if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
     return null;
   }
@@ -26,7 +23,7 @@ export async function getSession(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}`,
       {
         headers: {
-          "X-Goog-Api-Key": apiKey,
+          "X-Goog-Api-Key": effectiveApiKey,
         },
         cache: "no-store", // Always fetch latest for session details
       }
@@ -46,10 +43,11 @@ export async function getSession(
 }
 
 export async function listActivities(
-  sessionId: string
+  sessionId: string,
+  apiKey: string | null
 ): Promise<Activity[]> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
+  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+  if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
     return [];
   }
@@ -58,7 +56,7 @@ export async function listActivities(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}/activities`,
       {
         headers: {
-          "X-Goog-Api-Key": apiKey,
+          "X-Goog-Api-Key": effectiveApiKey,
         },
         cache: "no-store",
       }
@@ -81,10 +79,11 @@ export async function listActivities(
 
 
 export async function approvePlan(
-  sessionId: string
+  sessionId: string,
+  apiKey: string | null
 ): Promise<Session | null> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
+  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+  if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
     return null;
   }
@@ -94,7 +93,7 @@ export async function approvePlan(
       {
         method: "POST",
         headers: {
-          "X-Goog-Api-Key": apiKey,
+          "X-Goog-Api-Key": effectiveApiKey,
         },
       }
     );
@@ -118,10 +117,11 @@ export async function approvePlan(
 
 export async function sendMessage(
   sessionId: string,
-  message: string
+  message: string,
+  apiKey: string | null
 ): Promise<Session | null> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
+  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+  if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
     return null;
   }
@@ -131,7 +131,7 @@ export async function sendMessage(
       {
         method: "POST",
         headers: {
-          "X-Goog-Api-Key": apiKey,
+          "X-Goog-Api-Key": effectiveApiKey,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ prompt: message }),
