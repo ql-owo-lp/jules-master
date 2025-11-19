@@ -1,38 +1,40 @@
-# 1. Builder Stage: Build the Next.js application
-FROM node:22-slim AS builder
+# Dockerfile for production
+# This is a multi-stage build to create a small, optimized production image.
 
-# Set working directory
+# 1. Base Stage: Get Node.js
+FROM node:20-alpine AS base
 WORKDIR /app
+RUN npm install -g patch-package
 
-# Copy package.json and lock files
-COPY package.json ./
-COPY package-lock.json ./
-
-# Install dependencies
+# 2. Dependencies Stage: Install npm packages
+FROM base AS deps
+COPY package.json package-lock.json* ./
 RUN npm ci
 
-# Copy the rest of the application source code
+# 3. Build Stage: Build the Next.js app
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Build the Next.js application for production
 RUN npm run build
 
-# 2. Runner Stage: Create the final, minimal production image
-FROM gcr.io/distroless/nodejs22-debian12:nonroot AS runner
-
-# Set working directory
+# 4. Runner Stage: Create the final, small image
+FROM base AS runner
 WORKDIR /app
 
-# Set the user to the non-root user provided by the distroless image
-USER nonroot
+ENV NODE_ENV=production
 
 # Copy built assets from the builder stage
-COPY --from=builder --chown=nonroot:nonroot /app/.next ./.next
-COPY --from=builder --chown=nonroot:nonroot /app/node_modules ./node_modules
-COPY --from=builder --chown=nonroot:nonroot /app/package.json ./package.json
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/data ./data
 
 # Expose the port the app runs on
 EXPOSE 9002
 
-# Start the Next.js application
-CMD ["./node_modules/next/dist/bin/next", "start", "-p", "9002"]
+# Set the user to a non-root user for security
+USER node
+
+# The command to run the application
+CMD ["node", "server.js"]
