@@ -1,41 +1,43 @@
 
 'use server';
 
-import { dao } from '@/lib/sqlite-dao';
+import { appDatabase } from '@/lib/db';
 import type { Job, PredefinedPrompt } from '@/lib/types';
 
 // --- Jobs ---
 export async function getJobs(): Promise<Job[]> {
-  return await dao.getJobs();
+    return appDatabase.jobs.getAll();
 }
 
 export async function addJob(job: Job): Promise<void> {
-  await dao.addJob(job);
+    await appDatabase.jobs.create(job);
 }
 
 // --- Predefined Prompts ---
 export async function getPredefinedPrompts(): Promise<PredefinedPrompt[]> {
-  return await dao.getPredefinedPrompts();
+    return appDatabase.predefinedPrompts.getAll();
 }
 
 export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promise<void> {
-  await dao.savePredefinedPrompts(prompts);
+    await appDatabase.predefinedPrompts.createMany(prompts);
 }
+
 
 // --- Quick Replies ---
 export async function getQuickReplies(): Promise<PredefinedPrompt[]> {
-  return await dao.getQuickReplies();
+    return appDatabase.quickReplies.getAll();
 }
 
 export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<void> {
-  await dao.saveQuickReplies(replies);
+    await appDatabase.quickReplies.createMany(replies);
 }
 
 // --- Global Prompt ---
 export async function getGlobalPrompt(): Promise<string> {
-  return await dao.getGlobalPrompt();
+    const result = await appDatabase.globalPrompt.get();
+    return result?.prompt ?? "";
 }
 
 export async function saveGlobalPrompt(prompt: string): Promise<void> {
-  await dao.saveGlobalPrompt(prompt);
+    await appDatabase.globalPrompt.save(prompt);
 }
