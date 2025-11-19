@@ -1,3 +1,4 @@
+
 version: '3.8'
 
 # This compose file is for both local development and production.
@@ -17,12 +18,13 @@ services:
       - "9002:9002"
     # Mount the source code for hot-reloading during development
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - ./data:/app/data
       - /app/node_modules
       - /app/.next
     # Use an env_file to load environment variables for the container
     env_file:
-      - .env.local
+      - .env
     # Ensure the container stops gracefully
     stop_grace_period: 1m
     # Command to run the development server
@@ -34,8 +36,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "9002:9002"
+    volumes:
+      - ./data:/app/data
     env_file:
-      - .env.local
+      - .env
     # In production, we don't mount volumes for source code.
     # The code is copied into the image during the build process.
     command: npm run start
