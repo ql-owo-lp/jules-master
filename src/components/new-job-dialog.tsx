@@ -1,11 +1,12 @@
 
+
 "use client";
 
 import { useState, ReactNode } from "react";
 import { useRouter } from 'next/navigation';
 import { JobCreationForm } from "@/components/job-creation-form";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Source, AutomationMode } from "@/lib/types";
+import type { Session, Source, AutomationMode, Job } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/sessions/new/actions";
 import { revalidateSessions } from "@/app/sessions/actions";
@@ -18,6 +19,7 @@ type NewJobDialogProps = {
 
 export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
     const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+    const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
     const router = useRouter();
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
@@ -37,6 +39,9 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             });
             return null;
         }
+
+        const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+
         const newSession = await createSession({
             title: title,
             prompt: prompt,
@@ -48,7 +53,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             },
             requirePlanApproval,
             automationMode
-        }, apiKey);
+        }, effectiveApiKey);
 
         if (!newSession) {
             // The error toast is handled inside the creation form's retry loop
@@ -57,19 +62,24 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
         return newSession;
     }
 
-    const handleJobsCreated = (newSessions: Session[]) => {
+    const handleJobsCreated = (newSessions: Session[], newJob: Job) => {
         toast({
             title: "Job submitted!",
             description: `${newSessions.length} new session(s) have been created.`,
         });
-        // Revalidate in the background, don't need to await
+        
+        // Update job cache immediately
+        setJobs([...jobs, newJob]);
+
+        // Revalidate server data in the background
         revalidateSessions();
         
+        const targetPath = `/?jobId=${newJob.id}`;
         if (isPage) {
-            router.push('/jobs');
+            router.push(targetPath);
         } else {
             setOpen(false); // Close dialog if it's not a page
-            router.push('/jobs'); // Still navigate to jobs page
+            router.push(targetPath); // Still navigate to jobs page
         }
     };
     

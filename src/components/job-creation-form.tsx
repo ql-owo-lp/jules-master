@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useTransition, useCallback, useEffect } from "react";
@@ -29,7 +30,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Combobox } from "@/components/ui/combobox";
 
 type JobCreationFormProps = {
-  onJobsCreated: (sessions: Session[]) => void;
+  onJobsCreated: (sessions: Session[], newJob: Job) => void;
   onCreateJob: (
     title: string,
     prompt: string,
@@ -64,6 +65,7 @@ export function JobCreationForm({
   
   const [selectedSource, setSelectedSource] = useLocalStorage<Source | null>("jules-last-source", null);
   const [selectedBranch, setSelectedBranch] = useLocalStorage<string | undefined>("jules-last-branch", undefined);
+  const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
 
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
@@ -93,12 +95,13 @@ export function JobCreationForm({
     startRefreshTransition(async () => {
       await refreshSources();
       setSourceSelectionKey(Date.now());
+      setSources([]); // Clear cache to force re-fetch in SourceSelection
       toast({
         title: "Refreshed",
         description: "The list of repositories has been updated.",
       });
     });
-  }, [toast]);
+  }, [toast, setSources]);
 
   const handleReset = () => {
     setJobName("");
@@ -161,19 +164,17 @@ export function JobCreationForm({
         await sleep(500); // 500ms interval
       }
       
-      const newJob: Job = {
-        id: crypto.randomUUID(),
-        name: title,
-        sessionIds,
-        createdAt: new Date().toISOString(),
-        repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
-        branch: selectedBranch,
-      };
-      
-      await addJob(newJob);
-
       if (createdSessions.length > 0) {
-        onJobsCreated(createdSessions);
+        const newJob: Job = {
+          id: crypto.randomUUID(),
+          name: title,
+          sessionIds,
+          createdAt: new Date().toISOString(),
+          repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
+          branch: selectedBranch,
+        };
+        await addJob(newJob);
+        onJobsCreated(createdSessions, newJob);
         setPrompt("");
         setJobName("");
         setSessionCount(defaultSessionCount);
@@ -324,6 +325,8 @@ export function JobCreationForm({
                     onSourceSelected={setSelectedSource} 
                     disabled={disabled || isPending}
                     selectedValue={selectedSource}
+                    sources={sources}
+                    onSourcesLoaded={setSources}
                 />
             </div>
             <BranchSelection 
@@ -385,5 +388,3 @@ export function JobCreationForm({
     </Card>
   );
 }
-
-    
