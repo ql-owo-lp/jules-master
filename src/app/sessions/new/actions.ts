@@ -10,18 +10,14 @@ type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
   automationMode?: AutomationMode;
 };
 
-function getApiKey(): string {
-    const apiKey = process.env.JULES_API_KEY;
-    if (!apiKey) {
-        throw new Error("JULES_API_KEY environment variable not set.");
-    }
-    return apiKey;
-}
 
 export async function createSession(
+  apiKey: string,
   sessionData: CreateSessionBody
 ): Promise<Session | null> {
-  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
 
   try {
     const response = await fetch(

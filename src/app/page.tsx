@@ -9,7 +9,7 @@ import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listSessions, getApiKeys } from "./sessions/actions";
+import { listSessions } from "./sessions/actions";
 import { approvePlan, sendMessage } from "./sessions/[id]/actions";
 import { getPullRequestStatus } from "./github/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -19,9 +19,8 @@ import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
 
 function HomePageContent() {
-  const [apiKeyFromStorage] = useLocalStorage<string | null>("jules-api-key", null);
-  const [githubTokenFromStorage] = useLocalStorage<string | null>("jules-github-token", null);
-
+  const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [githubToken] = useLocalStorage<string>("jules-github-token", "");
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
@@ -34,8 +33,6 @@ function HomePageContent() {
   const [countdown, setCountdown] = useState(sessionListPollInterval);
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
 
-  const [serverApiKeys, setServerApiKeys] = useState({ JULES_API_KEY: false, GITHUB_TOKEN: false });
-
   const searchParams = useSearchParams();
   const router = useRouter();
   const jobIdParam = searchParams.get("jobId");
@@ -46,9 +43,6 @@ function HomePageContent() {
   
   const [prStatuses, setPrStatuses] = useState<Record<string, PullRequestStatus | null>>({});
   const [isFetchingPrStatus, setIsFetchingPrStatus] = useState(false);
-  
-  const hasJulesApiKey = serverApiKeys.JULES_API_KEY || !!apiKeyFromStorage;
-  const hasGithubToken = serverApiKeys.GITHUB_TOKEN || !!githubTokenFromStorage;
 
   // Effect to sync job filter with URL param
   useEffect(() => {
@@ -93,22 +87,22 @@ function HomePageContent() {
   
 
   const fetchSessions = useCallback(async () => {
-    if (!hasJulesApiKey) return;
+    if (!apiKey) return;
     startFetching(async () => {
-      const fetchedSessions = await listSessions();
+      const fetchedSessions = await listSessions(apiKey);
       const validSessions = fetchedSessions.filter(s => s);
       setSessions(validSessions);
       setLastUpdatedAt(new Date());
       setCountdown(sessionListPollInterval);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasJulesApiKey, sessionListPollInterval, setSessions]);
+  }, [apiKey, sessionListPollInterval, setSessions]);
 
 
   // Effect to fetch PR statuses for visible sessions
   useEffect(() => {
     const fetchStatuses = async () => {
-        if (!hasGithubToken || filteredSessions.length === 0) {
+        if (!githubToken || filteredSessions.length === 0) {
             return;
         }
 
@@ -120,7 +114,7 @@ function HomePageContent() {
         if (urlsToFetch.length > 0) {
             const newStatuses: Record<string, PullRequestStatus | null> = {};
             const promises = urlsToFetch.map(async (prUrl) => {
-                const status = await getPullRequestStatus(prUrl);
+                const status = await getPullRequestStatus(prUrl, githubToken);
                 newStatuses[prUrl] = status;
             });
             
@@ -133,21 +127,20 @@ function HomePageContent() {
 
     fetchStatuses();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredSessions, hasGithubToken]);
+  }, [filteredSessions, githubToken]);
 
 
 
   useEffect(() => {
     setIsClient(true);
-    getApiKeys().then(setServerApiKeys);
   }, []);
 
   // Initial fetch and set up polling interval
   useEffect(() => {
-    if (isClient && hasJulesApiKey) {
+    if (isClient && apiKey) {
       if (sessions.length === 0) {
         startFetching(async () => {
-          const fetchedSessions = await listSessions();
+          const fetchedSessions = await listSessions(apiKey);
           const validSessions = fetchedSessions.filter(s => s);
           setSessions(validSessions);
           setLastUpdatedAt(new Date());
@@ -165,19 +158,19 @@ function HomePageContent() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, hasJulesApiKey, sessionListPollInterval]);
+  }, [isClient, apiKey, sessionListPollInterval]);
   
 
   // Countdown timer
   useEffect(() => {
-    if (!isClient || !hasJulesApiKey || sessionListPollInterval <= 0) return;
+    if (!isClient || !apiKey || sessionListPollInterval <= 0) return;
 
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isClient, hasJulesApiKey, sessionListPollInterval, lastUpdatedAt]);
+  }, [isClient, apiKey, sessionListPollInterval, lastUpdatedAt]);
 
 
   const handleRefresh = () => {
@@ -190,7 +183,7 @@ function HomePageContent() {
 
   const handleApprovePlan = (sessionId: string) => {
     startActionTransition(async () => {
-      const result = await approvePlan(sessionId);
+      const result = await approvePlan(apiKey, sessionId);
        if (result) {
         fetchSessions();
         toast({ title: "Plan Approved", description: "The session will now proceed." });
@@ -205,7 +198,7 @@ function HomePageContent() {
 
   const handleSendMessage = (sessionId: string, message: string) => {
     startActionTransition(async () => {
-      const result = await sendMessage(sessionId, message);
+      const result = await sendMessage(apiKey, sessionId, message);
       if (result) {
         fetchSessions();
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
@@ -220,7 +213,7 @@ function HomePageContent() {
 
   const handleBulkSendMessage = (sessionIds: string[], message: string) => {
     startActionTransition(async () => {
-      const messagePromises = sessionIds.map(id => sendMessage(id, message));
+      const messagePromises = sessionIds.map(id => sendMessage(apiKey, id, message));
         try {
             const results = await Promise.all(messagePromises);
             const successfulMessages = results.filter(r => r).length;
@@ -295,7 +288,7 @@ function HomePageContent() {
     <div className="flex flex-col flex-1 bg-background">
       <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
         <div className="space-y-8 px-4 sm:px-6 lg:px-8">
-          {!hasJulesApiKey && (
+          {!apiKey && (
             <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
               <Terminal className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <AlertTitle>API Key Not Set</AlertTitle>
@@ -305,7 +298,7 @@ function HomePageContent() {
               </AlertDescription>
             </Alert>
           )}
-           {!hasGithubToken && (
+           {!githubToken && (
             <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200">
               <Terminal className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               <AlertTitle>GitHub Token Not Set</AlertTitle>
@@ -328,6 +321,7 @@ function HomePageContent() {
             pollInterval={sessionListPollInterval}
             titleTruncateLength={titleTruncateLength}
             jobFilter={jobFilter}
+            githubToken={githubToken}
             prStatuses={prStatuses}
             isFetchingPrStatus={isFetchingPrStatus}
           >
@@ -389,3 +383,5 @@ export default function Home() {
     </Suspense>
   )
 }
+
+    

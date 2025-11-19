@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, ReactNode, useEffect } from "react";
+import { useState, ReactNode } from "react";
 import { useRouter } from 'next/navigation';
 import { JobCreationForm } from "@/components/job-creation-form";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -17,18 +17,10 @@ type NewJobDialogProps = {
 }
 
 export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
-    const [apiKeyFromStorage] = useLocalStorage<string | null>("jules-api-key", null);
-    const [hasApiKey, setHasApiKey] = useState(false);
-
+    const [apiKey] = useLocalStorage<string>("jules-api-key", "");
     const router = useRouter();
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
-
-    useEffect(() => {
-        // The !! coerces the value to a boolean.
-        // It checks env var first, then local storage.
-        setHasApiKey(!!process.env.JULES_API_KEY || !!apiKeyFromStorage);
-    }, [apiKeyFromStorage]);
 
     const handleCreateSession = async (
         title: string, 
@@ -45,7 +37,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             });
             return null;
         }
-        const newSession = await createSession({
+        const newSession = await createSession(apiKey, {
             title: title,
             prompt: prompt,
             sourceContext: {
@@ -91,7 +83,8 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
         <JobCreationForm
             onJobsCreated={handleJobsCreated}
             onCreateJob={handleCreateSession}
-            disabled={!hasApiKey}
+            disabled={!apiKey}
+            apiKey={apiKey}
             onReset={isPage ? undefined : handleReset}
         />
     );
@@ -119,3 +112,5 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
         </Dialog>
     );
 }
+
+    

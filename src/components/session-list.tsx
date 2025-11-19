@@ -49,6 +49,7 @@ type SessionListProps = {
   countdown: number;
   pollInterval: number;
   jobFilter: string | null;
+  githubToken: string;
   prStatuses: Record<string, PullRequestStatus | null>;
   isFetchingPrStatus: boolean;
   children: React.ReactNode;
@@ -68,6 +69,7 @@ export function SessionList({
   countdown,
   pollInterval,
   jobFilter,
+  githubToken,
   prStatuses,
   isFetchingPrStatus,
   children,
@@ -312,6 +314,7 @@ export function SessionList({
                             <TableCell className="text-center">
                                 <PrStatus 
                                     prUrl={prUrl} 
+                                    githubToken={githubToken} 
                                     status={prUrl ? prStatuses[prUrl] : null}
                                     isLoading={isLoadingPrStatus}
                                 />

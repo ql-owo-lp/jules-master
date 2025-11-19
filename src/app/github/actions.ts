@@ -28,8 +28,8 @@ const unknownChecks = { status: 'unknown' as const, total: 0, passed: 0, runs: [
 // This function is cached to avoid hitting the GitHub API too frequently for the same PR.
 // The cache is invalidated based on a revalidation time or when the underlying data changes.
 const getPullRequestStatusFromApi = unstable_cache(
-  async (prUrl: string): Promise<PullRequestStatus | null> => {
-    const token = process.env.GITHUB_TOKEN;
+  async (prUrl: string, token: string): Promise<PullRequestStatus | null> => {
+    
     if (!token) {
       return { state: 'NO_TOKEN', checks: unknownChecks };
     }
@@ -126,6 +126,6 @@ const getPullRequestStatusFromApi = unstable_cache(
 );
 
 
-export async function getPullRequestStatus(prUrl: string): Promise<PullRequestStatus | null> {
-    return getPullRequestStatusFromApi(prUrl);
+export async function getPullRequestStatus(prUrl: string, token: string): Promise<PullRequestStatus | null> {
+    return getPullRequestStatusFromApi(prUrl, token);
 }

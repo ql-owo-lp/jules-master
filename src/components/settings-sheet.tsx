@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Eye, EyeOff, Moon, Sun, Info } from "lucide-react";
+import { Settings, Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -29,8 +29,8 @@ import { Separator } from "./ui/separator";
 
 
 export function SettingsSheet() {
-  const [apiKey, setApiKey] = useLocalStorage<string | null>("jules-api-key", null);
-  const [githubToken, setGithubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
   
   const [jobListPollInterval, setJobListPollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
   const [sessionListPollInterval, setSessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
@@ -40,12 +40,10 @@ export function SettingsSheet() {
   const [jobListItemsPerPage, setJobListItemsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
   const [sessionListItemsPerPage, setSessionListItemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
   const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 3);
-  
-  const [envApiKey, setEnvApiKey] = useState<string | null>(null);
-  const [envGithubToken, setEnvGithubToken] = useState<string | null>(null);
 
-  const [apiKeyValue, setApiKeyValue] = useState(apiKey || "");
-  const [githubTokenValue, setGithubTokenValue] = useState(githubToken || "");
+
+  const [apiKeyValue, setApiKeyValue] = useState(apiKey);
+  const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
   const [jobListPollIntervalValue, setJobListPollIntervalValue] = useState(jobListPollInterval);
   const [sessionListPollIntervalValue, setSessionListPollIntervalValue] = useState(sessionListPollInterval);
   const [activePollIntervalValue, setActivePollIntervalValue] = useState(activePollInterval);
@@ -60,14 +58,8 @@ export function SettingsSheet() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
-  // On mount, check for env vars. This has to be in an effect to run on client.
-  useEffect(() => {
-    setEnvApiKey(process.env.JULES_API_KEY || null);
-    setEnvGithubToken(process.env.GITHUB_TOKEN || null);
-  }, []);
-
-  useEffect(() => { setApiKeyValue(apiKey || ""); }, [apiKey]);
-  useEffect(() => { setGithubTokenValue(githubToken || ""); }, [githubToken]);
+  useEffect(() => { setApiKeyValue(apiKey); }, [apiKey]);
+  useEffect(() => { setGithubTokenValue(githubToken); }, [githubToken]);
   useEffect(() => { setJobListPollIntervalValue(jobListPollInterval); }, [jobListPollInterval]);
   useEffect(() => { setSessionListPollIntervalValue(sessionListPollInterval); }, [sessionListPollInterval]);
   useEffect(() => { setActivePollIntervalValue(activePollInterval); }, [activePollInterval]);
@@ -78,8 +70,8 @@ export function SettingsSheet() {
   useEffect(() => { setDefaultSessionCountValue(defaultSessionCount); }, [defaultSessionCount]);
   
   const handleSave = () => {
-    if (!envApiKey) setApiKey(apiKeyValue);
-    if (!envGithubToken) setGithubToken(githubTokenValue);
+    setApiKey(apiKeyValue);
+    setGithubToken(githubTokenValue);
     setJobListPollInterval(jobListPollIntervalValue);
     setSessionListPollInterval(sessionListPollIntervalValue);
     setActivePollInterval(activePollIntervalValue);
@@ -122,11 +114,10 @@ export function SettingsSheet() {
                     <Input
                         id="api-key"
                         type={showApiKey ? "text" : "password"}
-                        value={envApiKey || apiKeyValue}
+                        value={apiKeyValue}
                         onChange={(e) => setApiKeyValue(e.target.value)}
                         placeholder="Enter your API key"
                         className="pr-10"
-                        disabled={!!envApiKey}
                     />
                     <Button
                         type="button"
@@ -143,12 +134,6 @@ export function SettingsSheet() {
                         )}
                     </Button>
                     </div>
-                     {!!envApiKey && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Info className="h-3 w-3" />
-                        This key is set by an environment variable.
-                      </p>
-                    )}
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="github-token">GitHub Personal Access Token</Label>
@@ -156,11 +141,10 @@ export function SettingsSheet() {
                     <Input
                         id="github-token"
                         type={showGithubToken ? "text" : "password"}
-                        value={envGithubToken || githubTokenValue}
+                        value={githubTokenValue}
                         onChange={(e) => setGithubTokenValue(e.target.value)}
                         placeholder="Enter your GitHub PAT"
                         className="pr-10"
-                        disabled={!!envGithubToken}
                     />
                     <Button
                         type="button"
@@ -177,12 +161,6 @@ export function SettingsSheet() {
                         )}
                     </Button>
                     </div>
-                     {!!envGithubToken && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Info className="h-3 w-3" />
-                        This token is set by an environment variable.
-                      </p>
-                    )}
                     <p className="text-xs text-muted-foreground">
                     Required for fetching PR status. Use a classic token with `repo` scope.
                     </p>
