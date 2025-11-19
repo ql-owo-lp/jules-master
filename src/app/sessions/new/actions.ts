@@ -10,12 +10,16 @@ type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
   automationMode?: AutomationMode;
 };
 
+function getApiKey(): string | undefined {
+    return process.env.JULES_API_KEY;
+}
 
 export async function createSession(
-  apiKey: string,
   sessionData: CreateSessionBody
 ): Promise<Session | null> {
+  const apiKey = getApiKey();
   if (!apiKey) {
+    console.error("Jules API key is not configured.");
     return null;
   }
 

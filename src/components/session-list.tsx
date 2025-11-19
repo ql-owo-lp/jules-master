@@ -49,7 +49,6 @@ type SessionListProps = {
   countdown: number;
   pollInterval: number;
   jobFilter: string | null;
-  githubToken: string;
   prStatuses: Record<string, PullRequestStatus | null>;
   isFetchingPrStatus: boolean;
   children: React.ReactNode;
@@ -69,7 +68,6 @@ export function SessionList({
   countdown,
   pollInterval,
   jobFilter,
-  githubToken,
   prStatuses,
   isFetchingPrStatus,
   children,
@@ -265,7 +263,6 @@ export function SessionList({
                           const prUrl = getPullRequestUrl(session);
                           const repoName = getRepoNameFromSource(session.sourceContext?.source);
                           const branchName = session.sourceContext?.githubRepoContext?.startingBranch;
-                          const isLoadingPrStatus = isFetchingPrStatus && prUrl ? prStatuses[prUrl] === undefined : false;
 
                           return (
                           <TableRow
@@ -312,12 +309,7 @@ export function SessionList({
                               })}
                             </TableCell>
                             <TableCell className="text-center">
-                                <PrStatus 
-                                    prUrl={prUrl} 
-                                    githubToken={githubToken} 
-                                    status={prUrl ? prStatuses[prUrl] : null}
-                                    isLoading={isLoadingPrStatus}
-                                />
+                                <PrStatus prUrl={prUrl} />
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>

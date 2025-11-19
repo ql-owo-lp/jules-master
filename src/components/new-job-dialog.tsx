@@ -17,7 +17,7 @@ type NewJobDialogProps = {
 }
 
 export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
-    const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+    const [apiKey, setApiKey] = useLocalStorage<string | null>("jules-api-key", null);
     const router = useRouter();
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
@@ -37,7 +37,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             });
             return null;
         }
-        const newSession = await createSession(apiKey, {
+        const newSession = await createSession({
             title: title,
             prompt: prompt,
             sourceContext: {
@@ -79,12 +79,13 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
         localStorage.removeItem("jules-new-job-name");
     };
 
+    const hasApiKey = !!(process.env.JULES_API_KEY || apiKey);
+
     const form = (
         <JobCreationForm
             onJobsCreated={handleJobsCreated}
             onCreateJob={handleCreateSession}
-            disabled={!apiKey}
-            apiKey={apiKey}
+            disabled={!hasApiKey}
             onReset={isPage ? undefined : handleReset}
         />
     );
@@ -112,5 +113,3 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
         </Dialog>
     );
 }
-
-    

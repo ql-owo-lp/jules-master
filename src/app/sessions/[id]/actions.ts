@@ -9,11 +9,16 @@ type ListActivitiesResponse = {
   nextPageToken?: string;
 };
 
+function getApiKey(): string | undefined {
+    return process.env.JULES_API_KEY;
+}
+
 export async function getSession(
-  apiKey: string,
   sessionId: string
 ): Promise<Session | null> {
+  const apiKey = getApiKey();
   if (!apiKey) {
+    console.error("Jules API key is not configured.");
     return null;
   }
   try {
@@ -41,10 +46,11 @@ export async function getSession(
 }
 
 export async function listActivities(
-  apiKey: string,
   sessionId: string
 ): Promise<Activity[]> {
+  const apiKey = getApiKey();
   if (!apiKey) {
+    console.error("Jules API key is not configured.");
     return [];
   }
   try {
@@ -75,10 +81,11 @@ export async function listActivities(
 
 
 export async function approvePlan(
-  apiKey: string,
   sessionId: string
 ): Promise<Session | null> {
+  const apiKey = getApiKey();
   if (!apiKey) {
+    console.error("Jules API key is not configured.");
     return null;
   }
   try {
@@ -110,11 +117,12 @@ export async function approvePlan(
 }
 
 export async function sendMessage(
-  apiKey: string,
   sessionId: string,
   message: string
 ): Promise<Session | null> {
+  const apiKey = getApiKey();
   if (!apiKey) {
+    console.error("Jules API key is not configured.");
     return null;
   }
   try {

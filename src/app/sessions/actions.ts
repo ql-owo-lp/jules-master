@@ -14,15 +14,20 @@ type ListSourcesResponse = {
   nextPageToken?: string;
 };
 
+function getApiKey(): string | undefined {
+    return process.env.JULES_API_KEY;
+}
+
 export async function revalidateSessions() {
   revalidateTag('sessions');
 }
 
 export async function listSessions(
-  apiKey: string,
   pageSize: number = 50
 ): Promise<Session[]> {
+  const apiKey = getApiKey();
   if (!apiKey) {
+    console.error("Jules API key is not configured.");
     return [];
   }
 
@@ -58,8 +63,10 @@ export async function listSessions(
   }
 }
 
-export async function listSources(apiKey: string): Promise<Source[]> {
+export async function listSources(): Promise<Source[]> {
+  const apiKey = getApiKey();
   if (!apiKey) {
+    console.error("Jules API key is not configured.");
     return [];
   }
   try {

@@ -6,22 +6,36 @@ import { Button } from "./ui/button";
 import { GitPullRequest, GitMerge, CheckCircle, XCircle, Clock, AlertTriangle, GitPullRequestClosed, CircleDotDashed } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import type { PullRequestStatus } from "@/lib/types";
+import { getPullRequestStatus } from "@/app/github/actions";
+import { useEffect, useState } from "react";
 
 
 type PrStatusProps = {
   prUrl: string | null;
-  githubToken: string;
-  status: PullRequestStatus | null | undefined; // Can be undefined while loading
-  isLoading: boolean;
 };
 
-export function PrStatus({ prUrl, githubToken, status, isLoading }: PrStatusProps) {
+export function PrStatus({ prUrl }: PrStatusProps) {
+  const [status, setStatus] = useState<PullRequestStatus | null | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    async function fetchStatus() {
+      if (!prUrl) return;
+
+      setIsLoading(true);
+      const prStatus = await getPullRequestStatus(prUrl);
+      setStatus(prStatus);
+      setIsLoading(false);
+    }
+    fetchStatus();
+  }, [prUrl]);
+
   if (!prUrl) {
     return <div className="w-10 h-10" />;
   }
 
-  // If no token is provided, just show a simple link icon
-  if (!githubToken) {
+  // If no token is provided (inferred from status), just show a simple link icon
+  if (status?.state === 'NO_TOKEN') {
     return (
         <TooltipProvider>
             <Tooltip>
@@ -33,7 +47,7 @@ export function PrStatus({ prUrl, githubToken, status, isLoading }: PrStatusProp
                     </a>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>View on GitHub</p>
+                    <p>View on GitHub (status unavailable without token)</p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
@@ -99,11 +113,6 @@ export function PrStatus({ prUrl, githubToken, status, isLoading }: PrStatusProp
         tooltipContent = 'Pull Request Closed (Not Merged)';
         iconColor = 'text-red-500';
         break;
-    case 'NO_TOKEN':
-      Icon = AlertTriangle;
-      tooltipContent = 'GitHub token not set';
-      iconColor = 'text-yellow-500';
-      break;
     case 'UNAUTHORIZED':
         Icon = AlertTriangle;
         tooltipContent = 'Invalid GitHub Token. Please check settings.';
@@ -169,5 +178,3 @@ export function PrStatus({ prUrl, githubToken, status, isLoading }: PrStatusProp
     </TooltipProvider>
   );
 }
-
-    
