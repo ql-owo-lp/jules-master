@@ -11,7 +11,7 @@ type ListActivitiesResponse = {
 
 export async function getSession(
   sessionId: string,
-  apiKey: string | null
+  apiKey?: string | null
 ): Promise<Session | null> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
@@ -44,7 +44,7 @@ export async function getSession(
 
 export async function listActivities(
   sessionId: string,
-  apiKey: string | null
+  apiKey?: string | null
 ): Promise<Activity[]> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
@@ -80,7 +80,7 @@ export async function listActivities(
 
 export async function approvePlan(
   sessionId: string,
-  apiKey: string | null
+  apiKey?: string | null
 ): Promise<Session | null> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
@@ -118,7 +118,7 @@ export async function approvePlan(
 export async function sendMessage(
   sessionId: string,
   message: string,
-  apiKey: string | null
+  apiKey?: string | null
 ): Promise<Session | null> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {

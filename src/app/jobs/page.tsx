@@ -393,7 +393,7 @@ export default function JobsPage() {
 
     startFetching(async () => {
       const [fetchedSessions, fetchedJobs, fetchedReplies] = await Promise.all([
-        listSessions(),
+        listSessions(apiKey),
         getJobs(),
         getQuickReplies()
       ]);
@@ -477,7 +477,7 @@ export default function JobsPage() {
     }
 
     startActionTransition(async () => {
-        const approvalPromises = pendingSessionIds.map(id => approvePlan(id));
+        const approvalPromises = pendingSessionIds.map(id => approvePlan(id, apiKey));
         
         try {
             const results = await Promise.all(approvalPromises);
@@ -510,7 +510,7 @@ export default function JobsPage() {
     }
     
     startActionTransition(async () => {
-        const messagePromises = sessionIdsToSend.map(id => sendMessage(id, message));
+        const messagePromises = sessionIdsToSend.map(id => sendMessage(id, message, apiKey));
         try {
             const results = await Promise.all(messagePromises);
             const successfulMessages = results.filter(r => r).length;

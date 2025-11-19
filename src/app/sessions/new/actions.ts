@@ -12,7 +12,7 @@ type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
 
 export async function createSession(
   sessionData: CreateSessionBody,
-  apiKey: string | null
+  apiKey?: string | null
 ): Promise<Session | null> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
