@@ -1,100 +1,45 @@
 
 'use server';
 
-import fs from 'fs/promises';
-import path from 'path';
 import type { Job, PredefinedPrompt } from '@/lib/types';
+import { SqliteDao } from '@/lib/sqlite-dao';
+import type { Dao } from '@/lib/dao';
 
-type UserConfig = {
-    jobs: Job[];
-    predefinedPrompts: PredefinedPrompt[];
-    quickReplies: PredefinedPrompt[];
-    globalPrompt: string;
-};
-
-// Use environment variable for config path, with a default
-const configPath = process.env.JULES_MASTER_CONFIG_PATH || path.join(process.cwd(), 'data', 'user-config.json');
-
-async function readConfig(): Promise<UserConfig> {
-    try {
-        await fs.mkdir(path.dirname(configPath), { recursive: true });
-        const fileContent = await fs.readFile(configPath, 'utf-8');
-        return JSON.parse(fileContent);
-    } catch (error: any) {
-        // If file doesn't exist (ENOENT) or is invalid, return default
-        if (error.code === 'ENOENT') {
-            return {
-                jobs: [],
-                predefinedPrompts: [],
-                quickReplies: [],
-                globalPrompt: ''
-            };
-        }
-        console.error("Error reading config, returning default:", error);
-        return {
-            jobs: [],
-            predefinedPrompts: [],
-            quickReplies: [],
-            globalPrompt: ''
-        };
-    }
-}
-
-async function writeConfig(config: UserConfig): Promise<void> {
-    try {
-        await fs.mkdir(path.dirname(configPath), { recursive: true });
-        await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
-    } catch (error) {
-        console.error("Error writing config:", error);
-    }
-}
-
+const dao: Dao = new SqliteDao();
 
 // --- Jobs ---
 export async function getJobs(): Promise<Job[]> {
-    const config = await readConfig();
-    return config.jobs || [];
+    return dao.getJobs();
 }
 
 export async function addJob(job: Job): Promise<void> {
-    const config = await readConfig();
-    config.jobs = [...(config.jobs || []), job];
-    await writeConfig(config);
+    await dao.addJob(job);
 }
 
 // --- Predefined Prompts ---
 export async function getPredefinedPrompts(): Promise<PredefinedPrompt[]> {
-    const config = await readConfig();
-    return config.predefinedPrompts || [];
+    return dao.getPredefinedPrompts();
 }
 
 export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promise<void> {
-    const config = await readConfig();
-    config.predefinedPrompts = prompts;
-    await writeConfig(config);
+    await dao.savePredefinedPrompts(prompts);
 }
 
 
 // --- Quick Replies ---
 export async function getQuickReplies(): Promise<PredefinedPrompt[]> {
-    const config = await readConfig();
-    return config.quickReplies || [];
+    return dao.getQuickReplies();
 }
 
 export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<void> {
-    const config = await readConfig();
-    config.quickReplies = replies;
-    await writeConfig(config);
+    await dao.saveQuickReplies(replies);
 }
 
 // --- Global Prompt ---
 export async function getGlobalPrompt(): Promise<string> {
-    const config = await readConfig();
-    return config.globalPrompt || "";
+    return dao.getGlobalPrompt();
 }
 
 export async function saveGlobalPrompt(prompt: string): Promise<void> {
-    const config = await readConfig();
-    config.globalPrompt = prompt;
-    await writeConfig(config);
+    await dao.saveGlobalPrompt(prompt);
 }
