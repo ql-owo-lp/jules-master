@@ -1,3 +1,4 @@
+
 'use server';
 
 import fs from 'fs/promises';
@@ -11,14 +12,25 @@ type UserConfig = {
     globalPrompt: string;
 };
 
-const configPath = path.join(process.cwd(), 'src', 'data', 'user-config.json');
+// Use environment variable for config path, with a default
+const configPath = process.env.JULES_MASTER_CONFIG_PATH || path.join(process.cwd(), 'data', 'user-config.json');
 
 async function readConfig(): Promise<UserConfig> {
     try {
+        await fs.mkdir(path.dirname(configPath), { recursive: true });
         const fileContent = await fs.readFile(configPath, 'utf-8');
         return JSON.parse(fileContent);
-    } catch (error) {
-        // If file doesn't exist or is invalid, return default
+    } catch (error: any) {
+        // If file doesn't exist (ENOENT) or is invalid, return default
+        if (error.code === 'ENOENT') {
+            return {
+                jobs: [],
+                predefinedPrompts: [],
+                quickReplies: [],
+                globalPrompt: ''
+            };
+        }
+        console.error("Error reading config, returning default:", error);
         return {
             jobs: [],
             predefinedPrompts: [],
@@ -29,8 +41,14 @@ async function readConfig(): Promise<UserConfig> {
 }
 
 async function writeConfig(config: UserConfig): Promise<void> {
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+    try {
+        await fs.mkdir(path.dirname(configPath), { recursive: true });
+        await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+    } catch (error) {
+        console.error("Error writing config:", error);
+    }
 }
+
 
 // --- Jobs ---
 export async function getJobs(): Promise<Job[]> {
