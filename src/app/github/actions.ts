@@ -4,6 +4,13 @@
 import type { GitHubPullRequest, PullRequestStatus, CheckRun } from '@/lib/types';
 import { unstable_cache } from 'next/cache';
 
+// Adding a type for the simplified check run information
+type SimpleCheckRun = {
+  name: string;
+  status: "queued" | "in_progress" | "completed";
+  conclusion: "success" | "failure" | "neutral" | "cancelled" | "skipped" | "timed_out" | "action_required" | null;
+};
+
 // Function to parse owner, repo, and pull number from a GitHub PR URL
 const parsePrUrl = (url: string) => {
   try {
@@ -23,7 +30,7 @@ const parsePrUrl = (url: string) => {
   return null;
 };
 
-const unknownChecks = { status: 'unknown' as const, total: 0, passed: 0, runs: [] };
+const unknownChecks = { status: 'unknown' as const, total: 0, passed: 0, runs: [] as SimpleCheckRun[] };
 
 // This function is cached to avoid hitting the GitHub API too frequently for the same PR.
 // The cache is invalidated based on a revalidation time or when the underlying data changes.
@@ -77,7 +84,12 @@ const getPullRequestStatusFromApi = unstable_cache(
       }
 
       // If not merged, get the CI check status for the head SHA
-      let checks = { ...unknownChecks };
+      let checks: {
+        status: 'unknown' | 'success' | 'failure' | 'pending';
+        total: number;
+        passed: number;
+        runs: SimpleCheckRun[];
+      } = { ...unknownChecks };
       if (state === 'OPEN' && prData.head.sha) {
         const checkRunsUrl = `https://api.github.com/repos/${owner}/${repo}/commits/${prData.head.sha}/check-runs`;
         const checkRunsResponse = await fetch(checkRunsUrl, {
