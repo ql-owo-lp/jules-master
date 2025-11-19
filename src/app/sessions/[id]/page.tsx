@@ -59,9 +59,8 @@ import { Combobox } from "@/components/ui/combobox";
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
-  
-  const [apiKeyFromStorage] = useLocalStorage<string | null>("jules-api-key", null);
-  
+  const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [githubToken] = useLocalStorage<string>("jules-github-token", "");
   const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -83,8 +82,6 @@ export default function SessionDetailPage() {
 
   const [isPollingActive, setIsPollingActive] = useState(false);
   const [activeTab, setActiveTab] = useLocalStorage<string>(`jules-session-detail-tab-${id}`, "details");
-
-  const hasJulesApiKey = !!process.env.JULES_API_KEY || !!apiKeyFromStorage;
   
   // Determine current poll interval
   const isSessionDone = session?.state === 'COMPLETED' || session?.state === 'FAILED';
@@ -96,7 +93,7 @@ export default function SessionDetailPage() {
   }, []);
 
   const fetchSessionData = useCallback(async (options: { showToast?: boolean } = {}) => {
-    if (!hasJulesApiKey || !id) return;
+    if (!apiKey || !id) return;
     
     if (options.showToast) {
         toast({ title: "Refreshing session..." });
@@ -104,8 +101,8 @@ export default function SessionDetailPage() {
 
     startFetching(async () => {
       const [fetchedSession, fetchedActivities] = await Promise.all([
-        getSession(id),
-        listActivities(id)
+        getSession(apiKey, id),
+        listActivities(apiKey, id)
       ]);
       
       if (fetchedSession) {
@@ -133,31 +130,31 @@ export default function SessionDetailPage() {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasJulesApiKey, id, idlePollInterval, activePollInterval, isPollingActive, toast, setSession, setActivities]);
+  }, [apiKey, id, idlePollInterval, activePollInterval, isPollingActive, toast, setSession, setActivities]);
 
   useEffect(() => {
-    if (hasJulesApiKey && id) {
+    if (apiKey && id) {
       fetchSessionData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasJulesApiKey, id]);
+  }, [apiKey, id]);
 
   // Set up polling interval
   useEffect(() => {
-    if (hasJulesApiKey && currentPollInterval > 0) {
+    if (apiKey && currentPollInterval > 0) {
       const intervalId = setInterval(() => fetchSessionData(), currentPollInterval * 1000);
       return () => clearInterval(intervalId);
     }
-  }, [hasJulesApiKey, currentPollInterval, fetchSessionData]);
+  }, [apiKey, currentPollInterval, fetchSessionData]);
 
   // Countdown timer
   useEffect(() => {
-    if (!hasJulesApiKey || currentPollInterval <= 0) return;
+    if (!apiKey || currentPollInterval <= 0) return;
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
-  }, [hasJulesApiKey, currentPollInterval, lastUpdatedAt]);
+  }, [apiKey, currentPollInterval, lastUpdatedAt]);
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (activityFeedRef.current) {
@@ -191,7 +188,7 @@ export default function SessionDetailPage() {
   const handleApprovePlan = () => {
     if (!session) return;
     startActionTransition(async () => {
-      const result = await approvePlan(session.id);
+      const result = await approvePlan(apiKey, session.id);
       if (result) {
         setSession(result);
         setIsPollingActive(true); // Start active polling
@@ -209,7 +206,7 @@ export default function SessionDetailPage() {
   const handleSendMessage = () => {
     if (!session || !message.trim()) return;
     startActionTransition(async () => {
-      const success = await sendMessage(session.id, message);
+      const success = await sendMessage(apiKey, session.id, message);
       if (success) {
         setMessage("");
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
@@ -433,7 +430,7 @@ export default function SessionDetailPage() {
                                         <a href={prUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
                                             {prUrl}
                                         </a>
-                                        <PrStatus prUrl={prUrl} />
+                                        <PrStatus prUrl={prUrl} githubToken={githubToken} />
                                     </div>
                                 </div>
                             )}

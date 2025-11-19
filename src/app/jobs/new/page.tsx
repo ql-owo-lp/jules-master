@@ -9,14 +9,12 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function NewJobPage() {
-  const [apiKeyFromStorage] = useLocalStorage<string | null>("jules-api-key", null);
+  const [apiKey] = useLocalStorage<string>("jules-api-key", "");
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-  
-  const hasApiKey = !!process.env.JULES_API_KEY || !!apiKeyFromStorage;
 
   return (
     <div className="flex flex-col flex-1 bg-background">
@@ -29,7 +27,7 @@ export default function NewJobPage() {
             </div>
           ) : (
             <>
-              {!hasApiKey && (
+              {!apiKey && (
                 <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
                   <Terminal className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   <AlertTitle>API Key Not Set</AlertTitle>
@@ -46,3 +44,5 @@ export default function NewJobPage() {
     </div>
   );
 }
+
+    

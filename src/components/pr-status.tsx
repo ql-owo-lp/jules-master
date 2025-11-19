@@ -10,16 +10,18 @@ import type { PullRequestStatus } from "@/lib/types";
 
 type PrStatusProps = {
   prUrl: string | null;
-  status?: PullRequestStatus | null; // Make status optional
-  isLoading?: boolean; // Make isLoading optional
+  githubToken: string;
+  status: PullRequestStatus | null | undefined; // Can be undefined while loading
+  isLoading: boolean;
 };
 
-export function PrStatus({ prUrl, status, isLoading }: PrStatusProps) {
+export function PrStatus({ prUrl, githubToken, status, isLoading }: PrStatusProps) {
   if (!prUrl) {
     return <div className="w-10 h-10" />;
   }
-  
-  if (status && status.state === 'NO_TOKEN') {
+
+  // If no token is provided, just show a simple link icon
+  if (!githubToken) {
     return (
         <TooltipProvider>
             <Tooltip>
@@ -31,8 +33,7 @@ export function PrStatus({ prUrl, status, isLoading }: PrStatusProps) {
                     </a>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>View on GitHub (status unavailable)</p>
-                     <p className="text-xs text-muted-foreground">Set GitHub token to see status</p>
+                    <p>View on GitHub</p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
@@ -98,6 +99,11 @@ export function PrStatus({ prUrl, status, isLoading }: PrStatusProps) {
         tooltipContent = 'Pull Request Closed (Not Merged)';
         iconColor = 'text-red-500';
         break;
+    case 'NO_TOKEN':
+      Icon = AlertTriangle;
+      tooltipContent = 'GitHub token not set';
+      iconColor = 'text-yellow-500';
+      break;
     case 'UNAUTHORIZED':
         Icon = AlertTriangle;
         tooltipContent = 'Invalid GitHub Token. Please check settings.';
@@ -163,3 +169,5 @@ export function PrStatus({ prUrl, status, isLoading }: PrStatusProps) {
     </TooltipProvider>
   );
 }
+
+    

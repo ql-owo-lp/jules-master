@@ -9,18 +9,13 @@ type ListActivitiesResponse = {
   nextPageToken?: string;
 };
 
-function getApiKey(): string {
-    const apiKey = process.env.JULES_API_KEY;
-    if (!apiKey) {
-        throw new Error("JULES_API_KEY environment variable not set.");
-    }
-    return apiKey;
-}
-
 export async function getSession(
+  apiKey: string,
   sessionId: string
 ): Promise<Session | null> {
-  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
   try {
     const response = await fetch(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}`,
@@ -46,9 +41,12 @@ export async function getSession(
 }
 
 export async function listActivities(
+  apiKey: string,
   sessionId: string
 ): Promise<Activity[]> {
-  const apiKey = getApiKey();
+  if (!apiKey) {
+    return [];
+  }
   try {
     const response = await fetch(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}/activities`,
@@ -77,9 +75,12 @@ export async function listActivities(
 
 
 export async function approvePlan(
+  apiKey: string,
   sessionId: string
 ): Promise<Session | null> {
-  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
   try {
     const response = await fetch(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}:approvePlan`,
@@ -109,10 +110,13 @@ export async function approvePlan(
 }
 
 export async function sendMessage(
+  apiKey: string,
   sessionId: string,
   message: string
 ): Promise<Session | null> {
-  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
   try {
     const response = await fetch(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}:sendMessage`,
