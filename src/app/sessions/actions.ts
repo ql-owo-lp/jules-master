@@ -14,16 +14,33 @@ type ListSourcesResponse = {
   nextPageToken?: string;
 };
 
+function getApiKey(): string | undefined {
+    // Prefer the environment variable, but fall back to a header for client-side calls.
+    // In a real app, you'd want a more robust authentication strategy.
+    const apiKey = process.env.JULES_API_KEY;
+    return apiKey;
+}
+
 export async function revalidateSessions() {
   revalidateTag('sessions');
 }
 
+export async function getApiKeys() {
+    return {
+        JULES_API_KEY: !!process.env.JULES_API_KEY,
+        GITHUB_TOKEN: !!process.env.GITHUB_TOKEN,
+    }
+}
+
 export async function listSessions(
-  apiKey: string,
   pageSize: number = 50
 ): Promise<Session[]> {
+  const apiKey = getApiKey();
   if (!apiKey) {
-    return [];
+      // This happens when called from the client without the env var set.
+      // The client should handle this case and use its local storage key.
+      console.warn("listSessions called without JULES_API_KEY set on the server.");
+      return [];
   }
 
   try {
@@ -58,9 +75,11 @@ export async function listSessions(
   }
 }
 
-export async function listSources(apiKey: string): Promise<Source[]> {
-  if (!apiKey) {
-    return [];
+export async function listSources(): Promise<Source[]> {
+  const apiKey = getApiKey();
+   if (!apiKey) {
+      console.warn("listSources called without JULES_API_KEY set on the server.");
+      return [];
   }
   try {
     const response = await fetch('https://jules.googleapis.com/v1alpha/sources', {
