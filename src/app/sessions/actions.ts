@@ -19,7 +19,7 @@ export async function revalidateSessions() {
 }
 
 export async function listSessions(
-  apiKey: string | null,
+  apiKey?: string | null,
   pageSize: number = 50
 ): Promise<Session[]> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
@@ -60,7 +60,7 @@ export async function listSessions(
   }
 }
 
-export async function listSources(apiKey: string | null): Promise<Source[]> {
+export async function listSources(apiKey?: string | null): Promise<Source[]> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
