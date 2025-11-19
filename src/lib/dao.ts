@@ -1,13 +1,17 @@
 
-import type { Job, PredefinedPrompt } from '@/lib/types';
+import type { Job, PredefinedPrompt } from './types';
 
 export interface Dao {
-  getJobs(): Promise<Job[]>;
-  addJob(job: Job): Promise<void>;
-  getPredefinedPrompts(): Promise<PredefinedPrompt[]>;
-  savePredefinedPrompts(prompts: PredefinedPrompt[]): Promise<void>;
-  getQuickReplies(): Promise<PredefinedPrompt[]>;
-  saveQuickReplies(replies: PredefinedPrompt[]): Promise<void>;
-  getGlobalPrompt(): Promise<string>;
-  saveGlobalPrompt(prompt: string): Promise<void>;
+    // Jobs
+    getJobs(): Promise<Job[]>;
+    addJob(job: Job): Promise<void>;
+    // Predefined Prompts
+    getPredefinedPrompts(): Promise<PredefinedPrompt[]>;
+    savePredefinedPrompts(prompts: PredefinedPrompt[]): Promise<void>;
+    // Quick Replies
+    getQuickReplies(): Promise<PredefinedPrompt[]>;
+    saveQuickReplies(replies: PredefinedPrompt[]): Promise<void>;
+    // Global Prompt
+    getGlobalPrompt(): Promise<string>;
+    saveGlobalPrompt(prompt: string): Promise<void>;
 }

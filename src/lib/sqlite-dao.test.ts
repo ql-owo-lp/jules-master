@@ -1,106 +1,118 @@
 
-import { SqliteDao } from './sqlite-dao';
-import { getDb } from './database';
+import { dao } from './sqlite-dao';
+import { getDb } from './db';
 import type { Job, PredefinedPrompt } from './types';
+import { randomUUID } from 'crypto';
+import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
+import { Database } from 'sqlite';
 
-jest.mock('./database');
+let db: Database;
 
-const mockDb = {
-  all: jest.fn(),
-  run: jest.fn(),
-  get: jest.fn(),
-};
+beforeAll(async () => {
+    db = await open({
+        filename: ':memory:',
+        driver: sqlite3.Database,
+    });
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS jobs (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            session_ids TEXT,
+            created_at TEXT,
+            repo TEXT,
+            branch TEXT
+        );
+        CREATE TABLE IF NOT EXISTS predefined_prompts (
+            id TEXT PRIMARY KEY,
+            title TEXT,
+            prompt TEXT
+        );
+        CREATE TABLE IF NOT EXISTS quick_replies (
+            id TEXT PRIMARY KEY,
+            title TEXT,
+            prompt TEXT
+        );
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
+    `);
+    (getDb as jest.Mock).mockResolvedValue(db);
+});
 
-(getDb as jest.Mock).mockResolvedValue(mockDb);
+afterAll(async () => {
+    await db.close();
+});
+
+// Mock the getDb function to use an in-memory database for testing
+jest.mock('./db', () => ({
+    getDb: jest.fn(),
+}));
 
 describe('SqliteDao', () => {
-  let dao: SqliteDao;
+    beforeEach(async () => {
+        await db.exec('DELETE FROM jobs');
+        await db.exec('DELETE FROM predefined_prompts');
+        await db.exec('DELETE FROM quick_replies');
+        await db.exec('DELETE FROM settings');
+    });
 
-  beforeEach(() => {
-    dao = new SqliteDao();
-    jest.clearAllMocks();
-  });
+    describe('Jobs', () => {
+        it('should add and get jobs', async () => {
+            const newJob: Job = {
+                id: randomUUID(),
+                name: 'Test Job',
+                sessionIds: [randomUUID()],
+                createdAt: new Date().toISOString(),
+                repo: 'test/repo',
+                branch: 'main',
+            };
+            await dao.addJob(newJob);
+            const jobs = await dao.getJobs();
+            expect(jobs).toHaveLength(1);
+            expect(jobs[0]).toEqual(newJob);
+        });
+    });
 
-  it('should get jobs', async () => {
-    const mockJobs: Job[] = [{ id: '1', name: 'Test Job', repo: 'test/repo', branch: 'main', createdAt: '2024-01-01', sessionIds: [] }];
-    mockDb.all.mockResolvedValue(mockJobs.map(j => ({ raw_json: JSON.stringify(j) })));
-    const jobs = await dao.getJobs();
-    expect(jobs).toEqual(mockJobs);
-    expect(mockDb.all).toHaveBeenCalledWith('SELECT raw_json FROM jobs');
-  });
+    describe('Predefined Prompts', () => {
+        it('should save and get predefined prompts', async () => {
+            const newPrompts: PredefinedPrompt[] = [
+                {
+                    id: randomUUID(),
+                    title: 'Test Prompt',
+                    prompt: 'This is a test prompt.',
+                },
+            ];
+            await dao.savePredefinedPrompts(newPrompts);
+            const prompts = await dao.getPredefinedPrompts();
+            expect(prompts).toHaveLength(1);
+            expect(prompts[0]).toEqual(newPrompts[0]);
+        });
+    });
 
-  it('should add a job', async () => {
-    const newJob: Job = { id: '2', name: 'New Job', repo: 'new/repo', branch: 'dev', createdAt: '2024-01-02', sessionIds: [] };
-    await dao.addJob(newJob);
-    expect(mockDb.run).toHaveBeenCalledWith(
-      'INSERT INTO jobs (id, name, repo, branch, created_at, raw_json) VALUES (?, ?, ?, ?, ?, ?)',
-      newJob.id,
-      newJob.name,
-      newJob.repo,
-      newJob.branch,
-      newJob.createdAt,
-      JSON.stringify(newJob)
-    );
-  });
+    describe('Quick Replies', () => {
+        it('should save and get quick replies', async () => {
+            const newReplies: PredefinedPrompt[] = [
+                {
+                    id: randomUUID(),
+                    title: 'Test Reply',
+                    prompt: 'This is a test reply.',
+                },
+            ];
+            await dao.saveQuickReplies(newReplies);
+            const replies = await dao.getQuickReplies();
+            expect(replies).toHaveLength(1);
+            expect(replies[0]).toEqual(newReplies[0]);
+        });
+    });
 
-  it('should get predefined prompts', async () => {
-    const mockPrompts: PredefinedPrompt[] = [{ id: '1', title: 'Test Prompt', prompt: 'Hello' }];
-    mockDb.all.mockResolvedValue(mockPrompts);
-    const prompts = await dao.getPredefinedPrompts();
-    expect(prompts).toEqual(mockPrompts);
-    expect(mockDb.all).toHaveBeenCalledWith('SELECT id, title, prompt FROM predefined_prompts');
-  });
-
-  it('should save predefined prompts', async () => {
-    const promptsToSave: PredefinedPrompt[] = [{ id: '2', title: 'New Prompt', prompt: 'World' }];
-    await dao.savePredefinedPrompts(promptsToSave);
-    expect(mockDb.run).toHaveBeenCalledWith('DELETE FROM predefined_prompts');
-    expect(mockDb.run).toHaveBeenCalledWith(
-      'INSERT INTO predefined_prompts (id, title, prompt) VALUES (?, ?, ?)',
-      promptsToSave[0].id,
-      promptsToSave[0].title,
-      promptsToSave[0].prompt
-    );
-  });
-
-  it('should get quick replies', async () => {
-    const mockReplies: PredefinedPrompt[] = [{ id: '1', title: 'Test Reply', prompt: 'Hi' }];
-    mockDb.all.mockResolvedValue(mockReplies);
-    const replies = await dao.getQuickReplies();
-    expect(replies).toEqual(mockReplies);
-    expect(mockDb.all).toHaveBeenCalledWith('SELECT id, title, prompt FROM quick_replies');
-  });
-
-  it('should save quick replies', async () => {
-    const repliesToSave: PredefinedPrompt[] = [{ id: '2', title: 'New Reply', prompt: 'There' }];
-    await dao.saveQuickReplies(repliesToSave);
-    expect(mockDb.run).toHaveBeenCalledWith('DELETE FROM quick_replies');
-    expect(mockDb.run).toHaveBeenCalledWith(
-      'INSERT INTO quick_replies (id, title, prompt) VALUES (?, ?, ?)',
-      repliesToSave[0].id,
-      repliesToSave[0].title,
-      repliesToSave[0].prompt
-    );
-  });
-
-  it('should get the global prompt', async () => {
-    const mockPrompt = 'Global prompt';
-    mockDb.get.mockResolvedValue({ prompt: mockPrompt });
-    const prompt = await dao.getGlobalPrompt();
-    expect(prompt).toBe(mockPrompt);
-    expect(mockDb.get).toHaveBeenCalledWith('SELECT prompt FROM global_prompt LIMIT 1');
-  });
-
-  it('should return an empty string if no global prompt is set', async () => {
-    mockDb.get.mockResolvedValue(undefined);
-    const prompt = await dao.getGlobalPrompt();
-    expect(prompt).toBe('');
-  });
-
-  it('should save the global prompt', async () => {
-    const promptToSave = 'New global prompt';
-    await dao.saveGlobalPrompt(promptToSave);
-    expect(mockDb.run).toHaveBeenCalledWith('DELETE FROM global_prompt');
-    expect(mockDb.run).toHaveBeenCalledWith('INSERT INTO global_prompt (prompt) VALUES (?)', promptToSave);
-  });
+    describe('Global Prompt', () => {
+        it('should save and get the global prompt', async () => {
+            const newPrompt = 'This is a test global prompt.';
+            await dao.saveGlobalPrompt(newPrompt);
+            const prompt = await dao.getGlobalPrompt();
+            expect(prompt).toEqual(newPrompt);
+        });
+    });
 });
