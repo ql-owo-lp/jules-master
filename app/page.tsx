@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useTransition, useCallback, Suspense, useMemo } from "react";
@@ -11,7 +12,7 @@ import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "./sessions/actions";
 import { approvePlan, sendMessage } from "./sessions/[id]/actions";
-import { getJobs } from "@/app/config/actions";
+import { getJobs } from "./config/actions";
 import { getPullRequestStatus } from "./github/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ function HomePageContent() {
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
 
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
   
   const [isClient, setIsClient] = useState(false);
@@ -101,7 +102,7 @@ function HomePageContent() {
       setCountdown(sessionListPollInterval);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, sessionListPollInterval, setSessions]);
+  }, [apiKey, sessionListPollInterval, setSessions, setJobs]);
 
 
   // Effect to fetch PR statuses for visible sessions
