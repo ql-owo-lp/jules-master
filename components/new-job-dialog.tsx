@@ -39,6 +39,9 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             });
             return null;
         }
+
+        const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+
         const newSession = await createSession({
             title: title,
             prompt: prompt,
@@ -50,7 +53,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             },
             requirePlanApproval,
             automationMode
-        }, apiKey);
+        }, effectiveApiKey);
 
         if (!newSession) {
             // The error toast is handled inside the creation form's retry loop
@@ -71,7 +74,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
         // Revalidate server data in the background
         revalidateSessions();
         
-        const targetPath = `/jobs`;
+        const targetPath = `/?jobId=${newJob.id}`;
         if (isPage) {
             router.push(targetPath);
         } else {

@@ -25,7 +25,7 @@ function HomePageContent() {
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
 
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
-  const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
   
   const [isClient, setIsClient] = useState(false);
@@ -92,7 +92,7 @@ function HomePageContent() {
   const fetchSessions = useCallback(async () => {
     startFetching(async () => {
       const [fetchedSessions, fetchedJobs] = await Promise.all([
-        listSessions(),
+        listSessions(apiKey),
         getJobs()
       ]);
       const validSessions = fetchedSessions.filter(s => s);
@@ -102,13 +102,14 @@ function HomePageContent() {
       setCountdown(sessionListPollInterval);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionListPollInterval, setSessions, setJobs]);
+  }, [apiKey, sessionListPollInterval, setSessions]);
 
 
   // Effect to fetch PR statuses for visible sessions
   useEffect(() => {
     const fetchStatuses = async () => {
-        if (!githubToken && !process.env.GITHUB_TOKEN) {
+        const effectiveToken = githubToken || process.env.GITHUB_TOKEN;
+        if (!effectiveToken) {
             return;
         }
         if (filteredSessions.length === 0) {
@@ -123,7 +124,7 @@ function HomePageContent() {
         if (urlsToFetch.length > 0) {
             const newStatuses: Record<string, PullRequestStatus | null> = {};
             const promises = urlsToFetch.map(async (prUrl) => {
-                const status = await getPullRequestStatus(prUrl);
+                const status = await getPullRequestStatus(prUrl, effectiveToken);
                 newStatuses[prUrl] = status;
             });
             
@@ -151,7 +152,7 @@ function HomePageContent() {
         if (sessions.length === 0) {
           startFetching(async () => {
             const [fetchedSessions, fetchedJobs] = await Promise.all([
-                listSessions(),
+                listSessions(apiKey),
                 getJobs()
             ]);
             const validSessions = fetchedSessions.filter(s => s);
@@ -198,7 +199,7 @@ function HomePageContent() {
 
   const handleApprovePlan = (sessionId: string) => {
     startActionTransition(async () => {
-      const result = await approvePlan(sessionId);
+      const result = await approvePlan(sessionId, apiKey);
        if (result) {
         fetchSessions();
         toast({ title: "Plan Approved", description: "The session will now proceed." });
@@ -213,7 +214,7 @@ function HomePageContent() {
 
   const handleSendMessage = (sessionId: string, message: string) => {
     startActionTransition(async () => {
-      const result = await sendMessage(sessionId, message);
+      const result = await sendMessage(sessionId, message, apiKey);
       if (result) {
         fetchSessions();
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
@@ -228,7 +229,7 @@ function HomePageContent() {
 
   const handleBulkSendMessage = (sessionIds: string[], message: string) => {
     startActionTransition(async () => {
-      const messagePromises = sessionIds.map(id => sendMessage(id, message));
+      const messagePromises = sessionIds.map(id => sendMessage(id, message, apiKey));
         try {
             const results = await Promise.all(messagePromises);
             const successfulMessages = results.filter(r => r).length;
