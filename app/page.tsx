@@ -12,7 +12,7 @@ import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "./sessions/actions";
 import { approvePlan, sendMessage } from "./sessions/[id]/actions";
-import { getJobs } from "./config/actions";
+import { getJobs } from "@/app/config/actions";
 import { getPullRequestStatus } from "./github/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -400,3 +400,5 @@ export default function Home() {
     </Suspense>
   )
 }
+
+    

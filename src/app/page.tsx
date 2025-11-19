@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "./sessions/actions";
 import { approvePlan, sendMessage } from "./sessions/[id]/actions";
 import { getJobs } from "@/app/config/actions";
-import { getPullRequestStatus } from "./github/actions";
+import { getPullRequestStatus } from "@/app/github/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
