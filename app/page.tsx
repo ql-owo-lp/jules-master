@@ -10,10 +10,10 @@ import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listSessions } from "./sessions/actions";
-import { approvePlan, sendMessage } from "./sessions/[id]/actions";
+import { listSessions } from "@/app/sessions/actions";
+import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
 import { getJobs } from "@/app/config/actions";
-import { getPullRequestStatus } from "./github/actions";
+import { getPullRequestStatus } from "@/app/github/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -92,7 +92,7 @@ function HomePageContent() {
   const fetchSessions = useCallback(async () => {
     startFetching(async () => {
       const [fetchedSessions, fetchedJobs] = await Promise.all([
-        listSessions(apiKey),
+        listSessions(),
         getJobs()
       ]);
       const validSessions = fetchedSessions.filter(s => s);
@@ -102,7 +102,7 @@ function HomePageContent() {
       setCountdown(sessionListPollInterval);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, sessionListPollInterval, setSessions, setJobs]);
+  }, [sessionListPollInterval, setSessions, setJobs]);
 
 
   // Effect to fetch PR statuses for visible sessions
@@ -123,7 +123,7 @@ function HomePageContent() {
         if (urlsToFetch.length > 0) {
             const newStatuses: Record<string, PullRequestStatus | null> = {};
             const promises = urlsToFetch.map(async (prUrl) => {
-                const status = await getPullRequestStatus(prUrl, githubToken);
+                const status = await getPullRequestStatus(prUrl);
                 newStatuses[prUrl] = status;
             });
             
@@ -151,7 +151,7 @@ function HomePageContent() {
         if (sessions.length === 0) {
           startFetching(async () => {
             const [fetchedSessions, fetchedJobs] = await Promise.all([
-                listSessions(apiKey),
+                listSessions(),
                 getJobs()
             ]);
             const validSessions = fetchedSessions.filter(s => s);
@@ -198,7 +198,7 @@ function HomePageContent() {
 
   const handleApprovePlan = (sessionId: string) => {
     startActionTransition(async () => {
-      const result = await approvePlan(sessionId, apiKey);
+      const result = await approvePlan(sessionId);
        if (result) {
         fetchSessions();
         toast({ title: "Plan Approved", description: "The session will now proceed." });
@@ -213,7 +213,7 @@ function HomePageContent() {
 
   const handleSendMessage = (sessionId: string, message: string) => {
     startActionTransition(async () => {
-      const result = await sendMessage(sessionId, message, apiKey);
+      const result = await sendMessage(sessionId, message);
       if (result) {
         fetchSessions();
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
@@ -228,7 +228,7 @@ function HomePageContent() {
 
   const handleBulkSendMessage = (sessionIds: string[], message: string) => {
     startActionTransition(async () => {
-      const messagePromises = sessionIds.map(id => sendMessage(id, message, apiKey));
+      const messagePromises = sessionIds.map(id => sendMessage(id, message));
         try {
             const results = await Promise.all(messagePromises);
             const successfulMessages = results.filter(r => r).length;
@@ -400,5 +400,3 @@ export default function Home() {
     </Suspense>
   )
 }
-
-    
