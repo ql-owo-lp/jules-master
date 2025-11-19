@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -8,39 +9,33 @@ import { AlertCircle, GitMerge } from 'lucide-react';
 import { Combobox } from './ui/combobox';
 
 type SourceSelectionProps = {
-  apiKey: string;
   onSourceSelected: (source: Source | null) => void;
   disabled?: boolean;
   selectedValue?: Source | null;
 };
 
-export function SourceSelection({ apiKey, onSourceSelected, disabled, selectedValue }: SourceSelectionProps) {
+export function SourceSelection({ onSourceSelected, disabled, selectedValue }: SourceSelectionProps) {
   const [sources, setSources] = useState<Source[]>([]);
   const [isFetching, startFetching] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (apiKey) {
-      startFetching(async () => {
-        try {
-          setError(null);
-          const fetchedSources = await listSources(apiKey);
-          setSources(fetchedSources);
-          // If there's no value from localstorage, select the first one.
-          if (!selectedValue && fetchedSources.length > 0) {
-            onSourceSelected(fetchedSources[0]);
-          }
-        } catch (e) {
-          setError('Failed to load repositories.');
-          console.error(e);
+    startFetching(async () => {
+      try {
+        setError(null);
+        const fetchedSources = await listSources();
+        setSources(fetchedSources);
+        // If there's no value from localstorage, select the first one.
+        if (!selectedValue && fetchedSources.length > 0) {
+          onSourceSelected(fetchedSources[0]);
         }
-      });
-    } else {
-      setSources([]);
-      onSourceSelected(null);
-    }
+      } catch (e) {
+        setError('Failed to load repositories.');
+        console.error(e);
+      }
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey]);
+  }, []);
 
 
   if (isFetching) {
@@ -67,7 +62,7 @@ export function SourceSelection({ apiKey, onSourceSelected, disabled, selectedVa
     label: `${source.githubRepo.owner}/${source.githubRepo.repo}`
   }));
 
-  const handleSourceSelected = (sourceName: string) => {
+  const handleSourceSelected = (sourceName: string | null) => {
     const selected = sources.find((s) => s.name === sourceName) || null;
     onSourceSelected(selected);
   }

@@ -365,7 +365,7 @@ function JobsTable({
 
 
 export default function JobsPage() {
-  const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [apiKey, setApiKey] = useLocalStorage<string | null>("jules-api-key", null);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
   
@@ -383,13 +383,13 @@ export default function JobsPage() {
   
 
   const fetchJobSessions = useCallback(() => {
-    if (!apiKey) {
+    if (!apiKey && !process.env.JULES_API_KEY) {
         setIsLoading(false);
         return
     };
 
     startFetching(async () => {
-      const fetchedSessions = await listSessions(apiKey);
+      const fetchedSessions = await listSessions();
       setSessions(fetchedSessions);
       setLastUpdatedAt(new Date());
       setCountdown(pollInterval);
@@ -403,7 +403,8 @@ export default function JobsPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (apiKey) {
+    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
+    if (effectiveApiKey) {
        if (!lastUpdatedAt) {
           setLastUpdatedAt(new Date());
        }
@@ -416,7 +417,7 @@ export default function JobsPage() {
 
   // Set up polling
   useEffect(() => {
-    if (!isClient || !apiKey || pollInterval <= 0) return;
+    if (!isClient || (!apiKey && !process.env.JULES_API_KEY) || pollInterval <= 0) return;
 
     const intervalId = setInterval(fetchJobSessions, pollInterval * 1000);
     return () => clearInterval(intervalId);
@@ -427,7 +428,7 @@ export default function JobsPage() {
 
   // Countdown timer
   useEffect(() => {
-    if (!isClient || !apiKey || pollInterval <= 0) return;
+    if (!isClient || (!apiKey && !process.env.JULES_API_KEY) || pollInterval <= 0) return;
 
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
@@ -467,7 +468,7 @@ export default function JobsPage() {
     }
 
     startActionTransition(async () => {
-        const approvalPromises = pendingSessionIds.map(id => approvePlan(apiKey, id));
+        const approvalPromises = pendingSessionIds.map(id => approvePlan(id));
         
         try {
             const results = await Promise.all(approvalPromises);
@@ -500,7 +501,7 @@ export default function JobsPage() {
     }
     
     startActionTransition(async () => {
-        const messagePromises = sessionIdsToSend.map(id => sendMessage(apiKey, id, message));
+        const messagePromises = sessionIdsToSend.map(id => sendMessage(id, message));
         try {
             const results = await Promise.all(messagePromises);
             const successfulMessages = results.filter(r => r).length;
@@ -548,13 +549,13 @@ export default function JobsPage() {
                       <div className="flex items-center gap-2">
                           <ClipboardList className="h-6 w-6" />
                           <CardTitle>Job List</CardTitle>
-                          {apiKey && (
+                          {isClient && (process.env.JULES_API_KEY || apiKey) && (
                               <Button variant="ghost" size="icon" onClick={handleRefresh} aria-label="Refresh job list" disabled={isFetching}>
                                   <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
                               </Button>
                           )}
                       </div>
-                      {isClient && apiKey && lastUpdatedAt && (
+                      {isClient && (process.env.JULES_API_KEY || apiKey) && lastUpdatedAt && (
                           <div className="text-sm text-muted-foreground text-right flex-shrink-0">
                             <div>
                                 Last updated:{" "}
@@ -592,5 +593,3 @@ export default function JobsPage() {
     </>
   );
 }
-
-    

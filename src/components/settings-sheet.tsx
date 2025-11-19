@@ -58,6 +58,9 @@ export function SettingsSheet() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
+  const isJulesKeyFromEnv = !!process.env.JULES_API_KEY;
+  const isGithubTokenFromEnv = !!process.env.GITHUB_TOKEN;
+
   useEffect(() => { setApiKeyValue(apiKey); }, [apiKey]);
   useEffect(() => { setGithubTokenValue(githubToken); }, [githubToken]);
   useEffect(() => { setJobListPollIntervalValue(jobListPollInterval); }, [jobListPollInterval]);
@@ -70,8 +73,8 @@ export function SettingsSheet() {
   useEffect(() => { setDefaultSessionCountValue(defaultSessionCount); }, [defaultSessionCount]);
   
   const handleSave = () => {
-    setApiKey(apiKeyValue);
-    setGithubToken(githubTokenValue);
+    if (!isJulesKeyFromEnv) setApiKey(apiKeyValue);
+    if (!isGithubTokenFromEnv) setGithubToken(githubTokenValue);
     setJobListPollInterval(jobListPollIntervalValue);
     setSessionListPollInterval(sessionListPollIntervalValue);
     setActivePollInterval(activePollIntervalValue);
@@ -114,10 +117,11 @@ export function SettingsSheet() {
                     <Input
                         id="api-key"
                         type={showApiKey ? "text" : "password"}
-                        value={apiKeyValue}
+                        value={isJulesKeyFromEnv ? "******" : apiKeyValue}
                         onChange={(e) => setApiKeyValue(e.target.value)}
                         placeholder="Enter your API key"
                         className="pr-10"
+                        disabled={isJulesKeyFromEnv}
                     />
                     <Button
                         type="button"
@@ -126,6 +130,7 @@ export function SettingsSheet() {
                         className="absolute inset-y-0 right-0 h-full px-3"
                         onClick={() => setShowApiKey(!showApiKey)}
                         aria-label={showApiKey ? "Hide API key" : "Show API key"}
+                        disabled={isJulesKeyFromEnv}
                     >
                         {showApiKey ? (
                         <EyeOff className="h-4 w-4" />
@@ -134,6 +139,11 @@ export function SettingsSheet() {
                         )}
                     </Button>
                     </div>
+                     {isJulesKeyFromEnv && (
+                        <p className="text-xs text-muted-foreground">
+                            Set via JULES_API_KEY environment variable.
+                        </p>
+                    )}
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="github-token">GitHub Personal Access Token</Label>
@@ -141,10 +151,11 @@ export function SettingsSheet() {
                     <Input
                         id="github-token"
                         type={showGithubToken ? "text" : "password"}
-                        value={githubTokenValue}
+                        value={isGithubTokenFromEnv ? "******" : githubTokenValue}
                         onChange={(e) => setGithubTokenValue(e.target.value)}
                         placeholder="Enter your GitHub PAT"
                         className="pr-10"
+                        disabled={isGithubTokenFromEnv}
                     />
                     <Button
                         type="button"
@@ -153,6 +164,7 @@ export function SettingsSheet() {
                         className="absolute inset-y-0 right-0 h-full px-3"
                         onClick={() => setShowGithubToken(!showGithubToken)}
                         aria-label={showGithubToken ? "Hide GitHub token" : "Show GitHub token"}
+                        disabled={isGithubTokenFromEnv}
                     >
                         {showGithubToken ? (
                         <EyeOff className="h-4 w-4" />
@@ -161,9 +173,15 @@ export function SettingsSheet() {
                         )}
                     </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                    Required for fetching PR status. Use a classic token with `repo` scope.
-                    </p>
+                     {isGithubTokenFromEnv ? (
+                         <p className="text-xs text-muted-foreground">
+                           Set via GITHUB_TOKEN environment variable.
+                         </p>
+                     ) : (
+                        <p className="text-xs text-muted-foreground">
+                            Required for fetching PR status. Use a classic token with `repo` scope.
+                        </p>
+                     )}
                 </div>
                 <div className="grid gap-2">
                     <Label>Theme</Label>

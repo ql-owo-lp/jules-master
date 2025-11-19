@@ -59,8 +59,7 @@ import { Combobox } from "@/components/ui/combobox";
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const [apiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [githubToken] = useLocalStorage<string>("jules-github-token", "");
+  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
   const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -93,7 +92,8 @@ export default function SessionDetailPage() {
   }, []);
 
   const fetchSessionData = useCallback(async (options: { showToast?: boolean } = {}) => {
-    if (!apiKey || !id) return;
+    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
+    if (!effectiveApiKey || !id) return;
     
     if (options.showToast) {
         toast({ title: "Refreshing session..." });
@@ -101,8 +101,8 @@ export default function SessionDetailPage() {
 
     startFetching(async () => {
       const [fetchedSession, fetchedActivities] = await Promise.all([
-        getSession(apiKey, id),
-        listActivities(apiKey, id)
+        getSession(id),
+        listActivities(id)
       ]);
       
       if (fetchedSession) {
@@ -133,7 +133,8 @@ export default function SessionDetailPage() {
   }, [apiKey, id, idlePollInterval, activePollInterval, isPollingActive, toast, setSession, setActivities]);
 
   useEffect(() => {
-    if (apiKey && id) {
+    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
+    if (effectiveApiKey && id) {
       fetchSessionData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -141,7 +142,8 @@ export default function SessionDetailPage() {
 
   // Set up polling interval
   useEffect(() => {
-    if (apiKey && currentPollInterval > 0) {
+    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
+    if (effectiveApiKey && currentPollInterval > 0) {
       const intervalId = setInterval(() => fetchSessionData(), currentPollInterval * 1000);
       return () => clearInterval(intervalId);
     }
@@ -149,7 +151,8 @@ export default function SessionDetailPage() {
 
   // Countdown timer
   useEffect(() => {
-    if (!apiKey || currentPollInterval <= 0) return;
+    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
+    if (!effectiveApiKey || currentPollInterval <= 0) return;
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
@@ -188,7 +191,7 @@ export default function SessionDetailPage() {
   const handleApprovePlan = () => {
     if (!session) return;
     startActionTransition(async () => {
-      const result = await approvePlan(apiKey, session.id);
+      const result = await approvePlan(session.id);
       if (result) {
         setSession(result);
         setIsPollingActive(true); // Start active polling
@@ -206,7 +209,7 @@ export default function SessionDetailPage() {
   const handleSendMessage = () => {
     if (!session || !message.trim()) return;
     startActionTransition(async () => {
-      const success = await sendMessage(apiKey, session.id, message);
+      const success = await sendMessage(session.id, message);
       if (success) {
         setMessage("");
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
@@ -430,7 +433,7 @@ export default function SessionDetailPage() {
                                         <a href={prUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
                                             {prUrl}
                                         </a>
-                                        <PrStatus prUrl={prUrl} githubToken={githubToken} />
+                                        <PrStatus prUrl={prUrl} />
                                     </div>
                                 </div>
                             )}
