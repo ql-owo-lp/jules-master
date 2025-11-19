@@ -8,6 +8,7 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
 import type { Session, Job, Activity, PredefinedPrompt } from "@/lib/types";
 import { getSession, approvePlan, sendMessage, listActivities } from "./actions";
+import { getJobs, getQuickReplies } from "@/app/config/actions";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PrStatus } from "@/components/pr-status";
 
@@ -62,8 +63,8 @@ export default function SessionDetailPage() {
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
   const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
-  const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
-  const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
   
   const [session, setSession] = useLocalStorage<Session | null>(`jules-session-${id}`, null);
   const [activities, setActivities] = useLocalStorage<Activity[]>(`jules-activities-${id}`, []);
@@ -89,6 +90,8 @@ export default function SessionDetailPage() {
   
   useEffect(() => {
     setIsClient(true);
+    getJobs().then(setJobs);
+    getQuickReplies().then(setQuickReplies);
   }, []);
 
   const fetchSessionData = useCallback(async (options: { showToast?: boolean } = {}) => {

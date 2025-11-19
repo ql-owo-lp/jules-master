@@ -17,7 +17,7 @@ type NewJobDialogProps = {
 }
 
 export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
-    const [apiKey, setApiKey] = useLocalStorage<string | null>("jules-api-key", null);
+    const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
     const router = useRouter();
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
@@ -75,8 +75,8 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
     
     // Function to clear local storage cache for the form
     const handleReset = () => {
-        localStorage.removeItem("jules-new-job-prompt");
-        localStorage.removeItem("jules-new-job-name");
+        // Since we are moving away from local storage for form state, this might be less relevant
+        // but we can keep it for clearing UI state if needed.
     };
 
     const hasApiKey = !!(process.env.JULES_API_KEY || apiKey);

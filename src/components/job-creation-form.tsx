@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { refreshSources } from "@/app/sessions/actions";
+import { getPredefinedPrompts, getGlobalPrompt, addJob } from "@/app/config/actions";
 import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2, RefreshCw, X, Trash2 } from "lucide-react";
@@ -37,7 +38,6 @@ type JobCreationFormProps = {
     automationMode: AutomationMode
   ) => Promise<Session | null>;
   disabled?: boolean;
-  apiKey: string;
   onReset?: () => void;
 };
 
@@ -47,11 +47,10 @@ export function JobCreationForm({
   onJobsCreated,
   onCreateJob,
   disabled,
-  apiKey,
   onReset
 }: JobCreationFormProps) {
-  const [prompt, setPrompt] = useLocalStorage("jules-new-job-prompt", "");
-  const [jobName, setJobName] = useLocalStorage("jules-new-job-name", "");
+  const [prompt, setPrompt] = useState("");
+  const [jobName, setJobName] = useState("");
   const [defaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 3);
   const [sessionCount, setSessionCount] = useState(defaultSessionCount);
   
@@ -66,13 +65,22 @@ export function JobCreationForm({
   const [selectedBranch, setSelectedBranch] = useLocalStorage<string | undefined>("jules-last-branch", undefined);
 
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
-  const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
-  const [globalPrompt] = useLocalStorage<string>("jules-global-prompt", "");
-  const [isClient, setIsClient] = useState(false);
-  const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
+  const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
+  const [globalPrompt, setGlobalPrompt] = useState('');
 
+  const [isClient, setIsClient] = useState(false);
+  
   useEffect(() => {
     setIsClient(true);
+    async function fetchData() {
+        const [prompts, gPrompt] = await Promise.all([
+            getPredefinedPrompts(),
+            getGlobalPrompt()
+        ]);
+        setPredefinedPrompts(prompts);
+        setGlobalPrompt(gPrompt);
+    }
+    fetchData();
   }, []);
 
   // Update sessionCount if the default value from storage changes
@@ -160,7 +168,8 @@ export function JobCreationForm({
         repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
         branch: selectedBranch,
       };
-      setJobs([...jobs, newJob]);
+      
+      await addJob(newJob);
 
       if (createdSessions.length > 0) {
         onJobsCreated(createdSessions);
@@ -308,7 +317,6 @@ export function JobCreationForm({
                 </div>
                 <SourceSelection 
                     key={sourceSelectionKey}
-                    apiKey={apiKey} 
                     onSourceSelected={setSelectedSource} 
                     disabled={disabled || isPending}
                     selectedValue={selectedSource}
@@ -373,5 +381,3 @@ export function JobCreationForm({
     </Card>
   );
 }
-
-    

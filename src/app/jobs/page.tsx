@@ -24,6 +24,7 @@ import { ClipboardList, CheckCircle2, Loader2, Hand, RefreshCw, MessageSquare, X
 import { useRouter } from 'next/navigation';
 import { listSessions } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
+import { getJobs, getQuickReplies } from "@/app/config/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -355,6 +356,7 @@ function JobsTable({
                         dialogTitle="Send Bulk Message"
                         dialogDescription={`This message will be sent to all sessions in the ${selectedJobIds.length} selected job(s).`}
                         isActionPending={isActionPending}
+                        quickReplies={quickReplies}
                     />
                 </Card>
             </div>
@@ -365,9 +367,10 @@ function JobsTable({
 
 
 export default function JobsPage() {
-  const [apiKey, setApiKey] = useLocalStorage<string | null>("jules-api-key", null);
-  const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
+  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
+  const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
   
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -389,8 +392,14 @@ export default function JobsPage() {
     };
 
     startFetching(async () => {
-      const fetchedSessions = await listSessions();
+      const [fetchedSessions, fetchedJobs, fetchedReplies] = await Promise.all([
+        listSessions(),
+        getJobs(),
+        getQuickReplies()
+      ]);
       setSessions(fetchedSessions);
+      setJobs(fetchedJobs);
+      setQuickReplies(fetchedReplies);
       setLastUpdatedAt(new Date());
       setCountdown(pollInterval);
       if (isLoading) {
@@ -519,9 +528,6 @@ export default function JobsPage() {
         }
     });
   };
-
-  const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
-
 
   if (!isClient || isLoading) {
     return (
