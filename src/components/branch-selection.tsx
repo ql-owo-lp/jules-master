@@ -19,13 +19,17 @@ export function BranchSelection({ branches, selectedValue, onBranchSelected, dis
     label: branch.displayName
   }));
 
+  const handleValueChange = (value: string | null) => {
+    onBranchSelected(value ?? undefined);
+  };
+
   return (
     <div className="grid w-full items-center gap-2">
       <Label htmlFor="branch">Branch</Label>
       <Combobox 
         options={options}
         selectedValue={selectedValue}
-        onValueChange={onBranchSelected}
+        onValueChange={handleValueChange}
         placeholder='Select a branch'
         searchPlaceholder='Search branches...'
         disabled={disabled || branches.length === 0}

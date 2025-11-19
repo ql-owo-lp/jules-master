@@ -31,6 +31,11 @@ export function JobStatusBadge({ status }: JobStatusBadgeProps) {
       className: "bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-950 dark:text-green-200 dark:border-green-800",
       label: "Succeeded",
     },
+    Failed: {
+      icon: <XCircle className="h-3.5 w-3.5" />,
+      className: "bg-red-100 text-red-800 border-red-200 hover:bg-red-100 dark:bg-red-950 dark:text-red-200 dark:border-red-800",
+      label: "Failed",
+    },
     // API States
     QUEUED: {
         icon: <Clock className="h-3.5 w-3.5" />,
