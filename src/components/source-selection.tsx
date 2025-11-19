@@ -7,6 +7,7 @@ import { listSources } from '@/app/sessions/actions';
 import type { Source } from '@/lib/types';
 import { AlertCircle, GitMerge } from 'lucide-react';
 import { Combobox } from './ui/combobox';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 type SourceSelectionProps = {
   onSourceSelected: (source: Source | null) => void;
@@ -18,8 +19,13 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue }: S
   const [sources, setSources] = useState<Source[]>([]);
   const [isFetching, startFetching] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+
 
   useEffect(() => {
+    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
+    if (!effectiveApiKey) return;
+
     startFetching(async () => {
       try {
         setError(null);
@@ -35,7 +41,7 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue }: S
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [apiKey]);
 
 
   if (isFetching) {

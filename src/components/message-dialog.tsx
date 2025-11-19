@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, MessageSquare, BookText, MessageSquareReply, X, RotateCcw } from "lucide-react";
 import type { PredefinedPrompt } from "@/lib/types";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { getPredefinedPrompts, getQuickReplies } from "@/app/config/actions";
 import { Combobox } from "./ui/combobox";
 import { ScrollArea } from "./ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +30,8 @@ type MessageDialogProps = {
     dialogTitle?: string;
     dialogDescription?: string;
     isActionPending?: boolean;
+    predefinedPrompts?: PredefinedPrompt[];
+    quickReplies?: PredefinedPrompt[];
 }
 
 export function MessageDialog({ 
@@ -37,12 +40,14 @@ export function MessageDialog({
     onSendMessage,
     dialogTitle = "Send Message",
     dialogDescription = "Compose and send a message.",
-    isActionPending
+    isActionPending,
+    predefinedPrompts: initialPrompts = [],
+    quickReplies: initialReplies = []
 }: MessageDialogProps) {
     const [open, setOpen] = useState(false);
     const [message, setMessage] = useLocalStorage(storageKey, "");
-    const [predefinedPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
-    const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+    const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>(initialPrompts);
+    const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>(initialReplies);
     const { toast } = useToast();
 
     // When the dialog opens, re-read from local storage, in case another dialog updated it.
@@ -52,7 +57,15 @@ export function MessageDialog({
             if (storedMessage) {
                 setMessage(JSON.parse(storedMessage));
             }
+             // Also fetch latest prompts/replies if not provided
+            if (initialPrompts.length === 0) {
+                getPredefinedPrompts().then(setPredefinedPrompts);
+            }
+            if (initialReplies.length === 0) {
+                getQuickReplies().then(setQuickReplies);
+            }
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, storageKey, setMessage]);
 
     const handleSend = () => {

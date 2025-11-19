@@ -11,6 +11,7 @@ import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "./sessions/actions";
 import { approvePlan, sendMessage } from "./sessions/[id]/actions";
+import { getJobs } from "./config/actions";
 import { getPullRequestStatus } from "./github/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -19,11 +20,11 @@ import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
 
 function HomePageContent() {
-  const [apiKey, setApiKey] = useLocalStorage<string | null>("jules-api-key", null);
-  const [githubToken, setGithubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
 
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
-  const [jobs] = useLocalStorage<Job[]>("jules-jobs", []);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
   
   const [isClient, setIsClient] = useState(false);
@@ -92,9 +93,13 @@ function HomePageContent() {
     if (!effectiveApiKey) return;
 
     startFetching(async () => {
-      const fetchedSessions = await listSessions();
+      const [fetchedSessions, fetchedJobs] = await Promise.all([
+        listSessions(),
+        getJobs()
+      ]);
       const validSessions = fetchedSessions.filter(s => s);
       setSessions(validSessions);
+      setJobs(fetchedJobs);
       setLastUpdatedAt(new Date());
       setCountdown(sessionListPollInterval);
     });
@@ -146,9 +151,13 @@ function HomePageContent() {
       if (effectiveApiKey) {
         if (sessions.length === 0) {
           startFetching(async () => {
-            const fetchedSessions = await listSessions();
+            const [fetchedSessions, fetchedJobs] = await Promise.all([
+                listSessions(),
+                getJobs()
+            ]);
             const validSessions = fetchedSessions.filter(s => s);
             setSessions(validSessions);
+            setJobs(fetchedJobs);
             setLastUpdatedAt(new Date());
             setCountdown(sessionListPollInterval);
           });

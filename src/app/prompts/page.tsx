@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import type { PredefinedPrompt } from "@/lib/types";
 import {
   Card,
@@ -42,7 +42,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { 
+    getPredefinedPrompts, 
+    savePredefinedPrompts, 
+    getQuickReplies, 
+    saveQuickReplies, 
+    getGlobalPrompt,
+    saveGlobalPrompt
+} from "@/app/config/actions";
 
 type DialogState = {
   isOpen: boolean;
@@ -51,11 +58,12 @@ type DialogState = {
 }
 
 export default function PredefinedPromptsPage() {
-  const [prompts, setPrompts] = useLocalStorage<PredefinedPrompt[]>("predefined-prompts", []);
-  const [quickReplies, setQuickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
-  const [globalPrompt, setGlobalPrompt] = useLocalStorage<string>("jules-global-prompt", "");
+  const [prompts, setPrompts] = useState<PredefinedPrompt[]>([]);
+  const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
+  const [globalPrompt, setGlobalPrompt] = useState<string>("");
   
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, startSaving] = useTransition();
   
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, type: 'prompt', data: null });
   const [title, setTitle] = useState("");
@@ -66,7 +74,19 @@ export default function PredefinedPromptsPage() {
 
   useEffect(() => {
     setIsClient(true);
-    setIsLoading(false);
+    const fetchData = async () => {
+        setIsLoading(true);
+        const [fetchedPrompts, fetchedReplies, fetchedGlobalPrompt] = await Promise.all([
+            getPredefinedPrompts(),
+            getQuickReplies(),
+            getGlobalPrompt()
+        ]);
+        setPrompts(fetchedPrompts);
+        setQuickReplies(fetchedReplies);
+        setGlobalPrompt(fetchedGlobalPrompt);
+        setIsLoading(false);
+    };
+    fetchData();
   }, []);
 
   const openDialog = (type: 'prompt' | 'reply', data: PredefinedPrompt | null = null) => {
@@ -80,19 +100,25 @@ export default function PredefinedPromptsPage() {
   }
 
   const handleDelete = (type: 'prompt' | 'reply', id: string) => {
-    if (type === 'prompt') {
-      setPrompts(prompts.filter((p) => p.id !== id));
-      toast({
-        title: "Message deleted",
-        description: "The predefined message has been removed.",
-      });
-    } else {
-      setQuickReplies(quickReplies.filter((r) => r.id !== id));
-       toast({
-        title: "Quick Reply deleted",
-        description: "The quick reply has been removed.",
-      });
-    }
+     startSaving(async () => {
+        if (type === 'prompt') {
+            const updatedPrompts = prompts.filter((p) => p.id !== id);
+            await savePredefinedPrompts(updatedPrompts);
+            setPrompts(updatedPrompts);
+            toast({
+                title: "Message deleted",
+                description: "The predefined message has been removed.",
+            });
+        } else {
+            const updatedReplies = quickReplies.filter((r) => r.id !== id);
+            await saveQuickReplies(updatedReplies);
+            setQuickReplies(updatedReplies);
+            toast({
+                title: "Quick Reply deleted",
+                description: "The quick reply has been removed.",
+            });
+        }
+     });
   };
 
   const handleSave = () => {
@@ -105,34 +131,44 @@ export default function PredefinedPromptsPage() {
       return;
     }
 
-    const { type, data } = dialogState;
-    
-    if (type === 'prompt') {
-      if (data?.id) { // Editing existing prompt
-        setPrompts(prompts.map((p) => p.id === data.id ? { ...p, title, prompt: promptText } : p));
-        toast({ title: "Message updated" });
-      } else { // Adding new prompt
-        setPrompts([...prompts, { id: crypto.randomUUID(), title, prompt: promptText }]);
-        toast({ title: "Message added" });
-      }
-    } else { // 'reply'
-       if (data?.id) { // Editing existing reply
-        setQuickReplies(quickReplies.map((r) => r.id === data.id ? { ...r, title, prompt: promptText } : r));
-        toast({ title: "Quick Reply updated" });
-      } else { // Adding new reply
-        setQuickReplies([...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText }]);
-        toast({ title: "Quick Reply added" });
-      }
-    }
-    
-    closeDialog();
+    startSaving(async () => {
+        const { type, data } = dialogState;
+        
+        if (type === 'prompt') {
+            let updatedPrompts: PredefinedPrompt[];
+            if (data?.id) { // Editing existing prompt
+                updatedPrompts = prompts.map((p) => p.id === data.id ? { ...p, title, prompt: promptText } : p);
+                toast({ title: "Message updated" });
+            } else { // Adding new prompt
+                updatedPrompts = [...prompts, { id: crypto.randomUUID(), title, prompt: promptText }];
+                toast({ title: "Message added" });
+            }
+            await savePredefinedPrompts(updatedPrompts);
+            setPrompts(updatedPrompts);
+        } else { // 'reply'
+            let updatedReplies: PredefinedPrompt[];
+            if (data?.id) { // Editing existing reply
+                updatedReplies = quickReplies.map((r) => r.id === data.id ? { ...r, title, prompt: promptText } : r);
+                toast({ title: "Quick Reply updated" });
+            } else { // Adding new reply
+                updatedReplies = [...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText }];
+                toast({ title: "Quick Reply added" });
+            }
+            await saveQuickReplies(updatedReplies);
+            setQuickReplies(updatedReplies);
+        }
+        
+        closeDialog();
+    });
   };
 
   const handleSaveGlobalPrompt = () => {
-    // The useLocalStorage hook handles saving, so we just show a toast
-    toast({
-      title: "Global Prompt Saved",
-      description: "Your global prompt has been updated.",
+    startSaving(async () => {
+        await saveGlobalPrompt(globalPrompt);
+        toast({
+            title: "Global Prompt Saved",
+            description: "Your global prompt has been updated.",
+        });
     });
   }
 
@@ -179,7 +215,7 @@ export default function PredefinedPromptsPage() {
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" disabled={isSaving}>
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -244,11 +280,12 @@ export default function PredefinedPromptsPage() {
                         rows={5}
                         value={globalPrompt}
                         onChange={(e) => setGlobalPrompt(e.target.value)}
+                        disabled={isSaving || isLoading}
                     />
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end">
-                 <Button onClick={handleSaveGlobalPrompt}>Save Global Prompt</Button>
+                 <Button onClick={handleSaveGlobalPrompt} disabled={isSaving || isLoading}>Save Global Prompt</Button>
               </CardFooter>
             </Card>
 
@@ -264,7 +301,7 @@ export default function PredefinedPromptsPage() {
                     Manage your reusable messages for new job creation.
                   </CardDescription>
                 </div>
-                <Button onClick={() => openDialog('prompt')}>
+                <Button onClick={() => openDialog('prompt')} disabled={isSaving || isLoading}>
                   <Plus className="mr-2 h-4 w-4" /> Add New
                 </Button>
               </CardHeader>
@@ -284,7 +321,7 @@ export default function PredefinedPromptsPage() {
                     Manage your reusable replies for providing session feedback.
                   </CardDescription>
                 </div>
-                <Button onClick={() => openDialog('reply')}>
+                <Button onClick={() => openDialog('reply')} disabled={isSaving || isLoading}>
                   <Plus className="mr-2 h-4 w-4" /> Add New
                 </Button>
               </CardHeader>
@@ -335,14 +372,12 @@ export default function PredefinedPromptsPage() {
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" disabled={isSaving}>Cancel</Button>
             </DialogClose>
-            <Button onClick={handleSave}>Save</Button>
+            <Button onClick={handleSave} disabled={isSaving}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
 }
-
-    

@@ -31,6 +31,7 @@ import { PrStatus } from "./pr-status";
 import { MessageDialog } from "./message-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { getQuickReplies } from "@/app/config/actions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "./ui/checkbox";
@@ -75,10 +76,14 @@ export function SessionList({
 }: SessionListProps) {
   const router = useRouter();
   const [itemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
-  const [quickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+  const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
   
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
+
+    useEffect(() => {
+        getQuickReplies().then(setQuickReplies);
+    }, []);
 
   const sessionToJobMap = useMemo(() => {
     const map = new Map<string, Job>();
@@ -428,6 +433,7 @@ export function SessionList({
                         dialogTitle="Send Bulk Message"
                         dialogDescription={`This message will be sent to all ${selectedSessionIds.length} selected sessions.`}
                         isActionPending={isActionPending}
+                        quickReplies={quickReplies}
                     />
                 </Card>
             </div>
