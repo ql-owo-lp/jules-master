@@ -358,6 +358,7 @@ export function SessionList({
                                                           value={`${option.label} ${option.content}`}
                                                           onSelect={() => {
                                                               onSendMessage(session.id, option.content);
+                                                              document.body.click(); // Close popover
                                                           }}
                                                       >
                                                           {option.label}
