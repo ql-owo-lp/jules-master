@@ -12,9 +12,6 @@
 
 # testing
 /coverage
-/test-results/
-/playwright-report/
-/blob-report/
 
 # next.js
 /.next/
@@ -49,3 +46,7 @@ firestore-debug.log
 
 # database
 *.db
+
+# playwright
+playwright-report/
+test-results/

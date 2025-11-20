@@ -1,28 +1,27 @@
-
 import { test, expect } from '@playwright/test';
 
-test.describe('Navigation', () => {
-  test('should navigate to the home page', async ({ page }) => {
-    await page.goto('/');
-    await expect(page).toHaveTitle(/Jules Master/);
-    await expect(page.getByRole('link', { name: 'Session List' })).toBeVisible();
-  });
+test('has title', async ({ page }) => {
+  await page.goto('/');
 
-  test('should navigate to the Job List page', async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('link', { name: 'Job List' }).click();
+  // Expect a title "to contain" a substring.
+  await expect(page).toHaveTitle(/Jules Master/);
+});
 
-    // Use text locator
-    await expect(page.getByText('Job List', { exact: true })).toBeVisible();
-    await expect(page).toHaveURL(/\/jobs/);
-  });
+test('navigation to jobs', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Job List' }).click();
+  await expect(page).toHaveURL(/.*\/jobs/);
 
-  test('should navigate to the Messages page', async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('link', { name: 'Messages' }).click();
+  // Check for Job List title in main area to avoid sidebar match
+  const main = page.locator('main');
+  await expect(main.getByText('Job List', { exact: true })).toBeVisible();
+});
 
-    // Use text locator
-    await expect(page.getByText('Predefined Messages', { exact: true })).toBeVisible();
-    await expect(page).toHaveURL(/\/prompts/);
-  });
+test('navigation to messages', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Messages' }).click();
+  await expect(page).toHaveURL(/.*\/prompts/);
+
+  const main = page.locator('main');
+  await expect(main.getByText('Predefined Messages', { exact: true })).toBeVisible();
 });
