@@ -1,5 +1,5 @@
 # 1. Builder Stage: Build the Next.js application
-FROM node:22-slim AS builder
+FROM node:22 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -8,8 +8,6 @@ WORKDIR /app
 COPY package.json ./
 COPY package-lock.json ./
 
-# Install build-essential tools for native modules
-RUN apt-get update && apt-get install -y build-essential python
 # Update npm to the latest version
 RUN npm install -g npm@latest
 
