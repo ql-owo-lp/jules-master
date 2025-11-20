@@ -51,7 +51,7 @@ export async function listSessions(
     return (data.sessions || []).map(session => ({
       ...session,
       status: session.state || 'Succeeded',
-      createdAt: session.createTime || new Date().toISOString(),
+      createdAt: session.createTime || '', // Use a serializable empty string
     }));
 
   } catch (error) {
