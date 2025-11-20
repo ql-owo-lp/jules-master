@@ -1,9 +1,14 @@
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { getJobs, addJob } from '../src/app/config/actions';
 import { Job } from '../src/lib/types';
 import { db } from '../src/lib/db';
 import { jobs } from '../src/lib/db/schema';
+
+// Mock next/cache
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
 
 describe('Config Actions', () => {
     beforeAll(async () => {
