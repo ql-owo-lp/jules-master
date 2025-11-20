@@ -6,7 +6,7 @@ import { Job, PredefinedPrompt } from '../types';
 import { eq } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 
-const sqlite = new Database('sqlite.db');
+const sqlite = new Database(process.env.DB_FILE_NAME || 'sqlite.db');
 export const db = drizzle(sqlite, { schema });
 
 // Run migrations
