@@ -84,5 +84,3 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue }: S
     </div>
   );
 }
-
-    
