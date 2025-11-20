@@ -21,8 +21,10 @@ import {
 } from "@/components/ui/popover"
 import { ScrollArea } from "./scroll-area"
 
+type ComboboxOption = { value: string; label: string; [key: string]: any };
+
 type ComboboxProps = {
-    options: { value: string; label: string; [key: string]: any }[];
+    options: ComboboxOption[];
     selectedValue?: string | null;
     onValueChange: (value: string | null) => void;
     placeholder: string;
@@ -30,6 +32,7 @@ type ComboboxProps = {
     disabled?: boolean;
     icon?: React.ReactNode;
     name?: string;
+    renderOption?: (option: ComboboxOption) => React.ReactNode;
 };
 
 export function Combobox({ 
@@ -40,7 +43,8 @@ export function Combobox({
     searchPlaceholder,
     disabled,
     icon,
-    name
+    name,
+    renderOption
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
@@ -93,7 +97,7 @@ export function Combobox({
                         selectedValue === option.value ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    {option.label}
+                    {renderOption ? renderOption(option) : option.label}
                   </CommandItem>
                 ))}
               </CommandGroup>
