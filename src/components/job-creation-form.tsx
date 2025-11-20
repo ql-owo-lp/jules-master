@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Combobox } from "@/components/ui/combobox";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[], newJob: Job) => void;
@@ -58,6 +59,7 @@ export function JobCreationForm({
   
   const [requirePlanApproval, setRequirePlanApproval] = useLocalStorage<boolean>("jules-new-job-require-plan-approval", false);
   const [automationMode, setAutomationMode] = useLocalStorage<AutomationMode>("jules-new-job-automation-mode", "AUTO_CREATE_PR");
+  const [applyGlobalPrompt, setApplyGlobalPrompt] = useState(true);
 
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, startRefreshTransition] = useTransition();
@@ -113,7 +115,8 @@ export function JobCreationForm({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const finalPrompt = (globalPrompt ? `${globalPrompt}\n\n---\n\n` : "") + prompt;
+    
+    const finalPrompt = (applyGlobalPrompt && globalPrompt ? `${globalPrompt}\n\n---\n\n` : "") + prompt;
 
     if (!finalPrompt.trim()) {
       toast({
@@ -313,6 +316,15 @@ export function JobCreationForm({
               disabled={isPending || disabled}
               aria-label="Session Prompts"
             />
+             <div className="flex items-center space-x-2 pt-2">
+              <Checkbox 
+                id="apply-global-prompt" 
+                checked={applyGlobalPrompt} 
+                onCheckedChange={(checked) => setApplyGlobalPrompt(Boolean(checked))}
+                disabled={isPending || disabled || !globalPrompt}
+              />
+              <Label htmlFor="apply-global-prompt" className="text-sm font-normal">Apply Global Prompt</Label>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
