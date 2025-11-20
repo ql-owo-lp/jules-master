@@ -27,7 +27,7 @@ function HomePageContent() {
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
-  const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
+  const [quickReplies, setQuickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
   
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -90,7 +90,14 @@ function HomePageContent() {
   }, [sessions, sessionToJobMap, jobFilter, repoFilter, statusFilter]);
   
 
-  const fetchSessions = useCallback(async () => {
+  const fetchAllData = useCallback(async (options: {isRefresh: boolean} = {isRefresh: false}) => {
+    if (options.isRefresh) {
+        toast({
+            title: "Refreshing sessions...",
+            description: "Fetching the latest session data.",
+        });
+    }
+
     startFetching(async () => {
       const [fetchedSessions, fetchedJobs, fetchedQuickReplies] = await Promise.all([
         listSessions(apiKey),
@@ -105,7 +112,7 @@ function HomePageContent() {
       setCountdown(sessionListPollInterval);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, sessionListPollInterval, setSessions]);
+  }, [apiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast]);
 
 
   // Effect to fetch PR statuses for visible sessions
@@ -152,28 +159,11 @@ function HomePageContent() {
   useEffect(() => {
     if (isClient) {
       if (apiKey || process.env.JULES_API_KEY) {
-        if (sessions.length === 0) {
-          startFetching(async () => {
-            const [fetchedSessions, fetchedJobs, fetchedQuickReplies] = await Promise.all([
-                listSessions(apiKey),
-                getJobs(),
-                getQuickReplies(),
-            ]);
-            const validSessions = fetchedSessions.filter(s => s);
-            setSessions(validSessions);
-            setJobs(fetchedJobs);
-            setQuickReplies(fetchedQuickReplies);
-            setLastUpdatedAt(new Date());
-            setCountdown(sessionListPollInterval);
-          });
-        } else {
-          setLastUpdatedAt(new Date());
-          setCountdown(sessionListPollInterval);
-        }
+        fetchAllData();
   
         const intervalInMs = sessionListPollInterval * 1000;
         if (intervalInMs > 0) {
-          const intervalId = setInterval(fetchSessions, intervalInMs);
+          const intervalId = setInterval(() => fetchAllData(), intervalInMs);
           return () => clearInterval(intervalId);
         }
       }
@@ -195,18 +185,14 @@ function HomePageContent() {
 
 
   const handleRefresh = () => {
-    fetchSessions();
-    toast({
-      title: "Refreshing sessions...",
-      description: "Fetching the latest session data.",
-    });
+    fetchAllData({ isRefresh: true });
   };
 
   const handleApprovePlan = (sessionId: string) => {
     startActionTransition(async () => {
       const result = await approvePlan(sessionId, apiKey);
        if (result) {
-        fetchSessions();
+        fetchAllData();
         toast({ title: "Plan Approved", description: "The session will now proceed." });
       } else {
         toast({
@@ -221,7 +207,7 @@ function HomePageContent() {
     startActionTransition(async () => {
       const result = await sendMessage(sessionId, message, apiKey);
       if (result) {
-        fetchSessions();
+        fetchAllData();
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
       } else {
         toast({
@@ -242,7 +228,7 @@ function HomePageContent() {
                 title: "Bulk Message Sent",
                 description: `Successfully sent message to ${successfulMessages} of ${sessionIds.length} sessions.`,
             });
-            fetchSessions();
+            fetchAllData();
         } catch (error) {
             toast({
                 variant: "destructive",
@@ -407,3 +393,5 @@ export default function Home() {
     </Suspense>
   )
 }
+
+    

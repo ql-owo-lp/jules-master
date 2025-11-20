@@ -32,7 +32,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "./ui/checkbox";
-import { Combobox } from "./ui/combobox";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 
 type SessionListProps = {
@@ -120,6 +120,7 @@ export function SessionList({
   }
   
   const truncate = (str: string, length: number) => {
+    if (!str) return '';
     return str.length > length ? str.substring(0, length) + "..." : str;
   }
 
@@ -346,19 +347,30 @@ export function SessionList({
                                     </TooltipContent>
                                     </Tooltip>
                                     <PopoverContent className="p-0 w-64" align="end">
-                                      <Combobox
-                                          options={quickReplyOptions}
-                                          onValueChange={(val) => {
-                                              const selected = quickReplies.find(r => r.id === val);
-                                              if (selected) {
-                                                  onSendMessage(session.id, selected.prompt);
-                                              }
-                                          }}
-                                          selectedValue={null}
-                                          placeholder="Select a reply"
-                                          searchPlaceholder="Search replies..."
-                                          icon={<MessageSquareReply className="h-4 w-4 text-muted-foreground" />}
-                                      />
+                                      <Command>
+                                        <CommandInput placeholder="Search replies..."/>
+                                        <CommandList>
+                                          <ScrollArea className="h-[200px]">
+                                            <CommandEmpty>No replies found.</CommandEmpty>
+                                            <CommandGroup>
+                                              {quickReplyOptions.map(option => (
+                                                <CommandItem
+                                                  key={option.value}
+                                                  onSelect={() => {
+                                                    onSendMessage(session.id, option.content);
+                                                    document.body.click(); // Close popover
+                                                  }}
+                                                >
+                                                  <span className="truncate flex-1">{option.label}</span>
+                                                  <span className="text-xs text-muted-foreground ml-2">
+                                                    [{truncate(option.content, 20)}]
+                                                  </span>
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </ScrollArea>
+                                        </CommandList>
+                                      </Command>
                                     </PopoverContent>
                                 </Popover>
                               </div>
@@ -430,3 +442,5 @@ export function SessionList({
     </>
   );
 }
+
+    
