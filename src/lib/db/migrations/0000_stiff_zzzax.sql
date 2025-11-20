@@ -1,4 +1,3 @@
---> statement-breakpoint
 CREATE TABLE `global_prompt` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`prompt` text NOT NULL

@@ -1,8 +1,10 @@
 
 'use server';
 
-import { appDatabase } from '@/lib/db';
+import { appDatabase, db } from '@/lib/db';
+import * as schema from '@/lib/db/schema';
 import type { Job, PredefinedPrompt } from '@/lib/types';
+import { revalidatePath } from 'next/cache';
 
 // --- Jobs ---
 export async function getJobs(): Promise<Job[]> {
@@ -11,6 +13,8 @@ export async function getJobs(): Promise<Job[]> {
 
 export async function addJob(job: Job): Promise<void> {
     await appDatabase.jobs.create(job);
+    revalidatePath('/jobs');
+    revalidatePath('/');
 }
 
 // --- Predefined Prompts ---
@@ -19,7 +23,13 @@ export async function getPredefinedPrompts(): Promise<PredefinedPrompt[]> {
 }
 
 export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promise<void> {
-    await appDatabase.predefinedPrompts.createMany(prompts);
+    // This is not efficient, but for this small scale it is fine.
+    // A better implementation would be to diff the arrays.
+    await db.delete(schema.predefinedPrompts);
+    if (prompts.length > 0) {
+        await appDatabase.predefinedPrompts.createMany(prompts);
+    }
+    revalidatePath('/prompts');
 }
 
 
@@ -29,7 +39,12 @@ export async function getQuickReplies(): Promise<PredefinedPrompt[]> {
 }
 
 export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<void> {
-    await appDatabase.quickReplies.createMany(replies);
+    // This is not efficient, but for this small scale it is fine.
+    await db.delete(schema.quickReplies);
+    if (replies.length > 0) {
+       await appDatabase.quickReplies.createMany(replies);
+    }
+    revalidatePath('/prompts');
 }
 
 // --- Global Prompt ---
@@ -40,4 +55,5 @@ export async function getGlobalPrompt(): Promise<string> {
 
 export async function saveGlobalPrompt(prompt: string): Promise<void> {
     await appDatabase.globalPrompt.save(prompt);
+    revalidatePath('/prompts');
 }
