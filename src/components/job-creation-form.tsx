@@ -164,16 +164,18 @@ export function JobCreationForm({
         await sleep(500); // 500ms interval
       }
       
+      const newJob: Job = {
+        id: crypto.randomUUID(),
+        name: title,
+        sessionIds,
+        createdAt: new Date().toISOString(),
+        repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
+        branch: selectedBranch,
+      };
+      
+      await addJob(newJob);
+
       if (createdSessions.length > 0) {
-        const newJob: Job = {
-          id: crypto.randomUUID(),
-          name: title,
-          sessionIds,
-          createdAt: new Date().toISOString(),
-          repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
-          branch: selectedBranch,
-        };
-        await addJob(newJob);
         onJobsCreated(createdSessions, newJob);
         setPrompt("");
         setJobName("");
