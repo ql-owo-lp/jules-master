@@ -4,9 +4,13 @@ import Database from 'better-sqlite3';
 import * as schema from './schema';
 import { Job, PredefinedPrompt } from '../types';
 import { eq } from 'drizzle-orm';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 
 const sqlite = new Database('sqlite.db');
 export const db = drizzle(sqlite, { schema });
+
+// Run migrations
+migrate(db, { migrationsFolder: 'src/lib/db/migrations' });
 
 // Generic DAO Interface
 export interface IDao<T> {
@@ -25,7 +29,10 @@ class AppDatabase {
     getAll: async () => db.select().from(schema.jobs),
     getById: async (id) => db.select().from(schema.jobs).where(eq(schema.jobs.id, id)).get(),
     create: async (job) => { await db.insert(schema.jobs).values(job) },
-    createMany: async (jobs) => { await db.insert(schema.jobs).values(jobs) },
+    createMany: async (jobs) => { 
+      if (jobs.length === 0) return;
+      await db.insert(schema.jobs).values(jobs);
+    },
     update: async (id, job) => { await db.update(schema.jobs).set(job).where(eq(schema.jobs.id, id)) },
     delete: async (id) => { await db.delete(schema.jobs).where(eq(schema.jobs.id, id)) },
   };
@@ -35,7 +42,10 @@ class AppDatabase {
     getAll: async () => db.select().from(schema.predefinedPrompts),
     getById: async (id) => db.select().from(schema.predefinedPrompts).where(eq(schema.predefinedPrompts.id, id)).get(),
     create: async (prompt) => { await db.insert(schema.predefinedPrompts).values(prompt) },
-    createMany: async (prompts) => { await db.insert(schema.predefinedPrompts).values(prompts) },
+    createMany: async (prompts) => {
+        if (prompts.length === 0) return;
+        await db.insert(schema.predefinedPrompts).values(prompts);
+    },
     update: async (id, prompt) => { await db.update(schema.predefinedPrompts).set(prompt).where(eq(schema.predefinedPrompts.id, id)) },
     delete: async (id) => { await db.delete(schema.predefinedPrompts).where(eq(schema.predefinedPrompts.id, id)) },
   };
@@ -45,7 +55,10 @@ class AppDatabase {
     getAll: async () => db.select().from(schema.quickReplies),
     getById: async (id) => db.select().from(schema.quickReplies).where(eq(schema.quickReplies.id, id)).get(),
     create: async (reply) => { await db.insert(schema.quickReplies).values(reply) },
-    createMany: async (replies) => { await db.insert(schema.quickReplies).values(replies) },
+    createMany: async (replies) => {
+        if (replies.length === 0) return;
+        await db.insert(schema.quickReplies).values(replies);
+    },
     update: async (id, reply) => { await db.update(schema.quickReplies).set(reply).where(eq(schema.quickReplies.id, id)) },
     delete: async (id) => { await db.delete(schema.quickReplies).where(eq(schema.quickReplies.id, id)) },
   };
