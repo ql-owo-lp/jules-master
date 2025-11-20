@@ -8,6 +8,11 @@ WORKDIR /app
 COPY package.json ./
 COPY package-lock.json ./
 
+# Install build-essential tools for native modules
+RUN apt-get update && apt-get install -y build-essential python
+# Update npm to the latest version
+RUN npm install -g npm@latest
+
 # Install dependencies
 RUN npm ci
 
