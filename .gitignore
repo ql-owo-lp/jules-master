@@ -46,3 +46,8 @@ firestore-debug.log
 
 # database
 *.db
+
+# playwright
+playwright-report/
+test-results/
+dev_output.log
