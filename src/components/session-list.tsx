@@ -302,7 +302,7 @@ export function SessionList({
                                 </div>
                             </TableCell>
                             <TableCell>
-                              <JobStatusBadge status={session.state || session.status} />
+                              <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {formatDistanceToNow(new Date(session.createTime || session.createdAt), {
@@ -442,5 +442,3 @@ export function SessionList({
     </>
   );
 }
-
-    
