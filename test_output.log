@@ -1,0 +1,152 @@
+
+> nextn@0.1.0 test:e2e
+> playwright test
+
+[1A[2K[2m[WebServer] [22m
+[2m[WebServer] [22m> nextn@0.1.0 dev
+[2m[WebServer] [22m> next dev --turbopack -p 9002
+[2m[WebServer] [22m
+
+[1A[2K[2m[WebServer] [22m   [1m[38;2;173;127;168m▲ Next.js 15.5.6[39m[22m (Turbopack)
+
+[1A[2K[2m[WebServer] [22m   - Local:        http://localhost:9002
+[2m[WebServer] [22m   - Network:      http://192.168.0.2:9002
+[2m[WebServer] [22m
+[2m[WebServer] [22m [32m[1m✓[22m[39m Starting...
+
+[1A[2K[2m[WebServer] [22m [32m[1m✓[22m[39m Ready in 3.8s
+
+[1A[2K[2m[WebServer] [22m [37m[1m○[22m[39m Compiling / ...
+
+[1A[2K[2m[WebServer] [22m [32m[1m✓[22m[39m Compiled / in 15.7s
+
+
+Running 6 tests using 2 workers
+
+[1A[2K[2m[WebServer] [22m GET / [32m200[39m in 17509ms
+
+[1A[2K[1/6] [chromium] › tests/e2e/home.spec.ts:24:7 › Home Page › should allow setting API key
+[1A[2K[2/6] [chromium] › tests/e2e/home.spec.ts:12:7 › Home Page › should display mocked sessions
+[1A[2K[2m[WebServer] [22m GET / [32m200[39m in 1140ms
+
+[1A[2K[2m[WebServer] [22m GET / [32m200[39m in 1136ms
+
+[1A[2K[2m[WebServer] [22m[Mock API] Returning mock sessions
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 423ms
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 414ms
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 106ms
+
+[1A[2K[3/6] [chromium] › tests/e2e/home.spec.ts:45:7 › Home Page › should filter sessions
+[1A[2K[2m[WebServer] [22m [31m[1m⨯[22m[39m [Error: aborted] { code: [32m'ECONNRESET'[39m, digest: [32m'1052313065'[39m }
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 227ms
+
+[1A[2K[2m[WebServer] [22m GET / [32m200[39m in 301ms
+
+[1A[2K[4/6] [chromium] › tests/e2e/job-creation.spec.ts:12:7 › Job Creation › should open new job dialog and fill form with mock data
+[1A[2K[2m[WebServer] [22m GET / [32m200[39m in 405ms
+
+[1A[2K[5/6] [chromium] › tests/e2e/job-creation.spec.ts:60:7 › Job Creation › should navigate to new job page via external link
+[1A[2K[2m[WebServer] [22m [31m[1m⨯[22m[39m [Error: aborted] { code: [32m'ECONNRESET'[39m, digest: [32m'1052313065'[39m }
+
+[1A[2K[2m[WebServer] [22m GET / [32m200[39m in 264ms
+
+[1A[2K[2m[WebServer] [22m[Mock API] Returning mock sessions
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 150ms
+
+[1A[2K[6/6] [chromium] › tests/e2e/navigation.spec.ts:5:7 › Navigation › should verify sidebar links and buttons
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 166ms
+
+[1A[2K[2m[WebServer] [22m GET / [32m200[39m in 362ms
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 342ms
+
+[1A[2K[2m[WebServer] [22m[Mock API] Returning mock sources
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 100ms
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 142ms
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 94ms
+
+[1A[2K[2m[WebServer] [22m[Mock API] Returning mock sources
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 115ms
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 135ms
+
+[1A[2K[2m[WebServer] [22m POST / [32m200[39m in 101ms
+
+[1A[2K[2m[WebServer] [22m [37m[1m○[22m[39m Compiling /jobs ...
+
+[1A[2K[2m[WebServer] [22m [32m[1m✓[22m[39m Compiled /jobs in 1166ms
+
+[1A[2K[2m[WebServer] [22m GET /jobs [32m200[39m in 1333ms
+
+[1A[2K[2m[WebServer] [22m POST /jobs [32m200[39m in 127ms
+
+[1A[2K[2m[WebServer] [22m POST /jobs [32m200[39m in 103ms
+
+[1A[2K[2m[WebServer] [22m POST /jobs [32m200[39m in 121ms
+
+[1A[2K[2m[WebServer] [22m POST /jobs [32m200[39m in 77ms
+
+[1A[2K[2m[WebServer] [22m POST /jobs [32m200[39m in 94ms
+
+[1A[2K[2m[WebServer] [22m POST /jobs [32m200[39m in 127ms
+
+[1A[2K[2m[WebServer] [22m GET / [32m200[39m in 154ms
+
+[1A[2K[2m[WebServer] [22m GET / [32m200[39m in 176ms
+
+[1A[2K[2m[WebServer] [22m [37m[1m○[22m[39m Compiling /prompts ...
+
+[1A[2K[2m[WebServer] [22m [32m[1m✓[22m[39m Compiled /prompts in 989ms
+
+[1A[2K[2m[WebServer] [22m GET /prompts [32m200[39m in 1172ms
+
+[1A[2K[2m[WebServer] [22m POST /prompts [32m200[39m in 114ms
+
+[1A[2K[2m[WebServer] [22m POST /prompts [32m200[39m in 104ms
+
+[1A[2K[2m[WebServer] [22m POST /prompts [32m200[39m in 75ms
+
+[1A[2K[2m[WebServer] [22m POST /prompts [32m200[39m in 113ms
+
+[1A[2K[2m[WebServer] [22m POST /prompts [32m200[39m in 87ms
+
+[1A[2K[2m[WebServer] [22m POST /prompts [32m200[39m in 105ms
+
+[1A[2K  1) [chromium] › tests/e2e/job-creation.spec.ts:12:7 › Job Creation › should open new job dialog and fill form with mock data
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeEnabled[2m([22m[2m)[22m failed
+
+    Locator: getByRole('combobox', { name: 'Select repository' })
+    Expected: enabled
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeEnabled" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('combobox', { name: 'Select repository' })[22m
+
+
+      36 |     // Ensure it is enabled
+      37 |     const repoCombobox = page.getByRole('combobox', { name: 'Select repository' });
+    > 38 |     await expect(repoCombobox).toBeEnabled();
+         |                                ^
+      39 |
+      40 |     await repoCombobox.click();
+      41 |     await expect(page.getByRole('option', { name: 'test-owner/test-repo' })).toBeVisible();
+        at /app/tests/e2e/job-creation.spec.ts:38:32
+
+    Error Context: test-results/job-creation-Job-Creation--f036a-nd-fill-form-with-mock-data-chromium/error-context.md
+
+
+[1A[2K  1 failed
+    [chromium] › tests/e2e/job-creation.spec.ts:12:7 › Job Creation › should open new job dialog and fill form with mock data
+  5 passed (41.5s)

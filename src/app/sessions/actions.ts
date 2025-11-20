@@ -18,10 +18,60 @@ export async function revalidateSessions() {
   revalidateTag('sessions');
 }
 
+// --- Mock Data ---
+const MOCK_SESSIONS: Session[] = [
+  {
+    id: 'session-1',
+    title: 'Mock Session 1',
+    state: 'COMPLETED',
+    createTime: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    sourceContext: {
+      source: 'github/test-owner/test-repo',
+      githubRepoContext: {
+        startingBranch: 'main',
+      },
+    },
+  },
+  {
+    id: 'session-2',
+    title: 'Mock Session 2',
+    state: 'AWAITING_USER_FEEDBACK',
+    createTime: new Date(Date.now() - 100000).toISOString(),
+    createdAt: new Date(Date.now() - 100000).toISOString(),
+    sourceContext: {
+      source: 'github/test-owner/test-repo',
+      githubRepoContext: {
+        startingBranch: 'develop',
+      },
+    },
+  },
+];
+
+const MOCK_SOURCES: Source[] = [
+  {
+    name: 'github/test-owner/test-repo',
+    githubRepo: {
+      owner: 'test-owner',
+      repo: 'test-repo',
+      branches: [
+        { displayName: 'main' },
+        { displayName: 'develop' },
+      ],
+      defaultBranch: { displayName: 'main' },
+    },
+  },
+];
+
 export async function listSessions(
   apiKey?: string | null,
   pageSize: number = 50
 ): Promise<Session[]> {
+  // Check for mock flag
+  if (process.env.MOCK_API === 'true') {
+     return MOCK_SESSIONS;
+  }
+
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
@@ -51,7 +101,7 @@ export async function listSessions(
     return (data.sessions || []).map(session => ({
       ...session,
       status: session.state || 'Succeeded',
-      createdAt: session.createTime || '', // Use a serializable empty string
+      createdAt: session.createTime || '',
     }));
 
   } catch (error) {
@@ -61,6 +111,11 @@ export async function listSessions(
 }
 
 export async function listSources(apiKey?: string | null): Promise<Source[]> {
+  // Check for mock flag
+  if (process.env.MOCK_API === 'true') {
+    return MOCK_SOURCES;
+  }
+
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
