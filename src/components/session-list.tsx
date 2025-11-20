@@ -31,7 +31,6 @@ import { PrStatus } from "./pr-status";
 import { MessageDialog } from "./message-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { getQuickReplies } from "@/app/config/actions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "./ui/checkbox";
@@ -40,6 +39,7 @@ import { Checkbox } from "./ui/checkbox";
 type SessionListProps = {
   sessions: Session[];
   jobs: Job[];
+  quickReplies: PredefinedPrompt[];
   lastUpdatedAt: Date | null;
   onRefresh: () => void;
   isRefreshing?: boolean;
@@ -59,6 +59,7 @@ type SessionListProps = {
 export function SessionList({
   sessions,
   jobs,
+  quickReplies,
   lastUpdatedAt,
   onRefresh,
   isRefreshing,
@@ -76,14 +77,9 @@ export function SessionList({
 }: SessionListProps) {
   const router = useRouter();
   const [itemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
-  const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
   
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
-
-    useEffect(() => {
-        getQuickReplies().then(setQuickReplies);
-    }, []);
 
   const sessionToJobMap = useMemo(() => {
     const map = new Map<string, Job>();
