@@ -15,7 +15,7 @@ RUN npm ci
 COPY . .
 
 # Build the Next.js application for production
-RUN npm run build
+RUN npm run build --debug
 
 # 2. Runner Stage: Create the final, minimal production image
 FROM gcr.io/distroless/nodejs22-debian12:nonroot AS runner
