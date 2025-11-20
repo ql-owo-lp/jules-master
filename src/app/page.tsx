@@ -12,7 +12,7 @@ import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
-import { getJobs } from "@/app/config/actions";
+import { getJobs, getQuickReplies } from "@/app/config/actions";
 import { getPullRequestStatus } from "@/app/github/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ function HomePageContent() {
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
+  const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
   
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -91,13 +92,15 @@ function HomePageContent() {
 
   const fetchSessions = useCallback(async () => {
     startFetching(async () => {
-      const [fetchedSessions, fetchedJobs] = await Promise.all([
+      const [fetchedSessions, fetchedJobs, fetchedQuickReplies] = await Promise.all([
         listSessions(apiKey),
-        getJobs()
+        getJobs(),
+        getQuickReplies()
       ]);
       const validSessions = fetchedSessions.filter(s => s);
       setSessions(validSessions);
       setJobs(fetchedJobs);
+      setQuickReplies(fetchedQuickReplies);
       setLastUpdatedAt(new Date());
       setCountdown(sessionListPollInterval);
     });
@@ -151,13 +154,15 @@ function HomePageContent() {
       if (apiKey || process.env.JULES_API_KEY) {
         if (sessions.length === 0) {
           startFetching(async () => {
-            const [fetchedSessions, fetchedJobs] = await Promise.all([
+            const [fetchedSessions, fetchedJobs, fetchedQuickReplies] = await Promise.all([
                 listSessions(apiKey),
-                getJobs()
+                getJobs(),
+                getQuickReplies(),
             ]);
             const validSessions = fetchedSessions.filter(s => s);
             setSessions(validSessions);
             setJobs(fetchedJobs);
+            setQuickReplies(fetchedQuickReplies);
             setLastUpdatedAt(new Date());
             setCountdown(sessionListPollInterval);
           });
@@ -329,6 +334,7 @@ function HomePageContent() {
           <SessionList
             sessions={filteredSessions}
             jobs={jobs}
+            quickReplies={quickReplies}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
             isRefreshing={isFetching}
