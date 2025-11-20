@@ -66,7 +66,6 @@ export function JobCreationForm({
   
   const [selectedSource, setSelectedSource] = useLocalStorage<Source | null>("jules-last-source", null);
   const [selectedBranch, setSelectedBranch] = useLocalStorage<string | undefined>("jules-last-branch", undefined);
-  const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
 
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
@@ -96,13 +95,12 @@ export function JobCreationForm({
     startRefreshTransition(async () => {
       await refreshSources();
       setSourceSelectionKey(Date.now());
-      setSources([]); // Clear cache to force re-fetch in SourceSelection
       toast({
         title: "Refreshed",
         description: "The list of repositories has been updated.",
       });
     });
-  }, [toast, setSources]);
+  }, [toast]);
 
   const handleReset = () => {
     setJobName("");
@@ -350,8 +348,6 @@ export function JobCreationForm({
                     onSourceSelected={setSelectedSource} 
                     disabled={disabled || isPending}
                     selectedValue={selectedSource}
-                    sources={sources}
-                    onSourcesLoaded={setSources}
                 />
             </div>
             <BranchSelection 
