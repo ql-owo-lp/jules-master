@@ -304,7 +304,7 @@ export function JobCreationForm({
               disabled={isPending || disabled}
               aria-label="Session Prompts"
             />
-            <div className="grid grid-cols-2 items-center gap-4 pt-2">
+             <div className="grid grid-cols-2 items-center gap-4 pt-2">
               {isClient && predefinedPrompts.length > 0 && (
                 <div className="space-y-2">
                   <Combobox
@@ -326,8 +326,7 @@ export function JobCreationForm({
                   />
                 </div>
               )}
-
-              <div className="flex items-center space-x-2">
+               <div className="flex items-center space-x-2">
                 <Checkbox 
                   id="apply-global-prompt" 
                   checked={applyGlobalPrompt} 
@@ -414,3 +413,5 @@ export function JobCreationForm({
     </Card>
   );
 }
+
+    
