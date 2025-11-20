@@ -37,6 +37,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MessageSquareReply } from "lucide-react";
+import { Combobox } from "@/components/ui/combobox";
 
 function JobsTable({
   jobs,
@@ -274,27 +275,21 @@ function JobsTable({
                                       <p>Send a Quick Reply</p>
                                     </TooltipContent>
                                   </Tooltip>
-                                  <PopoverContent className="p-0 w-64" align="end">
-                                      <Command>
-                                          <CommandInput placeholder="Search replies..." />
-                                          <CommandList>
-                                              <CommandEmpty>No replies found.</CommandEmpty>
-                                              <CommandGroup>
-                                                  {quickReplyOptions.map((option) => (
-                                                      <CommandItem
-                                                          key={option.value}
-                                                          value={`${option.label} ${option.content}`}
-                                                          onSelect={() => {
-                                                              onBulkSendMessage([job.id], option.content);
-                                                              document.body.click(); // Close popover
-                                                          }}
-                                                      >
-                                                          {option.label}
-                                                      </CommandItem>
-                                                  ))}
-                                              </CommandGroup>
-                                          </CommandList>
-                                      </Command>
+                                  <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="end">
+                                        <Combobox
+                                            options={quickReplyOptions}
+                                            onValueChange={(val) => {
+                                                const selected = quickReplies.find(r => r.id === val);
+                                                if (selected) {
+                                                    onBulkSendMessage([job.id], selected.prompt);
+                                                    document.body.click(); // Close popover
+                                                }
+                                            }}
+                                            selectedValue={null}
+                                            placeholder="Select a reply"
+                                            searchPlaceholder="Search replies..."
+                                            icon={<MessageSquareReply className="h-4 w-4 text-muted-foreground" />}
+                                        />
                                   </PopoverContent>
                                 </Popover>
                               </div>
