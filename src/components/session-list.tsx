@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import {
@@ -347,20 +346,19 @@ export function SessionList({
                                     </TooltipContent>
                                     </Tooltip>
                                     <PopoverContent className="p-0 w-64" align="end">
-                                        <Combobox
-                                            options={quickReplyOptions}
-                                            onValueChange={(val) => {
-                                                const selected = quickReplies.find(r => r.id === val);
-                                                if (selected) {
-                                                    onSendMessage(session.id, selected.prompt);
-                                                    document.body.click(); // Close popover
-                                                }
-                                            }}
-                                            selectedValue={null}
-                                            placeholder="Select a reply"
-                                            searchPlaceholder="Search replies..."
-                                            icon={<MessageSquareReply className="h-4 w-4 text-muted-foreground" />}
-                                        />
+                                      <Combobox
+                                          options={quickReplyOptions}
+                                          onValueChange={(val) => {
+                                              const selected = quickReplies.find(r => r.id === val);
+                                              if (selected) {
+                                                  onSendMessage(session.id, selected.prompt);
+                                              }
+                                          }}
+                                          selectedValue={null}
+                                          placeholder="Select a reply"
+                                          searchPlaceholder="Search replies..."
+                                          icon={<MessageSquareReply className="h-4 w-4 text-muted-foreground" />}
+                                      />
                                     </PopoverContent>
                                 </Popover>
                               </div>
