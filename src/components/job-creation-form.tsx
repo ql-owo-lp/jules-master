@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useTransition, useCallback, useEffect } from "react";
@@ -225,6 +224,10 @@ export function JobCreationForm({
     content: p.prompt
   }));
 
+  const truncate = (str: string, length: number) => {
+    return str.length > length ? str.substring(0, length) + "..." : str;
+  }
+
   return (
     <Card className="shadow-md">
       <TooltipProvider>
@@ -251,21 +254,6 @@ export function JobCreationForm({
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
-           {isClient && predefinedPrompts.length > 0 && (
-            <div className="space-y-2">
-              <Label>Message Suggestions</Label>
-              <Combobox
-                options={promptOptions}
-                selectedValue={null}
-                onValueChange={handlePreCannedPromptSelect}
-                placeholder="Select a predefined message..."
-                searchPlaceholder="Search messages..."
-                disabled={isPending || disabled}
-                icon={<BookText className="h-4 w-4 text-muted-foreground" />}
-              />
-            </div>
-          )}
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="job-name">Job Name (Optional)</Label>
@@ -316,14 +304,38 @@ export function JobCreationForm({
               disabled={isPending || disabled}
               aria-label="Session Prompts"
             />
-             <div className="flex items-center space-x-2 pt-2">
-              <Checkbox 
-                id="apply-global-prompt" 
-                checked={applyGlobalPrompt} 
-                onCheckedChange={(checked) => setApplyGlobalPrompt(Boolean(checked))}
-                disabled={isPending || disabled || !globalPrompt}
-              />
-              <Label htmlFor="apply-global-prompt" className="text-sm font-normal">Apply Global Prompt</Label>
+            <div className="grid grid-cols-2 items-center gap-4 pt-2">
+              {isClient && predefinedPrompts.length > 0 && (
+                <div className="space-y-2">
+                  <Combobox
+                    options={promptOptions}
+                    selectedValue={null}
+                    onValueChange={handlePreCannedPromptSelect}
+                    placeholder="Select a message suggestion..."
+                    searchPlaceholder="Search messages..."
+                    disabled={isPending || disabled}
+                    icon={<BookText className="h-4 w-4 text-muted-foreground" />}
+                    renderOption={(option) => (
+                      <span className="truncate">
+                        {option.label}
+                        <span className="ml-2 text-muted-foreground font-light">
+                          [{truncate(option.content, 30)}]
+                        </span>
+                      </span>
+                    )}
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="apply-global-prompt" 
+                  checked={applyGlobalPrompt} 
+                  onCheckedChange={(checked) => setApplyGlobalPrompt(Boolean(checked))}
+                  disabled={isPending || disabled || !globalPrompt}
+                />
+                <Label htmlFor="apply-global-prompt" className="text-sm font-normal">Apply Global Prompt</Label>
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
