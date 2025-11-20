@@ -32,8 +32,8 @@ import { MessageDialog } from "./message-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "./ui/checkbox";
+import { Combobox } from "./ui/combobox";
 
 
 type SessionListProps = {
@@ -334,40 +334,34 @@ export function SessionList({
                                 ) : null}
                                 
                                 <Popover>
-                                  <Tooltip>
+                                    <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <PopoverTrigger asChild>
+                                        <PopoverTrigger asChild>
                                         <Button variant="ghost" size="icon" disabled={isActionPending}>
-                                          <MessageSquareReply className="h-4 w-4" />
+                                            <MessageSquareReply className="h-4 w-4" />
                                         </Button>
-                                      </PopoverTrigger>
+                                        </PopoverTrigger>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Send a Quick Reply</p>
+                                        <p>Send a Quick Reply</p>
                                     </TooltipContent>
-                                  </Tooltip>
-                                  <PopoverContent className="p-0 w-64" align="end">
-                                      <Command>
-                                          <CommandInput placeholder="Search replies..." />
-                                          <CommandList>
-                                              <CommandEmpty>No replies found.</CommandEmpty>
-                                              <CommandGroup>
-                                                  {quickReplyOptions.map((option) => (
-                                                      <CommandItem
-                                                          key={option.value}
-                                                          value={`${option.label} ${option.content}`}
-                                                          onSelect={() => {
-                                                              onSendMessage(session.id, option.content);
-                                                              document.body.click(); // Close popover
-                                                          }}
-                                                      >
-                                                          {option.label}
-                                                      </CommandItem>
-                                                  ))}
-                                              </CommandGroup>
-                                          </CommandList>
-                                      </Command>
-                                  </PopoverContent>
+                                    </Tooltip>
+                                    <PopoverContent className="p-0 w-64" align="end">
+                                        <Combobox
+                                            options={quickReplyOptions}
+                                            onValueChange={(val) => {
+                                                const selected = quickReplies.find(r => r.id === val);
+                                                if (selected) {
+                                                    onSendMessage(session.id, selected.prompt);
+                                                    document.body.click(); // Close popover
+                                                }
+                                            }}
+                                            selectedValue={null}
+                                            placeholder="Select a reply"
+                                            searchPlaceholder="Search replies..."
+                                            icon={<MessageSquareReply className="h-4 w-4 text-muted-foreground" />}
+                                        />
+                                    </PopoverContent>
                                 </Popover>
                               </div>
                             </TableCell>
