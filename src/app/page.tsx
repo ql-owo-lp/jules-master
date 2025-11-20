@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useTransition, useCallback, Suspense, useMemo } from "react";
@@ -9,8 +10,8 @@ import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listSessions } from "./sessions/actions";
-import { approvePlan, sendMessage } from "./sessions/[id]/actions";
+import { listSessions } from "@/app/sessions/actions";
+import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
 import { getJobs } from "@/app/config/actions";
 import { getPullRequestStatus } from "@/app/github/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -107,7 +108,8 @@ function HomePageContent() {
   // Effect to fetch PR statuses for visible sessions
   useEffect(() => {
     const fetchStatuses = async () => {
-        if (!githubToken && !process.env.GITHUB_TOKEN) {
+        const effectiveToken = githubToken || process.env.GITHUB_TOKEN;
+        if (!effectiveToken) {
             return;
         }
         if (filteredSessions.length === 0) {
@@ -122,7 +124,7 @@ function HomePageContent() {
         if (urlsToFetch.length > 0) {
             const newStatuses: Record<string, PullRequestStatus | null> = {};
             const promises = urlsToFetch.map(async (prUrl) => {
-                const status = await getPullRequestStatus(prUrl, githubToken);
+                const status = await getPullRequestStatus(prUrl, effectiveToken);
                 newStatuses[prUrl] = status;
             });
             
