@@ -155,7 +155,7 @@ function JobsTable({
 
   return (
      <>
-        {jobs.length === 0 ? (
+        {jobs.length === 0 && !isFetching ? (
           <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
             <p className="font-semibold text-lg">No Jobs Yet</p>
             <p className="text-sm">
@@ -202,7 +202,13 @@ function JobsTable({
                         <col style={{ width: '20%' }} />
                       </colgroup>
                     <TableBody>
-                      {paginatedJobs.map((job) => {
+                      {isFetching && paginatedJobs.length === 0 ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                          <TableRow key={i}>
+                            <TableCell colSpan={5}><Skeleton className="h-10 w-full" /></TableCell>
+                          </TableRow>
+                        ))
+                      ) : paginatedJobs.map((job) => {
                         const details = jobDetailsMap.get(job.id) || { completed: 0, working: 0, pending: 0, repo: null, branch: null };
                         const isApprovingCurrent = isBulkApproving === job.id;
                         return (
@@ -368,7 +374,6 @@ export default function JobsPage() {
   const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
   
   const [isClient, setIsClient] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -382,7 +387,13 @@ export default function JobsPage() {
 
   const fetchJobSessions = useCallback(() => {
     if (!apiKey && !process.env.JULES_API_KEY) {
-        setIsLoading(false);
+        startFetching(async () => {
+            // Still fetch local jobs if no API key
+            const [fetchedJobs, fetchedReplies] = await Promise.all([getJobs(), getQuickReplies()]);
+            setJobs(fetchedJobs);
+            setQuickReplies(fetchedReplies);
+            setSessions([]);
+        });
         return
     };
 
@@ -397,25 +408,14 @@ export default function JobsPage() {
       setQuickReplies(fetchedReplies);
       setLastUpdatedAt(new Date());
       setCountdown(pollInterval);
-      if (isLoading) {
-        setIsLoading(false);
-      }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, pollInterval, setSessions, isLoading]);
+  }, [apiKey, pollInterval, setSessions]);
 
 
   useEffect(() => {
     setIsClient(true);
-    const effectiveApiKey = process.env.JULES_API_KEY || apiKey;
-    if (effectiveApiKey) {
-       if (!lastUpdatedAt) {
-          setLastUpdatedAt(new Date());
-       }
-       fetchJobSessions();
-    } else {
-      setIsLoading(false);
-    }
+    fetchJobSessions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient, apiKey]);
 
@@ -524,7 +524,7 @@ export default function JobsPage() {
     });
   };
 
-  if (!isClient || isLoading) {
+  if (!isClient) {
     return (
        <div className="flex flex-col flex-1 bg-background">
         <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
@@ -550,13 +550,13 @@ export default function JobsPage() {
                       <div className="flex items-center gap-2">
                           <ClipboardList className="h-6 w-6" />
                           <CardTitle>Job List</CardTitle>
-                          {isClient && (process.env.JULES_API_KEY || apiKey) && (
+                          {isClient && (
                               <Button variant="ghost" size="icon" onClick={handleRefresh} aria-label="Refresh job list" disabled={isFetching}>
                                   <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
                               </Button>
                           )}
                       </div>
-                      {isClient && (process.env.JULES_API_KEY || apiKey) && lastUpdatedAt && (
+                      {isClient && lastUpdatedAt && (
                           <div className="text-sm text-muted-foreground text-right flex-shrink-0">
                             <div>
                                 Last updated:{" "}
