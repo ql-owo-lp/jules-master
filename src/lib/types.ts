@@ -12,7 +12,6 @@ export type Session = {
   createTime?: string; // API uses createTime
   updateTime?: string;
   createdAt: string; // Keep for consistency in our app
-  status: JobStatus | State; // This is a client-side concept for now to track progress
   state?: State;
   url?: string;
   outputs?: SessionOutput[];

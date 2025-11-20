@@ -1,10 +1,11 @@
+
 import { Badge } from "@/components/ui/badge";
-import type { JobStatus, State } from "@/lib/types";
+import type { State } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Clock, XCircle, Loader2, HelpCircle, PauseCircle, Hand, MessageSquare, PlayCircle } from "lucide-react";
 
 type JobStatusBadgeProps = {
-  status: JobStatus | State;
+  status: State;
 };
 
 type StatusConfig = {
@@ -14,28 +15,7 @@ type StatusConfig = {
 }
 
 export function JobStatusBadge({ status }: JobStatusBadgeProps) {
-  const statusConfig: Record<JobStatus | State, StatusConfig> = {
-    // Original statuses
-    Pending: {
-      icon: <Clock className="h-3.5 w-3.5" />,
-      className: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-800",
-      label: "Pending",
-    },
-    Running: {
-      icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
-      className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-800",
-      label: "Running",
-    },
-    Succeeded: {
-      icon: <CheckCircle2 className="h-3.5 w-3.5" />,
-      className: "bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-950 dark:text-green-200 dark:border-green-800",
-      label: "Succeeded",
-    },
-    Failed: {
-      icon: <XCircle className="h-3.5 w-3.5" />,
-      className: "bg-red-100 text-red-800 border-red-200 hover:bg-red-100 dark:bg-red-950 dark:text-red-200 dark:border-red-800",
-      label: "Failed",
-    },
+  const statusConfig: Record<State, StatusConfig> = {
     // API States
     QUEUED: {
         icon: <Clock className="h-3.5 w-3.5" />,
@@ -82,15 +62,10 @@ export function JobStatusBadge({ status }: JobStatusBadgeProps) {
       icon: <HelpCircle className="h-3.5 w-3.5" />,
       className: "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100 dark:bg-gray-950 dark:text-gray-200 dark:border-gray-800",
       label: "Unknown",
-    },
-    Unknown: {
-      icon: <HelpCircle className="h-3.5 w-3.5" />,
-      className: "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100 dark:bg-gray-950 dark:text-gray-200 dark:border-gray-800",
-      label: "Unknown",
-    },
+    }
   };
 
-  const config = statusConfig[status] || statusConfig.Unknown;
+  const config = statusConfig[status] || statusConfig.STATE_UNSPECIFIED;
 
   return (
     <Badge
