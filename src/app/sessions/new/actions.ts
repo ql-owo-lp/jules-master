@@ -14,6 +14,16 @@ export async function createSession(
   sessionData: CreateSessionBody,
   apiKey?: string | null
 ): Promise<Session | null> {
+  if (process.env.MOCK_API === 'true') {
+    return {
+      id: 'mock-session-' + crypto.randomUUID(),
+      createTime: new Date().toISOString(),
+      state: 'COMPLETED',
+      sourceContext: sessionData.sourceContext,
+      prompt: sessionData.prompt,
+    } as Session;
+  }
+
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
