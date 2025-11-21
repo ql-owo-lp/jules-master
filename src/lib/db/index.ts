@@ -8,13 +8,52 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'fs';
 import path from 'path';
 
-const dbPath = process.env.DATABASE_URL || 'data/sqlite.db';
+const resolveDbPath = (url: string | undefined) => {
+  if (url) return path.resolve(url);
+  // Default to data/sqlite.db in CWD
+  return path.resolve(process.cwd(), 'data/sqlite.db');
+};
+
+const dbPath = resolveDbPath(process.env.DATABASE_URL);
 const dbDir = path.dirname(dbPath);
 
 // Ensure the directory exists
-fs.mkdirSync(dbDir, { recursive: true });
+try {
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+    console.log(`Created database directory: ${dbDir}`);
+  }
+} catch (error) {
+  console.error(`Error creating database directory ${dbDir}:`, error);
+}
 
-const sqlite = new Database(dbPath);
+let sqlite;
+try {
+  sqlite = new Database(dbPath);
+} catch (error: any) {
+  console.error("Failed to initialize SQLite database.");
+  console.error(`Attempted path: ${dbPath}`);
+  console.error(`Directory: ${dbDir}`);
+
+  try {
+    const stats = fs.statSync(dbDir);
+    console.error(`Directory permissions: uid=${stats.uid}, gid=${stats.gid}, mode=${stats.mode}`);
+  } catch (statError) {
+    console.error(`Could not stat directory: ${statError}`);
+  }
+
+  try {
+    fs.accessSync(dbDir, fs.constants.W_OK);
+    console.error(`Directory is writable.`);
+  } catch (accessError) {
+    console.error(`Directory is NOT writable: ${accessError}`);
+  }
+
+  console.error(`Current User: uid=${process.getuid ? process.getuid() : 'unknown'}, gid=${process.getgid ? process.getgid() : 'unknown'}`);
+
+  throw error;
+}
+
 export const db = drizzle(sqlite, { schema });
 
 // Generic DAO Interface
