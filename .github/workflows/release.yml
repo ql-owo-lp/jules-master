@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: Release Docker Image
 
 on:
   push:
@@ -59,7 +59,7 @@ jobs:
             ${{ env.GHCR_IMAGE }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.platform }}
-          cache-to: type=gha,mode=min,scope=${{ matrix.platform }}
+          # cache-to: type=gha,mode=min,scope=${{ matrix.platform }}
 
       - name: Export digest
         run: |
