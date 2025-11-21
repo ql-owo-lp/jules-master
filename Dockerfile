@@ -30,7 +30,7 @@ WORKDIR /app
 USER nonroot
 
 # Create a directory for the database
-RUN mkdir /app/data
+RUN mkdir -p /app/data
 
 # Set the database URL environment variable
 ENV DATABASE_URL=/app/data/sqlite.db
