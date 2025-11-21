@@ -8,11 +8,34 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'fs';
 import path from 'path';
 
-const dbPath = process.env.DATABASE_URL || 'data/sqlite.db';
+// Resolve to absolute path to ensure consistency
+const dbPath = path.resolve(process.cwd(), process.env.DATABASE_URL || 'data/sqlite.db');
 const dbDir = path.dirname(dbPath);
 
 // Ensure the directory exists
-fs.mkdirSync(dbDir, { recursive: true });
+try {
+  fs.mkdirSync(dbDir, { recursive: true });
+} catch (error) {
+  console.error(`Failed to create database directory at ${dbDir}:`, error);
+  // We continue, as it might fail if it already exists but with different perms,
+  // though mkdir with recursive usually handles existence gracefully.
+}
+
+// Check for write permissions to help debug common container/volume issues
+try {
+  fs.accessSync(dbDir, fs.constants.W_OK);
+} catch (error) {
+  console.error(`
+********************************************************************************
+ERROR: Database directory is not writable.
+
+Directory: ${dbDir}
+
+This is likely a permission issue with the Docker volume mount.
+If you are mounting a host directory, ensure the user inside the container (usually 'nonroot' or uid 65532) has write access to it.
+********************************************************************************
+`);
+}
 
 const sqlite = new Database(dbPath);
 export const db = drizzle(sqlite, { schema });

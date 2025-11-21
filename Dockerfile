@@ -48,8 +48,5 @@ COPY --from=builder --chown=nonroot:nonroot /app/data /app/data
 # Expose the port the app runs on
 EXPOSE 9002
 
-# Declare a volume for the database data
-VOLUME /app/data
-
 # Set the command to our startup script
 CMD ["start.js"]
