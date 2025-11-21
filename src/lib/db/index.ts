@@ -8,11 +8,36 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'fs';
 import path from 'path';
 
-const dbPath = process.env.DATABASE_URL || 'data/sqlite.db';
+// Resolve database path (handle relative paths in DATABASE_URL or default)
+const dbUrl = process.env.DATABASE_URL || 'data/sqlite.db';
+const dbPath = path.isAbsolute(dbUrl) ? dbUrl : path.join(process.cwd(), dbUrl);
 const dbDir = path.dirname(dbPath);
 
 // Ensure the directory exists
-fs.mkdirSync(dbDir, { recursive: true });
+if (!fs.existsSync(dbDir)) {
+  console.log(`Creating database directory: ${dbDir}`);
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// Check directory write permissions
+try {
+  fs.accessSync(dbDir, fs.constants.W_OK);
+} catch (error) {
+  console.error(`Error: Database directory '${dbDir}' is not writable.`);
+  throw error;
+}
+
+// Check file permissions if it exists, or log initialization if not
+if (fs.existsSync(dbPath)) {
+  try {
+    fs.accessSync(dbPath, fs.constants.R_OK | fs.constants.W_OK);
+  } catch (error) {
+    console.error(`Error: Database file '${dbPath}' is not readable/writable.`);
+    throw error;
+  }
+} else {
+  console.log(`Initializing new database at: ${dbPath}`);
+}
 
 const sqlite = new Database(dbPath);
 export const db = drizzle(sqlite, { schema });
