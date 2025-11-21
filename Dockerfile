@@ -20,9 +20,6 @@ COPY . .
 # Build the Next.js application for production
 RUN npm run build --debug
 
-# Create the data directory
-RUN mkdir -p /app/data
-
 # 2. Runner Stage: Create the final, minimal production image
 FROM gcr.io/distroless/nodejs22-debian12:nonroot AS runner
 
