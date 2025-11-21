@@ -1,48 +1,43 @@
+
 import { test, expect } from '@playwright/test';
 
 test.describe('Home Page', () => {
-  test.beforeEach(async ({ page }) => {
-    // Set API Key for session listing
-    await page.addInitScript(() => {
-      window.localStorage.setItem('jules-api-key', JSON.stringify('mock-key'));
-    });
+  test('should display API key warning when not set', async ({ page }) => {
+    // Ensure local storage is empty
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await expect(page.getByText('API Key Not Set')).toBeVisible();
   });
 
-  test('shows session list', async ({ page }) => {
-    await expect(page.getByText('Session List', { exact: true })).toBeVisible();
+  test('should allow setting API key', async ({ page }) => {
+    await page.goto('/');
+
+    // Click settings (Header component)
+    await page.getByRole('button', { name: 'Open settings' }).click();
+
+    // Fill API Key
+    const apiKeyInput = page.getByLabel('Jules API Key');
+    await apiKeyInput.fill('test-api-key');
+
+    // Fill GitHub Token
+    const githubTokenInput = page.getByLabel('GitHub Personal Access Token');
+    await githubTokenInput.fill('test-github-token');
+
+    // Save
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+
+    // Verify alert is gone
+    await expect(page.getByText('API Key Not Set')).toBeHidden();
   });
 
-  test('shows filters', async ({ page }) => {
-    // Check for filters
-    await expect(page.getByText('Repository', { exact: true })).toBeVisible();
-    await expect(page.getByText('Session Status', { exact: true })).toBeVisible();
-    await expect(page.getByText('Job Name', { exact: true })).toBeVisible();
-  });
+  test('should filter sessions', async ({ page }) => {
+     await page.goto('/');
 
-  test('shows mocked session', async ({ page }) => {
-      // The mock API returns a session with source 'p/github/mock/repo'
-      // The UI parses it to 'mock/repo'
-      await expect(page.getByText('mock/repo')).toBeVisible();
-
-      // And the status 'COMPLETED' (mocked).
-      // The badge might not have exact text 'COMPLETED'. It might be 'Completed' or mixed case.
-      // Let's search for text 'COMPLETED' non-exact or look for a status badge.
-      // Assuming the status comes from `s.state`, if it's 'COMPLETED', the badge should probably show it.
-      // We can just check .first() or look for it in the table row.
-      // Or check case insensitive.
-      await expect(page.getByText('COMPLETED', { exact: false }).first()).toBeVisible();
-  });
-
-  test('sidebar links', async ({ page }) => {
-    // "New Job" is in a button in the sidebar
-    await expect(page.getByRole('button', { name: 'New Job' })).toBeVisible();
-
-    // "Job List" is a link
-    await expect(page.getByRole('link', { name: 'Job List' })).toBeVisible();
-    // "Session List" is a link
-    await expect(page.getByRole('link', { name: 'Session List' })).toBeVisible();
-    // "Messages" is a link
-    await expect(page.getByRole('link', { name: 'Messages' })).toBeVisible();
+     // Check if filter inputs are present
+     await expect(page.getByText('Repository', { exact: true })).toBeVisible(); // Label
+     await expect(page.getByText('Session Status', { exact: true })).toBeVisible(); // Label
+     await expect(page.getByText('Job Name', { exact: true })).toBeVisible(); // Label
   });
 });

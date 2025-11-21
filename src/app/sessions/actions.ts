@@ -22,17 +22,6 @@ export async function listSessions(
   apiKey?: string | null,
   pageSize: number = 50
 ): Promise<Session[]> {
-  if (process.env.MOCK_API === 'true') {
-    return [
-      {
-        id: 'mock-session-1',
-        createTime: new Date().toISOString(),
-        state: 'COMPLETED',
-        sourceContext: { source: 'p/github/mock/repo' },
-      } as Session
-    ];
-  }
-
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
@@ -72,20 +61,6 @@ export async function listSessions(
 }
 
 export async function listSources(apiKey?: string | null): Promise<Source[]> {
-  if (process.env.MOCK_API === 'true') {
-    return [
-      {
-        name: 'projects/mock-project/sources/mock-repo',
-        githubRepo: {
-          owner: 'mock-owner',
-          repo: 'mock-repo',
-          branches: [{ displayName: 'main' }, { displayName: 'dev' }],
-          defaultBranch: { displayName: 'main' }
-        }
-      } as Source
-    ];
-  }
-
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
