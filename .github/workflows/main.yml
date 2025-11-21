@@ -51,10 +51,11 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          # 4. Push to BOTH registries by comma-separating names
-          outputs: type=image,name=${{ env.DOCKER_IMAGE }},${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.platform }}
-          # Using mode=min to avoid "No space left" errors
           cache-to: type=gha,mode=min,scope=${{ matrix.platform }}
 
       - name: Export digest
