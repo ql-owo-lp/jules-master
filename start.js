@@ -1,11 +1,14 @@
-
 const { spawnSync } = require('child_process');
+const nodePath = process.execPath;
 
 // Run migration
 console.log('Running database migrations...');
 const migrationResult = spawnSync(
-  './node_modules/.bin/tsx',
-  ['src/lib/db/migrate.ts'],
+  nodePath,
+  [
+    './node_modules/tsx/dist/cli.js',
+    'src/lib/db/migrate.ts'
+  ],
   { stdio: 'inherit' }
 );
 
@@ -17,8 +20,13 @@ if (migrationResult.status !== 0) {
 // Start Next.js server
 console.log('Starting Next.js application...');
 const appResult = spawnSync(
-  './node_modules/next/dist/bin/next',
-  ['start', '-p', '9002'],
+  nodePath,
+  [
+    './node_modules/next/dist/bin/next',
+    'start',
+    '-p',
+    '9002'
+  ],
   { stdio: 'inherit' }
 );
 

@@ -20,6 +20,10 @@ COPY . .
 # Build the Next.js application for production
 RUN npm run build --debug
 
+# Create the data directory
+RUN mkdir -p /app/data
+
+
 # 2. Runner Stage: Create the final, minimal production image
 FROM gcr.io/distroless/nodejs22-debian12:nonroot AS runner
 
@@ -45,5 +49,5 @@ EXPOSE 9002
 # Declare a volume for the database data
 VOLUME /app/data
 
-# Set the entrypoint to our script
-ENTRYPOINT ["node", "start.js"]
+# Set the command to our startup script
+CMD ["start.js"]
