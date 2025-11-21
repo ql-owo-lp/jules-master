@@ -35,11 +35,11 @@ USER nonroot
 # Set the database URL environment variable
 ENV DATABASE_URL=/app/data/sqlite.db
 
-# Copy built assets, entrypoint script, and data directory from the builder stage
+# Copy built assets, startup script, and data directory from the builder stage
 COPY --from=builder --chown=nonroot:nonroot /app/.next ./.next
 COPY --from=builder --chown=nonroot:nonroot /app/node_modules ./node_modules
 COPY --from=builder --chown=nonroot:nonroot /app/package.json ./package.json
-COPY --from=builder --chown=nonroot:nonroot /app/entrypoint.sh ./
+COPY --from=builder --chown=nonroot:nonroot /app/start.js ./
 COPY --from=builder --chown=nonroot:nonroot /app/data /app/data
 
 # Expose the port the app runs on
@@ -49,7 +49,4 @@ EXPOSE 9002
 VOLUME /app/data
 
 # Set the entrypoint to our script
-ENTRYPOINT ["./entrypoint.sh"]
-
-# Start the Next.js application
-CMD ["./node_modules/next/dist/bin/next", "start", "-p", "9002"]
+ENTRYPOINT ["node", "start.js"]
