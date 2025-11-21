@@ -9,9 +9,6 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 const sqlite = new Database('sqlite.db');
 export const db = drizzle(sqlite, { schema });
 
-// Run migrations
-migrate(db, { migrationsFolder: 'src/lib/db/migrations' });
-
 // Generic DAO Interface
 export interface IDao<T> {
   getAll(): Promise<T[]>;

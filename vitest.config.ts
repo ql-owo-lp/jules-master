@@ -7,6 +7,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**', 'tests/e2e/**'],
+    fileParallelism: false,
   },
   resolve: {
     alias: {
