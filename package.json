@@ -12,7 +12,6 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "test": "vitest",
-    "test:e2e": "playwright test",
     "postinstall": "patch-package"
   },
   "dependencies": {
@@ -63,7 +62,6 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@playwright/test": "^1.56.1",
     "@tailwindcss/typography": "^0.5.15",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.19.0",
