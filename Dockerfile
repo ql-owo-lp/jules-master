@@ -41,6 +41,8 @@ COPY --from=builder --chown=nonroot:nonroot /app/.next ./.next
 COPY --from=builder --chown=nonroot:nonroot /app/node_modules ./node_modules
 COPY --from=builder --chown=nonroot:nonroot /app/package.json ./package.json
 COPY --from=builder --chown=nonroot:nonroot /app/start.js ./
+COPY --from=builder --chown=nonroot:nonroot /app/src/lib/db ./src/lib/db
+COPY --from=builder --chown=nonroot:nonroot /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder --chown=nonroot:nonroot /app/data /app/data
 
 # Expose the port the app runs on
