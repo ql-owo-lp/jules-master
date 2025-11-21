@@ -5,13 +5,12 @@ import * as schema from './schema';
 import { Job, PredefinedPrompt } from '../types';
 import { eq } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import path from 'path';
 
 const sqlite = new Database(process.env.DB_FILE_NAME || 'sqlite.db');
 export const db = drizzle(sqlite, { schema });
 
 // Run migrations
-migrate(db, { migrationsFolder: path.join(process.cwd(), 'src/lib/db/migrations') });
+migrate(db, { migrationsFolder: 'src/lib/db/migrations' });
 
 // Generic DAO Interface
 export interface IDao<T> {
