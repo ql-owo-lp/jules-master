@@ -8,13 +8,60 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'fs';
 import path from 'path';
 
-const dbPath = process.env.DATABASE_URL || 'data/sqlite.db';
+// Resolve database path
+let dbPath = process.env.DATABASE_URL || 'data/sqlite.db';
+
+// Handle potential file:// prefix which better-sqlite3 doesn't like but might be passed
+if (dbPath.startsWith('file://')) {
+    dbPath = dbPath.slice(7);
+} else if (dbPath.startsWith('file:')) {
+    dbPath = dbPath.slice(5);
+}
+
+// If path is relative, resolve it relative to CWD
+if (!path.isAbsolute(dbPath)) {
+    dbPath = path.resolve(process.cwd(), dbPath);
+}
+
 const dbDir = path.dirname(dbPath);
 
-// Ensure the directory exists
-fs.mkdirSync(dbDir, { recursive: true });
+// Ensure the directory exists and is writable
+try {
+    if (!fs.existsSync(dbDir)) {
+        console.log(`Creating database directory: ${dbDir}`);
+        fs.mkdirSync(dbDir, { recursive: true });
+    }
 
-const sqlite = new Database(dbPath);
+    // Check if directory is writable
+    try {
+        fs.accessSync(dbDir, fs.constants.W_OK);
+    } catch (err) {
+        console.error(`Database directory ${dbDir} is not writable!`, err);
+        // Depending on strictness, we might want to throw here or let Database() fail
+    }
+
+} catch (e) {
+    console.error(`Failed to prepare database directory ${dbDir}:`, e);
+}
+
+let sqlite: Database.Database;
+try {
+    console.log(`Initializing database at path: ${dbPath}`);
+    sqlite = new Database(dbPath);
+} catch (e) {
+    console.error(`Failed to initialize database at ${dbPath}.`);
+    console.error(`Directory exists: ${fs.existsSync(dbDir)}`);
+    try {
+        const stats = fs.statSync(dbDir);
+        console.error(`Directory permissions: ${stats.mode.toString(8)}`);
+        console.error(`Directory owner: ${stats.uid}:${stats.gid}`);
+        console.error(`Process user: ${process.getuid?.()}:${process.getgid?.()}`);
+    } catch (statErr) {
+        console.error("Could not stat directory:", statErr);
+    }
+    throw e;
+}
+
 export const db = drizzle(sqlite, { schema });
 
 // Generic DAO Interface
@@ -31,8 +78,21 @@ export interface IDao<T> {
 class AppDatabase {
   // Job DAO
   public jobs: IDao<Job> = {
-    getAll: async () => db.select().from(schema.jobs),
-    getById: async (id) => db.select().from(schema.jobs).where(eq(schema.jobs.id, id)).get(),
+    getAll: async () => {
+        const jobs = await db.select().from(schema.jobs);
+        return jobs.map(j => ({
+            ...j,
+            sessionIds: j.sessionIds ?? []
+        }));
+    },
+    getById: async (id) => {
+        const job = await db.select().from(schema.jobs).where(eq(schema.jobs.id, id)).get();
+        if (!job) return undefined;
+        return {
+            ...job,
+            sessionIds: job.sessionIds ?? []
+        };
+    },
     create: async (job) => { await db.insert(schema.jobs).values(job) },
     createMany: async (jobs) => { 
       if (jobs.length === 0) return;
