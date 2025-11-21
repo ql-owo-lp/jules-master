@@ -6,7 +6,7 @@ console.log('Running database migrations...');
 const migrationResult = spawnSync(
   nodePath,
   [
-    './node_modules/tsx/dist/cli.js',
+    './node_modules/tsx/dist/cli.mjs',
     'src/lib/db/migrate.ts'
   ],
   { stdio: 'inherit' }
