@@ -5,8 +5,16 @@ import * as schema from './schema';
 import { Job, PredefinedPrompt } from '../types';
 import { eq } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import fs from 'fs';
+import path from 'path';
 
-const sqlite = new Database(process.env.DATABASE_URL || 'data/sqlite.db');
+const dbPath = process.env.DATABASE_URL || 'data/sqlite.db';
+const dbDir = path.dirname(dbPath);
+
+// Ensure the directory exists
+fs.mkdirSync(dbDir, { recursive: true });
+
+const sqlite = new Database(dbPath);
 export const db = drizzle(sqlite, { schema });
 
 // Generic DAO Interface
