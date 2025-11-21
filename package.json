@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "test": "vitest",
+    "test:e2e": "playwright test",
     "postinstall": "patch-package"
   },
   "dependencies": {
