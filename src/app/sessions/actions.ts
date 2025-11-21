@@ -22,7 +22,9 @@ export async function revalidateSessions() {
 const MOCK_SESSIONS: Session[] = [
   {
     id: 'session-1',
+    name: 'sessions/session-1',
     title: 'Mock Session 1',
+    prompt: 'Mock prompt',
     state: 'COMPLETED',
     createTime: new Date().toISOString(),
     createdAt: new Date().toISOString(),
@@ -35,7 +37,9 @@ const MOCK_SESSIONS: Session[] = [
   },
   {
     id: 'session-2',
+    name: 'sessions/session-2',
     title: 'Mock Session 2',
+    prompt: 'Mock prompt 2',
     state: 'AWAITING_USER_FEEDBACK',
     createTime: new Date(Date.now() - 100000).toISOString(),
     createdAt: new Date(Date.now() - 100000).toISOString(),
@@ -50,10 +54,12 @@ const MOCK_SESSIONS: Session[] = [
 
 const MOCK_SOURCES: Source[] = [
   {
+    id: 'source-1',
     name: 'github/test-owner/test-repo',
     githubRepo: {
       owner: 'test-owner',
       repo: 'test-repo',
+      isPrivate: false,
       branches: [
         { displayName: 'main' },
         { displayName: 'develop' },
