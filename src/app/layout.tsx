@@ -17,7 +17,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { Bot, MessageSquare, PlusCircle, BookText, ClipboardList, ExternalLink, PanelLeft } from 'lucide-react';
+import { Bot, MessageSquare, PlusCircle, BookText, ExternalLink, PanelLeft } from 'lucide-react';
 import { Header } from '@/components/header';
 import { NewJobDialog } from '@/components/new-job-dialog';
 
@@ -83,19 +83,11 @@ export default function RootLayout({
                           </Link>
                        </SidebarMenuAction>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <Link href="/jobs">
-                          <ClipboardList />
-                          <span>Job List</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
                      <SidebarMenuItem>
                       <SidebarMenuButton asChild>
                         <Link href="/">
                           <MessageSquare />
-                          <span>Session List</span>
+                          <span>Jobs & Sessions</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

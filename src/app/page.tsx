@@ -27,7 +27,7 @@ function HomePageContent() {
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
-  const [quickReplies, setQuickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+  const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
   
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -76,18 +76,19 @@ function HomePageContent() {
     }
     return null;
   }
-  
-  const filteredSessions = useMemo(() => {
-    return sessions.filter(s => {
-      const repoName = s.sourceContext?.source.split('/').slice(2).join('/');
-      
-      const jobMatch = !jobFilter || (sessionToJobMap.has(s.id) && sessionToJobMap.get(s.id)?.id === jobFilter);
-      const repoMatch = repoFilter === 'all' || repoName === repoFilter;
-      const statusMatch = statusFilter === 'all' || s.state === statusFilter;
 
-      return jobMatch && repoMatch && statusMatch;
-    });
-  }, [sessions, sessionToJobMap, jobFilter, repoFilter, statusFilter]);
+  const filteredJobs = useMemo(() => {
+    let j = [...jobs].reverse();
+    if (jobFilter) {
+      j = j.filter(job => job.id === jobFilter);
+    }
+    if (repoFilter !== 'all') {
+      j = j.filter(job => job.repo === repoFilter);
+    }
+    // Note: statusFilter applies to sessions, not jobs directly.
+    // The SessionList component will handle filtering sessions within the jobs.
+    return j;
+  }, [jobs, jobFilter, repoFilter]);
   
 
   const fetchAllData = useCallback(async (options: {isRefresh: boolean} = {isRefresh: false}) => {
@@ -122,12 +123,15 @@ function HomePageContent() {
         if (!effectiveToken) {
             return;
         }
-        if (filteredSessions.length === 0) {
+        
+        const sessionsForFilteredJobs = sessions.filter(s => filteredJobs.some(j => j.sessionIds.includes(s.id)));
+
+        if (sessionsForFilteredJobs.length === 0) {
             return;
         }
 
         setIsFetchingPrStatus(true);
-        const urlsToFetch = filteredSessions
+        const urlsToFetch = sessionsForFilteredJobs
             .map(getPullRequestUrl)
             .filter((url): url is string => !!url && prStatuses[url] === undefined);
 
@@ -147,7 +151,7 @@ function HomePageContent() {
 
     fetchStatuses();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredSessions, githubToken]);
+  }, [sessions, filteredJobs, githubToken]);
 
 
 
@@ -188,17 +192,27 @@ function HomePageContent() {
     fetchAllData({ isRefresh: true });
   };
 
-  const handleApprovePlan = (sessionId: string) => {
+  const handleApprovePlan = (sessionIds: string[]) => {
     startActionTransition(async () => {
-      const result = await approvePlan(sessionId, apiKey);
-       if (result) {
-        fetchAllData();
-        toast({ title: "Plan Approved", description: "The session will now proceed." });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Failed to approve plan",
-        });
+      const approvalPromises = sessionIds.map(id => approvePlan(id, apiKey));
+      
+      try {
+          const results = await Promise.all(approvalPromises);
+          const successfulApprovals = results.filter(r => r).length;
+
+          toast({
+              title: "Bulk Approval Complete",
+              description: `Successfully approved ${successfulApprovals} of ${sessionIds.length} pending sessions.`,
+          });
+
+          // Refresh data to reflect new states
+          fetchAllData();
+      } catch (error) {
+          toast({
+              variant: "destructive",
+              title: "Bulk Approval Failed",
+              description: "An error occurred while approving sessions.",
+          });
       }
     });
   };
@@ -261,10 +275,10 @@ function HomePageContent() {
   
   const repoOptions = useMemo(() => [
     { value: 'all', label: 'All Repositories'}, 
-    ...Array.from(new Set(sessions.map(s => s.sourceContext?.source.split('/').slice(2).join('/')).filter((r): r is string => !!r))).map(r => ({ value: r, label: r }))
-  ], [sessions]);
+    ...Array.from(new Set(jobs.map(j => j.repo).filter((r): r is string => !!r))).map(r => ({ value: r, label: r }))
+  ], [jobs]);
   
-  const jobOptions = useMemo(() => [
+  const allJobOptions = useMemo(() => [
     { value: 'all', label: 'All Jobs' },
     ...[...jobs].reverse().map(j => ({ value: j.id, label: j.name }))
   ], [jobs]);
@@ -318,8 +332,8 @@ function HomePageContent() {
             </Alert>
           )}
           <SessionList
-            sessions={filteredSessions}
-            jobs={jobs}
+            sessions={sessions}
+            jobs={filteredJobs}
             quickReplies={quickReplies}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
@@ -331,9 +345,9 @@ function HomePageContent() {
             countdown={countdown}
             pollInterval={sessionListPollInterval}
             titleTruncateLength={titleTruncateLength}
-            jobFilter={jobFilter}
+            jobIdParam={jobIdParam}
             prStatuses={prStatuses}
-            isFetchingPrStatus={isFetchingPrStatus}
+            statusFilter={statusFilter}
           >
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div className="space-y-2">
@@ -363,7 +377,7 @@ function HomePageContent() {
                 <div className="space-y-2">
                   <Label htmlFor="filter-job">Job Name</Label>
                    <Combobox 
-                    options={jobOptions}
+                    options={allJobOptions}
                     selectedValue={jobFilter || 'all'}
                     onValueChange={(val) => onJobFilterChange(val === 'all' ? null : val)}
                     placeholder="Filter by job..."
@@ -393,5 +407,3 @@ export default function Home() {
     </Suspense>
   )
 }
-
-    

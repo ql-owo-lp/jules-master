@@ -1,11 +1,11 @@
 
+
 "use client";
 
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -17,10 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
+import type { Session, Job, PredefinedPrompt, PullRequestStatus, State } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, MessageSquareReply, X } from "lucide-react";
+import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, MessageSquareReply, X, CheckCircle2, GitMerge } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -29,11 +29,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { PrStatus } from "./pr-status";
 import { MessageDialog } from "./message-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "./ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
+import { Skeleton } from "./ui/skeleton";
 
 type SessionListProps = {
   sessions: Session[];
@@ -43,14 +43,14 @@ type SessionListProps = {
   onRefresh: () => void;
   isRefreshing?: boolean;
   isActionPending?: boolean;
-  onApprovePlan: (sessionId: string) => void;
+  onApprovePlan: (sessionIds: string[]) => void;
   onSendMessage: (sessionId: string, message: string) => void;
   onBulkSendMessage: (sessionIds: string[], message: string) => void;
   countdown: number;
   pollInterval: number;
-  jobFilter: string | null;
+  jobIdParam: string | null;
   prStatuses: Record<string, PullRequestStatus | null>;
-  isFetchingPrStatus: boolean;
+  statusFilter: string;
   children: React.ReactNode;
   titleTruncateLength: number;
 };
@@ -68,37 +68,89 @@ export function SessionList({
   onBulkSendMessage,
   countdown,
   pollInterval,
-  jobFilter,
+  jobIdParam,
   prStatuses,
-  isFetchingPrStatus,
+  statusFilter,
   children,
   titleTruncateLength
 }: SessionListProps) {
   const router = useRouter();
-  const [itemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
-  
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
+  
+  const [openAccordionItems, setOpenAccordionItems] = useState<string[]>(jobIdParam ? [jobIdParam] : []);
 
-  const sessionToJobMap = useMemo(() => {
-    const map = new Map<string, Job>();
+  const sessionMap = useMemo(() => {
+    return new Map(sessions.map(s => [s.id, s]));
+  }, [sessions]);
+
+  const jobDetailsMap = useMemo(() => {
+    const map = new Map<string, { completed: number; working: number; pending: number; total: number }>();
     for (const job of jobs) {
+      let completed = 0;
+      let working = 0;
+      let pending = 0;
       for (const sessionId of job.sessionIds) {
-        map.set(sessionId, job);
+        const session = sessionMap.get(sessionId);
+        if (session) {
+          switch (session.state) {
+            case 'COMPLETED':
+              completed++;
+              break;
+            case 'AWAITING_PLAN_APPROVAL':
+            case 'AWAITING_USER_FEEDBACK':
+              pending++;
+              break;
+            case 'FAILED':
+              break; // Not counted in working
+            default:
+              working++;
+              break;
+          }
+        }
       }
+      map.set(job.id, { completed, working, pending, total: job.sessionIds.length });
     }
     return map;
-  }, [jobs]);
+  }, [jobs, sessionMap]);
 
-  const handleRowClick = (e: React.MouseEvent, sessionId: string) => {
-    // Prevent navigation if a button or link inside the row was clicked
-    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a') || (e.target as HTMLElement).closest('[role="combobox"]') || (e.target as HTMLElement).closest('[role="checkbox"]')) {
-      return;
+  // Handle selection logic
+  const handleSelectAll = (jobId: string, checked: boolean) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    const jobSessionIds = job.sessionIds;
+    if (checked) {
+      setSelectedSessionIds(ids => [...new Set([...ids, ...jobSessionIds])]);
+    } else {
+      setSelectedSessionIds(ids => ids.filter(id => !jobSessionIds.includes(id)));
     }
-    const path = jobFilter ? `/sessions/${sessionId}?jobId=${jobFilter}` : `/sessions/${sessionId}`;
-    router.push(path);
   };
 
+  const handleSelectRow = (sessionId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedSessionIds(ids => [...ids, sessionId]);
+    } else {
+      setSelectedSessionIds(ids => ids.filter(id => id !== sessionId));
+    }
+  };
+
+  const selectedSessions = useMemo(() => {
+    return selectedSessionIds.map(id => sessionMap.get(id)).filter((s): s is Session => !!s);
+  }, [selectedSessionIds, sessionMap]);
+  
+  const selectedPendingIds = useMemo(() => {
+    return selectedSessions
+      .filter(s => s.state === 'AWAITING_PLAN_APPROVAL')
+      .map(s => s.id);
+  }, [selectedSessions]);
+
+  // Auto-open job from URL param
+  useEffect(() => {
+    if (jobIdParam && !openAccordionItems.includes(jobIdParam)) {
+      setOpenAccordionItems(prev => [...prev, jobIdParam]);
+    }
+  }, [jobIdParam, openAccordionItems]);
+  
   const getPullRequestUrl = (session: Session): string | null => {
     if (session.outputs && session.outputs.length > 0) {
       for (const output of session.outputs) {
@@ -110,62 +162,12 @@ export function SessionList({
     return null;
   }
   
-  const getRepoNameFromSource = (source?: string): string | null => {
-    if (!source) return null;
-    const parts = source.split('/');
-    if (parts.length >= 4 && parts[1] === 'github') {
-        return parts.slice(2).join('/');
-    }
-    return null;
-  }
-  
   const truncate = (str: string, length: number) => {
     if (!str) return '';
     return str.length > length ? str.substring(0, length) + "..." : str;
   }
 
-  const totalPages = Math.ceil(sessions.length / itemsPerPage);
-  const paginatedSessions = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return sessions.slice(startIndex, startIndex + itemsPerPage);
-  }, [sessions, currentPage, itemsPerPage]);
-
   const quickReplyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
-  
-  const paginatedSessionIds = useMemo(() => paginatedSessions.map(s => s.id), [paginatedSessions]);
-
-  const handleSelectAll = (checked: boolean | 'indeterminate') => {
-    if (checked) {
-      setSelectedSessionIds(ids => [...new Set([...ids, ...paginatedSessionIds])]);
-    } else {
-      setSelectedSessionIds(ids => ids.filter(id => !paginatedSessionIds.includes(id)));
-    }
-  };
-
-  const handleSelectRow = (sessionId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedSessionIds(ids => [...ids, sessionId]);
-    } else {
-      setSelectedSessionIds(ids => ids.filter(id => id !== sessionId));
-    }
-  }
-
-  const isAllOnPageSelected = paginatedSessionIds.length > 0 && paginatedSessionIds.every(id => selectedSessionIds.includes(id));
-  const isSomeOnPageSelected = paginatedSessionIds.some(id => selectedSessionIds.includes(id));
-  const selectAllState = isAllOnPageSelected ? true : (isSomeOnPageSelected ? 'indeterminate' : false);
-
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages, sessions]);
-
-  // Clear selection when filters change
-  useEffect(() => {
-    setSelectedSessionIds([]);
-  }, [sessions]);
-
 
   return (
     <>
@@ -174,15 +176,15 @@ export function SessionList({
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                  <MessageSquare className="h-6 w-6" />
-                  <CardTitle>Session List</CardTitle>
-                  <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh session list" disabled={isRefreshing}>
+                  <Briefcase className="h-6 w-6" />
+                  <CardTitle>Jobs</CardTitle>
+                  <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh job list" disabled={isRefreshing}>
                   <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
                   </Button>
               </div>
               <div className="mt-2">
                   <CardDescription>
-                      {sessions.length > 0 ? "A list of your most recent sessions." : "Your created sessions will appear here."}
+                      {jobs.length > 0 ? "A list of your most recent jobs and their sessions." : "Your created jobs will appear here."}
                   </CardDescription>
               </div>
             </div>
@@ -205,218 +207,220 @@ export function SessionList({
 
         </CardHeader>
         <CardContent>
-          {sessions.length === 0 ? (
+          {jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
-              <MessageSquare className="h-12 w-12 mb-4" />
-              <p className="font-semibold text-lg">No sessions found</p>
+              <Briefcase className="h-12 w-12 mb-4" />
+              <p className="font-semibold text-lg">No jobs found</p>
               <p className="text-sm">
-              Create a new job to see sessions here.
+                Create a new job to see jobs and sessions here.
               </p>
             </div>
           ) : (
-            <>
-              <div className="border-t border-x rounded-t-lg z-10 sticky top-0 bg-background">
-                  <Table>
-                      <colgroup>
-                          <col style={{ width: '40px' }} />
-                          <col style={{ width: '30%' }} />
-                          <col style={{ width: '20%' }} />
-                          <col style={{ width: '180px' }} />
-                          <col style={{ width: '150px' }} />
-                          <col style={{ width: '80px' }} />
-                          <col style={{ width: '120px' }} />
-                      </colgroup>
-                      <TableHeader>
-                          <TableRow>
-                              <TableHead>
-                                <Checkbox 
-                                  checked={selectAllState}
-                                  onCheckedChange={handleSelectAll}
-                                  aria-label="Select all on this page"
-                                />
-                              </TableHead>
-                              <TableHead>Job / Session Name</TableHead>
-                              <TableHead>Repository / Branch</TableHead>
-                              <TableHead>Session Status</TableHead>
-                              <TableHead>Created</TableHead>
-                              <TableHead className="text-center">GitHub</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                  </Table>
-              </div>
-              <ScrollArea className="h-[60vh]">
-                <div className="border-x border-b rounded-b-lg">
-                  <TooltipProvider>
-                    <Table>
-                      <colgroup>
-                          <col style={{ width: '40px' }} />
-                          <col style={{ width: '30%' }} />
-                          <col style={{ width: '20%' }} />
-                          <col style={{ width: '180px' }} />
-                          <col style={{ width: '150px' }} />
-                          <col style={{ width: '80px' }} />
-                          <col style={{ width: '120px' }} />
-                      </colgroup>
-                      <TableBody>
-                        {paginatedSessions.map((session) => {
-                          const job = sessionToJobMap.get(session.id);
-                          const prUrl = getPullRequestUrl(session);
-                          const repoName = getRepoNameFromSource(session.sourceContext?.source);
-                          const branchName = session.sourceContext?.githubRepoContext?.startingBranch;
+            <Accordion 
+              type="multiple" 
+              className="w-full space-y-2"
+              value={openAccordionItems}
+              onValueChange={setOpenAccordionItems}
+            >
+              <TooltipProvider>
+              {jobs.map(job => {
+                const details = jobDetailsMap.get(job.id);
+                const sessionsForJob = job.sessionIds
+                  .map(id => sessionMap.get(id))
+                  .filter((s): s is Session => !!s)
+                  .filter(s => statusFilter === 'all' || s.state === statusFilter);
 
-                          return (
-                          <TableRow
-                            key={session.id}
-                            data-state={selectedSessionIds.includes(session.id) ? "selected" : undefined}
-                            onClick={(e) => handleRowClick(e, session.id)}
-                            className="cursor-pointer"
-                          >
-                            <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
-                                <Checkbox
-                                  checked={selectedSessionIds.includes(session.id)}
-                                  onCheckedChange={(checked) => handleSelectRow(session.id, !!checked)}
-                                  aria-label={`Select session ${session.id}`}
-                                />
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              <div className="flex items-center gap-2">
-                                {job ? (
-                                  <>
-                                    <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
-                                    <span className="truncate" title={job.name}>
-                                      {truncate(job.name, titleTruncateLength)}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="truncate" title={session.title}>
-                                    {truncate(session.title, titleTruncateLength)}
-                                  </span>
-                                )}
+                const jobSessionIds = job.sessionIds;
+                const isAllSelected = jobSessionIds.length > 0 && jobSessionIds.every(id => selectedSessionIds.includes(id));
+                const isSomeSelected = jobSessionIds.some(id => selectedSessionIds.includes(id));
+                const selectAllState = isAllSelected ? true : (isSomeSelected ? 'indeterminate' : false);
+                
+                if (statusFilter !== 'all' && sessionsForJob.length === 0) {
+                  return null;
+                }
+                
+                return (
+                  <AccordionItem value={job.id} key={job.id} className="border rounded-lg bg-card">
+                    <AccordionTrigger className="hover:no-underline px-4 py-2 data-[state=open]:border-b">
+                      <div className="flex items-center gap-4 w-full">
+                        <Checkbox 
+                          checked={selectAllState}
+                          onCheckedChange={(checked) => handleSelectAll(job.id, !!checked)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select all sessions for job ${job.name}`}
+                          className="mr-2"
+                        />
+                        <div className="flex-1 text-left">
+                          <p className="font-semibold truncate" title={job.name}>{job.name}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{job.repo} / {job.branch}</p>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mr-4">
+                           <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                <span>{details?.completed || 0}</span>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex flex-col">
-                                    <span className="font-mono text-sm">{repoName || 'N/A'}</span>
-                                    <span className="font-mono text-xs text-muted-foreground">{branchName || 'N/A'}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                              <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {formatDistanceToNow(new Date(session.createTime || session.createdAt), {
-                                addSuffix: true,
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{details?.completed || 0} Completed</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1">
+                                <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                                <span>{details?.working || 0}</span>
+                              </div>
+                            </TooltipTrigger>
+                             <TooltipContent>
+                              <p>{details?.working || 0} In Progress</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1">
+                                <Hand className="h-4 w-4 text-yellow-500" />
+                                <span>{details?.pending || 0}</span>
+                              </div>
+                            </TooltipTrigger>
+                             <TooltipContent>
+                              <p>{details?.pending || 0} Pending Input</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-0">
+                      {isRefreshing && sessionsForJob.length === 0 ? (
+                        <div className="p-4 space-y-2">
+                           <Skeleton className="h-10 w-full" />
+                           <Skeleton className="h-10 w-full" />
+                        </div>
+                      ) : sessionsForJob.length > 0 ? (
+                        <div className="border-t">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[50px]"></TableHead>
+                                <TableHead>Session Title</TableHead>
+                                <TableHead className="w-[180px]">Status</TableHead>
+                                <TableHead className="w-[150px]">Created</TableHead>
+                                <TableHead className="w-[80px] text-center">GitHub</TableHead>
+                                <TableHead className="w-[120px] text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {sessionsForJob.map(session => {
+                                const prUrl = getPullRequestUrl(session);
+                                return (
+                                  <TableRow 
+                                    key={session.id} 
+                                    className="cursor-pointer"
+                                    onClick={() => router.push(`/sessions/${session.id}?jobId=${job.id}`)}
+                                    data-state={selectedSessionIds.includes(session.id) ? "selected" : undefined}
+                                  >
+                                    <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
+                                      <Checkbox
+                                        checked={selectedSessionIds.includes(session.id)}
+                                        onCheckedChange={(checked) => handleSelectRow(session.id, !!checked)}
+                                        aria-label={`Select session ${session.id}`}
+                                      />
+                                    </TableCell>
+                                    <TableCell className="font-medium truncate" title={session.title}>
+                                      {truncate(session.title, titleTruncateLength)}
+                                    </TableCell>
+                                    <TableCell>
+                                      <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
+                                    </TableCell>
+                                    <TableCell className="text-sm text-muted-foreground">
+                                      {formatDistanceToNow(new Date(session.createTime || session.createdAt), { addSuffix: true })}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <PrStatus prUrl={prUrl} />
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                        {session.state === 'AWAITING_PLAN_APPROVAL' && (
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => onApprovePlan([session.id])}
+                                                disabled={isActionPending}
+                                                aria-label="Approve Plan"
+                                              >
+                                                {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Approve Plan</p></TooltipContent>
+                                          </Tooltip>
+                                        )}
+                                        <Popover>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <PopoverTrigger asChild>
+                                                <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                                  <MessageSquareReply className="h-4 w-4" />
+                                                </Button>
+                                              </PopoverTrigger>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Send a Quick Reply</p></TooltipContent>
+                                          </Tooltip>
+                                          <PopoverContent className="p-0 w-64" align="end">
+                                            <Command>
+                                              <CommandInput placeholder="Search replies..." />
+                                              <CommandList>
+                                                <ScrollArea className="h-[200px]">
+                                                  <CommandEmpty>No replies found.</CommandEmpty>
+                                                  <CommandGroup>
+                                                    {quickReplyOptions.map(option => (
+                                                      <CommandItem
+                                                        key={option.value}
+                                                        onSelect={() => {
+                                                          onSendMessage(session.id, option.content);
+                                                          document.body.click(); // Close popover
+                                                        }}
+                                                      >
+                                                        <span className="truncate flex-1">{option.label}</span>
+                                                        <span className="text-xs text-muted-foreground ml-2">
+                                                          [{truncate(option.content, 20)}]
+                                                        </span>
+                                                      </CommandItem>
+                                                    ))}
+                                                  </CommandGroup>
+                                                </ScrollArea>
+                                              </CommandList>
+                                            </Command>
+                                          </PopoverContent>
+                                        </Popover>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                );
                               })}
-                            </TableCell>
-                            <TableCell className="text-center">
-                                <PrStatus prUrl={prUrl} />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                              {session.state === 'AWAITING_PLAN_APPROVAL' ? (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => onApprovePlan(session.id)}
-                                        disabled={isActionPending}
-                                        aria-label="Approve Plan"
-                                      >
-                                        {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Approve Plan</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                ) : null}
-                                
-                                <Popover>
-                                    <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <PopoverTrigger asChild>
-                                        <Button variant="ghost" size="icon" disabled={isActionPending}>
-                                            <MessageSquareReply className="h-4 w-4" />
-                                        </Button>
-                                        </PopoverTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Send a Quick Reply</p>
-                                    </TooltipContent>
-                                    </Tooltip>
-                                    <PopoverContent className="p-0 w-64" align="end">
-                                      <Command>
-                                        <CommandInput placeholder="Search replies..."/>
-                                        <CommandList>
-                                          <ScrollArea className="h-[200px]">
-                                            <CommandEmpty>No replies found.</CommandEmpty>
-                                            <CommandGroup>
-                                              {quickReplyOptions.map(option => (
-                                                <CommandItem
-                                                  key={option.value}
-                                                  onSelect={() => {
-                                                    onSendMessage(session.id, option.content);
-                                                    document.body.click(); // Close popover
-                                                  }}
-                                                >
-                                                  <span className="truncate flex-1">{option.label}</span>
-                                                  <span className="text-xs text-muted-foreground ml-2">
-                                                    [{truncate(option.content, 20)}]
-                                                  </span>
-                                                </CommandItem>
-                                              ))}
-                                            </CommandGroup>
-                                          </ScrollArea>
-                                        </CommandList>
-                                      </Command>
-                                    </PopoverContent>
-                                </Popover>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )})}
-                      </TableBody>
-                    </Table>
-                  </TooltipProvider>
-                </div>
-              </ScrollArea>
-          </>
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                         <p className="p-4 text-sm text-muted-foreground text-center">No sessions match the current filter.</p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                )
+              })}
+              </TooltipProvider>
+            </Accordion>
           )}
         </CardContent>
-          {totalPages > 1 && (
-              <CardFooter className="flex items-center justify-between pt-4">
-                  <span className="text-sm text-muted-foreground">
-                      Page {currentPage} of {totalPages}
-                  </span>
-                  <div className="flex items-center gap-2">
-                      <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                          disabled={currentPage === 1}
-                      >
-                          Previous
-                      </Button>
-                      <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                          disabled={currentPage === totalPages}
-                      >
-                          Next
-                      </Button>
-                  </div>
-              </CardFooter>
-          )}
       </Card>
       
-       {selectedSessionIds.length > 0 && (
+       {(selectedSessionIds.length > 0 || selectedPendingIds.length > 0) && (
             <div className="fixed bottom-4 inset-x-4 flex justify-center z-20">
                 <Card className="flex items-center gap-4 p-3 shadow-2xl animate-in fade-in-0 slide-in-from-bottom-5">
                     <div className="flex items-center gap-2">
-                        <div className="text-sm font-medium">{selectedSessionIds.length} item(s) selected</div>
+                        <div className="text-sm font-medium">{selectedSessionIds.length} session(s) selected</div>
                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedSessionIds([])}>
                             <X className="h-4 w-4"/>
                             <span className="sr-only">Clear selection</span>
@@ -424,7 +428,7 @@ export function SessionList({
                     </div>
                      <MessageDialog
                         triggerButton={
-                            <Button size="sm">
+                            <Button size="sm" disabled={isActionPending}>
                                 <MessageSquare className="h-4 w-4 mr-2" />
                                 Send Bulk Message
                             </Button>
@@ -436,6 +440,17 @@ export function SessionList({
                         isActionPending={isActionPending}
                         quickReplies={quickReplies}
                     />
+                    {selectedPendingIds.length > 0 && (
+                        <Button 
+                            size="sm" 
+                            variant="default"
+                            onClick={() => onApprovePlan(selectedPendingIds)}
+                            disabled={isActionPending}
+                        >
+                             {isActionPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Hand className="h-4 w-4 mr-2" />}
+                            Approve {selectedPendingIds.length} pending plan(s)
+                        </Button>
+                    )}
                 </Card>
             </div>
         )}
