@@ -313,14 +313,14 @@ export function SessionList({
                             <PopoverTrigger asChild>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                  <Button variant="ghost" size="icon" disabled={isActionPending} onClick={(e) => e.stopPropagation()}>
                                     <MessageSquareReply className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent><p>Send Quick Reply</p></TooltipContent>
                               </Tooltip>
                             </PopoverTrigger>
-                            <PopoverContent className="p-0 w-60">
+                            <PopoverContent className="p-0 w-60" onClick={(e) => e.stopPropagation()}>
                               <Command>
                                 <CommandInput placeholder="Search replies..." />
                                 <CommandList>
@@ -451,7 +451,7 @@ export function SessionList({
                                       variant="ghost" 
                                       size="sm" 
                                       className="flex items-center gap-1 h-auto p-0" 
-                                      onClick={() => onApprovePlan(unknownSessionsDetails.pending)}
+                                      onClick={(e) => { e.stopPropagation(); onApprovePlan(unknownSessionsDetails.pending); }}
                                       disabled={!unknownSessionsDetails.pending.length || isActionPending}
                                     >
                                       <Hand className="h-4 w-4 text-yellow-500" />
@@ -463,7 +463,7 @@ export function SessionList({
                               </TooltipContent>
                           </Tooltip>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                            <MessageDialog
                               trigger={
                                   <Tooltip>
@@ -604,7 +604,7 @@ export function SessionList({
                                 </TooltipContent>
                             </Tooltip>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                              <MessageDialog
                                 trigger={
                                     <Tooltip>

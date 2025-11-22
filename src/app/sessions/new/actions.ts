@@ -19,6 +19,12 @@ export async function createSession(
     console.error("Jules API key is not configured.");
     return null;
   }
+  
+  const body: Partial<CreateSessionBody> = { ...sessionData };
+  if (!sessionData.requirePlanApproval) {
+    delete body.requirePlanApproval;
+  }
+
 
   try {
     const response = await fetch(
@@ -29,7 +35,7 @@ export async function createSession(
           "X-Goog-Api-Key": effectiveApiKey,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(sessionData),
+        body: JSON.stringify(body),
       }
     );
 
