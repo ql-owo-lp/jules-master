@@ -36,12 +36,15 @@ test.describe('Job Creation', () => {
     // Since SourceSelection auto-selects the first source, the combobox label will change to the repo name.
 
     // We expect the repo to be auto-selected
-    const repoCombobox = page.getByRole('combobox').nth(0);
+    // Note: There might be other comboboxes (e.g. for prompt suggestions), so we filter by text or use a more specific locator.
+    // Since we expect it to be auto-selected with the repo name:
+    const repoCombobox = page.getByRole('combobox').filter({ hasText: /test-owner\/test-repo/ }).first();
     await expect(repoCombobox).toBeEnabled();
     await expect(repoCombobox).toHaveText(/test-owner\/test-repo/);
 
     // Select Branch
-    const branchCombobox = page.getByRole('combobox').nth(1);
+    // Branch combobox should also be visible. It usually defaults to 'main'.
+    const branchCombobox = page.getByRole('combobox').filter({ hasText: /main/ }).first();
     await expect(branchCombobox).toBeVisible();
 
     // Wait for it to be enabled (implies source is selected)
