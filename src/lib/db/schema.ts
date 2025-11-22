@@ -38,4 +38,5 @@ export const settings = sqliteTable('settings', {
   jobsPerPage: integer('jobs_per_page').notNull().default(5),
   defaultSessionCount: integer('default_session_count').notNull().default(10),
   prStatusPollInterval: integer('pr_status_poll_interval').notNull().default(60),
+  theme: text('theme').notNull().default('system'),
 });
