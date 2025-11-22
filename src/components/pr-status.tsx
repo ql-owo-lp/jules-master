@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -15,8 +14,21 @@ type PrStatusProps = {
   prUrl: string | null;
 };
 
+type CachedStatus = {
+  status: PullRequestStatus | null;
+  timestamp: number;
+};
+
 export function PrStatus({ prUrl }: PrStatusProps) {
-  const [status, setStatus] = useState<PullRequestStatus | null | undefined>(undefined);
+  // We store the cached status object (with timestamp) in local storage
+  // Key includes the PR URL to be unique
+  const storageKey = prUrl ? `pr-status-${prUrl}` : "pr-status-null";
+  const [cachedData, setCachedData] = useLocalStorage<CachedStatus | null>(storageKey, null);
+  const [pollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
+
+  // Displayed status is derived from cached data
+  const status = cachedData?.status;
+
   const [isLoading, setIsLoading] = useState(false);
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
   
@@ -24,13 +36,48 @@ export function PrStatus({ prUrl }: PrStatusProps) {
     async function fetchStatus() {
       if (!prUrl) return;
 
-      setIsLoading(true);
-      const prStatus = await getPullRequestStatus(prUrl, githubToken);
-      setStatus(prStatus);
-      setIsLoading(false);
+      const now = Date.now();
+      const minUpdateIntervalMs = pollInterval * 1000;
+      const isStale = !cachedData || (now - cachedData.timestamp > minUpdateIntervalMs);
+
+      // If we don't have data, show loading state (or if we want to show loading indicator while refreshing background)
+      // But user said "display the status icon immediately", so we rely on 'status' derived from 'cachedData'
+      // We only set isLoading if we strictly have NO data to show.
+      if (!status) {
+         setIsLoading(true);
+      }
+
+      if (isStale) {
+        // Background update
+        try {
+             const prStatus = await getPullRequestStatus(prUrl, githubToken);
+             setCachedData({
+                 status: prStatus,
+                 timestamp: Date.now(),
+             });
+        } catch (error) {
+            console.error("Failed to fetch PR status", error);
+            // If failed, maybe update timestamp so we don't retry immediately?
+            // Or just leave it to retry next mount.
+            // For now, let's assume temporary failure and not update cache to error state unless valid error returned.
+        } finally {
+            setIsLoading(false);
+        }
+      } else {
+          setIsLoading(false);
+      }
     }
     fetchStatus();
-  }, [prUrl, githubToken]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prUrl, githubToken]); // Removing cachedData from dependency to avoid loop if we update it.
+  // Note: We should be careful not to loop.
+  // fetchStatus depends on `cachedData` logic inside.
+  // If we add `cachedData` to dependency, `setCachedData` will trigger effect again.
+  // `cachedData` is stable enough? No, it changes when we update it.
+  // So we should NOT include `cachedData` in dependency array.
+  // But we need the latest `cachedData` inside the effect.
+  // The effect runs on mount (and when prUrl/token changes).
+  // This is what we want: Check on mount if stale.
 
   if (!prUrl) {
     return <div className="w-10 h-10" />;
@@ -56,13 +103,17 @@ export function PrStatus({ prUrl }: PrStatusProps) {
     )
   }
 
-  if (isLoading || status === undefined) {
+  if (isLoading && status === undefined) {
     return <Skeleton className="h-8 w-8 rounded-full" />;
   }
   
-  if (!status) {
-    // This can happen if the fetch completes but returns null.
-     return (
+  if (!status && !isLoading) {
+      // Loaded but no status (maybe null returned or initial state before fetch finishes and no cache)
+      // If isLoading is true, we show skeleton above.
+      // If isLoading is false and no status, means fetch completed with null or error?
+      // Or it means we have no cache and fetch hasn't started/finished yet (but isLoading logic handles start).
+
+       return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
@@ -80,6 +131,11 @@ export function PrStatus({ prUrl }: PrStatusProps) {
     )
   }
   
+  if (!status) {
+      // Fallback for safety
+       return <Skeleton className="h-8 w-8 rounded-full" />;
+  }
+
   let Icon;
   let tooltipContent;
   let iconColor;
