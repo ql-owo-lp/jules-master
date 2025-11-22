@@ -20,11 +20,14 @@ import Link from 'next/link';
 import { Bot, MessageSquare, PlusCircle, BookText, ExternalLink, PanelLeft } from 'lucide-react';
 import { Header } from '@/components/header';
 import { NewJobDialog } from '@/components/new-job-dialog';
+import { EnvProvider } from '@/components/env-provider';
 
 export const metadata = {
   title: 'Jules Master',
   description: 'A hub to manage your Jules API jobs.',
 };
+
+export const dynamic = 'force-dynamic';
 
 export default function RootLayout({
   children,
@@ -46,16 +49,20 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased h-full">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+        <EnvProvider
+          julesApiKey={process.env.JULES_API_KEY}
+          githubToken={process.env.GITHUB_TOKEN}
         >
-          <SidebarProvider>
-            <Sidebar>
-              <SidebarContent>
-                <SidebarHeader className='justify-between'>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <SidebarProvider>
+              <Sidebar>
+                <SidebarContent>
+                  <SidebarHeader className='justify-between'>
                   <Link
                     href="/"
                     className="flex items-center gap-2 font-bold text-xl"
@@ -102,14 +109,15 @@ export default function RootLayout({
                   </SidebarMenu>
                 </SidebarGroup>
               </SidebarContent>
-            </Sidebar>
-            <SidebarInset className="min-w-[1024px]">
-              <Header />
-              {children}
-            </SidebarInset>
-          </SidebarProvider>
-          <Toaster />
-        </ThemeProvider>
+              </Sidebar>
+              <SidebarInset className="min-w-[1024px]">
+                <Header />
+                {children}
+              </SidebarInset>
+            </SidebarProvider>
+            <Toaster />
+          </ThemeProvider>
+        </EnvProvider>
       </body>
     </html>
   );
