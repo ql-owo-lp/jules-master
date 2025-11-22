@@ -21,11 +21,11 @@ export async function revalidateSessions() {
 // --- Mock Data ---
 const MOCK_SESSIONS: Session[] = [
   {
+    name: 'sessions/mock-1',
     id: 'session-1',
     title: 'Mock Session 1',
     state: 'COMPLETED',
     createTime: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
     sourceContext: {
       source: 'github/test-owner/test-repo',
       githubRepoContext: {
@@ -34,11 +34,11 @@ const MOCK_SESSIONS: Session[] = [
     },
   },
   {
+    name: 'sessions/mock-2',
     id: 'session-2',
     title: 'Mock Session 2',
     state: 'AWAITING_USER_FEEDBACK',
     createTime: new Date(Date.now() - 100000).toISOString(),
-    createdAt: new Date(Date.now() - 100000).toISOString(),
     sourceContext: {
       source: 'github/test-owner/test-repo',
       githubRepoContext: {
@@ -51,9 +51,11 @@ const MOCK_SESSIONS: Session[] = [
 const MOCK_SOURCES: Source[] = [
   {
     name: 'github/test-owner/test-repo',
+    id: 'source-1',
     githubRepo: {
       owner: 'test-owner',
       repo: 'test-repo',
+      isPrivate: false,
       branches: [
         { displayName: 'main' },
         { displayName: 'develop' },
@@ -98,10 +100,10 @@ export async function listSessions(
 
     const data: ListSessionsResponse = await response.json();
     
+    // Ensure all sessions have a createTime for sorting and display
     return (data.sessions || []).map(session => ({
       ...session,
-      status: session.state || 'Succeeded',
-      createdAt: session.createTime || '',
+      createTime: session.createTime || '', 
     }));
 
   } catch (error) {
@@ -143,3 +145,5 @@ export async function listSources(apiKey?: string | null): Promise<Source[]> {
 export async function refreshSources() {
   revalidateTag('sources');
 }
+
+    

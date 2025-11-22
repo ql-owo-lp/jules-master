@@ -11,8 +11,7 @@ export type Session = {
   sourceContext?: SourceContext;
   createTime?: string; // API uses createTime
   updateTime?: string;
-  createdAt: string; // Keep for consistency in our app
-  state?: State;
+  state: State;
   url?: string;
   outputs?: SessionOutput[];
   requirePlanApproval?: boolean;
@@ -201,3 +200,5 @@ export type PullRequestStatus = {
     runs: Pick<CheckRun, 'name' | 'status' | 'conclusion'>[];
   }
 };
+
+    
