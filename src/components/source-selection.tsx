@@ -13,21 +13,24 @@ type SourceSelectionProps = {
   onSourceSelected: (source: Source | null) => void;
   disabled?: boolean;
   selectedValue?: Source | null;
+  sources: Source[];
+  onSourcesLoaded: (sources: Source[]) => void;
 };
 
-export function SourceSelection({ onSourceSelected, disabled, selectedValue }: SourceSelectionProps) {
-  const [sources, setSources] = useState<Source[]>([]);
+export function SourceSelection({ onSourceSelected, disabled, selectedValue, sources, onSourcesLoaded }: SourceSelectionProps) {
   const [isFetching, startFetching] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
 
 
   useEffect(() => {
+    if (sources.length > 0) return;
+
     startFetching(async () => {
       try {
         setError(null);
         const fetchedSources = await listSources(apiKey);
-        setSources(fetchedSources);
+        onSourcesLoaded(fetchedSources);
         // If there's no value from localstorage, select the first one.
         if (!selectedValue && fetchedSources.length > 0) {
           onSourceSelected(fetchedSources[0]);
@@ -38,10 +41,10 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue }: S
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey]);
+  }, [apiKey, sources]);
 
 
-  if (isFetching) {
+  if (isFetching && sources.length === 0) {
     return (
       <div className="space-y-2">
         <Skeleton id="repository-skeleton" className="h-10 w-full" />
