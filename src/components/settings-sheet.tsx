@@ -42,6 +42,7 @@ export function SettingsSheet() {
   const [jobsPerPage, setJobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
   const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
   const [prStatusPollInterval, setPrStatusPollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
+  const [historyPromptsCount, setHistoryPromptsCount] = useLocalStorage<number>("jules-history-prompts-count", 10);
 
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
@@ -54,6 +55,7 @@ export function SettingsSheet() {
   const [jobsPerPageValue, setJobsPerPageValue] = useState(jobsPerPage);
   const [defaultSessionCountValue, setDefaultSessionCountValue] = useState(defaultSessionCount);
   const [prStatusPollIntervalValue, setPrStatusPollIntervalValue] = useState(prStatusPollInterval);
+  const [historyPromptsCountValue, setHistoryPromptsCountValue] = useState(historyPromptsCount);
   
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -73,6 +75,7 @@ export function SettingsSheet() {
   useEffect(() => { setJobsPerPageValue(jobsPerPage); }, [jobsPerPage]);
   useEffect(() => { setDefaultSessionCountValue(defaultSessionCount); }, [defaultSessionCount]);
   useEffect(() => { setPrStatusPollIntervalValue(prStatusPollInterval); }, [prStatusPollInterval]);
+  useEffect(() => { setHistoryPromptsCountValue(historyPromptsCount); }, [historyPromptsCount]);
   
   // Fetch settings from DB on mount and populate if local storage is empty
   useEffect(() => {
@@ -95,6 +98,7 @@ export function SettingsSheet() {
           if (!isSetInLocalStorage("jules-jobs-per-page")) setJobsPerPage(dbSettings.jobsPerPage);
           if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
           if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
+          if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
           if (!isSetInLocalStorage("theme") && dbSettings.theme) setTheme(dbSettings.theme);
         }
       } catch (error) {
@@ -112,6 +116,7 @@ export function SettingsSheet() {
       setJobsPerPage,
       setDefaultSessionCount,
       setPrStatusPollInterval,
+      setHistoryPromptsCount,
       setTheme
     ]);
 
@@ -127,6 +132,7 @@ export function SettingsSheet() {
     setJobsPerPage(jobsPerPageValue);
     setDefaultSessionCount(defaultSessionCountValue);
     setPrStatusPollInterval(prStatusPollIntervalValue);
+    setHistoryPromptsCount(historyPromptsCountValue);
 
     try {
         await fetch('/api/settings', {
@@ -143,6 +149,7 @@ export function SettingsSheet() {
                 jobsPerPage: jobsPerPageValue,
                 defaultSessionCount: defaultSessionCountValue,
                 prStatusPollInterval: prStatusPollIntervalValue,
+                historyPromptsCount: historyPromptsCountValue,
                 theme: theme,
             }),
         });
@@ -345,6 +352,20 @@ export function SettingsSheet() {
                     min="1"
                     />
                 </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="history-prompts-count">History Prompts Count</Label>
+                    <Input
+                    id="history-prompts-count"
+                    type="number"
+                    value={historyPromptsCountValue}
+                    onChange={(e) => setHistoryPromptsCountValue(Number(e.target.value))}
+                    placeholder="e.g., 10"
+                    min="0"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Number of recent prompts to display in the suggestion dropdown.
+                    </p>
+                </div>
             </div>
 
             <Separator />
@@ -416,5 +437,3 @@ export function SettingsSheet() {
     </Sheet>
   );
 }
-
-    

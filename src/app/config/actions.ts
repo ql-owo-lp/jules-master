@@ -3,8 +3,9 @@
 
 import { appDatabase, db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
-import type { Job, PredefinedPrompt } from '@/lib/types';
+import type { Job, PredefinedPrompt, HistoryPrompt } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
+import { eq, desc } from 'drizzle-orm';
 
 // --- Jobs ---
 export async function getJobs(): Promise<Job[]> {
@@ -34,6 +35,32 @@ export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promis
     revalidatePath('/prompts');
 }
 
+// --- History Prompts ---
+export async function getHistoryPrompts(): Promise<HistoryPrompt[]> {
+    const settings = await db.select().from(schema.settings).get();
+    const limit = settings?.historyPromptsCount ?? 10;
+    return appDatabase.historyPrompts.getRecent(limit);
+}
+
+export async function saveHistoryPrompt(promptText: string): Promise<void> {
+    if (!promptText.trim()) return;
+
+    // Check if prompt already exists
+    const existing = await db.select().from(schema.historyPrompts).where(eq(schema.historyPrompts.prompt, promptText)).get();
+
+    if (existing) {
+        await appDatabase.historyPrompts.update(existing.id, { lastUsedAt: new Date().toISOString() });
+    } else {
+        const newHistoryPrompt: HistoryPrompt = {
+            id: crypto.randomUUID(),
+            prompt: promptText,
+            lastUsedAt: new Date().toISOString()
+        };
+        await appDatabase.historyPrompts.create(newHistoryPrompt);
+    }
+
+    revalidatePath('/');
+}
 
 // --- Quick Replies ---
 export async function getQuickReplies(): Promise<PredefinedPrompt[]> {

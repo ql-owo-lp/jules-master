@@ -2,8 +2,8 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import * as schema from './schema';
-import { Job, PredefinedPrompt } from '../types';
-import { eq } from 'drizzle-orm';
+import { Job, PredefinedPrompt, HistoryPrompt } from '../types';
+import { eq, desc } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'fs';
 import path from 'path';
@@ -78,6 +78,20 @@ class AppDatabase {
     },
     update: async (id, prompt) => { await db.update(schema.predefinedPrompts).set(prompt).where(eq(schema.predefinedPrompts.id, id)) },
     delete: async (id) => { await db.delete(schema.predefinedPrompts).where(eq(schema.predefinedPrompts.id, id)) },
+  };
+
+  // HistoryPrompt DAO
+  public historyPrompts: IDao<HistoryPrompt> & { getRecent: (limit: number) => Promise<HistoryPrompt[]> } = {
+    getAll: async () => db.select().from(schema.historyPrompts).orderBy(desc(schema.historyPrompts.lastUsedAt)),
+    getRecent: async (limit) => db.select().from(schema.historyPrompts).orderBy(desc(schema.historyPrompts.lastUsedAt)).limit(limit),
+    getById: async (id) => db.select().from(schema.historyPrompts).where(eq(schema.historyPrompts.id, id)).get(),
+    create: async (prompt) => { await db.insert(schema.historyPrompts).values(prompt) },
+    createMany: async (prompts) => {
+        if (prompts.length === 0) return;
+        await db.insert(schema.historyPrompts).values(prompts);
+    },
+    update: async (id, prompt) => { await db.update(schema.historyPrompts).set(prompt).where(eq(schema.historyPrompts.id, id)) },
+    delete: async (id) => { await db.delete(schema.historyPrompts).where(eq(schema.historyPrompts.id, id)) },
   };
 
   // QuickReply DAO

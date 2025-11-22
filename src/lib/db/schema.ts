@@ -17,6 +17,12 @@ export const predefinedPrompts = sqliteTable('predefined_prompts', {
   prompt: text('prompt').notNull(),
 });
 
+export const historyPrompts = sqliteTable('history_prompts', {
+  id: text('id').primaryKey(),
+  prompt: text('prompt').notNull(),
+  lastUsedAt: text('last_used_at').notNull(),
+});
+
 export const quickReplies = sqliteTable('quick_replies', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
@@ -39,4 +45,5 @@ export const settings = sqliteTable('settings', {
   defaultSessionCount: integer('default_session_count').notNull().default(10),
   prStatusPollInterval: integer('pr_status_poll_interval').notNull().default(60),
   theme: text('theme').notNull().default('system'),
+  historyPromptsCount: integer('history_prompts_count').notNull().default(10),
 });
