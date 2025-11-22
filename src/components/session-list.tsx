@@ -786,5 +786,3 @@ export function SessionList({
     </>
   );
 }
-
-    
