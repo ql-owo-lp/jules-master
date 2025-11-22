@@ -32,6 +32,7 @@ const MOCK_SESSIONS: Session[] = [
         startingBranch: 'main',
       },
     },
+    prompt: "Mock prompt 1",
   },
   {
     name: 'sessions/mock-2',
@@ -45,6 +46,7 @@ const MOCK_SESSIONS: Session[] = [
         startingBranch: 'develop',
       },
     },
+    prompt: "Mock prompt 2",
   },
 ];
 
