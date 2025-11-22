@@ -374,7 +374,7 @@ export function SessionList({
                                         <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
                                       </TableCell>
                                       <TableCell className="text-sm text-muted-foreground">
-                                        {session.createdAt ? formatDistanceToNow(new Date(session.createdAt), { addSuffix: true }) : 'N/A'}
+                                        {session.createTime ? formatDistanceToNow(new Date(session.createTime), { addSuffix: true }) : 'N/A'}
                                       </TableCell>
                                       <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                                           {session.url && (
@@ -620,7 +620,7 @@ export function SessionList({
                                           <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
                                         </TableCell>
                                         <TableCell className="text-sm text-muted-foreground">
-                                          {session.createdAt ? formatDistanceToNow(new Date(session.createdAt), { addSuffix: true }) : 'N/A'}
+                                          {session.createTime ? formatDistanceToNow(new Date(session.createTime), { addSuffix: true }) : 'N/A'}
                                         </TableCell>
                                         <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                                             {session.url && (
@@ -786,3 +786,5 @@ export function SessionList({
     </>
   );
 }
+
+    

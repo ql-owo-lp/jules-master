@@ -25,9 +25,9 @@ function HomePageContent() {
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
 
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
-  const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
+  const [quickReplies, setQuickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
   
   const [isClient, setIsClient] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -419,5 +419,7 @@ export default function Home() {
     </Suspense>
   )
 }
+
+    
 
     
