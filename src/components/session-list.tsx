@@ -98,11 +98,11 @@ export function SessionList({
   }, [sessions]);
 
   const jobDetailsMap = useMemo(() => {
-    const map = new Map<string, { completed: number; working: number; pending: number; total: number }>();
+    const map = new Map<string, { completed: number; working: number; pending: string[]; total: number }>();
     for (const job of jobs) {
       let completed = 0;
       let working = 0;
-      let pending = 0;
+      const pending: string[] = [];
       for (const sessionId of job.sessionIds) {
         const session = sessionMap.get(sessionId);
         if (session) {
@@ -112,7 +112,7 @@ export function SessionList({
               break;
             case 'AWAITING_PLAN_APPROVAL':
             case 'AWAITING_USER_FEEDBACK':
-              pending++;
+              pending.push(session.id);
               break;
             case 'FAILED':
               break; 
@@ -340,6 +340,22 @@ export function SessionList({
                                                 <TooltipContent><p>Approve Plan</p></TooltipContent>
                                               </Tooltip>
                                             )}
+                                             <MessageDialog
+                                                triggerButton={
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent><p>Send Message</p></TooltipContent>
+                                                    </Tooltip>
+                                                }
+                                                storageKey={`jules-session-message-${session.id}`}
+                                                onSendMessage={(message) => onSendMessage(session.id, message)}
+                                                dialogTitle={`Send Message to Session`}
+                                                dialogDescription={truncate(session.title, titleTruncateLength)}
+                                                isActionPending={isActionPending}
+                                                quickReplies={quickReplies}
+                                            />
                                             <Popover>
                                               <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -415,20 +431,20 @@ export function SessionList({
                   
                   return (
                     <AccordionItem value={job.id} key={job.id} className="border rounded-lg bg-card">
-                        <div className="flex items-center gap-4 px-4 data-[state=open]:border-b">
-                             <Checkbox 
-                                checked={selectAllState}
-                                onCheckedChange={(checked) => handleSelectAllForJob(job.id, !!checked)}
-                                aria-label={`Select all sessions for job ${job.name}`}
-                            />
-                            <AccordionTrigger className="hover:no-underline flex-1 py-4">
-                                <div className="flex items-center gap-4 w-full">
-                                    <div className="flex-1 text-left">
-                                        <p className="font-semibold truncate" title={job.name}>{job.name}</p>
-                                        <p className="text-xs text-muted-foreground font-mono">{job.repo} / {job.branch}</p>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                        <Tooltip>
+                       <div className="flex items-center gap-4 px-4 data-[state=open]:border-b">
+                         <Checkbox 
+                            checked={selectAllState}
+                            onCheckedChange={(checked) => handleSelectAllForJob(job.id, !!checked)}
+                            aria-label={`Select all sessions for job ${job.name}`}
+                         />
+                         <AccordionTrigger className="hover:no-underline flex-1 py-4">
+                           <div className="flex items-center justify-between w-full">
+                                <div className="flex-1 text-left">
+                                    <p className="font-semibold truncate" title={job.name}>{job.name}</p>
+                                    <p className="text-xs text-muted-foreground font-mono">{job.repo} / {job.branch}</p>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground mx-4" onClick={(e) => e.stopPropagation()}>
+                                    <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="flex items-center gap-1">
                                             <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -438,8 +454,8 @@ export function SessionList({
                                         <TooltipContent>
                                             <p>{details?.completed || 0} Completed</p>
                                         </TooltipContent>
-                                        </Tooltip>
-                                        <Tooltip>
+                                    </Tooltip>
+                                    <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="flex items-center gap-1">
                                             <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
@@ -449,22 +465,85 @@ export function SessionList({
                                         <TooltipContent>
                                             <p>{details?.working || 0} In Progress</p>
                                         </TooltipContent>
-                                        </Tooltip>
-                                        <Tooltip>
+                                    </Tooltip>
+                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <div className="flex items-center gap-1">
-                                            <Hand className="h-4 w-4 text-yellow-500" />
-                                            <span>{details?.pending || 0}</span>
-                                            </div>
+                                             <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                className="flex items-center gap-1 h-auto p-0" 
+                                                onClick={() => onApprovePlan(details?.pending || [])}
+                                                disabled={!details?.pending.length || isActionPending}
+                                             >
+                                                <Hand className="h-4 w-4 text-yellow-500" />
+                                                <span>{details?.pending.length || 0}</span>
+                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p>{details?.pending || 0} Pending Input</p>
+                                            <p>Approve {details?.pending.length || 0} pending session(s)</p>
                                         </TooltipContent>
-                                        </Tooltip>
-                                    </div>
+                                    </Tooltip>
                                 </div>
-                            </AccordionTrigger>
-                        </div>
+                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                      <MessageDialog
+                                        triggerButton={
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent><p>Send Message to all sessions in this job</p></TooltipContent>
+                                            </Tooltip>
+                                        }
+                                        storageKey={`jules-job-message-${job.id}`}
+                                        onSendMessage={(message) => onBulkSendMessage(job.sessionIds, message)}
+                                        dialogTitle={`Send Message to Job: ${job.name}`}
+                                        dialogDescription={`This message will be sent to all ${job.sessionIds.length} sessions in this job.`}
+                                        isActionPending={isActionPending}
+                                        quickReplies={quickReplies}
+                                    />
+                                     <Popover>
+                                        <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                                    <MessageSquare className="h-4 w-4" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Send a Quick Reply to all sessions in this job</p></TooltipContent>
+                                        </Tooltip>
+                                        <PopoverContent className="p-0 w-64" align="end">
+                                            <Command>
+                                            <CommandInput placeholder="Search replies..." />
+                                            <CommandList>
+                                                <ScrollArea className="h-[200px]">
+                                                <CommandEmpty>No replies found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {quickReplies.map(option => (
+                                                    <CommandItem
+                                                        key={option.id}
+                                                        onSelect={() => {
+                                                        onBulkSendMessage(job.sessionIds, option.prompt);
+                                                        document.body.click(); 
+                                                        }}
+                                                        className="flex justify-between cursor-pointer"
+                                                    >
+                                                        <span className="truncate flex-1 font-medium">{option.title}</span>
+                                                        <span className="text-xs text-muted-foreground ml-2 truncate">
+                                                        [{truncate(option.prompt, 20)}]
+                                                        </span>
+                                                    </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                                </ScrollArea>
+                                            </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+                         </AccordionTrigger>
+                       </div>
                       <AccordionContent className="p-0">
                         {isRefreshing && sessionsForJob.length === 0 ? (
                           <div className="p-4 space-y-2">
@@ -549,6 +628,22 @@ export function SessionList({
                                                 <TooltipContent><p>Approve Plan</p></TooltipContent>
                                               </Tooltip>
                                             )}
+                                            <MessageDialog
+                                                triggerButton={
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent><p>Send Message</p></TooltipContent>
+                                                    </Tooltip>
+                                                }
+                                                storageKey={`jules-session-message-${session.id}`}
+                                                onSendMessage={(message) => onSendMessage(session.id, message)}
+                                                dialogTitle={`Send Message to Session`}
+                                                dialogDescription={truncate(session.title, titleTruncateLength)}
+                                                isActionPending={isActionPending}
+                                                quickReplies={quickReplies}
+                                            />
                                             <Popover>
                                               <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -699,3 +794,5 @@ export function SessionList({
     </>
   );
 }
+
+    
