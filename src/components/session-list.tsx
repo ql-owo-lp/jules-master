@@ -214,6 +214,146 @@ export function SessionList({
     content: reply.prompt,
   }));
 
+  const renderSessionRows = (sessionsToRender: Session[], isUncategorized: boolean) => (
+    <>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[50px]"></TableHead>
+          <TableHead>Session Title</TableHead>
+          <TableHead className="w-[180px]">Status</TableHead>
+          <TableHead className="w-[150px]">Created</TableHead>
+          <TableHead className="w-[80px] text-center">Jules</TableHead>
+          <TableHead className="w-[80px] text-center">GitHub</TableHead>
+          <TableHead className="w-[120px] text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {sessionsToRender.map(session => {
+          const prUrl = getPullRequestUrl(session);
+          const backPath = isUncategorized ? '' : `?jobId=${jobIdParam}`;
+
+          return (
+            <TableRow 
+              key={session.id} 
+              className="cursor-pointer"
+              onClick={() => router.push(`/sessions/${session.id}${backPath}`)}
+              data-state={selectedSessionIds.includes(session.id) ? "selected" : undefined}
+            >
+                <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
+                  <Checkbox
+                    checked={selectedSessionIds.includes(session.id)}
+                    onCheckedChange={(checked) => handleSelectRow(session.id, !!checked)}
+                    aria-label={`Select session ${session.id}`}
+                  />
+                </TableCell>
+                <TableCell className="font-medium truncate" title={session.title}>
+                    {truncate(session.title, titleTruncateLength)}
+                  </TableCell>
+                  <TableCell>
+                    <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {session.createTime ? formatDistanceToNow(new Date(session.createTime), { addSuffix: true }) : 'N/A'}
+                  </TableCell>
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      {session.url && (
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <a href={session.url} target="_blank" rel="noopener noreferrer">
+                                      <Button variant="ghost" size="icon" aria-label="View Session on Jules UI">
+                                          <Bot className="h-5 w-5 text-primary" />
+                                      </Button>
+                                  </a>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                  <p>View on Jules UI</p>
+                              </TooltipContent>
+                          </Tooltip>
+                      )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <PrStatus prUrl={prUrl} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          {session.state === 'AWAITING_PLAN_APPROVAL' && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => onApprovePlan([session.id])}
+                                  disabled={isActionPending}
+                                  aria-label="Approve Plan"
+                                >
+                                  {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Approve Plan</p></TooltipContent>
+                            </Tooltip>
+                          )}
+                           <MessageDialog
+                              trigger={
+                                  <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>Send Message</p></TooltipContent>
+                                  </Tooltip>
+                              }
+                              storageKey={`jules-session-message-${session.id}`}
+                              onSendMessage={(message) => onSendMessage(session.id, message)}
+                              dialogTitle={`Send Message to Session`}
+                              dialogDescription={truncate(session.title, titleTruncateLength)}
+                              isActionPending={isActionPending}
+                              quickReplies={quickReplies}
+                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                    <MessageSquareReply className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Send Quick Reply</p></TooltipContent>
+                              </Tooltip>
+                            </PopoverTrigger>
+                            <PopoverContent className="p-0 w-60">
+                              <Command>
+                                <CommandInput placeholder="Search replies..." />
+                                <CommandList>
+                                  <CommandEmpty>No replies found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {quickReplyOptions.map((option) => (
+                                      <CommandItem
+                                        key={option.value}
+                                        onSelect={() => {
+                                          onSendMessage(session.id, option.content);
+                                          document.body.click(); // Close popover
+                                        }}
+                                      >
+                                        <span className="truncate" title={option.content}>
+                                          {option.label}
+                                        </span>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                  </TableCell>
+            </TableRow>
+          )
+        })}
+      </TableBody>
+    </Table>
+    </>
+  );
+
   return (
     <>
       <Card className="shadow-md">
@@ -324,7 +464,7 @@ export function SessionList({
                           </Tooltip>
                       </div>
                       <div className="flex items-center gap-2">
-                            <MessageDialog
+                           <MessageDialog
                               trigger={
                                   <Tooltip>
                                       <TooltipTrigger asChild>
@@ -381,99 +521,7 @@ export function SessionList({
                       </div>
                     </div>
                     <AccordionContent className="p-0">
-                      <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[50px]"></TableHead>
-                              <TableHead>Session Title</TableHead>
-                              <TableHead className="w-[180px]">Status</TableHead>
-                              <TableHead className="w-[150px]">Created</TableHead>
-                              <TableHead className="w-[80px] text-center">Jules</TableHead>
-                              <TableHead className="w-[80px] text-center">GitHub</TableHead>
-                              <TableHead className="w-[120px] text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {unknownSessions.map(session => {
-                              const prUrl = getPullRequestUrl(session);
-                              return (
-                                <TableRow key={session.id} className="cursor-pointer" onClick={() => router.push(`/sessions/${session.id}`)}>
-                                    <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
-                                      <Checkbox
-                                        checked={selectedSessionIds.includes(session.id)}
-                                        onCheckedChange={(checked) => handleSelectRow(session.id, !!checked)}
-                                        aria-label={`Select session ${session.id}`}
-                                      />
-                                    </TableCell>
-                                    <TableCell className="font-medium truncate" title={session.title}>
-                                        {truncate(session.title, titleTruncateLength)}
-                                      </TableCell>
-                                      <TableCell>
-                                        <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
-                                      </TableCell>
-                                      <TableCell className="text-sm text-muted-foreground">
-                                        {session.createTime ? formatDistanceToNow(new Date(session.createTime), { addSuffix: true }) : 'N/A'}
-                                      </TableCell>
-                                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                          {session.url && (
-                                              <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                      <a href={session.url} target="_blank" rel="noopener noreferrer">
-                                                          <Button variant="ghost" size="icon" aria-label="View Session on Jules UI">
-                                                              <Bot className="h-5 w-5 text-primary" />
-                                                          </Button>
-                                                      </a>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent>
-                                                      <p>View on Jules UI</p>
-                                                  </TooltipContent>
-                                              </Tooltip>
-                                          )}
-                                      </TableCell>
-                                      <TableCell className="text-center">
-                                        <PrStatus prUrl={prUrl} />
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                                              {session.state === 'AWAITING_PLAN_APPROVAL' && (
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <Button
-                                                      variant="ghost"
-                                                      size="icon"
-                                                      onClick={() => onApprovePlan([session.id])}
-                                                      disabled={isActionPending}
-                                                      aria-label="Approve Plan"
-                                                    >
-                                                      {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
-                                                    </Button>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent><p>Approve Plan</p></TooltipContent>
-                                                </Tooltip>
-                                              )}
-                                              <MessageDialog
-                                                  trigger={
-                                                      <Tooltip>
-                                                          <TooltipTrigger asChild>
-                                                              <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
-                                                          </TooltipTrigger>
-                                                          <TooltipContent><p>Send Message</p></TooltipContent>
-                                                      </Tooltip>
-                                                  }
-                                                  storageKey={`jules-session-message-${session.id}`}
-                                                  onSendMessage={(message) => onSendMessage(session.id, message)}
-                                                  dialogTitle={`Send Message to Session`}
-                                                  dialogDescription={truncate(session.title, titleTruncateLength)}
-                                                  isActionPending={isActionPending}
-                                                  quickReplies={quickReplies}
-                                              />
-                                            </div>
-                                      </TableCell>
-                                </TableRow>
-                              )
-                            })}
-                          </TableBody>
-                      </Table>
+                      {renderSessionRows(unknownSessions, true)}
                     </AccordionContent>
                   </AccordionItem>
                 )}
@@ -557,7 +605,7 @@ export function SessionList({
                             </Tooltip>
                         </div>
                         <div className="flex items-center gap-2">
-                              <MessageDialog
+                             <MessageDialog
                                 trigger={
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -622,104 +670,7 @@ export function SessionList({
                         ) : sessionsForJob.length > 0 ? (
                           <>
                             <div className="border-t">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-[50px]"></TableHead>
-                                    <TableHead>Session Title</TableHead>
-                                    <TableHead className="w-[180px]">Status</TableHead>
-                                    <TableHead className="w-[150px]">Created</TableHead>
-                                    <TableHead className="w-[80px] text-center">Jules</TableHead>
-                                    <TableHead className="w-[80px] text-center">GitHub</TableHead>
-                                    <TableHead className="w-[120px] text-right">Actions</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {paginatedSessions.map(session => {
-                                    const prUrl = getPullRequestUrl(session);
-                                    return (
-                                      <TableRow 
-                                        key={session.id} 
-                                        className="cursor-pointer"
-                                        onClick={() => router.push(`/sessions/${session.id}?jobId=${job.id}`)}
-                                        data-state={selectedSessionIds.includes(session.id) ? "selected" : undefined}
-                                      >
-                                        <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
-                                          <Checkbox
-                                            checked={selectedSessionIds.includes(session.id)}
-                                            onCheckedChange={(checked) => handleSelectRow(session.id, !!checked)}
-                                            aria-label={`Select session ${session.id}`}
-                                          />
-                                        </TableCell>
-                                        <TableCell className="font-medium truncate" title={session.title}>
-                                          {truncate(session.title, titleTruncateLength)}
-                                        </TableCell>
-                                        <TableCell>
-                                          <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">
-                                          {session.createTime ? formatDistanceToNow(new Date(session.createTime), { addSuffix: true }) : 'N/A'}
-                                        </TableCell>
-                                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                            {session.url && (
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <a href={session.url} target="_blank" rel="noopener noreferrer">
-                                                            <Button variant="ghost" size="icon" aria-label="View Session on Jules UI">
-                                                                <Bot className="h-5 w-5 text-primary" />
-                                                            </Button>
-                                                        </a>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>View on Jules UI</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                          <PrStatus prUrl={prUrl} />
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                          <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                                            {session.state === 'AWAITING_PLAN_APPROVAL' && (
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => onApprovePlan([session.id])}
-                                                    disabled={isActionPending}
-                                                    aria-label="Approve Plan"
-                                                  >
-                                                    {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
-                                                  </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>Approve Plan</p></TooltipContent>
-                                              </Tooltip>
-                                            )}
-                                            <MessageDialog
-                                                trigger={
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent><p>Send Message</p></TooltipContent>
-                                                    </Tooltip>
-                                                }
-                                                storageKey={`jules-session-message-${session.id}`}
-                                                onSendMessage={(message) => onSendMessage(session.id, message)}
-                                                dialogTitle={`Send Message to Session`}
-                                                dialogDescription={truncate(session.title, titleTruncateLength)}
-                                                isActionPending={isActionPending}
-                                                quickReplies={quickReplies}
-                                            />
-                                          </div>
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })}
-                                </TableBody>
-                              </Table>
+                              {renderSessionRows(paginatedSessions, false)}
                             </div>
                             {totalPages > 1 && (
                               <div className="flex justify-center items-center gap-2 p-2 border-t">
