@@ -36,52 +36,30 @@ function HomePageContent() {
   const { toast } = useToast();
   const [countdown, setCountdown] = useState(sessionListPollInterval);
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
+  const [jobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
 
   const searchParams = useSearchParams();
   const router = useRouter();
   const jobIdParam = searchParams.get("jobId");
+  const jobPageParam = searchParams.get("jobPage");
 
   const [jobFilter, setJobFilter] = useState<string | null>(jobIdParam);
   const [repoFilter, setRepoFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
   const [prStatuses, setPrStatuses] = useState<Record<string, PullRequestStatus | null>>({});
-  const [isFetchingPrStatus, setIsFetchingPrStatus] = useState(false);
+
+  const [jobPage, setJobPage] = useState(jobPageParam ? parseInt(jobPageParam, 10) : 1);
   
-  const [currentPage, setCurrentPage] = useState(1);
-  const [jobsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
-
-
   // Effect to sync job filter with URL param
   useEffect(() => {
     setJobFilter(jobIdParam);
   }, [jobIdParam]);
 
-  
-  const filteredJob = jobFilter ? jobs.find(j => j.id === jobFilter) : null;
-  
-  const sessionToJobMap = useMemo(() => {
-    const map = new Map<string, Job>();
-    for (const job of jobs) {
-      for (const sessionId of job.sessionIds) {
-        map.set(sessionId, job);
-      }
-    }
-    return map;
-  }, [jobs]);
+  const { filteredJobs, unknownSessions } = useMemo(() => {
+    const allJobSessionIds = new Set(jobs.flatMap(j => j.sessionIds));
+    const unknown = sessions.filter(s => !allJobSessionIds.has(s.id));
 
-  const getPullRequestUrl = (session: Session): string | null => {
-    if (session.outputs && session.outputs.length > 0) {
-      for (const output of session.outputs) {
-        if (output.pullRequest?.url) {
-          return output.pullRequest.url;
-        }
-      }
-    }
-    return null;
-  }
-
-  const filteredJobs = useMemo(() => {
     let j = [...jobs].reverse();
     if (jobFilter) {
       j = j.filter(job => job.id === jobFilter);
@@ -89,19 +67,19 @@ function HomePageContent() {
     if (repoFilter !== 'all') {
       j = j.filter(job => job.repo === repoFilter);
     }
-    // Note: statusFilter applies to sessions, not jobs directly.
-    // The SessionList component will handle filtering sessions within the jobs.
-    return j;
-  }, [jobs, jobFilter, repoFilter]);
-  
-  const paginatedJobs = useMemo(() => {
-    const startIndex = (currentPage - 1) * jobsPerPage;
-    const endIndex = startIndex + jobsPerPage;
-    return filteredJobs.slice(startIndex, endIndex);
-  }, [filteredJobs, currentPage, jobsPerPage]);
+    return { filteredJobs: j, unknownSessions: unknown };
+  }, [jobs, sessions, jobFilter, repoFilter]);
 
-  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
+  const totalJobPages = Math.ceil(filteredJobs.length / jobsPerPage);
+  const paginatedJobs = filteredJobs.slice((jobPage - 1) * jobsPerPage, jobPage * jobsPerPage);
 
+  const handleJobPageChange = (page: number) => {
+    if (page < 1 || page > totalJobPages) return;
+    setJobPage(page);
+     const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('jobPage', page.toString());
+    router.push(`?${newParams.toString()}`);
+  }
 
   const fetchAllData = useCallback(async (options: {isRefresh: boolean} = {isRefresh: false}) => {
     if (options.isRefresh) {
@@ -136,13 +114,23 @@ function HomePageContent() {
             return;
         }
         
-        const sessionsForFilteredJobs = sessions.filter(s => filteredJobs.some(j => j.sessionIds.includes(s.id)));
+        const sessionsForFilteredJobs = sessions.filter(s => paginatedJobs.some(j => j.sessionIds.includes(s.id)) || unknownSessions.some(us => us.id === s.id));
 
         if (sessionsForFilteredJobs.length === 0) {
             return;
         }
 
-        setIsFetchingPrStatus(true);
+        const getPullRequestUrl = (session: Session): string | null => {
+            if (session.outputs && session.outputs.length > 0) {
+                for (const output of session.outputs) {
+                    if (output.pullRequest?.url) {
+                        return output.pullRequest.url;
+                    }
+                }
+            }
+            return null;
+        }
+
         const urlsToFetch = sessionsForFilteredJobs
             .map(getPullRequestUrl)
             .filter((url): url is string => !!url && prStatuses[url] === undefined);
@@ -158,12 +146,11 @@ function HomePageContent() {
 
             setPrStatuses(prev => ({ ...prev, ...newStatuses }));
         }
-        setIsFetchingPrStatus(false);
     };
 
     fetchStatuses();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessions, filteredJobs, githubToken]);
+  }, [sessions, paginatedJobs, unknownSessions, githubToken]);
 
 
 
@@ -269,21 +256,30 @@ function HomePageContent() {
     onJobFilterChange(null);
     onRepoFilterChange('all');
     onStatusFilterChange('all');
+    setJobPage(1);
   }
 
   const onJobFilterChange = (value: string | null) => {
     setJobFilter(value);
+    setJobPage(1);
     const newParams = new URLSearchParams(searchParams.toString());
     if (value) {
       newParams.set('jobId', value);
     } else {
       newParams.delete('jobId');
     }
+    newParams.delete('jobPage');
     router.push(`?${newParams.toString()}`);
   }
 
-  const onRepoFilterChange = (value: string) => setRepoFilter(value);
-  const onStatusFilterChange = (value: string) => setStatusFilter(value);
+  const onRepoFilterChange = (value: string) => {
+    setRepoFilter(value);
+    setJobPage(1);
+  };
+  const onStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setJobPage(1);
+  }
   
   const repoOptions = useMemo(() => [
     { value: 'all', label: 'All Repositories'}, 
@@ -346,6 +342,7 @@ function HomePageContent() {
           <SessionList
             sessions={sessions}
             jobs={paginatedJobs}
+            unknownSessions={unknownSessions}
             quickReplies={quickReplies}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
@@ -360,9 +357,9 @@ function HomePageContent() {
             prStatuses={prStatuses}
             statusFilter={statusFilter}
             titleTruncateLength={titleTruncateLength}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
+            jobPage={jobPage}
+            totalJobPages={totalJobPages}
+            onJobPageChange={handleJobPageChange}
           >
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div className="space-y-2">
