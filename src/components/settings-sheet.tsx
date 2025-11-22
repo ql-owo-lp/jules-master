@@ -97,7 +97,7 @@ export function SettingsSheet() {
           <SheetTitle>Settings</SheetTitle>
           <SheetDescription>
             Configure your Jules API settings here. Your settings are saved securely
-            in your browser's local storage.
+            in your browser&apos;s local storage.
           </SheetDescription>
         </SheetHeader>
         <div className="space-y-8">
@@ -175,7 +175,7 @@ export function SettingsSheet() {
                          </p>
                      ) : (
                         <p className="text-xs text-muted-foreground">
-                            Required for fetching PR status. Use a classic token with `repo` scope.
+                            Required for fetching PR status. Use a classic token with &apos;repo&apos; scope.
                         </p>
                      )}
                 </div>

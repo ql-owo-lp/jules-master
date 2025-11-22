@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useTransition, useCallback, useEffect } from "react";
@@ -23,11 +24,11 @@ import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Switch } from "./ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Combobox } from "@/components/ui/combobox";
-import { Checkbox } from "@/components/ui/checkbox";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[], newJob: Job) => void;
@@ -58,7 +59,6 @@ export function JobCreationForm({
   
   const [requirePlanApproval, setRequirePlanApproval] = useLocalStorage<boolean>("jules-new-job-require-plan-approval", false);
   const [automationMode, setAutomationMode] = useLocalStorage<AutomationMode>("jules-new-job-automation-mode", "AUTO_CREATE_PR");
-  const [applyGlobalPrompt, setApplyGlobalPrompt] = useState(true);
 
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, startRefreshTransition] = useTransition();
@@ -71,6 +71,7 @@ export function JobCreationForm({
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
   const [globalPrompt, setGlobalPrompt] = useState('');
+  const [applyGlobalPrompt, setApplyGlobalPrompt] = useState(true);
 
   const [isClient, setIsClient] = useState(false);
   
@@ -114,7 +115,6 @@ export function JobCreationForm({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
     const finalPrompt = (applyGlobalPrompt && globalPrompt ? `${globalPrompt}\n\n---\n\n` : "") + prompt;
 
     if (!finalPrompt.trim()) {
@@ -224,10 +224,6 @@ export function JobCreationForm({
     content: p.prompt
   }));
 
-  const truncate = (str: string, length: number) => {
-    return str.length > length ? str.substring(0, length) + "..." : str;
-  }
-
   return (
     <Card className="shadow-md">
       <TooltipProvider>
@@ -254,6 +250,21 @@ export function JobCreationForm({
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
+           {isClient && predefinedPrompts.length > 0 && (
+            <div className="space-y-2">
+              <Label>Message Suggestions</Label>
+              <Combobox
+                options={promptOptions}
+                selectedValue={null}
+                onValueChange={handlePreCannedPromptSelect}
+                placeholder="Select a predefined message..."
+                searchPlaceholder="Search messages..."
+                disabled={isPending || disabled}
+                icon={<BookText className="h-4 w-4 text-muted-foreground" />}
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="job-name">Job Name (Optional)</Label>
@@ -304,38 +315,22 @@ export function JobCreationForm({
               disabled={isPending || disabled}
               aria-label="Session Prompts"
             />
-             <div className="grid grid-cols-2 items-center gap-4 pt-2">
-              {isClient && predefinedPrompts.length > 0 && (
-                <div className="space-y-2">
-                  <Combobox
-                    options={promptOptions}
-                    selectedValue={null}
-                    onValueChange={handlePreCannedPromptSelect}
-                    placeholder="Select a message suggestion..."
-                    searchPlaceholder="Search messages..."
-                    disabled={isPending || disabled}
-                    icon={<BookText className="h-4 w-4 text-muted-foreground" />}
-                    renderOption={(option) => (
-                      <span className="truncate">
-                        {option.label}
-                        <span className="ml-2 text-muted-foreground font-light">
-                          [{truncate(option.content, 30)}]
-                        </span>
-                      </span>
-                    )}
-                  />
-                </div>
-              )}
-               <div className="flex items-center space-x-2">
+             {globalPrompt && (
+              <div className="flex items-center space-x-2">
                 <Checkbox 
                   id="apply-global-prompt" 
-                  checked={applyGlobalPrompt} 
-                  onCheckedChange={(checked) => setApplyGlobalPrompt(Boolean(checked))}
-                  disabled={isPending || disabled || !globalPrompt}
+                  checked={applyGlobalPrompt}
+                  onCheckedChange={(checked) => setApplyGlobalPrompt(checked as boolean)}
+                  disabled={isPending || disabled}
                 />
-                <Label htmlFor="apply-global-prompt" className="text-sm font-normal">Apply Global Prompt</Label>
+                <label
+                  htmlFor="apply-global-prompt"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Apply Global Prompt
+                </label>
               </div>
-            </div>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

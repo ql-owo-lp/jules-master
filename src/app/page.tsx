@@ -102,7 +102,6 @@ function HomePageContent() {
       setLastUpdatedAt(new Date());
       setCountdown(sessionListPollInterval);
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast]);
 
 
@@ -149,7 +148,7 @@ function HomePageContent() {
     };
 
     fetchStatuses();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessions, paginatedJobs, unknownSessions, githubToken]);
 
 
@@ -171,7 +170,7 @@ function HomePageContent() {
         }
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient, apiKey, sessionListPollInterval]);
   
 
