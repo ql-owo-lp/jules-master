@@ -258,21 +258,20 @@ export function SessionList({
               <TooltipProvider>
               {unknownSessions.length > 0 && (
                 <AccordionItem value="uncategorized" className="border rounded-lg bg-card">
-                   <AccordionTrigger className="hover:no-underline px-4 py-2 data-[state=open]:border-b">
-                     <div className="flex items-center gap-4 w-full">
+                    <div className="flex items-center px-4 py-2 data-[state=open]:border-b">
                         <Checkbox 
                             checked={selectAllUnknownState}
                             onCheckedChange={(checked) => handleSelectAllForUnknown(!!checked)}
-                            onClick={(e) => e.stopPropagation()}
                             aria-label={`Select all uncategorized sessions`}
-                            className="mr-2"
-                          />
-                        <div className="flex-1 text-left">
-                          <p className="font-semibold">Uncategorized Sessions</p>
-                           <p className="text-xs text-muted-foreground">{unknownSessions.length} session(s)</p>
-                        </div>
-                      </div>
-                   </AccordionTrigger>
+                            className="mr-4"
+                        />
+                        <AccordionTrigger className="hover:no-underline flex-1 p-0">
+                            <div className="flex-1 text-left">
+                                <p className="font-semibold">Uncategorized Sessions</p>
+                                <p className="text-xs text-muted-foreground">{unknownSessions.length} session(s)</p>
+                            </div>
+                        </AccordionTrigger>
+                    </div>
                    <AccordionContent className="p-0">
                      <Table>
                         <TableHeader>
@@ -402,56 +401,57 @@ export function SessionList({
                   
                   return (
                     <AccordionItem value={job.id} key={job.id} className="border rounded-lg bg-card">
-                      <AccordionTrigger className="hover:no-underline px-4 py-2 data-[state=open]:border-b">
-                        <div className="flex items-center gap-4 w-full">
-                          <Checkbox 
-                            checked={selectAllState}
-                            onCheckedChange={(checked) => handleSelectAllForJob(job.id, !!checked)}
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label={`Select all sessions for job ${job.name}`}
-                            className="mr-2"
-                          />
-                          <div className="flex-1 text-left">
-                            <p className="font-semibold truncate" title={job.name}>{job.name}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{job.repo} / {job.branch}</p>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mr-4">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-1">
-                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                  <span>{details?.completed || 0}</span>
+                        <div className="flex items-center px-4 py-2 data-[state=open]:border-b">
+                            <Checkbox 
+                                checked={selectAllState}
+                                onCheckedChange={(checked) => handleSelectAllForJob(job.id, !!checked)}
+                                aria-label={`Select all sessions for job ${job.name}`}
+                                className="mr-4"
+                            />
+                            <AccordionTrigger className="hover:no-underline flex-1 p-0">
+                                <div className="flex items-center gap-4 w-full">
+                                    <div className="flex-1 text-left">
+                                        <p className="font-semibold truncate" title={job.name}>{job.name}</p>
+                                        <p className="text-xs text-muted-foreground font-mono">{job.repo} / {job.branch}</p>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mr-4">
+                                        <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1">
+                                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                            <span>{details?.completed || 0}</span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{details?.completed || 0} Completed</p>
+                                        </TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1">
+                                            <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                                            <span>{details?.working || 0}</span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{details?.working || 0} In Progress</p>
+                                        </TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1">
+                                            <Hand className="h-4 w-4 text-yellow-500" />
+                                            <span>{details?.pending || 0}</span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{details?.pending || 0} Pending Input</p>
+                                        </TooltipContent>
+                                        </Tooltip>
+                                    </div>
                                 </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{details?.completed || 0} Completed</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-1">
-                                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-                                  <span>{details?.working || 0}</span>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{details?.working || 0} In Progress</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-1">
-                                  <Hand className="h-4 w-4 text-yellow-500" />
-                                  <span>{details?.pending || 0}</span>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{details?.pending || 0} Pending Input</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
+                            </AccordionTrigger>
                         </div>
-                      </AccordionTrigger>
                       <AccordionContent className="p-0">
                         {isRefreshing && sessionsForJob.length === 0 ? (
                           <div className="p-4 space-y-2">
@@ -670,4 +670,3 @@ export function SessionList({
   );
 }
 
-    
