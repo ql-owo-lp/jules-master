@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
 import { getJobs, getQuickReplies } from "@/app/config/actions";
-import { getPullRequestStatus } from "@/app/github/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -28,9 +27,9 @@ function HomePageContent() {
   const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
   const [quickReplies, setQuickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
+  const [lastUpdatedAt, setLastUpdatedAt] = useLocalStorage<number | null>("jules-last-updated-at", null);
   
   const [isClient, setIsClient] = useState(false);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [isFetching, startFetching] = useTransition();
   const [isActionPending, startActionTransition] = useTransition();
   const { toast } = useToast();
@@ -47,8 +46,6 @@ function HomePageContent() {
   const [repoFilter, setRepoFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
-  const [prStatuses, setPrStatuses] = useState<Record<string, PullRequestStatus | null>>({});
-
   const [jobPage, setJobPage] = useState(jobPageParam ? parseInt(jobPageParam, 10) : 1);
   
   // Effect to sync job filter with URL param
@@ -99,60 +96,11 @@ function HomePageContent() {
       setSessions(validSessions);
       setJobs(fetchedJobs);
       setQuickReplies(fetchedQuickReplies);
-      setLastUpdatedAt(new Date());
+      setLastUpdatedAt(Date.now());
       setCountdown(sessionListPollInterval);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast]);
-
-
-  // Effect to fetch PR statuses for visible sessions
-  useEffect(() => {
-    const fetchStatuses = async () => {
-        const effectiveToken = githubToken || process.env.GITHUB_TOKEN;
-        if (!effectiveToken) {
-            return;
-        }
-        
-        const sessionsForFilteredJobs = sessions.filter(s => paginatedJobs.some(j => j.sessionIds.includes(s.id)) || unknownSessions.some(us => us.id === s.id));
-
-        if (sessionsForFilteredJobs.length === 0) {
-            return;
-        }
-
-        const getPullRequestUrl = (session: Session): string | null => {
-            if (session.outputs && session.outputs.length > 0) {
-                for (const output of session.outputs) {
-                    if (output.pullRequest?.url) {
-                        return output.pullRequest.url;
-                    }
-                }
-            }
-            return null;
-        }
-
-        const urlsToFetch = sessionsForFilteredJobs
-            .map(getPullRequestUrl)
-            .filter((url): url is string => !!url && prStatuses[url] === undefined);
-
-        if (urlsToFetch.length > 0) {
-            const newStatuses: Record<string, PullRequestStatus | null> = {};
-            const promises = urlsToFetch.map(async (prUrl) => {
-                const status = await getPullRequestStatus(prUrl, effectiveToken);
-                newStatuses[prUrl] = status;
-            });
-            
-            await Promise.all(promises);
-
-            setPrStatuses(prev => ({ ...prev, ...newStatuses }));
-        }
-    };
-
-    fetchStatuses();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessions, paginatedJobs, unknownSessions, githubToken]);
-
-
 
   useEffect(() => {
     setIsClient(true);
@@ -162,9 +110,16 @@ function HomePageContent() {
   useEffect(() => {
     if (isClient) {
       if (apiKey || process.env.JULES_API_KEY) {
-        fetchAllData();
-  
+        const now = Date.now();
         const intervalInMs = sessionListPollInterval * 1000;
+
+        // Check if cache is fresh
+        const isCacheFresh = lastUpdatedAt && (now - lastUpdatedAt < intervalInMs);
+
+        if (!isCacheFresh) {
+          fetchAllData();
+        }
+
         if (intervalInMs > 0) {
           const intervalId = setInterval(() => fetchAllData(), intervalInMs);
           return () => clearInterval(intervalId);
@@ -344,7 +299,7 @@ function HomePageContent() {
             jobs={paginatedJobs}
             unknownSessions={unknownSessions}
             quickReplies={quickReplies}
-            lastUpdatedAt={lastUpdatedAt}
+            lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt) : null}
             onRefresh={handleRefresh}
             isRefreshing={isFetching}
             isActionPending={isActionPending}
@@ -354,7 +309,6 @@ function HomePageContent() {
             countdown={countdown}
             pollInterval={sessionListPollInterval}
             jobIdParam={jobIdParam}
-            prStatuses={prStatuses}
             statusFilter={statusFilter}
             titleTruncateLength={titleTruncateLength}
             jobPage={jobPage}

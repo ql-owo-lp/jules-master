@@ -51,7 +51,6 @@ type SessionListProps = {
   countdown: number;
   pollInterval: number;
   jobIdParam: string | null;
-  prStatuses: Record<string, PullRequestStatus | null>;
   statusFilter: string;
   children: React.ReactNode;
   titleTruncateLength: number;
@@ -77,7 +76,6 @@ export function SessionList({
   countdown,
   pollInterval,
   jobIdParam,
-  prStatuses,
   statusFilter,
   children,
   titleTruncateLength,
