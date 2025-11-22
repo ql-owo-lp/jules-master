@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export function SettingsSheet() {
           <Settings className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="overflow-y-auto">
+      <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
         <SheetHeader className="mb-6">
           <SheetTitle>Settings</SheetTitle>
           <SheetDescription>
@@ -216,25 +217,25 @@ export function SettingsSheet() {
              {/* Job Settings */}
             <div className="space-y-6">
                 <div>
-                    <h3 className="text-lg font-medium">Job Settings</h3>
-                    <p className="text-sm text-muted-foreground">Configuration for the main job list.</p>
+                    <h3 className="text-lg font-medium">Job & Session List</h3>
+                    <p className="text-sm text-muted-foreground">Configuration for job and session lists.</p>
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="job-list-poll-interval">Job List Poll Interval (seconds)</Label>
+                    <Label htmlFor="job-list-poll-interval">List Poll Interval (seconds)</Label>
                     <Input
                     id="job-list-poll-interval"
                     type="number"
-                    value={jobListPollIntervalValue}
-                    onChange={(e) => setJobListPollIntervalValue(Number(e.target.value))}
+                    value={sessionListPollIntervalValue}
+                    onChange={(e) => setSessionListPollIntervalValue(Number(e.target.value))}
                     placeholder="e.g., 120"
                     min="0"
                     />
                     <p className="text-xs text-muted-foreground">
-                        How often to check for job status updates. Set to 0 to disable.
+                        How often to automatically refresh the job and session list. Set to 0 to disable.
                     </p>
                 </div>
                  <div className="grid gap-2">
-                    <Label htmlFor="job-items-per-page">Items Per Page</Label>
+                    <Label htmlFor="job-items-per-page">Jobs Per Page</Label>
                     <Input
                     id="job-items-per-page"
                     type="number"
@@ -242,6 +243,17 @@ export function SettingsSheet() {
                     onChange={(e) => setJobListItemsPerPageValue(Number(e.target.value))}
                     placeholder="e.g., 10"
                     min="1"
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="title-truncate-length">Session Title Truncation Length</Label>
+                    <Input
+                    id="title-truncate-length"
+                    type="number"
+                    value={titleTruncateLengthValue}
+                    onChange={(e) => setTitleTruncateLengthValue(Number(e.target.value))}
+                    placeholder="e.g., 50"
+                    min="10"
                     />
                 </div>
                 <div className="grid gap-2">
@@ -257,52 +269,6 @@ export function SettingsSheet() {
                     <p className="text-xs text-muted-foreground">
                         The default number of sessions to create for a new job.
                     </p>
-                </div>
-            </div>
-
-            <Separator />
-
-            {/* Session List Settings */}
-            <div className="space-y-6">
-                <div>
-                    <h3 className="text-lg font-medium">Session List Settings</h3>
-                    <p className="text-sm text-muted-foreground">Configuration for the session list page.</p>
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="session-list-poll-interval">Session List Poll Interval (seconds)</Label>
-                    <Input
-                    id="session-list-poll-interval"
-                    type="number"
-                    value={sessionListPollIntervalValue}
-                    onChange={(e) => setSessionListPollIntervalValue(Number(e.target.value))}
-                    placeholder="e.g., 120"
-                    min="0"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                    How often to check for session updates. Set to 0 to disable.
-                    </p>
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="title-truncate-length">Title Truncation Length</Label>
-                    <Input
-                    id="title-truncate-length"
-                    type="number"
-                    value={titleTruncateLengthValue}
-                    onChange={(e) => setTitleTruncateLengthValue(Number(e.target.value))}
-                    placeholder="e.g., 50"
-                    min="10"
-                    />
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="session-items-per-page">Items Per Page</Label>
-                    <Input
-                    id="session-items-per-page"
-                    type="number"
-                    value={sessionListItemsPerPageValue}
-                    onChange={(e) => setSessionListItemsPerPageValue(Number(e.target.value))}
-                    placeholder="e.g., 10"
-                    min="1"
-                    />
                 </div>
             </div>
 
@@ -375,3 +341,5 @@ export function SettingsSheet() {
     </Sheet>
   );
 }
+
+    

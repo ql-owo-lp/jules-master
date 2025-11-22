@@ -47,6 +47,10 @@ function HomePageContent() {
   
   const [prStatuses, setPrStatuses] = useState<Record<string, PullRequestStatus | null>>({});
   const [isFetchingPrStatus, setIsFetchingPrStatus] = useState(false);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [jobsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
+
 
   // Effect to sync job filter with URL param
   useEffect(() => {
@@ -90,6 +94,14 @@ function HomePageContent() {
     return j;
   }, [jobs, jobFilter, repoFilter]);
   
+  const paginatedJobs = useMemo(() => {
+    const startIndex = (currentPage - 1) * jobsPerPage;
+    const endIndex = startIndex + jobsPerPage;
+    return filteredJobs.slice(startIndex, endIndex);
+  }, [filteredJobs, currentPage, jobsPerPage]);
+
+  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
+
 
   const fetchAllData = useCallback(async (options: {isRefresh: boolean} = {isRefresh: false}) => {
     if (options.isRefresh) {
@@ -333,7 +345,7 @@ function HomePageContent() {
           )}
           <SessionList
             sessions={sessions}
-            jobs={filteredJobs}
+            jobs={paginatedJobs}
             quickReplies={quickReplies}
             lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
@@ -344,10 +356,13 @@ function HomePageContent() {
             onBulkSendMessage={handleBulkSendMessage}
             countdown={countdown}
             pollInterval={sessionListPollInterval}
-            titleTruncateLength={titleTruncateLength}
             jobIdParam={jobIdParam}
             prStatuses={prStatuses}
             statusFilter={statusFilter}
+            titleTruncateLength={titleTruncateLength}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
           >
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div className="space-y-2">
@@ -407,3 +422,5 @@ export default function Home() {
     </Suspense>
   )
 }
+
+    
