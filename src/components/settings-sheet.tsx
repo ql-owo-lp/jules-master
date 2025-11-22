@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -33,25 +32,23 @@ export function SettingsSheet() {
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
   const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
   
-  const [jobListPollInterval, setJobListPollInterval] = useLocalStorage<number>("jules-poll-interval", 120);
-  const [sessionListPollInterval, setSessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
+  const [idlePollInterval, setIdlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval, setActivePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [titleTruncateLength, setTitleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
   const [lineClamp, setLineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
-  const [jobListItemsPerPage, setJobListItemsPerPage] = useLocalStorage<number>("jules-job-items-per-page", 10);
-  const [sessionListItemsPerPage, setSessionListItemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
+  const [sessionItemsPerPage, setSessionItemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
+  const [jobsPerPage, setJobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
   const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 3);
 
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
-  const [jobListPollIntervalValue, setJobListPollIntervalValue] = useState(jobListPollInterval);
-  const [sessionListPollIntervalValue, setSessionListPollIntervalValue] = useState(sessionListPollInterval);
+  const [idlePollIntervalValue, setIdlePollIntervalValue] = useState(idlePollInterval);
   const [activePollIntervalValue, setActivePollIntervalValue] = useState(activePollInterval);
   const [titleTruncateLengthValue, setTitleTruncateLengthValue] = useState(titleTruncateLength);
   const [lineClampValue, setLineClampValue] = useState(lineClamp);
-  const [jobListItemsPerPageValue, setJobListItemsPerPageValue] = useState(jobListItemsPerPage);
-  const [sessionListItemsPerPageValue, setSessionListItemsPerPageValue] = useState(sessionListItemsPerPage);
+  const [sessionItemsPerPageValue, setSessionItemsPerPageValue] = useState(sessionItemsPerPage);
+  const [jobsPerPageValue, setJobsPerPageValue] = useState(jobsPerPage);
   const [defaultSessionCountValue, setDefaultSessionCountValue] = useState(defaultSessionCount);
   
   const [showApiKey, setShowApiKey] = useState(false);
@@ -64,25 +61,23 @@ export function SettingsSheet() {
 
   useEffect(() => { setApiKeyValue(apiKey); }, [apiKey]);
   useEffect(() => { setGithubTokenValue(githubToken); }, [githubToken]);
-  useEffect(() => { setJobListPollIntervalValue(jobListPollInterval); }, [jobListPollInterval]);
-  useEffect(() => { setSessionListPollIntervalValue(sessionListPollInterval); }, [sessionListPollInterval]);
+  useEffect(() => { setIdlePollIntervalValue(idlePollInterval); }, [idlePollInterval]);
   useEffect(() => { setActivePollIntervalValue(activePollInterval); }, [activePollInterval]);
   useEffect(() => { setTitleTruncateLengthValue(titleTruncateLength); }, [titleTruncateLength]);
   useEffect(() => { setLineClampValue(lineClamp); }, [lineClamp]);
-  useEffect(() => { setJobListItemsPerPageValue(jobListItemsPerPage); }, [jobListItemsPerPage]);
-  useEffect(() => { setSessionListItemsPerPageValue(sessionListItemsPerPage); }, [sessionListItemsPerPage]);
+  useEffect(() => { setSessionItemsPerPageValue(sessionItemsPerPage); }, [sessionItemsPerPage]);
+  useEffect(() => { setJobsPerPageValue(jobsPerPage); }, [jobsPerPage]);
   useEffect(() => { setDefaultSessionCountValue(defaultSessionCount); }, [defaultSessionCount]);
   
   const handleSave = () => {
     if (!isJulesKeyFromEnv) setApiKey(apiKeyValue);
     if (!isGithubTokenFromEnv) setGithubToken(githubTokenValue);
-    setJobListPollInterval(jobListPollIntervalValue);
-    setSessionListPollInterval(sessionListPollIntervalValue);
+    setIdlePollInterval(idlePollIntervalValue);
     setActivePollInterval(activePollIntervalValue);
     setTitleTruncateLength(titleTruncateLengthValue);
     setLineClamp(lineClampValue);
-    setJobListItemsPerPage(jobListItemsPerPageValue);
-    setSessionListItemsPerPage(sessionListItemsPerPageValue);
+    setSessionItemsPerPage(sessionItemsPerPageValue);
+    setJobsPerPage(jobsPerPageValue);
     setDefaultSessionCount(defaultSessionCountValue);
     toast({
       title: "Settings Saved",
@@ -220,27 +215,24 @@ export function SettingsSheet() {
                     <h3 className="text-lg font-medium">Job & Session List</h3>
                     <p className="text-sm text-muted-foreground">Configuration for job and session lists.</p>
                 </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="job-list-poll-interval">List Poll Interval (seconds)</Label>
-                    <Input
-                    id="job-list-poll-interval"
-                    type="number"
-                    value={sessionListPollIntervalValue}
-                    onChange={(e) => setSessionListPollIntervalValue(Number(e.target.value))}
-                    placeholder="e.g., 120"
-                    min="0"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                        How often to automatically refresh the job and session list. Set to 0 to disable.
-                    </p>
-                </div>
                  <div className="grid gap-2">
-                    <Label htmlFor="job-items-per-page">Jobs Per Page</Label>
+                    <Label htmlFor="jobs-per-page">Jobs Per Page</Label>
                     <Input
-                    id="job-items-per-page"
+                    id="jobs-per-page"
                     type="number"
-                    value={jobListItemsPerPageValue}
-                    onChange={(e) => setJobListItemsPerPageValue(Number(e.target.value))}
+                    value={jobsPerPageValue}
+                    onChange={(e) => setJobsPerPageValue(Number(e.target.value))}
+                    placeholder="e.g., 5"
+                    min="1"
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="session-items-per-page">Sessions Per Page (within a job)</Label>
+                    <Input
+                    id="session-items-per-page"
+                    type="number"
+                    value={sessionItemsPerPageValue}
+                    onChange={(e) => setSessionItemsPerPageValue(Number(e.target.value))}
                     placeholder="e.g., 10"
                     min="1"
                     />
@@ -257,7 +249,7 @@ export function SettingsSheet() {
                     />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="default-session-count">Default Session Count</Label>
+                    <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
                     <Input
                     id="default-session-count"
                     type="number"
@@ -266,9 +258,6 @@ export function SettingsSheet() {
                     placeholder="e.g., 3"
                     min="1"
                     />
-                    <p className="text-xs text-muted-foreground">
-                        The default number of sessions to create for a new job.
-                    </p>
                 </div>
             </div>
 
@@ -277,16 +266,16 @@ export function SettingsSheet() {
             {/* Session Detail Settings */}
             <div className="space-y-6">
                 <div>
-                    <h3 className="text-lg font-medium">Session Detail Settings</h3>
-                    <p className="text-sm text-muted-foreground">Configuration for the session detail page.</p>
+                    <h3 className="text-lg font-medium">Session Detail Page</h3>
+                    <p className="text-sm text-muted-foreground">Polling and display settings for an individual session.</p>
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
                     <Input
                         id="idle-poll-interval"
                         type="number"
-                        value={sessionListPollIntervalValue}
-                        onChange={(e) => setSessionListPollIntervalValue(Number(e.target.value))}
+                        value={idlePollIntervalValue}
+                        onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
                         placeholder="e.g., 120"
                         min="0"
                     />
