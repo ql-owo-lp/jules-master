@@ -93,7 +93,7 @@ export function SettingsSheet() {
           if (!isSetInLocalStorage("jules-jobs-per-page")) setJobsPerPage(dbSettings.jobsPerPage);
           if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
           if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
-
+          if (!isSetInLocalStorage("theme") && dbSettings.theme) setTheme(dbSettings.theme);
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);
@@ -109,7 +109,8 @@ export function SettingsSheet() {
       setSessionItemsPerPage,
       setJobsPerPage,
       setDefaultSessionCount,
-      setPrStatusPollInterval
+      setPrStatusPollInterval,
+      setTheme
     ]);
 
 
@@ -140,6 +141,7 @@ export function SettingsSheet() {
                 jobsPerPage: jobsPerPageValue,
                 defaultSessionCount: defaultSessionCountValue,
                 prStatusPollInterval: prStatusPollIntervalValue,
+                theme: theme,
             }),
         });
     } catch (error) {

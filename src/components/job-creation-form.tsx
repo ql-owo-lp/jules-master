@@ -53,7 +53,7 @@ export function JobCreationForm({
 }: JobCreationFormProps) {
   const [prompt, setPrompt] = useState("");
   const [jobName, setJobName] = useState("");
-  const [defaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 3);
+  const [defaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
   const [sessionCount, setSessionCount] = useState(defaultSessionCount);
   
   const [requirePlanApproval, setRequirePlanApproval] = useLocalStorage<boolean>("jules-new-job-require-plan-approval", false);
