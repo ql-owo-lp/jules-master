@@ -27,7 +27,7 @@ const MOCK_SESSIONS: Session[] = [
     state: 'COMPLETED',
     createTime: new Date().toISOString(),
     sourceContext: {
-      source: 'github/test-owner/test-repo',
+      source: 'sources/github/test-owner/test-repo',
       githubRepoContext: {
         startingBranch: 'main',
       },
@@ -40,7 +40,7 @@ const MOCK_SESSIONS: Session[] = [
     state: 'AWAITING_USER_FEEDBACK',
     createTime: new Date(Date.now() - 100000).toISOString(),
     sourceContext: {
-      source: 'github/test-owner/test-repo',
+      source: 'sources/github/test-owner/test-repo',
       githubRepoContext: {
         startingBranch: 'develop',
       },
@@ -50,7 +50,7 @@ const MOCK_SESSIONS: Session[] = [
 
 const MOCK_SOURCES: Source[] = [
   {
-    name: 'github/test-owner/test-repo',
+    name: 'sources/github/test-owner/test-repo',
     id: 'source-1',
     githubRepo: {
       owner: 'test-owner',
