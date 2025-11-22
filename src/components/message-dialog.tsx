@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, ReactElement, useEffect } from "react";
@@ -22,6 +21,7 @@ import { getPredefinedPrompts, getQuickReplies } from "@/app/config/actions";
 import { Combobox } from "./ui/combobox";
 import { ScrollArea } from "./ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 type MessageDialogProps = {
     trigger: ReactElement;
@@ -32,6 +32,7 @@ type MessageDialogProps = {
     isActionPending?: boolean;
     predefinedPrompts?: PredefinedPrompt[];
     quickReplies?: PredefinedPrompt[];
+    tooltip?: string;
 }
 
 export function MessageDialog({ 
@@ -42,7 +43,8 @@ export function MessageDialog({
     dialogDescription = "Compose and send a message.",
     isActionPending,
     predefinedPrompts: initialPrompts = [],
-    quickReplies: initialReplies = []
+    quickReplies: initialReplies = [],
+    tooltip
 }: MessageDialogProps) {
     const [open, setOpen] = useState(false);
     const [message, setMessage] = useLocalStorage(storageKey, "");
@@ -87,11 +89,24 @@ export function MessageDialog({
     const promptOptions = predefinedPrompts.map(p => ({ value: p.id, label: p.title, content: p.prompt }));
     const replyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
 
+    const triggerContent = (
+        <DialogTrigger asChild onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
+            {trigger}
+        </DialogTrigger>
+    );
+
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
-                {trigger}
-            </DialogTrigger>
+             {tooltip ? (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        {triggerContent}
+                    </TooltipTrigger>
+                    <TooltipContent><p>{tooltip}</p></TooltipContent>
+                </Tooltip>
+            ) : (
+                triggerContent
+            )}
             <DialogContent className="md:w-1/2 md:h-3/5 max-w-4xl flex flex-col">
                 <DialogHeader className="relative pr-10">
                     <DialogTitle>{dialogTitle}</DialogTitle>
