@@ -38,7 +38,7 @@ export function SettingsSheet() {
   const [lineClamp, setLineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
   const [sessionItemsPerPage, setSessionItemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
   const [jobsPerPage, setJobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
-  const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 3);
+  const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
   const [prStatusPollInterval, setPrStatusPollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
 
 
@@ -72,7 +72,48 @@ export function SettingsSheet() {
   useEffect(() => { setDefaultSessionCountValue(defaultSessionCount); }, [defaultSessionCount]);
   useEffect(() => { setPrStatusPollIntervalValue(prStatusPollInterval); }, [prStatusPollInterval]);
   
-  const handleSave = () => {
+  // Fetch settings from DB on mount and populate if local storage is empty
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          const dbSettings = await response.json();
+
+          // Helper to check if key exists in local storage
+          const isSetInLocalStorage = (key: string) => {
+             return window.localStorage.getItem(key) !== null;
+          }
+
+          if (!isSetInLocalStorage("jules-idle-poll-interval")) setIdlePollInterval(dbSettings.idlePollInterval);
+          if (!isSetInLocalStorage("jules-active-poll-interval")) setActivePollInterval(dbSettings.activePollInterval);
+          if (!isSetInLocalStorage("jules-title-truncate-length")) setTitleTruncateLength(dbSettings.titleTruncateLength);
+          if (!isSetInLocalStorage("jules-line-clamp")) setLineClamp(dbSettings.lineClamp);
+          if (!isSetInLocalStorage("jules-session-items-per-page")) setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
+          if (!isSetInLocalStorage("jules-jobs-per-page")) setJobsPerPage(dbSettings.jobsPerPage);
+          if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
+          if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
+
+        }
+      } catch (error) {
+        console.error("Failed to fetch settings from DB", error);
+      }
+    };
+
+    fetchSettings();
+  }, [
+      setIdlePollInterval,
+      setActivePollInterval,
+      setTitleTruncateLength,
+      setLineClamp,
+      setSessionItemsPerPage,
+      setJobsPerPage,
+      setDefaultSessionCount,
+      setPrStatusPollInterval
+    ]);
+
+
+  const handleSave = async () => {
     if (!isJulesKeyFromEnv) setApiKey(apiKeyValue);
     if (!isGithubTokenFromEnv) setGithubToken(githubTokenValue);
     setIdlePollInterval(idlePollIntervalValue);
@@ -83,6 +124,33 @@ export function SettingsSheet() {
     setJobsPerPage(jobsPerPageValue);
     setDefaultSessionCount(defaultSessionCountValue);
     setPrStatusPollInterval(prStatusPollIntervalValue);
+
+    try {
+        await fetch('/api/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                idlePollInterval: idlePollIntervalValue,
+                activePollInterval: activePollIntervalValue,
+                titleTruncateLength: titleTruncateLengthValue,
+                lineClamp: lineClampValue,
+                sessionItemsPerPage: sessionItemsPerPageValue,
+                jobsPerPage: jobsPerPageValue,
+                defaultSessionCount: defaultSessionCountValue,
+                prStatusPollInterval: prStatusPollIntervalValue,
+            }),
+        });
+    } catch (error) {
+        console.error("Failed to save settings to DB", error);
+         toast({
+            title: "Error",
+            description: "Failed to save settings to database. Local storage updated.",
+            variant: "destructive"
+        });
+    }
+
     toast({
       title: "Settings Saved",
       description: "Your settings have been updated.",
