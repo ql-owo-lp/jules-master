@@ -25,10 +25,12 @@ export async function getPredefinedPrompts(): Promise<PredefinedPrompt[]> {
 export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promise<void> {
     // This is not efficient, but for this small scale it is fine.
     // A better implementation would be to diff the arrays.
-    await db.delete(schema.predefinedPrompts);
-    if (prompts.length > 0) {
-        await appDatabase.predefinedPrompts.createMany(prompts);
-    }
+    db.transaction((tx) => {
+        tx.delete(schema.predefinedPrompts).run();
+        if (prompts.length > 0) {
+             tx.insert(schema.predefinedPrompts).values(prompts).run();
+        }
+    });
     revalidatePath('/prompts');
 }
 
@@ -40,10 +42,12 @@ export async function getQuickReplies(): Promise<PredefinedPrompt[]> {
 
 export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<void> {
     // This is not efficient, but for this small scale it is fine.
-    await db.delete(schema.quickReplies);
-    if (replies.length > 0) {
-       await appDatabase.quickReplies.createMany(replies);
-    }
+    db.transaction((tx) => {
+        tx.delete(schema.quickReplies).run();
+        if (replies.length > 0) {
+            tx.insert(schema.quickReplies).values(replies).run();
+        }
+    });
     revalidatePath('/prompts');
 }
 
