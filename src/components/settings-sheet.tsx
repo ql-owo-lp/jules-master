@@ -39,6 +39,7 @@ export function SettingsSheet() {
   const [sessionItemsPerPage, setSessionItemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
   const [jobsPerPage, setJobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
   const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 3);
+  const [prStatusPollInterval, setPrStatusPollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
 
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
@@ -50,6 +51,7 @@ export function SettingsSheet() {
   const [sessionItemsPerPageValue, setSessionItemsPerPageValue] = useState(sessionItemsPerPage);
   const [jobsPerPageValue, setJobsPerPageValue] = useState(jobsPerPage);
   const [defaultSessionCountValue, setDefaultSessionCountValue] = useState(defaultSessionCount);
+  const [prStatusPollIntervalValue, setPrStatusPollIntervalValue] = useState(prStatusPollInterval);
   
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -68,6 +70,7 @@ export function SettingsSheet() {
   useEffect(() => { setSessionItemsPerPageValue(sessionItemsPerPage); }, [sessionItemsPerPage]);
   useEffect(() => { setJobsPerPageValue(jobsPerPage); }, [jobsPerPage]);
   useEffect(() => { setDefaultSessionCountValue(defaultSessionCount); }, [defaultSessionCount]);
+  useEffect(() => { setPrStatusPollIntervalValue(prStatusPollInterval); }, [prStatusPollInterval]);
   
   const handleSave = () => {
     if (!isJulesKeyFromEnv) setApiKey(apiKeyValue);
@@ -79,6 +82,7 @@ export function SettingsSheet() {
     setSessionItemsPerPage(sessionItemsPerPageValue);
     setJobsPerPage(jobsPerPageValue);
     setDefaultSessionCount(defaultSessionCountValue);
+    setPrStatusPollInterval(prStatusPollIntervalValue);
     toast({
       title: "Settings Saved",
       description: "Your settings have been updated.",
@@ -178,6 +182,20 @@ export function SettingsSheet() {
                             Required for fetching PR status. Use a classic token with `repo` scope.
                         </p>
                      )}
+                </div>
+                 <div className="grid gap-2">
+                    <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
+                    <Input
+                        id="pr-status-poll-interval"
+                        type="number"
+                        value={prStatusPollIntervalValue}
+                        onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
+                        placeholder="e.g., 60"
+                        min="10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        How often to check GitHub for pull request updates in the background.
+                    </p>
                 </div>
                 <div className="grid gap-2">
                     <Label>Theme</Label>
