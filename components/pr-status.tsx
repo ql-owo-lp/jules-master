@@ -9,6 +9,7 @@ import type { PullRequestStatus } from "@/lib/types";
 import { getPullRequestStatus } from "@/app/github/actions";
 import { useEffect, useState } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useEnvConfig } from "@/components/env-config-provider";
 
 
 type PrStatusProps = {
@@ -19,6 +20,7 @@ export function PrStatus({ prUrl }: PrStatusProps) {
   const [status, setStatus] = useState<PullRequestStatus | null | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const { hasEnvGithubToken } = useEnvConfig();
   
   useEffect(() => {
     async function fetchStatus() {
@@ -36,9 +38,12 @@ export function PrStatus({ prUrl }: PrStatusProps) {
     return <div className="w-10 h-10" />;
   }
 
-  const effectiveToken = githubToken || process.env.GITHUB_TOKEN;
+  // We only need to know if a token exists (either in local storage or env) to decide whether to fetch status.
+  // The actual token is handled by the server action if passed as null, or passed explicitly if from local storage.
+  const hasToken = !!(githubToken || hasEnvGithubToken);
+
   // If no token is provided, just show a simple link icon
-  if (!effectiveToken) {
+  if (!hasToken) {
     return (
         <TooltipProvider>
             <Tooltip>

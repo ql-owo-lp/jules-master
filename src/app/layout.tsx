@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { Bot, MessageSquare, PlusCircle, BookText, ExternalLink, PanelLeft } from 'lucide-react';
 import { Header } from '@/components/header';
 import { NewJobDialog } from '@/components/new-job-dialog';
+import { EnvConfigProvider } from '@/components/env-config-provider';
 
 export const metadata = {
   title: 'Jules Master',
@@ -31,6 +32,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const hasEnvApiKey = !!process.env.JULES_API_KEY;
+  const hasEnvGithubToken = !!process.env.GITHUB_TOKEN;
+
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
@@ -46,70 +50,77 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased h-full">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+        <EnvConfigProvider
+          hasEnvApiKey={hasEnvApiKey}
+          hasEnvGithubToken={hasEnvGithubToken}
         >
-          <SidebarProvider>
-            <Sidebar>
-              <SidebarContent>
-                <SidebarHeader className='justify-between'>
-                  <Link
-                    href="/"
-                    className="flex items-center gap-2 font-bold text-xl"
-                  >
-                    <Bot className="h-7 w-7 text-primary" />
-                    <span className='group-data-[collapsible=icon]:hidden'>Jules Master</span>
-                  </Link>
-                   <SidebarTrigger>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <SidebarProvider>
+              <Sidebar>
+                <SidebarContent>
+                  <SidebarHeader className="justify-between">
+                    <Link
+                      href="/"
+                      className="flex items-center gap-2 font-bold text-xl"
+                    >
+                      <Bot className="h-7 w-7 text-primary" />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        Jules Master
+                      </span>
+                    </Link>
+                    <SidebarTrigger>
                       <PanelLeft className="h-5 w-5" />
                       <span className="sr-only">Toggle Sidebar</span>
-                   </SidebarTrigger>
-                </SidebarHeader>
-                <SidebarGroup>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                       <NewJobDialog>
+                    </SidebarTrigger>
+                  </SidebarHeader>
+                  <SidebarGroup>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <NewJobDialog>
                           <SidebarMenuButton>
-                              <PlusCircle />
-                              <span>New Job</span>
+                            <PlusCircle />
+                            <span>New Job</span>
                           </SidebarMenuButton>
-                       </NewJobDialog>
-                       <SidebarMenuAction asChild>
+                        </NewJobDialog>
+                        <SidebarMenuAction asChild>
                           <Link href="/jobs/new" target="_blank">
                             <ExternalLink />
                           </Link>
-                       </SidebarMenuAction>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <Link href="/">
-                          <MessageSquare />
-                          <span>Jobs & Sessions</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <Link href="/prompts">
-                          <BookText />
-                          <span>Messages</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                </SidebarGroup>
-              </SidebarContent>
-            </Sidebar>
-            <SidebarInset className="min-w-[1024px]">
-              <Header />
-              {children}
-            </SidebarInset>
-          </SidebarProvider>
-          <Toaster />
-        </ThemeProvider>
+                        </SidebarMenuAction>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link href="/">
+                            <MessageSquare />
+                            <span>Jobs & Sessions</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link href="/prompts">
+                            <BookText />
+                            <span>Messages</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarGroup>
+                </SidebarContent>
+              </Sidebar>
+              <SidebarInset className="min-w-[1024px]">
+                <Header />
+                {children}
+              </SidebarInset>
+            </SidebarProvider>
+            <Toaster />
+          </ThemeProvider>
+        </EnvConfigProvider>
       </body>
     </html>
   );

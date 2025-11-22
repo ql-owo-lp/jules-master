@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/sessions/new/actions";
 import { revalidateSessions } from "@/app/sessions/actions";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useEnvConfig } from "@/components/env-config-provider";
 
 type NewJobDialogProps = {
     isPage?: boolean;
@@ -23,6 +24,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
+    const { hasEnvApiKey } = useEnvConfig();
 
     const handleCreateSession = async (
         title: string, 
@@ -40,7 +42,11 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             return null;
         }
 
-        const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+        // Pass apiKey if available, otherwise actions will fallback to env var if server-side env is set
+        // But here on client we need to decide what to pass.
+        // If apiKey is set (local storage), pass it.
+        // If not set, we pass null, and the action will try to use process.env.JULES_API_KEY.
+        const effectiveApiKey = apiKey;
 
         const newSession = await createSession({
             title: title,
@@ -89,7 +95,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
         // but we can keep it for clearing UI state if needed.
     };
 
-    const hasApiKey = !!(process.env.JULES_API_KEY || apiKey);
+    const hasApiKey = !!(hasEnvApiKey || apiKey);
 
     const form = (
         <JobCreationForm

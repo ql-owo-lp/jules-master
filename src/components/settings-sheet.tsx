@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "./ui/separator";
+import { useEnvConfig } from "@/components/env-config-provider";
 
 
 export function SettingsSheet() {
@@ -57,9 +58,10 @@ export function SettingsSheet() {
   const [showGithubToken, setShowGithubToken] = useState(false);
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  const { hasEnvApiKey, hasEnvGithubToken } = useEnvConfig();
 
-  const isJulesKeyFromEnv = !!process.env.JULES_API_KEY;
-  const isGithubTokenFromEnv = !!process.env.GITHUB_TOKEN;
+  const isJulesKeyFromEnv = hasEnvApiKey;
+  const isGithubTokenFromEnv = hasEnvGithubToken;
 
   useEffect(() => { setApiKeyValue(apiKey); }, [apiKey]);
   useEffect(() => { setGithubTokenValue(githubToken); }, [githubToken]);

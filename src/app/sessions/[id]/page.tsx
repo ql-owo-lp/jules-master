@@ -57,6 +57,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Combobox } from "@/components/ui/combobox";
+import { useEnvConfig } from "@/components/env-config-provider";
 
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -84,6 +85,7 @@ export default function SessionDetailPage() {
 
   const [isPollingActive, setIsPollingActive] = useState(false);
   const [activeTab, setActiveTab] = useLocalStorage<string>(`jules-session-detail-tab-${id}`, "details");
+  const { hasEnvApiKey } = useEnvConfig();
   
   // Determine current poll interval
   const isSessionDone = session?.state === 'COMPLETED' || session?.state === 'FAILED';
@@ -137,30 +139,30 @@ export default function SessionDetailPage() {
   }, [apiKey, id, idlePollInterval, activePollInterval, isPollingActive, toast, setSession, setActivities]);
 
   useEffect(() => {
-    if (apiKey || process.env.JULES_API_KEY) {
+    if (apiKey || hasEnvApiKey) {
       if (id) {
         fetchSessionData();
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, id]);
+  }, [apiKey, hasEnvApiKey, id]);
 
   // Set up polling interval
   useEffect(() => {
-    if ((apiKey || process.env.JULES_API_KEY) && currentPollInterval > 0) {
+    if ((apiKey || hasEnvApiKey) && currentPollInterval > 0) {
       const intervalId = setInterval(() => fetchSessionData(), currentPollInterval * 1000);
       return () => clearInterval(intervalId);
     }
-  }, [apiKey, currentPollInterval, fetchSessionData]);
+  }, [apiKey, hasEnvApiKey, currentPollInterval, fetchSessionData]);
 
   // Countdown timer
   useEffect(() => {
-    if (!(apiKey || process.env.JULES_API_KEY) || currentPollInterval <= 0) return;
+    if (!(apiKey || hasEnvApiKey) || currentPollInterval <= 0) return;
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
-  }, [apiKey, currentPollInterval, lastUpdatedAt]);
+  }, [apiKey, hasEnvApiKey, currentPollInterval, lastUpdatedAt]);
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (activityFeedRef.current) {
