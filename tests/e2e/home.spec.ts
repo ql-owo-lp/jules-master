@@ -12,6 +12,16 @@ test.describe('Home Page', () => {
   test('should display mocked sessions', async ({ page }) => {
     await page.goto('/');
 
+    // Expand Uncategorized Sessions accordion
+    const accordionTrigger = page.getByRole('button', { name: /Uncategorized Sessions/ });
+
+    // Wait for trigger to be visible (implies sessions loaded)
+    await expect(accordionTrigger).toBeVisible({ timeout: 10000 });
+
+    if (await accordionTrigger.getAttribute('aria-expanded') === 'false') {
+        await accordionTrigger.click();
+    }
+
     // Check for mock session titles
     await expect(page.getByText('Mock Session 1', { exact: false })).toBeVisible();
     await expect(page.getByText('Mock Session 2', { exact: false })).toBeVisible();
