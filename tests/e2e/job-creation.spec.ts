@@ -4,25 +4,8 @@ import { test, expect } from '@playwright/test';
 test.describe('Job Creation', () => {
   test.beforeEach(async ({ page }) => {
     // Mock API key to ensure form is enabled
-    // Also inject sources cache to avoid waiting for API/Server Action
     await page.addInitScript(() => {
       window.localStorage.setItem('jules-api-key', '"test-api-key"');
-      window.localStorage.setItem('jules-sources-cache', JSON.stringify([
-         {
-            name: 'github/test-owner/test-repo',
-            id: 'source-1',
-            githubRepo: {
-              owner: 'test-owner',
-              repo: 'test-repo',
-              isPrivate: false,
-              branches: [
-                { displayName: 'main' },
-                { displayName: 'develop' },
-              ],
-              defaultBranch: { displayName: 'main' },
-            },
-          }
-      ]));
     });
   });
 
@@ -49,24 +32,12 @@ test.describe('Job Creation', () => {
     }
     await expect(error).toBeHidden();
 
-    // If mock API is enabled, it should load sources instantly.
-    // However, if the test fails here, it means sources are not loading.
-    // Ensure SourceSelection component is handling loading state correctly.
-
     // The mock data has "github/test-owner/test-repo"
     // Since SourceSelection auto-selects the first source, the combobox label will change to the repo name.
 
-    // We select the repo
+    // We expect the repo to be auto-selected
     const repoCombobox = page.getByRole('combobox').nth(0);
     await expect(repoCombobox).toBeEnabled();
-
-    // If not auto-selected, click and select
-    const text = await repoCombobox.innerText();
-    if (!text.includes('test-owner/test-repo')) {
-        await repoCombobox.click();
-        await page.getByRole('option', { name: 'test-owner/test-repo' }).click();
-    }
-
     await expect(repoCombobox).toHaveText(/test-owner\/test-repo/);
 
     // Select Branch
