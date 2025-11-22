@@ -14,6 +14,13 @@ const migrationResult = spawnSync(
 
 if (migrationResult.status !== 0) {
   console.error('Failed to run database migrations. Exiting.');
+  if (migrationResult.error) {
+    console.error('Error:', migrationResult.error);
+  }
+  if (migrationResult.signal) {
+    console.error('Signal:', migrationResult.signal);
+  }
+  console.error('Status:', migrationResult.status);
   process.exit(migrationResult.status || 1);
 }
 
@@ -32,5 +39,12 @@ const appResult = spawnSync(
 
 if (appResult.status !== 0) {
   console.error('Failed to start Next.js application. Exiting.');
+  if (appResult.error) {
+    console.error('Error:', appResult.error);
+  }
+  if (appResult.signal) {
+    console.error('Signal:', appResult.signal);
+  }
+  console.error('Status:', appResult.status);
   process.exit(appResult.status || 1);
 }
