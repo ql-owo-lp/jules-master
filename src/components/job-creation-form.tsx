@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, useCallback, useEffect } from "react";
+import { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -15,8 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { refreshSources } from "@/app/sessions/actions";
-import { getPredefinedPrompts, getGlobalPrompt, addJob } from "@/app/config/actions";
-import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode } from "@/lib/types";
+import { getPredefinedPrompts, getGlobalPrompt, addJob, getHistoryPrompts, saveHistoryPrompt } from "@/app/config/actions";
+import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode, HistoryPrompt } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2, RefreshCw, X, Trash2, BookText } from "lucide-react";
 import { SourceSelection } from "./source-selection";
@@ -26,7 +26,7 @@ import { Switch } from "./ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Combobox } from "@/components/ui/combobox";
+import { Combobox, ComboboxGroup } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 
 type JobCreationFormProps = {
@@ -70,19 +70,25 @@ export function JobCreationForm({
 
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
+  const [historyPrompts, setHistoryPrompts] = useState<HistoryPrompt[]>([]);
   const [globalPrompt, setGlobalPrompt] = useState('');
+
+  // Track selected prompt ID to make the combobox display the selected item correctly
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
 
   const [isClient, setIsClient] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
     async function fetchData() {
-        const [prompts, gPrompt] = await Promise.all([
+        const [prompts, gPrompt, hPrompts] = await Promise.all([
             getPredefinedPrompts(),
-            getGlobalPrompt()
+            getGlobalPrompt(),
+            getHistoryPrompts()
         ]);
         setPredefinedPrompts(prompts);
         setGlobalPrompt(gPrompt);
+        setHistoryPrompts(hPrompts);
     }
     fetchData();
   }, []);
@@ -107,6 +113,7 @@ export function JobCreationForm({
   const handleReset = () => {
     setJobName("");
     setPrompt("");
+    setSelectedPromptId(null);
     setSessionCount(defaultSessionCount);
     if (onReset) onReset();
     toast({ title: "Form Reset", description: "The new job form has been cleared."});
@@ -134,6 +141,12 @@ export function JobCreationForm({
     }
 
     startTransition(async () => {
+      // Save to history prompts
+      await saveHistoryPrompt(prompt);
+      // Refresh history prompts in UI
+      const hPrompts = await getHistoryPrompts();
+      setHistoryPrompts(hPrompts);
+
       const createdSessions: Session[] = [];
       const sessionIds: string[] = [];
       const title = jobName.trim() || new Date().toLocaleString();
@@ -180,6 +193,7 @@ export function JobCreationForm({
       if (createdSessions.length > 0) {
         onJobsCreated(createdSessions, newJob);
         setPrompt("");
+        setSelectedPromptId(null);
         setJobName("");
         setSessionCount(defaultSessionCount);
       }
@@ -187,11 +201,22 @@ export function JobCreationForm({
   };
 
   const handlePreCannedPromptSelect = (promptId: string | null) => {
-    if (!promptId) return;
+    if (!promptId) {
+        setSelectedPromptId(null);
+        return;
+    }
+    setSelectedPromptId(promptId);
+
     const selectedPrompt = predefinedPrompts.find(p => p.id === promptId);
     if (selectedPrompt) {
         setPrompt(selectedPrompt.prompt);
         setJobName(selectedPrompt.title);
+    } else {
+      const selectedHistory = historyPrompts.find(p => p.id === promptId);
+      if (selectedHistory) {
+        setPrompt(selectedHistory.prompt);
+        // We keep the current job name as is, or the user can manually update it.
+      }
     }
   };
   
@@ -218,15 +243,36 @@ export function JobCreationForm({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSource, branches, defaultBranch]);
 
-  const promptOptions = predefinedPrompts.map(p => ({
-    value: p.id,
-    label: p.title,
-    content: p.prompt
-  }));
-
   const truncate = (str: string, length: number) => {
     return str.length > length ? str.substring(0, length) + "..." : str;
   }
+
+  const promptOptions: ComboboxGroup[] = useMemo(() => {
+    const options: ComboboxGroup[] = [];
+
+    if (predefinedPrompts.length > 0) {
+        options.push({
+        label: "Predefined Prompts",
+        options: predefinedPrompts.map(p => ({
+            value: p.id,
+            label: p.title,
+            content: p.prompt
+        }))
+        });
+    }
+
+    if (historyPrompts.length > 0) {
+        options.push({
+        label: "History Prompts",
+        options: historyPrompts.map(p => ({
+            value: p.id,
+            label: truncate(p.prompt, 50), // Use truncated prompt as label
+            content: p.prompt
+        }))
+        });
+    }
+    return options;
+  }, [predefinedPrompts, historyPrompts]);
 
   return (
     <Card className="shadow-md">
@@ -284,7 +330,7 @@ export function JobCreationForm({
                 {prompt && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPrompt("")}>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setPrompt(""); setSelectedPromptId(null); }}>
                           <X className="h-4 w-4" />
                           <span className="sr-only">Clear prompt</span>
                       </Button>
@@ -300,16 +346,20 @@ export function JobCreationForm({
               placeholder="e.g., Create a boba app!"
               rows={5}
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={(e) => {
+                  setPrompt(e.target.value);
+                  // If user types, we deselect any suggestion because it might differ now
+                  if (selectedPromptId) setSelectedPromptId(null);
+              }}
               disabled={isPending || disabled}
               aria-label="Session Prompts"
             />
              <div className="grid grid-cols-2 items-center gap-4 pt-2">
-              {isClient && predefinedPrompts.length > 0 && (
+              {isClient && (predefinedPrompts.length > 0 || historyPrompts.length > 0) && (
                 <div className="space-y-2">
                   <Combobox
                     options={promptOptions}
-                    selectedValue={null}
+                    selectedValue={selectedPromptId}
                     onValueChange={handlePreCannedPromptSelect}
                     placeholder="Select a message suggestion..."
                     searchPlaceholder="Search messages..."

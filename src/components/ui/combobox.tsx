@@ -23,8 +23,13 @@ import { ScrollArea } from "./scroll-area"
 
 type ComboboxOption = { value: string; label: string; [key: string]: any };
 
+export type ComboboxGroup = {
+  label?: string;
+  options: ComboboxOption[];
+};
+
 type ComboboxProps = {
-    options: ComboboxOption[];
+    options: ComboboxOption[] | ComboboxGroup[];
     selectedValue?: string | null;
     onValueChange: (value: string | null) => void;
     placeholder: string;
@@ -34,6 +39,10 @@ type ComboboxProps = {
     name?: string;
     renderOption?: (option: ComboboxOption) => React.ReactNode;
 };
+
+function isGroupArray(options: ComboboxOption[] | ComboboxGroup[]): options is ComboboxGroup[] {
+  return options.length > 0 && 'options' in options[0];
+}
 
 export function Combobox({ 
     options, 
@@ -47,6 +56,20 @@ export function Combobox({
     renderOption
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
+
+  const flattenedOptions = React.useMemo(() => {
+    if (isGroupArray(options)) {
+      return options.flatMap(g => g.options);
+    }
+    return options;
+  }, [options]);
+
+  const groups = React.useMemo(() => {
+    if (isGroupArray(options)) {
+      return options;
+    }
+    return [{ label: undefined, options }];
+  }, [options]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -63,7 +86,7 @@ export function Combobox({
                 {icon}
                 <span className="truncate">
                     {selectedValue
-                        ? options.find((option) => option.value === selectedValue)?.label
+                        ? flattenedOptions.find((option) => option.value === selectedValue)?.label
                         : placeholder}
                 </span>
             </div>
@@ -81,26 +104,28 @@ export function Combobox({
           <CommandList>
             <ScrollArea className="h-[200px]">
               <CommandEmpty>No results found.</CommandEmpty>
-              <CommandGroup>
-                {options.map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    value={`${option.label} ${option.content || ''}`}
-                    onSelect={() => {
-                      onValueChange(option.value === selectedValue ? null : option.value)
-                      setOpen(false)
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        selectedValue === option.value ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {renderOption ? renderOption(option) : option.label}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+              {groups.map((group, groupIndex) => (
+                <CommandGroup key={groupIndex} heading={group.label}>
+                  {group.options.map((option) => (
+                    <CommandItem
+                      key={option.value}
+                      value={`${option.label} ${option.content || ''}`}
+                      onSelect={() => {
+                        onValueChange(option.value === selectedValue ? null : option.value)
+                        setOpen(false)
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedValue === option.value ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {renderOption ? renderOption(option) : option.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))}
             </ScrollArea>
           </CommandList>
         </Command>

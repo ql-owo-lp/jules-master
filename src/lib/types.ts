@@ -1,5 +1,4 @@
 
-
 export type JobStatus = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Unknown';
 
 // Based on the Jules API documentation for a Session
@@ -84,6 +83,12 @@ export type PredefinedPrompt = {
   id: string;
   title: string;
   prompt: string;
+};
+
+export type HistoryPrompt = {
+    id: string;
+    prompt: string;
+    lastUsedAt: string;
 };
 
 // Activity and related types
@@ -200,5 +205,3 @@ export type PullRequestStatus = {
     runs: Pick<CheckRun, 'name' | 'status' | 'conclusion'>[];
   }
 };
-
-    
