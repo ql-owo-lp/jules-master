@@ -26,9 +26,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "./ui/separator";
+import { useEnv } from "@/components/env-provider";
 
 
 export function SettingsSheet() {
+  const { julesApiKey, githubToken: envGithubToken } = useEnv();
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
   const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
   
@@ -58,8 +60,8 @@ export function SettingsSheet() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
-  const isJulesKeyFromEnv = !!process.env.JULES_API_KEY;
-  const isGithubTokenFromEnv = !!process.env.GITHUB_TOKEN;
+  const isJulesKeyFromEnv = !!julesApiKey;
+  const isGithubTokenFromEnv = !!envGithubToken;
 
   useEffect(() => { setApiKeyValue(apiKey); }, [apiKey]);
   useEffect(() => { setGithubTokenValue(githubToken); }, [githubToken]);
@@ -114,8 +116,8 @@ export function SettingsSheet() {
 
 
   const handleSave = async () => {
-    if (!isJulesKeyFromEnv) setApiKey(apiKeyValue);
-    if (!isGithubTokenFromEnv) setGithubToken(githubTokenValue);
+    setApiKey(apiKeyValue);
+    setGithubToken(githubTokenValue);
     setIdlePollInterval(idlePollIntervalValue);
     setActivePollInterval(activePollIntervalValue);
     setTitleTruncateLength(titleTruncateLengthValue);
@@ -185,11 +187,10 @@ export function SettingsSheet() {
                     <Input
                         id="api-key"
                         type={showApiKey ? "text" : "password"}
-                        value={isJulesKeyFromEnv ? "******" : apiKeyValue}
+                        value={apiKeyValue}
                         onChange={(e) => setApiKeyValue(e.target.value)}
                         placeholder="Enter your API key"
                         className="pr-10"
-                        disabled={isJulesKeyFromEnv}
                     />
                     <Button
                         type="button"
@@ -198,7 +199,6 @@ export function SettingsSheet() {
                         className="absolute inset-y-0 right-0 h-full px-3"
                         onClick={() => setShowApiKey(!showApiKey)}
                         aria-label={showApiKey ? "Hide API key" : "Show API key"}
-                        disabled={isJulesKeyFromEnv}
                     >
                         {showApiKey ? (
                         <EyeOff className="h-4 w-4" />
@@ -207,9 +207,9 @@ export function SettingsSheet() {
                         )}
                     </Button>
                     </div>
-                     {isJulesKeyFromEnv && (
+                     {isJulesKeyFromEnv && !apiKeyValue && (
                         <p className="text-xs text-muted-foreground">
-                            Set via JULES_API_KEY environment variable.
+                            Using JULES_API_KEY environment variable (leave empty to use).
                         </p>
                     )}
                 </div>
@@ -219,11 +219,10 @@ export function SettingsSheet() {
                     <Input
                         id="github-token"
                         type={showGithubToken ? "text" : "password"}
-                        value={isGithubTokenFromEnv ? "******" : githubTokenValue}
+                        value={githubTokenValue}
                         onChange={(e) => setGithubTokenValue(e.target.value)}
                         placeholder="Enter your GitHub PAT"
                         className="pr-10"
-                        disabled={isGithubTokenFromEnv}
                     />
                     <Button
                         type="button"
@@ -232,7 +231,6 @@ export function SettingsSheet() {
                         className="absolute inset-y-0 right-0 h-full px-3"
                         onClick={() => setShowGithubToken(!showGithubToken)}
                         aria-label={showGithubToken ? "Hide GitHub token" : "Show GitHub token"}
-                        disabled={isGithubTokenFromEnv}
                     >
                         {showGithubToken ? (
                         <EyeOff className="h-4 w-4" />
@@ -241,9 +239,9 @@ export function SettingsSheet() {
                         )}
                     </Button>
                     </div>
-                     {isGithubTokenFromEnv ? (
+                     {isGithubTokenFromEnv && !githubTokenValue ? (
                          <p className="text-xs text-muted-foreground">
-                           Set via GITHUB_TOKEN environment variable.
+                           Using GITHUB_TOKEN environment variable (leave empty to use).
                          </p>
                      ) : (
                         <p className="text-xs text-muted-foreground">

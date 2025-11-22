@@ -12,6 +12,7 @@ import { getSession, approvePlan, sendMessage, listActivities } from "./actions"
 import { getJobs, getQuickReplies } from "@/app/config/actions";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PrStatus } from "@/components/pr-status";
+import { useEnv } from "@/components/env-provider";
 
 import {
   Card,
@@ -61,6 +62,7 @@ import { Combobox } from "@/components/ui/combobox";
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const { julesApiKey } = useEnv();
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
   const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
@@ -105,8 +107,8 @@ export default function SessionDetailPage() {
 
     startFetching(async () => {
       const [fetchedSession, fetchedActivities] = await Promise.all([
-        getSession(id, apiKey),
-        listActivities(id, apiKey)
+        getSession(id, apiKey || julesApiKey || ""),
+        listActivities(id, apiKey || julesApiKey || "")
       ]);
       
       if (fetchedSession) {
@@ -134,33 +136,33 @@ export default function SessionDetailPage() {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, id, idlePollInterval, activePollInterval, isPollingActive, toast, setSession, setActivities]);
+  }, [apiKey, julesApiKey, id, idlePollInterval, activePollInterval, isPollingActive, toast, setSession, setActivities]);
 
   useEffect(() => {
-    if (apiKey || process.env.JULES_API_KEY) {
+    if (apiKey || julesApiKey) {
       if (id) {
         fetchSessionData();
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, id]);
+  }, [apiKey, julesApiKey, id]);
 
   // Set up polling interval
   useEffect(() => {
-    if ((apiKey || process.env.JULES_API_KEY) && currentPollInterval > 0) {
+    if ((apiKey || julesApiKey) && currentPollInterval > 0) {
       const intervalId = setInterval(() => fetchSessionData(), currentPollInterval * 1000);
       return () => clearInterval(intervalId);
     }
-  }, [apiKey, currentPollInterval, fetchSessionData]);
+  }, [apiKey, julesApiKey, currentPollInterval, fetchSessionData]);
 
   // Countdown timer
   useEffect(() => {
-    if (!(apiKey || process.env.JULES_API_KEY) || currentPollInterval <= 0) return;
+    if (!(apiKey || julesApiKey) || currentPollInterval <= 0) return;
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
-  }, [apiKey, currentPollInterval, lastUpdatedAt]);
+  }, [apiKey, julesApiKey, currentPollInterval, lastUpdatedAt]);
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (activityFeedRef.current) {
@@ -194,7 +196,7 @@ export default function SessionDetailPage() {
   const handleApprovePlan = () => {
     if (!session) return;
     startActionTransition(async () => {
-      const result = await approvePlan(session.id, apiKey);
+      const result = await approvePlan(session.id, apiKey || julesApiKey || "");
       if (result) {
         setSession(result);
         setIsPollingActive(true); // Start active polling
@@ -212,7 +214,7 @@ export default function SessionDetailPage() {
   const handleSendMessage = () => {
     if (!session || !message.trim()) return;
     startActionTransition(async () => {
-      const success = await sendMessage(session.id, message, apiKey);
+      const success = await sendMessage(session.id, message, apiKey || julesApiKey || "");
       if (success) {
         setMessage("");
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });

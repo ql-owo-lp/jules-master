@@ -19,8 +19,10 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
 import { groupSessionsByTopic, createDynamicJobs } from "@/lib/utils";
+import { useEnv } from "@/components/env-provider";
 
 function HomePageContent() {
+  const { julesApiKey, githubToken: envGithubToken } = useEnv();
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
 
@@ -115,7 +117,7 @@ function HomePageContent() {
   // Initial fetch and set up polling interval
   useEffect(() => {
     if (isClient) {
-      if (apiKey || process.env.JULES_API_KEY) {
+      if (apiKey || julesApiKey) {
         const now = Date.now();
         const intervalInMs = sessionListPollInterval * 1000;
 
@@ -138,7 +140,7 @@ function HomePageContent() {
 
   // Countdown timer
   useEffect(() => {
-    if (!isClient || (!apiKey && !process.env.JULES_API_KEY) || sessionListPollInterval <= 0) return;
+    if (!isClient || (!apiKey && !julesApiKey) || sessionListPollInterval <= 0) return;
 
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
@@ -274,8 +276,8 @@ function HomePageContent() {
     );
   }
 
-  const hasJulesApiKey = !!(process.env.JULES_API_KEY || apiKey);
-  const hasGithubToken = !!(process.env.GITHUB_TOKEN || githubToken);
+  const hasJulesApiKey = !!(julesApiKey || apiKey);
+  const hasGithubToken = !!(envGithubToken || githubToken);
 
   return (
     <div className="flex flex-col flex-1 bg-background">

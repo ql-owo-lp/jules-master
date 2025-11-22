@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/sessions/new/actions";
 import { revalidateSessions } from "@/app/sessions/actions";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useEnv } from "@/components/env-provider";
 
 type NewJobDialogProps = {
     isPage?: boolean;
@@ -18,6 +19,7 @@ type NewJobDialogProps = {
 }
 
 export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
+    const { julesApiKey } = useEnv();
     const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
     const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
     const router = useRouter();
@@ -40,7 +42,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             return null;
         }
 
-        const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+        const effectiveApiKey = apiKey || julesApiKey;
 
         const newSession = await createSession({
             title: title,
@@ -89,7 +91,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
         // but we can keep it for clearing UI state if needed.
     };
 
-    const hasApiKey = !!(process.env.JULES_API_KEY || apiKey);
+    const hasApiKey = !!(julesApiKey || apiKey);
 
     const form = (
         <JobCreationForm

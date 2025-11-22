@@ -8,6 +8,7 @@ import type { PullRequestStatus } from "@/lib/types";
 import { getPullRequestStatus } from "@/app/github/actions";
 import { useEffect, useState } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useEnv } from "@/components/env-provider";
 
 
 type PrStatusProps = {
@@ -30,6 +31,7 @@ export function PrStatus({ prUrl }: PrStatusProps) {
   const status = cachedData?.status;
 
   const [isLoading, setIsLoading] = useState(false);
+  const { githubToken: envGithubToken } = useEnv();
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
   
   useEffect(() => {
@@ -50,7 +52,7 @@ export function PrStatus({ prUrl }: PrStatusProps) {
       if (isStale) {
         // Background update
         try {
-             const prStatus = await getPullRequestStatus(prUrl, githubToken);
+             const prStatus = await getPullRequestStatus(prUrl, githubToken || envGithubToken || "");
              setCachedData({
                  status: prStatus,
                  timestamp: Date.now(),
