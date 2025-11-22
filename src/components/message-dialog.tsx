@@ -89,7 +89,7 @@ export function MessageDialog({
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger asChild onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
                 {trigger}
             </DialogTrigger>
             <DialogContent className="md:w-1/2 md:h-3/5 max-w-4xl flex flex-col">
