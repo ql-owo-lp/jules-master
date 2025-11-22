@@ -295,9 +295,13 @@ export function SessionList({
                           )}
                            <MessageDialog
                               trigger={
-                                  <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                  <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>Send Message</p></TooltipContent>
+                                  </Tooltip>
                               }
-                              tooltip="Send Message"
                               storageKey={`jules-session-message-${session.id}`}
                               onSendMessage={(message) => onSendMessage(session.id, message)}
                               dialogTitle={`Send Message to Session`}
@@ -306,16 +310,16 @@ export function SessionList({
                               quickReplies={quickReplies}
                           />
                           <Popover>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <PopoverTrigger asChild>
+                            <PopoverTrigger asChild>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
                                   <Button variant="ghost" size="icon" disabled={isActionPending} onClick={(e) => e.stopPropagation()}>
                                     <MessageSquareReply className="h-4 w-4" />
                                   </Button>
-                                </PopoverTrigger>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Send Quick Reply</p></TooltipContent>
-                            </Tooltip>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Send Quick Reply</p></TooltipContent>
+                              </Tooltip>
+                            </PopoverTrigger>
                             <PopoverContent className="p-0 w-60" onClick={(e) => e.stopPropagation()}>
                               <Command>
                                 <CommandInput placeholder="Search replies..." />
@@ -325,7 +329,6 @@ export function SessionList({
                                     {quickReplyOptions.map((option) => (
                                       <CommandItem
                                         key={option.value}
-                                        value={option.label}
                                         onSelect={() => {
                                           onSendMessage(session.id, option.content);
                                           document.body.click(); // Close popover
@@ -463,9 +466,13 @@ export function SessionList({
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                            <MessageDialog
                               trigger={
-                                  <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                  <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>Send Message to all uncategorized sessions</p></TooltipContent>
+                                  </Tooltip>
                               }
-                              tooltip="Send Message to all uncategorized sessions"
                               storageKey={`jules-job-message-uncategorized`}
                               onSendMessage={(message) => onBulkSendMessage(unknownSessionIds, message)}
                               dialogTitle={`Send Message to Uncategorized Sessions`}
@@ -474,16 +481,16 @@ export function SessionList({
                               quickReplies={quickReplies}
                           />
                            <Popover>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <PopoverTrigger asChild>
+                                <PopoverTrigger asChild>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
                                       <Button variant="ghost" size="icon" disabled={isActionPending}>
                                         <MessageSquareReply className="h-4 w-4" />
                                       </Button>
-                                    </PopoverTrigger>
-                                  </TooltipTrigger>
-                                  <TooltipContent><p>Send Quick Reply to all sessions</p></TooltipContent>
-                                </Tooltip>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Send Quick Reply to all sessions</p></TooltipContent>
+                                  </Tooltip>
+                                </PopoverTrigger>
                                 <PopoverContent className="p-0 w-80">
                                   <Command>
                                     <CommandInput placeholder="Search replies..." />
@@ -493,7 +500,6 @@ export function SessionList({
                                         {quickReplyOptions.map((option) => (
                                           <CommandItem
                                             key={option.value}
-                                            value={option.label}
                                             onSelect={() => {
                                               onBulkSendMessage(unknownSessionIds, option.content);
                                               document.body.click(); // Close popover
@@ -601,9 +607,13 @@ export function SessionList({
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                              <MessageDialog
                                 trigger={
-                                    <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Send Message to all sessions in this job</p></TooltipContent>
+                                    </Tooltip>
                                 }
-                                tooltip="Send Message to all sessions in this job"
                                 storageKey={`jules-job-message-${job.id}`}
                                 onSendMessage={(message) => onBulkSendMessage(job.sessionIds, message)}
                                 dialogTitle={`Send Message to Job: ${job.name}`}
@@ -612,16 +622,16 @@ export function SessionList({
                                 quickReplies={quickReplies}
                             />
                              <Popover>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <PopoverTrigger asChild>
+                                <PopoverTrigger asChild>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
                                       <Button variant="ghost" size="icon" disabled={isActionPending}>
                                         <MessageSquareReply className="h-4 w-4" />
                                       </Button>
-                                    </PopoverTrigger>
-                                  </TooltipTrigger>
-                                  <TooltipContent><p>Send Quick Reply to all sessions</p></TooltipContent>
-                                </Tooltip>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Send Quick Reply to all sessions</p></TooltipContent>
+                                  </Tooltip>
+                                </PopoverTrigger>
                                 <PopoverContent className="p-0 w-80">
                                   <Command>
                                     <CommandInput placeholder="Search replies..." />
@@ -631,7 +641,6 @@ export function SessionList({
                                         {quickReplyOptions.map((option) => (
                                           <CommandItem
                                             key={option.value}
-                                            value={option.label}
                                             onSelect={() => {
                                               onBulkSendMessage(job.sessionIds, option.content);
                                               document.body.click(); // Close popover
