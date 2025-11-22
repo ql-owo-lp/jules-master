@@ -277,7 +277,7 @@ export function SessionList({
                           aria-label={`Select all uncategorized sessions`}
                         />
                       <AccordionTrigger className="hover:no-underline flex-1 py-4">
-                         <div className="flex-1 text-left">
+                        <div className="flex-1 text-left">
                             <p className="font-semibold">Uncategorized Sessions</p>
                             <p className="text-xs text-muted-foreground">{unknownSessions.length} session(s)</p>
                         </div>
@@ -325,7 +325,7 @@ export function SessionList({
                       </div>
                       <div className="flex items-center gap-2">
                             <MessageDialog
-                              triggerButton={
+                              trigger={
                                   <Tooltip>
                                       <TooltipTrigger asChild>
                                           <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
@@ -340,6 +340,44 @@ export function SessionList({
                               isActionPending={isActionPending}
                               quickReplies={quickReplies}
                           />
+                           <Popover>
+                                <PopoverTrigger asChild>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                        <MessageSquareReply className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Send Quick Reply to all sessions</p></TooltipContent>
+                                  </Tooltip>
+                                </PopoverTrigger>
+                                <PopoverContent className="p-0 w-80">
+                                  <Command>
+                                    <CommandInput placeholder="Search replies..." />
+                                    <CommandList>
+                                      <CommandEmpty>No replies found.</CommandEmpty>
+                                      <CommandGroup>
+                                        {quickReplyOptions.map((option) => (
+                                          <CommandItem
+                                            key={option.value}
+                                            onSelect={() => {
+                                              onBulkSendMessage(unknownSessionIds, option.content);
+                                              document.body.click(); // Close popover
+                                            }}
+                                          >
+                                            <span className="truncate" title={option.content}>
+                                              {option.label}
+                                              <span className="ml-2 text-muted-foreground font-light">
+                                                  [{truncate(option.content, 20)}]
+                                              </span>
+                                            </span>
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
                       </div>
                     </div>
                     <AccordionContent className="p-0">
@@ -414,7 +452,7 @@ export function SessionList({
                                                 </Tooltip>
                                               )}
                                               <MessageDialog
-                                                  triggerButton={
+                                                  trigger={
                                                       <Tooltip>
                                                           <TooltipTrigger asChild>
                                                               <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
@@ -520,7 +558,7 @@ export function SessionList({
                         </div>
                         <div className="flex items-center gap-2">
                               <MessageDialog
-                                triggerButton={
+                                trigger={
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
@@ -660,7 +698,7 @@ export function SessionList({
                                               </Tooltip>
                                             )}
                                             <MessageDialog
-                                                triggerButton={
+                                                trigger={
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
@@ -756,7 +794,7 @@ export function SessionList({
                         </Button>
                     </div>
                      <MessageDialog
-                        triggerButton={
+                        trigger={
                             <Button size="sm" disabled={isActionPending}>
                                 <MessageSquare className="h-4 w-4 mr-2" />
                                 Send Bulk Message

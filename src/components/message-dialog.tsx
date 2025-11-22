@@ -24,7 +24,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 
 type MessageDialogProps = {
-    triggerButton: ReactElement;
+    trigger: ReactElement;
     storageKey: string;
     onSendMessage: (message: string) => void;
     dialogTitle?: string;
@@ -35,7 +35,7 @@ type MessageDialogProps = {
 }
 
 export function MessageDialog({ 
-    triggerButton,
+    trigger,
     storageKey,
     onSendMessage,
     dialogTitle = "Send Message",
@@ -55,7 +55,11 @@ export function MessageDialog({
         if (open) {
             const storedMessage = localStorage.getItem(storageKey);
             if (storedMessage) {
-                setMessage(JSON.parse(storedMessage));
+                try {
+                    setMessage(JSON.parse(storedMessage));
+                } catch {
+                    // ignore if parsing fails
+                }
             }
              // Also fetch latest prompts/replies if not provided
             if (initialPrompts.length === 0) {
@@ -86,7 +90,7 @@ export function MessageDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                {triggerButton}
+                {trigger}
             </DialogTrigger>
             <DialogContent className="md:w-1/2 md:h-3/5 max-w-4xl flex flex-col">
                 <DialogHeader className="relative pr-10">
@@ -164,5 +168,3 @@ export function MessageDialog({
         </Dialog>
     )
 }
-
-    
