@@ -12,12 +12,24 @@ test.describe('Navigation', () => {
     await expect(page.getByRole('button', { name: 'New Job' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'New Job' })).toBeEnabled();
 
-    // Verify "Jobs & Sessions" link (Home)
-    const jobsSessionsLink = page.getByRole('link', { name: 'Jobs & Sessions' });
-    await expect(jobsSessionsLink).toBeVisible();
-    // Click and verify navigation (it is effectively home)
-    await jobsSessionsLink.click();
-    await expect(page).toHaveURL('/');
+    // Verify "Job List" link
+    const jobListLink = page.getByRole('link', { name: 'Job List' });
+    await expect(jobListLink).toBeVisible();
+    // Click and verify navigation
+    await jobListLink.click();
+
+    // Wait for URL
+    await expect(page).toHaveURL(/\/jobs/);
+    // Use locator for CardTitle (div with specific class or just text outside of link)
+    await expect(page.locator('.text-2xl', { hasText: 'Job List' })).toBeVisible();
+
+    // Verify "Session List" link
+    // Re-query the element to avoid stale element reference
+    const sessionListLink = page.getByRole('link', { name: 'Session List' });
+    await expect(sessionListLink).toBeVisible();
+    // Click and verify navigation
+    await sessionListLink.click();
+    await expect(page).toHaveURL('/'); // Session list is home
 
     // Verify "Messages" link
     // Re-query the element
