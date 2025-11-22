@@ -402,120 +402,6 @@ export function SessionList({
                 onValueChange={setOpenAccordionItems}
               >
               <TooltipProvider>
-                {unknownSessions.length > 0 && (
-                  <AccordionItem value="uncategorized" className="border rounded-lg bg-card">
-                    <div className="flex items-center gap-4 px-4 data-[state=open]:border-b">
-                       <Checkbox
-                          checked={selectAllUnknownState}
-                          onCheckedChange={(checked) => handleSelectAllForUnknown(!!checked)}
-                          aria-label={`Select all uncategorized sessions`}
-                        />
-                      <AccordionTrigger className="hover:no-underline flex-1 py-4">
-                        <div className="flex-1 text-left">
-                            <p className="font-semibold">Uncategorized Sessions</p>
-                            <p className="text-xs text-muted-foreground">{unknownSessions.length} session(s)</p>
-                        </div>
-                      </AccordionTrigger>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground ml-auto px-4">
-                          <Tooltip>
-                              <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-1">
-                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                  <span>{unknownSessionsDetails.completed}</span>
-                                  </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                  <p>{unknownSessionsDetails.completed} Completed</p>
-                              </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                              <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-1">
-                                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-                                  <span>{unknownSessionsDetails.working}</span>
-                                  </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                  <p>{unknownSessionsDetails.working} In Progress</p>
-                              </TooltipContent>
-                          </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="flex items-center gap-1 h-auto p-0" 
-                                      onClick={(e) => { e.stopPropagation(); onApprovePlan(unknownSessionsDetails.pending); }}
-                                      disabled={!unknownSessionsDetails.pending.length || isActionPending}
-                                    >
-                                      <Hand className="h-4 w-4 text-yellow-500" />
-                                      <span>{unknownSessionsDetails.pending.length}</span>
-                                    </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                  <p>Approve {unknownSessionsDetails.pending.length} pending session(s)</p>
-                              </TooltipContent>
-                          </Tooltip>
-                      </div>
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                           <MessageDialog
-                              trigger={
-                                  <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
-                              }
-                              tooltip="Send Message to all uncategorized sessions"
-                              storageKey={`jules-job-message-uncategorized`}
-                              onSendMessage={(message) => onBulkSendMessage(unknownSessionIds, message)}
-                              dialogTitle={`Send Message to Uncategorized Sessions`}
-                              dialogDescription={`This message will be sent to all ${unknownSessionIds.length} uncategorized sessions.`}
-                              isActionPending={isActionPending}
-                              quickReplies={quickReplies}
-                          />
-                           <Popover>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                     <PopoverTrigger asChild>
-                                        <Button variant="ghost" size="icon" disabled={isActionPending} onClick={(e) => e.stopPropagation()}>
-                                          <MessageSquareReply className="h-4 w-4" />
-                                        </Button>
-                                     </PopoverTrigger>
-                                  </TooltipTrigger>
-                                  <TooltipContent><p>Send Quick Reply to all sessions</p></TooltipContent>
-                                </Tooltip>
-                                <PopoverContent className="p-0 w-80" onClick={(e) => e.stopPropagation()}>
-                                  <Command>
-                                    <CommandInput placeholder="Search replies..." />
-                                    <CommandList>
-                                      <CommandEmpty>No replies found.</CommandEmpty>
-                                      <CommandGroup>
-                                        {quickReplyOptions.map((option) => (
-                                          <CommandItem
-                                            key={option.value}
-                                            onSelect={() => {
-                                              onBulkSendMessage(unknownSessionIds, option.content);
-                                              document.body.click(); // Close popover
-                                            }}
-                                          >
-                                            <span className="truncate" title={option.content}>
-                                              {option.label}
-                                              <span className="ml-2 text-muted-foreground font-light">
-                                                  [{truncate(option.content, 20)}]
-                                              </span>
-                                            </span>
-                                          </CommandItem>
-                                        ))}
-                                      </CommandGroup>
-                                    </CommandList>
-                                  </Command>
-                                </PopoverContent>
-                              </Popover>
-                      </div>
-                    </div>
-                    <AccordionContent className="p-0">
-                      {renderSessionRows(unknownSessions, true)}
-                    </AccordionContent>
-                  </AccordionItem>
-                )}
-              
                 {jobs.map(job => {
                   const details = jobDetailsMap.get(job.id);
                   const sessionsForJob = job.sessionIds
@@ -689,6 +575,120 @@ export function SessionList({
                     </AccordionItem>
                   )
                 })}
+
+                {unknownSessions.length > 0 && (
+                  <AccordionItem value="uncategorized" className="border rounded-lg bg-card">
+                    <div className="flex items-center gap-4 px-4 data-[state=open]:border-b">
+                       <Checkbox
+                          checked={selectAllUnknownState}
+                          onCheckedChange={(checked) => handleSelectAllForUnknown(!!checked)}
+                          aria-label={`Select all uncategorized sessions`}
+                        />
+                      <AccordionTrigger className="hover:no-underline flex-1 py-4">
+                        <div className="flex-1 text-left">
+                            <p className="font-semibold">Uncategorized Sessions</p>
+                            <p className="text-xs text-muted-foreground">{unknownSessions.length} session(s)</p>
+                        </div>
+                      </AccordionTrigger>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground ml-auto px-4">
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1">
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  <span>{unknownSessionsDetails.completed}</span>
+                                  </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                  <p>{unknownSessionsDetails.completed} Completed</p>
+                              </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1">
+                                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                                  <span>{unknownSessionsDetails.working}</span>
+                                  </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                  <p>{unknownSessionsDetails.working} In Progress</p>
+                              </TooltipContent>
+                          </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex items-center gap-1 h-auto p-0"
+                                      onClick={(e) => { e.stopPropagation(); onApprovePlan(unknownSessionsDetails.pending); }}
+                                      disabled={!unknownSessionsDetails.pending.length || isActionPending}
+                                    >
+                                      <Hand className="h-4 w-4 text-yellow-500" />
+                                      <span>{unknownSessionsDetails.pending.length}</span>
+                                    </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                  <p>Approve {unknownSessionsDetails.pending.length} pending session(s)</p>
+                              </TooltipContent>
+                          </Tooltip>
+                      </div>
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                           <MessageDialog
+                              trigger={
+                                  <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                              }
+                              tooltip="Send Message to all uncategorized sessions"
+                              storageKey={`jules-job-message-uncategorized`}
+                              onSendMessage={(message) => onBulkSendMessage(unknownSessionIds, message)}
+                              dialogTitle={`Send Message to Uncategorized Sessions`}
+                              dialogDescription={`This message will be sent to all ${unknownSessionIds.length} uncategorized sessions.`}
+                              isActionPending={isActionPending}
+                              quickReplies={quickReplies}
+                          />
+                           <Popover>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                     <PopoverTrigger asChild>
+                                        <Button variant="ghost" size="icon" disabled={isActionPending} onClick={(e) => e.stopPropagation()}>
+                                          <MessageSquareReply className="h-4 w-4" />
+                                        </Button>
+                                     </PopoverTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Send Quick Reply to all sessions</p></TooltipContent>
+                                </Tooltip>
+                                <PopoverContent className="p-0 w-80" onClick={(e) => e.stopPropagation()}>
+                                  <Command>
+                                    <CommandInput placeholder="Search replies..." />
+                                    <CommandList>
+                                      <CommandEmpty>No replies found.</CommandEmpty>
+                                      <CommandGroup>
+                                        {quickReplyOptions.map((option) => (
+                                          <CommandItem
+                                            key={option.value}
+                                            onSelect={() => {
+                                              onBulkSendMessage(unknownSessionIds, option.content);
+                                              document.body.click(); // Close popover
+                                            }}
+                                          >
+                                            <span className="truncate" title={option.content}>
+                                              {option.label}
+                                              <span className="ml-2 text-muted-foreground font-light">
+                                                  [{truncate(option.content, 20)}]
+                                              </span>
+                                            </span>
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                      </div>
+                    </div>
+                    <AccordionContent className="p-0">
+                      {renderSessionRows(unknownSessions, true)}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
                 </TooltipProvider>
               </Accordion>
           )}
