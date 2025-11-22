@@ -56,8 +56,21 @@ export interface IDao<T> {
 class AppDatabase {
   // Job DAO
   public jobs: IDao<Job> = {
-    getAll: async () => db.select().from(schema.jobs),
-    getById: async (id) => db.select().from(schema.jobs).where(eq(schema.jobs.id, id)).get(),
+    getAll: async () => {
+      const results = await db.select().from(schema.jobs);
+      return results.map(row => ({
+        ...row,
+        sessionIds: row.sessionIds ?? []
+      }));
+    },
+    getById: async (id) => {
+      const result = await db.select().from(schema.jobs).where(eq(schema.jobs.id, id)).get();
+      if (!result) return undefined;
+      return {
+        ...result,
+        sessionIds: result.sessionIds ?? []
+      };
+    },
     create: async (job) => { await db.insert(schema.jobs).values(job) },
     createMany: async (jobs) => { 
       if (jobs.length === 0) return;

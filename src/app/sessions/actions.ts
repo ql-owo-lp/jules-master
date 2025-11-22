@@ -24,6 +24,7 @@ const MOCK_SESSIONS: Session[] = [
     name: 'sessions/mock-1',
     id: 'session-1',
     title: 'Mock Session 1',
+    prompt: 'Mock prompt 1',
     state: 'COMPLETED',
     createTime: new Date().toISOString(),
     sourceContext: {
@@ -37,6 +38,7 @@ const MOCK_SESSIONS: Session[] = [
     name: 'sessions/mock-2',
     id: 'session-2',
     title: 'Mock Session 2',
+    prompt: 'Mock prompt 2',
     state: 'AWAITING_USER_FEEDBACK',
     createTime: new Date(Date.now() - 100000).toISOString(),
     sourceContext: {
