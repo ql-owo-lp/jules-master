@@ -20,7 +20,7 @@ import {
 import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { formatDistanceToNow } from "date-fns";
-import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2 } from "lucide-react";
+import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2, Bot } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -257,7 +257,7 @@ export function SessionList({
               {unknownSessions.length > 0 && (
                 <AccordionItem value="uncategorized" className="border rounded-lg bg-card">
                     <div className="flex items-center gap-4 px-4 data-[state=open]:border-b">
-                        <Checkbox 
+                         <Checkbox 
                             checked={selectAllUnknownState}
                             onCheckedChange={(checked) => handleSelectAllForUnknown(!!checked)}
                             aria-label={`Select all uncategorized sessions`}
@@ -277,6 +277,7 @@ export function SessionList({
                             <TableHead>Session Title</TableHead>
                             <TableHead className="w-[180px]">Status</TableHead>
                             <TableHead className="w-[150px]">Created</TableHead>
+                            <TableHead className="w-[80px] text-center">Jules</TableHead>
                             <TableHead className="w-[80px] text-center">GitHub</TableHead>
                             <TableHead className="w-[120px] text-right">Actions</TableHead>
                           </TableRow>
@@ -300,7 +301,23 @@ export function SessionList({
                                       <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
                                     </TableCell>
                                     <TableCell className="text-sm text-muted-foreground">
-                                      {session.createTime ? formatDistanceToNow(new Date(session.createTime), { addSuffix: true }) : 'N/A'}
+                                      {session.createdAt ? formatDistanceToNow(new Date(session.createdAt), { addSuffix: true }) : 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                        {session.url && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <a href={session.url} target="_blank" rel="noopener noreferrer">
+                                                        <Button variant="ghost" size="icon" aria-label="View Session on Jules UI">
+                                                            <Bot className="h-5 w-5 text-primary" />
+                                                        </Button>
+                                                    </a>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>View on Jules UI</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-center">
                                       <PrStatus prUrl={prUrl} />
@@ -399,7 +416,7 @@ export function SessionList({
                   return (
                     <AccordionItem value={job.id} key={job.id} className="border rounded-lg bg-card">
                         <div className="flex items-center gap-4 px-4 data-[state=open]:border-b">
-                            <Checkbox 
+                             <Checkbox 
                                 checked={selectAllState}
                                 onCheckedChange={(checked) => handleSelectAllForJob(job.id, !!checked)}
                                 aria-label={`Select all sessions for job ${job.name}`}
@@ -464,6 +481,7 @@ export function SessionList({
                                     <TableHead>Session Title</TableHead>
                                     <TableHead className="w-[180px]">Status</TableHead>
                                     <TableHead className="w-[150px]">Created</TableHead>
+                                    <TableHead className="w-[80px] text-center">Jules</TableHead>
                                     <TableHead className="w-[80px] text-center">GitHub</TableHead>
                                     <TableHead className="w-[120px] text-right">Actions</TableHead>
                                   </TableRow>
@@ -492,7 +510,23 @@ export function SessionList({
                                           <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
                                         </TableCell>
                                         <TableCell className="text-sm text-muted-foreground">
-                                          {session.createTime ? formatDistanceToNow(new Date(session.createTime), { addSuffix: true }) : 'N/A'}
+                                          {session.createdAt ? formatDistanceToNow(new Date(session.createdAt), { addSuffix: true }) : 'N/A'}
+                                        </TableCell>
+                                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                            {session.url && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <a href={session.url} target="_blank" rel="noopener noreferrer">
+                                                            <Button variant="ghost" size="icon" aria-label="View Session on Jules UI">
+                                                                <Bot className="h-5 w-5 text-primary" />
+                                                            </Button>
+                                                        </a>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>View on Jules UI</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-center">
                                           <PrStatus prUrl={prUrl} />
