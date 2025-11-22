@@ -128,7 +128,7 @@ export function SessionList({
   }, [jobs, sessionMap]);
 
   // Handle selection logic
-  const handleSelectAll = (jobId: string, checked: boolean) => {
+  const handleSelectAllForJob = (jobId: string, checked: boolean) => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
@@ -137,6 +137,15 @@ export function SessionList({
       setSelectedSessionIds(ids => [...new Set([...ids, ...jobSessionIds])]);
     } else {
       setSelectedSessionIds(ids => ids.filter(id => !jobSessionIds.includes(id)));
+    }
+  };
+
+  const handleSelectAllForUnknown = (checked: boolean) => {
+    const unknownSessionIds = unknownSessions.map(s => s.id);
+    if (checked) {
+        setSelectedSessionIds(ids => [...new Set([...ids, ...unknownSessionIds])]);
+    } else {
+        setSelectedSessionIds(ids => ids.filter(id => !unknownSessionIds.includes(id)));
     }
   };
 
@@ -187,6 +196,12 @@ export function SessionList({
 
   const quickReplyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
 
+  const unknownSessionIds = unknownSessions.map(s => s.id);
+  const isAllUnknownSelected = unknownSessionIds.length > 0 && unknownSessionIds.every(id => selectedSessionIds.includes(id));
+  const isSomeUnknownSelected = unknownSessionIds.some(id => selectedSessionIds.includes(id));
+  const selectAllUnknownState = isAllUnknownSelected ? true : (isSomeUnknownSelected ? 'indeterminate' : false);
+
+
   return (
     <>
       <Card className="shadow-md">
@@ -234,14 +249,31 @@ export function SessionList({
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <Accordion 
+                type="multiple" 
+                className="w-full space-y-2"
+                value={openAccordionItems}
+                onValueChange={setOpenAccordionItems}
+              >
+              <TooltipProvider>
               {unknownSessions.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Uncategorized Sessions</CardTitle>
-                    <CardDescription>Sessions that do not belong to any recorded job.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                <AccordionItem value="uncategorized" className="border rounded-lg bg-card">
+                   <AccordionTrigger className="hover:no-underline px-4 py-2 data-[state=open]:border-b">
+                     <div className="flex items-center gap-4 w-full">
+                        <Checkbox 
+                            checked={selectAllUnknownState}
+                            onCheckedChange={(checked) => handleSelectAllForUnknown(!!checked)}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Select all uncategorized sessions`}
+                            className="mr-2"
+                          />
+                        <div className="flex-1 text-left">
+                          <p className="font-semibold">Uncategorized Sessions</p>
+                           <p className="text-xs text-muted-foreground">{unknownSessions.length} session(s)</p>
+                        </div>
+                      </div>
+                   </AccordionTrigger>
+                   <AccordionContent className="p-0">
                      <Table>
                         <TableHeader>
                           <TableRow>
@@ -258,7 +290,7 @@ export function SessionList({
                              const prUrl = getPullRequestUrl(session);
                              return (
                                <TableRow key={session.id} className="cursor-pointer" onClick={() => router.push(`/sessions/${session.id}`)}>
-                                  <TableCell onClick={(e) => e.stopPropagation()}>
+                                  <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
                                     <Checkbox
                                       checked={selectedSessionIds.includes(session.id)}
                                       onCheckedChange={(checked) => handleSelectRow(session.id, !!checked)}
@@ -278,23 +310,73 @@ export function SessionList({
                                       <PrStatus prUrl={prUrl} />
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      {/* Actions for unknown sessions */}
+                                       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                            {session.state === 'AWAITING_PLAN_APPROVAL' && (
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => onApprovePlan([session.id])}
+                                                    disabled={isActionPending}
+                                                    aria-label="Approve Plan"
+                                                  >
+                                                    {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                                                  </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent><p>Approve Plan</p></TooltipContent>
+                                              </Tooltip>
+                                            )}
+                                            <Popover>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <PopoverTrigger asChild>
+                                                     <Button variant="ghost" size="icon" disabled={isActionPending}>
+                                                        <MessageSquare className="h-4 w-4" />
+                                                    </Button>
+                                                  </PopoverTrigger>
+                                                </TooltipTrigger>
+                                                <TooltipContent><p>Send a Quick Reply</p></TooltipContent>
+                                              </Tooltip>
+                                              <PopoverContent className="p-0 w-64" align="end">
+                                                  <Command>
+                                                    <CommandInput placeholder="Search replies..." />
+                                                    <CommandList>
+                                                      <ScrollArea className="h-[200px]">
+                                                        <CommandEmpty>No replies found.</CommandEmpty>
+                                                        <CommandGroup>
+                                                          {quickReplyOptions.map(option => (
+                                                            <CommandItem
+                                                              key={option.value}
+                                                              onSelect={() => {
+                                                                onSendMessage(session.id, option.content);
+                                                                document.body.click(); 
+                                                              }}
+                                                              className="flex justify-between cursor-pointer"
+                                                            >
+                                                              <span className="truncate flex-1 font-medium">{option.label}</span>
+                                                              <span className="text-xs text-muted-foreground ml-2 truncate">
+                                                                [{truncate(option.content, 20)}]
+                                                              </span>
+                                                            </CommandItem>
+                                                          ))}
+                                                        </CommandGroup>
+                                                      </ScrollArea>
+                                                    </CommandList>
+                                                  </Command>
+                                              </PopoverContent>
+                                            </Popover>
+                                          </div>
                                     </TableCell>
                                </TableRow>
                              )
                           })}
                         </TableBody>
                      </Table>
-                  </CardContent>
-                </Card>
+                   </AccordionContent>
+                </AccordionItem>
               )}
-              <Accordion 
-                type="multiple" 
-                className="w-full space-y-2"
-                value={openAccordionItems}
-                onValueChange={setOpenAccordionItems}
-              >
-                <TooltipProvider>
+              
                 {jobs.map(job => {
                   const details = jobDetailsMap.get(job.id);
                   const sessionsForJob = job.sessionIds
@@ -324,7 +406,7 @@ export function SessionList({
                         <div className="flex items-center gap-4 w-full">
                           <Checkbox 
                             checked={selectAllState}
-                            onCheckedChange={(checked) => handleSelectAll(job.id, !!checked)}
+                            onCheckedChange={(checked) => handleSelectAllForJob(job.id, !!checked)}
                             onClick={(e) => e.stopPropagation()}
                             aria-label={`Select all sessions for job ${job.name}`}
                             className="mr-2"
@@ -517,7 +599,6 @@ export function SessionList({
                 })}
                 </TooltipProvider>
               </Accordion>
-            </div>
           )}
         </CardContent>
         {totalJobPages > 1 && (
