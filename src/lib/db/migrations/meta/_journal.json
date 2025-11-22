@@ -15,6 +15,13 @@
       "when": 1763845314297,
       "tag": "0001_fancy_captain_universe",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1763847426717,
+      "tag": "0002_lush_blonde_phantom",
+      "breakpoints": true
     }
   ]
 }

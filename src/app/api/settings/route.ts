@@ -19,6 +19,7 @@ export async function GET() {
         jobsPerPage: 5,
         defaultSessionCount: 10,
         prStatusPollInterval: 60,
+        theme: 'system',
       });
     }
 
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
         jobsPerPage: body.jobsPerPage,
         defaultSessionCount: body.defaultSessionCount,
         prStatusPollInterval: body.prStatusPollInterval,
+        theme: body.theme,
     }
 
     const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
