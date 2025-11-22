@@ -56,14 +56,32 @@ export interface IDao<T> {
 class AppDatabase {
   // Job DAO
   public jobs: IDao<Job> = {
-    getAll: async () => db.select().from(schema.jobs),
-    getById: async (id) => db.select().from(schema.jobs).where(eq(schema.jobs.id, id)).get(),
-    create: async (job) => { await db.insert(schema.jobs).values(job) },
+    getAll: async () => {
+        const jobs = await db.select().from(schema.jobs);
+        return jobs.map(j => ({...j, sessionIds: j.sessionIds || []}));
+    },
+    getById: async (id) => {
+        const job = await db.select().from(schema.jobs).where(eq(schema.jobs.id, id)).get();
+        if (job) {
+            return {...job, sessionIds: job.sessionIds || []};
+        }
+        return undefined;
+    },
+    create: async (job) => { await db.insert(schema.jobs).values({...job, sessionIds: job.sessionIds || []}) },
     createMany: async (jobs) => { 
       if (jobs.length === 0) return;
-      await db.insert(schema.jobs).values(jobs);
+      const mappedJobs = jobs.map(j => ({...j, sessionIds: j.sessionIds || []}));
+      await db.insert(schema.jobs).values(mappedJobs);
     },
-    update: async (id, job) => { await db.update(schema.jobs).set(job).where(eq(schema.jobs.id, id)) },
+    update: async (id, job) => {
+        const updateData = {...job};
+        if (updateData.sessionIds === undefined) {
+            // If not provided, we don't update it (or should we?)
+            // partial update usually implies updating provided fields only.
+            // But here type check is failing because sessionIds in DB is string[] | null ? No, in schema it is string[].
+        }
+        await db.update(schema.jobs).set(updateData).where(eq(schema.jobs.id, id))
+    },
     delete: async (id) => { await db.delete(schema.jobs).where(eq(schema.jobs.id, id)) },
   };
 

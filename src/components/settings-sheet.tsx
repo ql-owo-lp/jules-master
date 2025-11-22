@@ -179,7 +179,7 @@ export function SettingsSheet() {
                          </p>
                      ) : (
                         <p className="text-xs text-muted-foreground">
-                            Required for fetching PR status. Use a classic token with `repo` scope.
+                            Required for fetching PR status. Use a classic token with &apos;repo&apos; scope.
                         </p>
                      )}
                 </div>

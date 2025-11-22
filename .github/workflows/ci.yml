@@ -7,6 +7,27 @@ on:
     branches: [ main ]
 
 jobs:
+  lint_and_typecheck:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Lint
+        run: npm run lint
+
+      - name: Run Typecheck
+        run: npm run typecheck
+
   test:
     timeout-minutes: 20
     runs-on: ubuntu-latest

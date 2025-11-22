@@ -191,7 +191,7 @@ export default function PredefinedPromptsPage() {
         <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
           <p className="font-semibold text-lg">No {plural} yet</p>
           <p className="text-sm">
-            Click "Add New" to create your first {singular}.
+            Click &quot;Add New&quot; to create your first {singular}.
           </p>
         </div>
       );
