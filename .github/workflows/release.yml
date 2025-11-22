@@ -21,8 +21,10 @@ jobs:
         include:
           - platform: linux/amd64
             runner: ubuntu-latest
+            cache_tag_suffix: linux-amd64
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
+            cache_tag_suffix: linux-arm64
 
     steps:
       - name: Checkout
@@ -58,8 +60,8 @@ jobs:
             ${{ env.DOCKER_IMAGE }}
             ${{ env.GHCR_IMAGE }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ matrix.platform }}
-          # cache-to: type=gha,mode=min,scope=${{ matrix.platform }}
+          cache-from: type=registry,ref=${{ env.GHCR_IMAGE }}:buildcache-${{ matrix.cache_tag_suffix }}
+          cache-to: type=registry,ref=${{ env.GHCR_IMAGE }}:buildcache-${{ matrix.cache_tag_suffix }},mode=max
 
       - name: Export digest
         run: |
