@@ -36,8 +36,9 @@ export function PrStatus({ prUrl }: PrStatusProps) {
     return <div className="w-10 h-10" />;
   }
 
-  // If no token is provided (inferred from status), just show a simple link icon
-  if (status?.state === 'NO_TOKEN') {
+  const effectiveToken = githubToken || process.env.GITHUB_TOKEN;
+  // If no token is provided, just show a simple link icon
+  if (!effectiveToken) {
     return (
         <TooltipProvider>
             <Tooltip>
