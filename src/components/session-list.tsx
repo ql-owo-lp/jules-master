@@ -20,14 +20,13 @@ import {
 import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { formatDistanceToNow } from "date-fns";
-import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2, GitMerge } from "lucide-react";
+import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { PrStatus } from "./pr-status";
-import { MessageDialog } from "./message-dialog";
 import { Checkbox } from "./ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Skeleton } from "./ui/skeleton";
@@ -35,6 +34,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { ScrollArea } from "./ui/scroll-area";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { MessageDialog } from "./message-dialog";
 
 
 type SessionListProps = {
@@ -193,9 +193,7 @@ export function SessionList({
   const handleSessionPageChange = (jobId: string, newPage: number) => {
     setSessionPages(prev => ({ ...prev, [jobId]: newPage }));
   };
-
-  const quickReplyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
-
+  
   const unknownSessionIds = unknownSessions.map(s => s.id);
   const isAllUnknownSelected = unknownSessionIds.length > 0 && unknownSessionIds.every(id => selectedSessionIds.includes(id));
   const isSomeUnknownSelected = unknownSessionIds.some(id => selectedSessionIds.includes(id));
@@ -258,14 +256,13 @@ export function SessionList({
               <TooltipProvider>
               {unknownSessions.length > 0 && (
                 <AccordionItem value="uncategorized" className="border rounded-lg bg-card">
-                    <div className="flex items-center px-4 py-2 data-[state=open]:border-b">
+                    <div className="flex items-center gap-4 px-4 data-[state=open]:border-b">
                         <Checkbox 
                             checked={selectAllUnknownState}
                             onCheckedChange={(checked) => handleSelectAllForUnknown(!!checked)}
                             aria-label={`Select all uncategorized sessions`}
-                            className="mr-4"
                         />
-                        <AccordionTrigger className="hover:no-underline flex-1 p-0">
+                        <AccordionTrigger className="hover:no-underline flex-1 py-4">
                             <div className="flex-1 text-left">
                                 <p className="font-semibold">Uncategorized Sessions</p>
                                 <p className="text-xs text-muted-foreground">{unknownSessions.length} session(s)</p>
@@ -344,18 +341,18 @@ export function SessionList({
                                                       <ScrollArea className="h-[200px]">
                                                         <CommandEmpty>No replies found.</CommandEmpty>
                                                         <CommandGroup>
-                                                          {quickReplyOptions.map(option => (
+                                                          {quickReplies.map(option => (
                                                             <CommandItem
-                                                              key={option.value}
+                                                              key={option.id}
                                                               onSelect={() => {
-                                                                onSendMessage(session.id, option.content);
+                                                                onSendMessage(session.id, option.prompt);
                                                                 document.body.click(); 
                                                               }}
                                                               className="flex justify-between cursor-pointer"
                                                             >
-                                                              <span className="truncate flex-1 font-medium">{option.label}</span>
+                                                              <span className="truncate flex-1 font-medium">{option.title}</span>
                                                               <span className="text-xs text-muted-foreground ml-2 truncate">
-                                                                [{truncate(option.content, 20)}]
+                                                                [{truncate(option.prompt, 20)}]
                                                               </span>
                                                             </CommandItem>
                                                           ))}
@@ -401,20 +398,19 @@ export function SessionList({
                   
                   return (
                     <AccordionItem value={job.id} key={job.id} className="border rounded-lg bg-card">
-                        <div className="flex items-center px-4 py-2 data-[state=open]:border-b">
+                        <div className="flex items-center gap-4 px-4 data-[state=open]:border-b">
                             <Checkbox 
                                 checked={selectAllState}
                                 onCheckedChange={(checked) => handleSelectAllForJob(job.id, !!checked)}
                                 aria-label={`Select all sessions for job ${job.name}`}
-                                className="mr-4"
                             />
-                            <AccordionTrigger className="hover:no-underline flex-1 p-0">
+                            <AccordionTrigger className="hover:no-underline flex-1 py-4">
                                 <div className="flex items-center gap-4 w-full">
                                     <div className="flex-1 text-left">
                                         <p className="font-semibold truncate" title={job.name}>{job.name}</p>
                                         <p className="text-xs text-muted-foreground font-mono">{job.repo} / {job.branch}</p>
                                     </div>
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mr-4">
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                         <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="flex items-center gap-1">
@@ -537,18 +533,18 @@ export function SessionList({
                                                       <ScrollArea className="h-[200px]">
                                                         <CommandEmpty>No replies found.</CommandEmpty>
                                                         <CommandGroup>
-                                                          {quickReplyOptions.map(option => (
+                                                          {quickReplies.map(option => (
                                                             <CommandItem
-                                                              key={option.value}
+                                                              key={option.id}
                                                               onSelect={() => {
-                                                                onSendMessage(session.id, option.content);
+                                                                onSendMessage(session.id, option.prompt);
                                                                 document.body.click(); 
                                                               }}
                                                               className="flex justify-between cursor-pointer"
                                                             >
-                                                              <span className="truncate flex-1 font-medium">{option.label}</span>
+                                                              <span className="truncate flex-1 font-medium">{option.title}</span>
                                                               <span className="text-xs text-muted-foreground ml-2 truncate">
-                                                                [{truncate(option.content, 20)}]
+                                                                [{truncate(option.prompt, 20)}]
                                                               </span>
                                                             </CommandItem>
                                                           ))}
@@ -669,4 +665,3 @@ export function SessionList({
     </>
   );
 }
-
