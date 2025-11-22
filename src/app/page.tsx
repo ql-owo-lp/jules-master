@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
+import { groupSessionsByTopic, createDynamicJobs } from "@/lib/utils";
 
 function HomePageContent() {
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
@@ -55,16 +56,21 @@ function HomePageContent() {
 
   const { filteredJobs, unknownSessions } = useMemo(() => {
     const allJobSessionIds = new Set(jobs.flatMap(j => j.sessionIds));
-    const unknown = sessions.filter(s => !allJobSessionIds.has(s.id));
+    let unknown = sessions.filter(s => !allJobSessionIds.has(s.id));
 
-    let j = [...jobs].reverse();
+    // Logic to extract job name from prompt and group unknown sessions
+    const { groupedSessions, remainingUnknown } = groupSessionsByTopic(unknown);
+    const dynamicJobs = createDynamicJobs(groupedSessions);
+
+    let j = [...jobs, ...dynamicJobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     if (jobFilter) {
       j = j.filter(job => job.id === jobFilter);
     }
     if (repoFilter !== 'all') {
       j = j.filter(job => job.repo === repoFilter);
     }
-    return { filteredJobs: j, unknownSessions: unknown };
+    return { filteredJobs: j, unknownSessions: remainingUnknown };
   }, [jobs, sessions, jobFilter, repoFilter]);
 
   const totalJobPages = Math.ceil(filteredJobs.length / jobsPerPage);
