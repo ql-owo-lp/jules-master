@@ -4,11 +4,12 @@ import {
     getJobs, addJob,
     getPredefinedPrompts, savePredefinedPrompts,
     getQuickReplies, saveQuickReplies,
-    getGlobalPrompt, saveGlobalPrompt
+    getGlobalPrompt, saveGlobalPrompt,
+    getHistoryPrompts
 } from '../src/app/config/actions';
-import { Job, PredefinedPrompt } from '../src/lib/types';
+import { Job, PredefinedPrompt, HistoryPrompt } from '../src/lib/types';
 import { db } from '../src/lib/db';
-import { jobs, predefinedPrompts, quickReplies, globalPrompt } from '../src/lib/db/schema';
+import { jobs, predefinedPrompts, quickReplies, globalPrompt, historyPrompts, settings } from '../src/lib/db/schema';
 
 // Mock next/cache
 vi.mock('next/cache', () => ({
@@ -158,6 +159,22 @@ describe('Config Actions', () => {
          it('should return empty string if no global prompt set', async () => {
             const retrieved = await getGlobalPrompt();
             expect(retrieved).toBe('');
+        });
+    });
+
+    describe('History Prompts', () => {
+        beforeEach(async () => {
+            await db.delete(historyPrompts);
+            await db.delete(settings);
+        });
+
+        it('should retrieve history prompts with default limit when no settings', async () => {
+            for (let i = 0; i < 15; i++) {
+                await db.insert(historyPrompts).values({ id: `h${i}`, prompt: `History ${i}`, lastUsedAt: new Date().toISOString() });
+            }
+
+            const retrieved = await getHistoryPrompts();
+            expect(retrieved).toHaveLength(10);
         });
     });
 });
