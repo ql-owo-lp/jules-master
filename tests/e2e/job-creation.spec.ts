@@ -62,6 +62,12 @@ test.describe('Job Creation', () => {
     const createButton = page.getByRole('button', { name: 'Create Job' });
     await expect(createButton).toBeVisible();
     await expect(createButton).toBeEnabled();
+
+    // Click the create button
+    await createButton.click();
+
+    // Verify that the job was created
+    await expect(page.getByText('Test Job')).toBeVisible({ timeout: 10000 });
   });
 
   test('should navigate to new job page via external link', async ({ page }) => {

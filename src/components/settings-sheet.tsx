@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "./ui/separator";
 import { useEnv } from "@/components/env-provider";
+import { Checkbox } from "./ui/checkbox";
+import { Textarea } from "./ui/textarea";
 
 
 export function SettingsSheet() {
@@ -45,11 +47,9 @@ export function SettingsSheet() {
   const [historyPromptsCount, setHistoryPromptsCount] = useLocalStorage<number>("jules-history-prompts-count", 10);
   const [autoApprovalInterval, setAutoApprovalInterval] = useLocalStorage<number>("jules-auto-approval-interval", 60);
   const [autoRetryEnabled, setAutoRetryEnabled] = useLocalStorage<boolean>("jules-auto-retry-enabled", true);
-  const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
   const [autoRetryMessage, setAutoRetryMessage] = useLocalStorage<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
+  const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", false);
   const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
-  const [autoRetryInterval, setAutoRetryInterval] = useLocalStorage<number>("jules-auto-retry-interval", 60);
-  const [autoContinueInterval, setAutoContinueInterval] = useLocalStorage<number>("jules-auto-continue-interval", 60);
 
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
@@ -65,11 +65,9 @@ export function SettingsSheet() {
   const [historyPromptsCountValue, setHistoryPromptsCountValue] = useState(historyPromptsCount);
   const [autoApprovalIntervalValue, setAutoApprovalIntervalValue] = useState(autoApprovalInterval);
   const [autoRetryEnabledValue, setAutoRetryEnabledValue] = useState(autoRetryEnabled);
-  const [autoContinueEnabledValue, setAutoContinueEnabledValue] = useState(autoContinueEnabled);
   const [autoRetryMessageValue, setAutoRetryMessageValue] = useState(autoRetryMessage);
+  const [autoContinueEnabledValue, setAutoContinueEnabledValue] = useState(autoContinueEnabled);
   const [autoContinueMessageValue, setAutoContinueMessageValue] = useState(autoContinueMessage);
-  const [autoRetryIntervalValue, setAutoRetryIntervalValue] = useState(autoRetryInterval);
-  const [autoContinueIntervalValue, setAutoContinueIntervalValue] = useState(autoContinueInterval);
   
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -92,11 +90,9 @@ export function SettingsSheet() {
   useEffect(() => { setHistoryPromptsCountValue(historyPromptsCount); }, [historyPromptsCount]);
   useEffect(() => { setAutoApprovalIntervalValue(autoApprovalInterval); }, [autoApprovalInterval]);
   useEffect(() => { setAutoRetryEnabledValue(autoRetryEnabled); }, [autoRetryEnabled]);
-  useEffect(() => { setAutoContinueEnabledValue(autoContinueEnabled); }, [autoContinueEnabled]);
   useEffect(() => { setAutoRetryMessageValue(autoRetryMessage); }, [autoRetryMessage]);
+  useEffect(() => { setAutoContinueEnabledValue(autoContinueEnabled); }, [autoContinueEnabled]);
   useEffect(() => { setAutoContinueMessageValue(autoContinueMessage); }, [autoContinueMessage]);
-  useEffect(() => { setAutoRetryIntervalValue(autoRetryInterval); }, [autoRetryInterval]);
-  useEffect(() => { setAutoContinueIntervalValue(autoContinueInterval); }, [autoContinueInterval]);
   
   // Fetch settings from DB on mount and populate if local storage is empty
   useEffect(() => {
@@ -122,11 +118,9 @@ export function SettingsSheet() {
           if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
           if (!isSetInLocalStorage("jules-auto-approval-interval")) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
           if (!isSetInLocalStorage("jules-auto-retry-enabled")) setAutoRetryEnabled(dbSettings.autoRetryEnabled);
-          if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
           if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
+          if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
           if (!isSetInLocalStorage("jules-auto-continue-message")) setAutoContinueMessage(dbSettings.autoContinueMessage);
-          if (!isSetInLocalStorage("jules-auto-retry-interval")) setAutoRetryInterval(dbSettings.autoRetryInterval);
-          if (!isSetInLocalStorage("jules-auto-continue-interval")) setAutoContinueInterval(dbSettings.autoContinueInterval);
           if (!isSetInLocalStorage("theme") && dbSettings.theme) setTheme(dbSettings.theme);
         }
       } catch (error) {
@@ -147,11 +141,9 @@ export function SettingsSheet() {
       setHistoryPromptsCount,
       setAutoApprovalInterval,
       setAutoRetryEnabled,
-      setAutoContinueEnabled,
       setAutoRetryMessage,
+      setAutoContinueEnabled,
       setAutoContinueMessage,
-      setAutoRetryInterval,
-      setAutoContinueInterval,
       setTheme
     ]);
 
@@ -170,11 +162,9 @@ export function SettingsSheet() {
     setHistoryPromptsCount(historyPromptsCountValue);
     setAutoApprovalInterval(autoApprovalIntervalValue);
     setAutoRetryEnabled(autoRetryEnabledValue);
-    setAutoContinueEnabled(autoContinueEnabledValue);
     setAutoRetryMessage(autoRetryMessageValue);
+    setAutoContinueEnabled(autoContinueEnabledValue);
     setAutoContinueMessage(autoContinueMessageValue);
-    setAutoRetryInterval(autoRetryIntervalValue);
-    setAutoContinueInterval(autoContinueIntervalValue);
 
     try {
         await fetch('/api/settings', {
@@ -194,11 +184,9 @@ export function SettingsSheet() {
                 historyPromptsCount: historyPromptsCountValue,
                 autoApprovalInterval: autoApprovalIntervalValue,
                 autoRetryEnabled: autoRetryEnabledValue,
-                autoContinueEnabled: autoContinueEnabledValue,
                 autoRetryMessage: autoRetryMessageValue,
+                autoContinueEnabled: autoContinueEnabledValue,
                 autoContinueMessage: autoContinueMessageValue,
-                autoRetryInterval: autoRetryIntervalValue,
-                autoContinueInterval: autoContinueIntervalValue,
                 theme: theme,
             }),
         });
@@ -336,74 +324,6 @@ export function SettingsSheet() {
                     </p>
                 </div>
                 <div className="grid gap-2">
-                    <div className="flex items-center space-x-2">
-                        <Input
-                            id="auto-retry-enabled"
-                            type="checkbox"
-                            checked={autoRetryEnabledValue}
-                            onCheckedChange={setAutoRetryEnabledValue}
-                        />
-                        <Label htmlFor="auto-retry-enabled">Auto Retry Enabled</Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                        Enable to automatically retry failed jobs.
-                    </p>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="auto-retry-interval">Auto Retry Interval (seconds)</Label>
-                    <Input
-                        id="auto-retry-interval"
-                        type="number"
-                        value={autoRetryIntervalValue}
-                        onChange={(e) => setAutoRetryIntervalValue(Number(e.target.value))}
-                        placeholder="e.g., 60"
-                        min="10"
-                    />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="auto-retry-message">Auto Retry Message</Label>
-                    <textarea
-                        id="auto-retry-message"
-                        value={autoRetryMessageValue}
-                        onChange={(e) => setAutoRetryMessageValue(e.target.value)}
-                        className="w-full p-2 border rounded"
-                    />
-                </div>
-                <div className="grid gap-2">
-                    <div className="flex items-center space-x-2">
-                        <Input
-                            id="auto-continue-enabled"
-                            type="checkbox"
-                            checked={autoContinueEnabledValue}
-                            onCheckedChange={setAutoContinueEnabledValue}
-                        />
-                        <Label htmlFor="auto-continue-enabled">Auto Continue Enabled</Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                        Enable to automatically continue completed jobs without a PR.
-                    </p>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="auto-continue-interval">Auto Continue Interval (seconds)</Label>
-                    <Input
-                        id="auto-continue-interval"
-                        type="number"
-                        value={autoContinueIntervalValue}
-                        onChange={(e) => setAutoContinueIntervalValue(Number(e.target.value))}
-                        placeholder="e.g., 60"
-                        min="10"
-                    />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="auto-continue-message">Auto Continue Message</Label>
-                    <textarea
-                        id="auto-continue-message"
-                        value={autoContinueMessageValue}
-                        onChange={(e) => setAutoContinueMessageValue(e.target.value)}
-                        className="w-full p-2 border rounded"
-                    />
-                </div>
-                <div className="grid gap-2">
                     <Label>Theme</Label>
                     <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -496,6 +416,44 @@ export function SettingsSheet() {
                     <p className="text-xs text-muted-foreground">
                         Number of recent prompts to display in the suggestion dropdown.
                     </p>
+                </div>
+            </div>
+
+            <Separator />
+
+            {/* Automation Settings */}
+            <div className="space-y-6">
+                <div>
+                    <h3 className="text-lg font-medium">Automation</h3>
+                    <p className="text-sm text-muted-foreground">Settings for automatic job management.</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="auto-retry-enabled" checked={autoRetryEnabledValue} onCheckedChange={(checked) => setAutoRetryEnabledValue(Boolean(checked))} />
+                    <Label htmlFor="auto-retry-enabled">Enable Auto Retry</Label>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="auto-retry-message">Auto Retry Message</Label>
+                    <Textarea
+                        id="auto-retry-message"
+                        value={autoRetryMessageValue}
+                        onChange={(e) => setAutoRetryMessageValue(e.target.value)}
+                        placeholder="Enter the message to send for auto retry"
+                        disabled={!autoRetryEnabledValue}
+                    />
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="auto-continue-enabled" checked={autoContinueEnabledValue} onCheckedChange={(checked) => setAutoContinueEnabledValue(Boolean(checked))} />
+                    <Label htmlFor="auto-continue-enabled">Enable Auto Continue</Label>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="auto-continue-message">Auto Continue Message</Label>
+                    <Textarea
+                        id="auto-continue-message"
+                        value={autoContinueMessageValue}
+                        onChange={(e) => setAutoContinueMessageValue(e.target.value)}
+                        placeholder="Enter the message to send for auto continue"
+                        disabled={!autoContinueEnabledValue}
+                    />
                 </div>
             </div>
 

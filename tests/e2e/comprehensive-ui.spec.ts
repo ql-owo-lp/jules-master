@@ -170,6 +170,8 @@ test.describe('Comprehensive UI Tests', () => {
       const addButtons = page.getByRole('button', { name: 'Add New' });
       await expect(addButtons.first()).toBeVisible();
 
+      await expect(addButtons.first()).toBeEnabled({ timeout: 10000 });
+
       await addButtons.first().click();
 
       const dialog = page.getByRole('dialog', { name: 'Add New Message' });

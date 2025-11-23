@@ -14,7 +14,6 @@
     "db:migrate": "tsx src/lib/db/migrate.ts",
     "test": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:with-migrations": "npm run db:migrate && playwright test",
     "postinstall": "patch-package"
   },
   "dependencies": {

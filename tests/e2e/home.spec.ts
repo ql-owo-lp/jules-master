@@ -15,6 +15,9 @@ test.describe('Home Page', () => {
     // Expand Uncategorized Sessions accordion
     const accordionTrigger = page.getByRole('button', { name: /Uncategorized Sessions/ });
 
+    // Wait for jobs to be loaded
+    await expect(page.getByText('Test Job')).toBeVisible();
+
     // Wait for trigger to be visible (implies sessions loaded)
     await expect(accordionTrigger).toBeVisible({ timeout: 10000 });
 
@@ -29,6 +32,9 @@ test.describe('Home Page', () => {
     // Check for status badges (UI labels)
     await expect(page.getByText('Completed', { exact: true })).toBeVisible();
     await expect(page.getByText('Awaiting User Feedback', { exact: true })).toBeVisible();
+
+    // Check for the job created in the job-creation test
+    await expect(page.getByText('Test Job')).toBeVisible();
   });
 
   test('should allow setting API key', async ({ page }) => {

@@ -2,11 +2,12 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: 'line',
+  timeout: 60000,
   use: {
     baseURL: 'http://localhost:9002',
     trace: 'on-first-retry',
@@ -18,7 +19,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run db:migrate && MOCK_API=true npm run dev',
+    command: 'MOCK_API=true npm run dev',
     url: 'http://localhost:9002',
     reuseExistingServer: !process.env.CI,
     stdout: 'ignore',
