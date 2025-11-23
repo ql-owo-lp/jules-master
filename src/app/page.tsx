@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
 import { groupSessionsByTopic, createDynamicJobs } from "@/lib/utils";
 import { useEnv } from "@/components/env-provider";
+import { FloatingProgressBar } from "@/components/floating-progress-bar";
 
 function HomePageContent() {
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
@@ -50,6 +51,10 @@ function HomePageContent() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
   const [jobPage, setJobPage] = useState(jobPageParam ? parseInt(jobPageParam, 10) : 1);
+
+  const [progressCurrent, setProgressCurrent] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("");
   
   // Effect to sync job filter with URL param
   useEffect(() => {
@@ -156,25 +161,48 @@ function HomePageContent() {
 
   const handleApprovePlan = (sessionIds: string[]) => {
     startActionTransition(async () => {
-      const approvalPromises = sessionIds.map(id => approvePlan(id, apiKey));
-      
+      if (sessionIds.length > 1) {
+        setProgressLabel("Approving plans...");
+        setProgressTotal(sessionIds.length);
+        setProgressCurrent(0);
+      }
+
+      let successfulApprovals = 0;
+      let completedCount = 0;
+
+      const approvalPromises = sessionIds.map(async (id) => {
+        try {
+            const result = await approvePlan(id, apiKey);
+            if (result) successfulApprovals++;
+        } catch (e) {
+           console.error(`Failed to approve plan for session ${id}`, e);
+        } finally {
+            completedCount++;
+            if (sessionIds.length > 1) {
+                setProgressCurrent(completedCount);
+            }
+        }
+      });
+
       try {
-          const results = await Promise.all(approvalPromises);
-          const successfulApprovals = results.filter(r => r).length;
+        await Promise.all(approvalPromises);
 
-          toast({
-              title: "Bulk Approval Complete",
-              description: `Successfully approved ${successfulApprovals} of ${sessionIds.length} pending sessions.`,
-          });
+        toast({
+            title: "Bulk Approval Complete",
+            description: `Successfully approved ${successfulApprovals} of ${sessionIds.length} pending sessions.`,
+        });
 
-          // Refresh data to reflect new states
-          fetchAllData();
+        // Refresh data to reflect new states
+        fetchAllData();
       } catch (error) {
           toast({
               variant: "destructive",
               title: "Bulk Approval Failed",
               description: "An error occurred while approving sessions.",
           });
+      } finally {
+        setProgressCurrent(0);
+        setProgressTotal(0);
       }
     });
   };
@@ -196,10 +224,34 @@ function HomePageContent() {
 
   const handleBulkSendMessage = (sessionIds: string[], message: string) => {
     startActionTransition(async () => {
-      const messagePromises = sessionIds.map(id => sendMessage(id, message, apiKey));
+      if (sessionIds.length > 1) {
+        setProgressLabel("Sending messages...");
+        setProgressTotal(sessionIds.length);
+        setProgressCurrent(0);
+      }
+
+      let successfulMessages = 0;
+      let completedCount = 0;
+
+      const messagePromises = sessionIds.map(async (id) => {
         try {
-            const results = await Promise.all(messagePromises);
-            const successfulMessages = results.filter(r => r).length;
+            const result = await sendMessage(id, message, apiKey);
+            if (result) {
+                successfulMessages++;
+            }
+        } catch (e) {
+            console.error(`Failed to send message to session ${id}`, e);
+        } finally {
+            completedCount++;
+            if (sessionIds.length > 1) {
+                setProgressCurrent(completedCount);
+            }
+        }
+      });
+
+        try {
+            await Promise.all(messagePromises);
+
             toast({
                 title: "Bulk Message Sent",
                 description: `Successfully sent message to ${successfulMessages} of ${sessionIds.length} sessions.`,
@@ -211,6 +263,9 @@ function HomePageContent() {
                 title: "Bulk Message Failed",
                 description: "An error occurred while sending messages.",
             });
+        } finally {
+            setProgressCurrent(0);
+            setProgressTotal(0);
         }
     });
   }
@@ -281,6 +336,12 @@ function HomePageContent() {
 
   return (
     <div className="flex flex-col flex-1 bg-background">
+      <FloatingProgressBar
+        current={progressCurrent}
+        total={progressTotal}
+        label={progressLabel}
+        isVisible={isActionPending && progressTotal > 1}
+      />
       <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
         <div className="space-y-8 px-4 sm:px-6 lg:px-8">
           {!hasJulesApiKey && (

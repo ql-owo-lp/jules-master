@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Combobox } from "@/components/ui/combobox";
+import { FloatingProgressBar } from "@/components/floating-progress-bar";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[], newJob: Job) => void;
@@ -70,6 +71,9 @@ export function JobCreationForm({
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
   const [globalPrompt, setGlobalPrompt] = useState('');
+
+  const [progressCurrent, setProgressCurrent] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
 
   const [isClient, setIsClient] = useState(false);
   
@@ -136,7 +140,16 @@ export function JobCreationForm({
       const sessionIds: string[] = [];
       const title = jobName.trim() || new Date().toLocaleString();
 
+      if (sessionCount > 1) {
+        setProgressTotal(sessionCount);
+        setProgressCurrent(0);
+      }
+
       for (let i = 0; i < sessionCount; i++) {
+        if (sessionCount > 1) {
+             setProgressCurrent(i + 1);
+        }
+
         let retries = 3;
         let newSession: Session | null = null;
         while (retries > 0 && !newSession) {
@@ -181,6 +194,9 @@ export function JobCreationForm({
         setJobName("");
         setSessionCount(defaultSessionCount);
       }
+
+      setProgressCurrent(0);
+      setProgressTotal(0);
     });
   };
 
@@ -224,6 +240,12 @@ export function JobCreationForm({
 
   return (
     <Card className="shadow-md">
+      <FloatingProgressBar
+        current={progressCurrent}
+        total={progressTotal}
+        label="Creating sessions..."
+        isVisible={isPending && sessionCount > 1}
+      />
       <TooltipProvider>
       <CardHeader className="relative">
         <div>
