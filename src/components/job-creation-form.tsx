@@ -155,7 +155,7 @@ export function JobCreationForm({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    const finalPrompt = (applyGlobalPrompt && globalPrompt ? `${globalPrompt}\n\n---\n\n` : "") + prompt;
+    const finalPrompt = (applyGlobalPrompt && globalPrompt ? `${globalPrompt}\n\n` : "") + prompt;
 
     if (!finalPrompt.trim()) {
       toast({
