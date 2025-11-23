@@ -131,6 +131,19 @@ class AppDatabase {
         }
     }
   };
+
+  // RepoPrompts DAO
+  public repoPrompts = {
+    get: async (repo: string) => db.select().from(schema.repoPrompts).where(eq(schema.repoPrompts.repo, repo)).get(),
+    save: async (repo: string, prompt: string) => {
+        const existing = await db.select().from(schema.repoPrompts).where(eq(schema.repoPrompts.repo, repo)).get();
+        if (existing) {
+            await db.update(schema.repoPrompts).set({ prompt }).where(eq(schema.repoPrompts.repo, repo));
+        } else {
+            await db.insert(schema.repoPrompts).values({ repo, prompt });
+        }
+    }
+  };
 }
 
 export const appDatabase = new AppDatabase();

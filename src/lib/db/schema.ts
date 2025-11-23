@@ -34,6 +34,11 @@ export const globalPrompt = sqliteTable('global_prompt', {
   prompt: text('prompt').notNull(),
 });
 
+export const repoPrompts = sqliteTable('repo_prompts', {
+  repo: text('repo').primaryKey(),
+  prompt: text('prompt').notNull(),
+});
+
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey(),
   idlePollInterval: integer('idle_poll_interval').notNull().default(120),

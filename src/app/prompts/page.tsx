@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import type { PredefinedPrompt } from "@/lib/types";
+import type { PredefinedPrompt, Source } from "@/lib/types";
 import {
   Card,
   CardHeader,
@@ -33,7 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BookText, Plus, Edit, Trash2, MoreHorizontal, MessageSquareReply, Globe } from "lucide-react";
+import { BookText, Plus, Edit, Trash2, MoreHorizontal, MessageSquareReply, Globe, GitMerge, RefreshCw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,8 +48,14 @@ import {
     getQuickReplies, 
     saveQuickReplies, 
     getGlobalPrompt,
-    saveGlobalPrompt
+    saveGlobalPrompt,
+    getRepoPrompt,
+    saveRepoPrompt
 } from "@/app/config/actions";
+import { SourceSelection } from "@/components/source-selection";
+import { listSources } from "@/app/sessions/actions";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { cn } from "@/lib/utils";
 
 type DialogState = {
   isOpen: boolean;
@@ -62,8 +68,15 @@ export default function PredefinedPromptsPage() {
   const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
   const [globalPrompt, setGlobalPrompt] = useState<string>("");
   
+  const [repoPrompt, setRepoPrompt] = useState<string>("");
+  const [selectedSource, setSelectedSource] = useState<Source | null>(null);
+  const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
+  const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
+  const [isRefreshingSources, startRefreshSources] = useTransition();
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, startSaving] = useTransition();
+  const [isFetchingRepoPrompt, startFetchingRepoPrompt] = useTransition();
   
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, type: 'prompt', data: null });
   const [title, setTitle] = useState("");
@@ -71,6 +84,7 @@ export default function PredefinedPromptsPage() {
   
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [apiKey] = useLocalStorage<string>("jules-api-key", "");
 
   useEffect(() => {
     setIsClient(true);
@@ -88,6 +102,38 @@ export default function PredefinedPromptsPage() {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (selectedSource) {
+        startFetchingRepoPrompt(async () => {
+            const repoName = `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`;
+            const prompt = await getRepoPrompt(repoName);
+            setRepoPrompt(prompt);
+        });
+    } else {
+        setRepoPrompt("");
+    }
+  }, [selectedSource]);
+
+  const handleRefreshSources = () => {
+    startRefreshSources(async () => {
+        try {
+            const fetchedSources = await listSources(apiKey);
+            setSources(fetchedSources);
+            setSourceSelectionKey(Date.now());
+             toast({
+                title: "Refreshed",
+                description: "The list of repositories has been updated.",
+            });
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to refresh repositories.",
+            });
+        }
+    });
+  };
 
   const openDialog = (type: 'prompt' | 'reply', data: PredefinedPrompt | null = null) => {
     setDialogState({ isOpen: true, type, data });
@@ -168,6 +214,18 @@ export default function PredefinedPromptsPage() {
         toast({
             title: "Global Prompt Saved",
             description: "Your global prompt has been updated.",
+        });
+    });
+  }
+
+  const handleSaveRepoPrompt = () => {
+    if (!selectedSource) return;
+    startSaving(async () => {
+        const repoName = `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`;
+        await saveRepoPrompt(repoName, repoPrompt);
+         toast({
+            title: "Repository Prompt Saved",
+            description: `Prompt for ${repoName} has been updated.`,
         });
     });
   }
@@ -286,6 +344,54 @@ export default function PredefinedPromptsPage() {
               </CardContent>
               <CardFooter className="flex justify-end">
                  <Button onClick={handleSaveGlobalPrompt} disabled={isSaving || isLoading}>Save Global Prompt</Button>
+              </CardFooter>
+            </Card>
+
+             <Card>
+              <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <GitMerge className="h-6 w-6" />
+                    <CardTitle>Per-Repository Prompt</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Define a global prompt for a specific repository. This will be appended after the global prompt.
+                  </CardDescription>
+              </CardHeader>
+              <CardContent>
+                 <div className="space-y-4">
+                    <div className="flex items-end gap-2">
+                        <div className="flex-1 space-y-2">
+                            <Label htmlFor="repository-select">Repository</Label>
+                             <SourceSelection
+                                key={sourceSelectionKey}
+                                onSourceSelected={setSelectedSource}
+                                disabled={isSaving || isLoading}
+                                selectedValue={selectedSource}
+                                sources={sources}
+                                onSourcesLoaded={setSources}
+                             />
+                        </div>
+                         <Button variant="ghost" size="icon" onClick={handleRefreshSources} className="h-10 w-10 mb-[2px]" disabled={isRefreshingSources} aria-label="Refresh Repositories">
+                            <RefreshCw className={cn("h-4 w-4", isRefreshingSources ? "animate-spin" : "")} />
+                        </Button>
+                    </div>
+
+                    <div className="grid w-full gap-2">
+                        <Label htmlFor="repo-prompt">Repository Prompt Text</Label>
+                        <Textarea
+                            id="repo-prompt"
+                            placeholder={selectedSource ? `Enter prompt for ${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}...` : "Select a repository to edit its prompt"}
+                            rows={5}
+                            value={repoPrompt}
+                            onChange={(e) => setRepoPrompt(e.target.value)}
+                            disabled={isSaving || isLoading || !selectedSource || isFetchingRepoPrompt}
+                        />
+                         {isFetchingRepoPrompt && <p className="text-xs text-muted-foreground">Loading prompt...</p>}
+                    </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                 <Button onClick={handleSaveRepoPrompt} disabled={isSaving || isLoading || !selectedSource || isFetchingRepoPrompt}>Save Repository Prompt</Button>
               </CardFooter>
             </Card>
 
