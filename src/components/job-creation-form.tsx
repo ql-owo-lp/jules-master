@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Combobox, ComboboxGroup } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FloatingProgressBar } from "@/components/floating-progress-bar";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[], newJob: Job) => void;
@@ -72,6 +73,9 @@ export function JobCreationForm({
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
   const [historyPrompts, setHistoryPrompts] = useState<HistoryPrompt[]>([]);
   const [globalPrompt, setGlobalPrompt] = useState('');
+
+  const [progressCurrent, setProgressCurrent] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
 
   // Track selected prompt ID to make the combobox display the selected item correctly
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
@@ -151,7 +155,16 @@ export function JobCreationForm({
       const sessionIds: string[] = [];
       const title = jobName.trim() || new Date().toLocaleString();
 
+      if (sessionCount > 1) {
+        setProgressTotal(sessionCount);
+        setProgressCurrent(0);
+      }
+
       for (let i = 0; i < sessionCount; i++) {
+        if (sessionCount > 1) {
+             setProgressCurrent(i + 1);
+        }
+
         let retries = 3;
         let newSession: Session | null = null;
         while (retries > 0 && !newSession) {
@@ -197,6 +210,9 @@ export function JobCreationForm({
         setJobName("");
         setSessionCount(defaultSessionCount);
       }
+
+      setProgressCurrent(0);
+      setProgressTotal(0);
     });
   };
 
@@ -276,6 +292,12 @@ export function JobCreationForm({
 
   return (
     <Card className="shadow-md">
+       <FloatingProgressBar
+        current={progressCurrent}
+        total={progressTotal}
+        label="Creating sessions..."
+        isVisible={isPending && sessionCount > 1}
+      />
       <TooltipProvider>
       <CardHeader className="relative">
         <div>
