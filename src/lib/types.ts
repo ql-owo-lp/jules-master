@@ -24,6 +24,7 @@ export type Job = {
     createdAt: string;
     repo: string;
     branch: string;
+    autoApproval?: boolean;
 }
 
 export type SourceContext = {
