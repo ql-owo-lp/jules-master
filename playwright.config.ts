@@ -7,7 +7,6 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'line',
-  timeout: 60000,
   use: {
     baseURL: 'http://localhost:9002',
     trace: 'on-first-retry',
@@ -19,7 +18,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'MOCK_API=true npm run dev',
+    command: 'npm run db:migrate && MOCK_API=true npm run dev',
     url: 'http://localhost:9002',
     reuseExistingServer: !process.env.CI,
     stdout: 'ignore',

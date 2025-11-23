@@ -36,13 +36,6 @@
       "when": 1763871998647,
       "tag": "0004_smart_ultragirl",
       "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1763914560896,
-      "tag": "0005_early_groot",
-      "breakpoints": true
     }
   ]
 }
