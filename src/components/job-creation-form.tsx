@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { refreshSources } from "@/app/sessions/actions";
-import { getPredefinedPrompts, getGlobalPrompt, addJob, getHistoryPrompts, saveHistoryPrompt } from "@/app/config/actions";
+import { getPredefinedPrompts, getGlobalPrompt, getRepoPrompt, addJob, getHistoryPrompts, saveHistoryPrompt } from "@/app/config/actions";
 import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode, HistoryPrompt } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2, RefreshCw, X, Trash2, BookText } from "lucide-react";
@@ -74,6 +74,7 @@ export function JobCreationForm({
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
   const [historyPrompts, setHistoryPrompts] = useState<HistoryPrompt[]>([]);
   const [globalPrompt, setGlobalPrompt] = useState('');
+  const [repoPrompt, setRepoPrompt] = useState('');
 
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
@@ -155,7 +156,15 @@ export function JobCreationForm({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    const finalPrompt = (applyGlobalPrompt && globalPrompt ? `${globalPrompt}\n\n` : "") + prompt;
+    // The appending order is, “global prompt”, “pre-repo prompt”, “job prompt “. All of them are separated with two new lines
+    let finalPrompt = "";
+    if (applyGlobalPrompt && globalPrompt) {
+        finalPrompt += `${globalPrompt}\n\n`;
+    }
+    if (repoPrompt) {
+        finalPrompt += `${repoPrompt}\n\n`;
+    }
+    finalPrompt += prompt;
 
     if (!finalPrompt.trim()) {
       toast({
@@ -285,6 +294,15 @@ export function JobCreationForm({
       if (!currentBranchIsValid) {
         setSelectedBranch(defaultBranch);
       }
+
+      const fetchRepoPrompt = async () => {
+         const repoName = `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`;
+         const prompt = await getRepoPrompt(repoName);
+         setRepoPrompt(prompt);
+      };
+      fetchRepoPrompt();
+    } else {
+        setRepoPrompt("");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSource, branches, defaultBranch]);
