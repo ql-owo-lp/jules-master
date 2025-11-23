@@ -1,0 +1,13 @@
+
+{
+  "crons": [
+    {
+      "path": "/api/cron/auto-retry",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-continue",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
