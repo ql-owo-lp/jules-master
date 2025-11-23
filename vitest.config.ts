@@ -5,6 +5,7 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
+    environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**', 'tests/e2e/**'],
     fileParallelism: false,
