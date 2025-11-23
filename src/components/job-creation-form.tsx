@@ -228,6 +228,7 @@ export function JobCreationForm({
         createdAt: new Date().toISOString(),
         repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
         branch: selectedBranch,
+        autoApproval: !requirePlanApproval,
       };
       
       await addJob(newJob);

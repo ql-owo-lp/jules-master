@@ -1,4 +1,3 @@
-
 import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
@@ -9,6 +8,7 @@ export const jobs = sqliteTable('jobs', {
   createdAt: text('created_at').notNull(),
   repo: text('repo').notNull(),
   branch: text('branch').notNull(),
+  autoApproval: integer('auto_approval', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const predefinedPrompts = sqliteTable('predefined_prompts', {
@@ -46,4 +46,5 @@ export const settings = sqliteTable('settings', {
   prStatusPollInterval: integer('pr_status_poll_interval').notNull().default(60),
   theme: text('theme').notNull().default('system'),
   historyPromptsCount: integer('history_prompts_count').notNull().default(10),
+  autoApprovalInterval: integer('auto_approval_interval').notNull().default(60),
 });
