@@ -67,6 +67,7 @@ export function JobCreationForm({
   const [selectedSource, setSelectedSource] = useLocalStorage<Source | null>("jules-last-source", null);
   const [selectedBranch, setSelectedBranch] = useLocalStorage<string | undefined>("jules-last-branch", undefined);
   const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
+  const [lastSourcesFetch, setLastSourcesFetch] = useLocalStorage<number>("jules-sources-last-fetch", 0);
 
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
@@ -109,6 +110,34 @@ export function JobCreationForm({
       });
     });
   }, [toast, setSources]);
+
+  useEffect(() => {
+    const checkCache = async () => {
+      if (document.visibilityState === 'visible') {
+        const now = Date.now();
+        // Refresh if older than 5 minutes
+        if (now - lastSourcesFetch > 5 * 60 * 1000 && !isRefreshing) {
+           await handleRefresh();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', checkCache);
+    window.addEventListener('focus', checkCache);
+
+    // Initial check
+    checkCache();
+
+    return () => {
+      document.removeEventListener('visibilitychange', checkCache);
+      window.removeEventListener('focus', checkCache);
+    };
+  }, [lastSourcesFetch, handleRefresh, isRefreshing]);
+
+  const handleSourcesLoaded = (newSources: Source[]) => {
+    setSources(newSources);
+    setLastSourcesFetch(Date.now());
+  };
 
   const handleReset = () => {
     setJobName("");
@@ -401,7 +430,7 @@ export function JobCreationForm({
                     disabled={disabled || isPending}
                     selectedValue={selectedSource}
                     sources={sources}
-                    onSourcesLoaded={setSources}
+                    onSourcesLoaded={handleSourcesLoaded}
                 />
             </div>
             <BranchSelection 

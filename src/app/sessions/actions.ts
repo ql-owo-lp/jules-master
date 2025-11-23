@@ -123,19 +123,43 @@ export async function listSources(apiKey?: string | null): Promise<Source[]> {
     console.error("Jules API key is not configured.");
     return [];
   }
+
+  let allSources: Source[] = [];
+  let nextPageToken: string | undefined | null = null;
+
   try {
-    const response = await fetch('https://jules.googleapis.com/v1alpha/sources', {
-      headers: {
-        'X-Goog-Api-Key': effectiveApiKey,
-      },
-      next: { revalidate: 300, tags: ['sources'] },
-    });
-    if (!response.ok) {
-      console.error(`Failed to fetch sources: ${response.status} ${response.statusText}`);
-      return [];
-    }
-    const data: ListSourcesResponse = await response.json();
-    return data.sources || [];
+    do {
+      const url = new URL('https://jules.googleapis.com/v1alpha/sources');
+      // Set a page size to avoid fetching too many or too few if the API supports it
+      url.searchParams.set('pageSize', '100');
+      if (nextPageToken) {
+        url.searchParams.set('pageToken', nextPageToken);
+      }
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          'X-Goog-Api-Key': effectiveApiKey,
+        },
+        next: { revalidate: 300, tags: ['sources'] },
+      });
+
+      if (!response.ok) {
+        console.error(`Failed to fetch sources: ${response.status} ${response.statusText}`);
+        // If we have some sources, return them, otherwise return empty
+        if (allSources.length > 0) {
+          break;
+        }
+        return [];
+      }
+
+      const data: ListSourcesResponse = await response.json();
+      if (data.sources) {
+        allSources = [...allSources, ...data.sources];
+      }
+      nextPageToken = data.nextPageToken;
+    } while (nextPageToken);
+
+    return allSources;
   } catch (error) {
     console.error('Error fetching sources:', error);
     return [];
