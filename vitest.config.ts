@@ -8,6 +8,11 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**', 'tests/e2e/**'],
     fileParallelism: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      reportsDirectory: './coverage',
+    },
   },
   resolve: {
     alias: {
