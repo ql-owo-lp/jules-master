@@ -29,6 +29,13 @@
       "when": 1763848277756,
       "tag": "0003_damp_skullbuster",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1763871998647,
+      "tag": "0004_smart_ultragirl",
+      "breakpoints": true
     }
   ]
 }

@@ -20,6 +20,7 @@ export async function GET() {
         defaultSessionCount: 10,
         prStatusPollInterval: 60,
         theme: 'system',
+        autoApprovalInterval: 60,
       });
     }
 
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
         defaultSessionCount: body.defaultSessionCount,
         prStatusPollInterval: body.prStatusPollInterval,
         theme: body.theme,
+        autoApprovalInterval: body.autoApprovalInterval,
     }
 
     const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);

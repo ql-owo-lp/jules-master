@@ -43,6 +43,7 @@ export function SettingsSheet() {
   const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
   const [prStatusPollInterval, setPrStatusPollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
   const [historyPromptsCount, setHistoryPromptsCount] = useLocalStorage<number>("jules-history-prompts-count", 10);
+  const [autoApprovalInterval, setAutoApprovalInterval] = useLocalStorage<number>("jules-auto-approval-interval", 60);
 
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
@@ -56,6 +57,7 @@ export function SettingsSheet() {
   const [defaultSessionCountValue, setDefaultSessionCountValue] = useState(defaultSessionCount);
   const [prStatusPollIntervalValue, setPrStatusPollIntervalValue] = useState(prStatusPollInterval);
   const [historyPromptsCountValue, setHistoryPromptsCountValue] = useState(historyPromptsCount);
+  const [autoApprovalIntervalValue, setAutoApprovalIntervalValue] = useState(autoApprovalInterval);
   
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -76,6 +78,7 @@ export function SettingsSheet() {
   useEffect(() => { setDefaultSessionCountValue(defaultSessionCount); }, [defaultSessionCount]);
   useEffect(() => { setPrStatusPollIntervalValue(prStatusPollInterval); }, [prStatusPollInterval]);
   useEffect(() => { setHistoryPromptsCountValue(historyPromptsCount); }, [historyPromptsCount]);
+  useEffect(() => { setAutoApprovalIntervalValue(autoApprovalInterval); }, [autoApprovalInterval]);
   
   // Fetch settings from DB on mount and populate if local storage is empty
   useEffect(() => {
@@ -99,6 +102,7 @@ export function SettingsSheet() {
           if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
           if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
           if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
+          if (!isSetInLocalStorage("jules-auto-approval-interval")) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
           if (!isSetInLocalStorage("theme") && dbSettings.theme) setTheme(dbSettings.theme);
         }
       } catch (error) {
@@ -117,6 +121,7 @@ export function SettingsSheet() {
       setDefaultSessionCount,
       setPrStatusPollInterval,
       setHistoryPromptsCount,
+      setAutoApprovalInterval,
       setTheme
     ]);
 
@@ -133,6 +138,7 @@ export function SettingsSheet() {
     setDefaultSessionCount(defaultSessionCountValue);
     setPrStatusPollInterval(prStatusPollIntervalValue);
     setHistoryPromptsCount(historyPromptsCountValue);
+    setAutoApprovalInterval(autoApprovalIntervalValue);
 
     try {
         await fetch('/api/settings', {
@@ -150,6 +156,7 @@ export function SettingsSheet() {
                 defaultSessionCount: defaultSessionCountValue,
                 prStatusPollInterval: prStatusPollIntervalValue,
                 historyPromptsCount: historyPromptsCountValue,
+                autoApprovalInterval: autoApprovalIntervalValue,
                 theme: theme,
             }),
         });
@@ -270,6 +277,20 @@ export function SettingsSheet() {
                     />
                     <p className="text-xs text-muted-foreground">
                         How often to check GitHub for pull request updates in the background.
+                    </p>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="auto-approval-interval">Auto Approval Check Interval (seconds)</Label>
+                    <Input
+                        id="auto-approval-interval"
+                        type="number"
+                        value={autoApprovalIntervalValue}
+                        onChange={(e) => setAutoApprovalIntervalValue(Number(e.target.value))}
+                        placeholder="e.g., 60"
+                        min="10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        How often to check for sessions awaiting approval that should be auto-approved.
                     </p>
                 </div>
                 <div className="grid gap-2">
