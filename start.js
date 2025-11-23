@@ -1,14 +1,22 @@
 const { spawnSync } = require('child_process');
+const fs = require('fs');
 const nodePath = process.execPath;
 
 // Run migration
 console.log('Running database migrations...');
+let migrationArgs;
+
+if (fs.existsSync('src/lib/db/migrate.js')) {
+  console.log('Using compiled migration script.');
+  migrationArgs = ['src/lib/db/migrate.js'];
+} else {
+  console.log('Using source migration script with tsx.');
+  migrationArgs = ['./node_modules/tsx/dist/cli.mjs', 'src/lib/db/migrate.ts'];
+}
+
 const migrationResult = spawnSync(
   nodePath,
-  [
-    './node_modules/tsx/dist/cli.mjs',
-    'src/lib/db/migrate.ts'
-  ],
+  migrationArgs,
   { stdio: 'inherit' }
 );
 

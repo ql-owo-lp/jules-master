@@ -20,6 +20,9 @@ COPY . .
 # Build the Next.js application for production
 RUN npm run build --debug
 
+# Compile the migration script
+RUN npx esbuild src/lib/db/migrate.ts --bundle --platform=node --target=node22 --outfile=src/lib/db/migrate.js --packages=external
+
 # Create the data directory
 RUN mkdir -p /app/data
 
