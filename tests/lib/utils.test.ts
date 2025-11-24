@@ -105,6 +105,10 @@ describe('createDynamicJobs', () => {
     const { groupedSessions } = groupSessionsByTopic(sessions);
     const jobs = createDynamicJobs(groupedSessions);
     expect(jobs.length).toBe(1);
+    const job1 = jobs.find(j => j.name === 'topic1');
+    expect(job1).toBeDefined();
+    expect(job1?.repo).toBe('unknown');
+    expect(job1?.branch).toBe('unknown');
     expect(jobs[0].repo).toBe('unknown');
     expect(jobs[0].branch).toBe('unknown');
   });
@@ -116,6 +120,9 @@ describe('createDynamicJobs', () => {
     const { groupedSessions } = groupSessionsByTopic(sessions);
     const jobs = createDynamicJobs(groupedSessions);
     expect(jobs.length).toBe(1);
+    const job1 = jobs.find(j => j.name === 'topic1');
+    expect(job1).toBeDefined();
+    expect(job1?.branch).toBe('unknown');
     expect(jobs[0].repo).toBe('repo1');
     expect(jobs[0].branch).toBe('unknown');
   });
@@ -138,6 +145,9 @@ describe('createDynamicJobs', () => {
     const { groupedSessions } = groupSessionsByTopic(sessions);
     const jobs = createDynamicJobs(groupedSessions);
     expect(jobs.length).toBe(1);
+    const job1 = jobs.find(j => j.name === 'topic1');
+    expect(job1).toBeDefined();
+    expect(job1?.createdAt).toBeDefined();
     expect(jobs[0].createdAt).toBeDefined();
   });
 });
