@@ -53,7 +53,7 @@ import {
     saveRepoPrompt
 } from "@/app/config/actions";
 import { SourceSelection } from "@/components/source-selection";
-import { listSources } from "@/app/sessions/actions";
+import { listSources, refreshSources } from "@/app/sessions/actions";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { cn } from "@/lib/utils";
 
@@ -118,9 +118,9 @@ export default function PredefinedPromptsPage() {
   const handleRefreshSources = () => {
     startRefreshSources(async () => {
         try {
+            await refreshSources();
             const fetchedSources = await listSources(apiKey);
             setSources(fetchedSources);
-            setSourceSelectionKey(Date.now());
              toast({
                 title: "Refreshed",
                 description: "The list of repositories has been updated.",
@@ -363,7 +363,6 @@ export default function PredefinedPromptsPage() {
                         <div className="flex-1 space-y-2">
                             <Label htmlFor="repository-select">Repository</Label>
                              <SourceSelection
-                                key={sourceSelectionKey}
                                 onSourceSelected={setSelectedSource}
                                 disabled={isSaving || isLoading}
                                 selectedValue={selectedSource}

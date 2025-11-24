@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { refreshSources } from "@/app/sessions/actions";
+import { refreshSources, listSources } from "@/app/sessions/actions";
 import { getPredefinedPrompts, getGlobalPrompt, getRepoPrompt, addJob, getHistoryPrompts, saveHistoryPrompt } from "@/app/config/actions";
 import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode, HistoryPrompt } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -69,6 +69,7 @@ export function JobCreationForm({
   const [selectedBranch, setSelectedBranch] = useLocalStorage<string | undefined>("jules-last-branch", undefined);
   const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
   const [lastSourcesFetch, setLastSourcesFetch] = useLocalStorage<number>("jules-sources-last-fetch", 0);
+  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
 
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
@@ -106,15 +107,25 @@ export function JobCreationForm({
 
   const handleRefresh = useCallback(async () => {
     startRefreshTransition(async () => {
-      await refreshSources();
-      setSourceSelectionKey(Date.now());
-      setSources([]); // Clear cache to force re-fetch in SourceSelection
-      toast({
-        title: "Refreshed",
-        description: "The list of repositories has been updated.",
-      });
+      try {
+        await refreshSources();
+        const fetchedSources = await listSources(apiKey);
+        setSources(fetchedSources);
+        setLastSourcesFetch(Date.now());
+        toast({
+          title: "Refreshed",
+          description: "The list of repositories has been updated.",
+        });
+      } catch (error) {
+        console.error("Failed to refresh sources:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to refresh repositories.",
+        });
+      }
     });
-  }, [toast, setSources]);
+  }, [toast, setSources, setLastSourcesFetch, apiKey]);
 
   useEffect(() => {
     const checkCache = async () => {
@@ -468,7 +479,6 @@ export function JobCreationForm({
                     </Button>
                 </div>
                 <SourceSelection 
-                    key={sourceSelectionKey}
                     onSourceSelected={setSelectedSource} 
                     disabled={disabled || isPending}
                     selectedValue={selectedSource}
