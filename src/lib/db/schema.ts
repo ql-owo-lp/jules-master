@@ -56,4 +56,17 @@ export const settings = sqliteTable('settings', {
   autoRetryMessage: text('auto_retry_message').notNull().default("You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution"),
   autoContinueEnabled: integer('auto_continue_enabled', { mode: 'boolean' }).notNull().default(true),
   autoContinueMessage: text('auto_continue_message').notNull().default("Sounds good. Now go ahead finish the work"),
+  sessionCacheDays: integer('session_cache_days').notNull().default(3),
+  sessionInProgressInterval: integer('session_in_progress_interval').notNull().default(60),
+  sessionCompletedInterval: integer('session_completed_interval').notNull().default(1800),
+  sessionPendingInterval: integer('session_pending_interval').notNull().default(300),
+});
+
+export const sessionCache = sqliteTable('session_cache', {
+  sessionId: text('session_id').primaryKey(),
+  data: text('data', { mode: 'json' }).$type<any>().notNull(),
+  lastUpdated: integer('last_updated').notNull(),
+  state: text('state').notNull(),
+  prMerged: integer('pr_merged', { mode: 'boolean' }).default(false),
+  createdAt: integer('created_at').notNull(),
 });

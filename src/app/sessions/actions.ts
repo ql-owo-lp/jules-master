@@ -4,6 +4,7 @@
 import type { Session, Source } from '@/lib/types';
 import { revalidateTag } from 'next/cache';
 import { fetchWithRetry, cancelRequest } from '@/lib/fetch-client';
+import { getCachedSessions } from '@/lib/session-cache';
 
 type ListSessionsResponse = {
   sessions: Session[];
@@ -75,7 +76,9 @@ export async function cancelSessionRequest(requestId: string) {
 export async function listSessions(
   apiKey?: string | null,
   pageSize: number = 50,
-  requestId?: string
+  requestId?: string,
+  githubToken?: string | null,
+  forceRefresh: boolean = false
 ): Promise<Session[]> {
   // Check for mock flag
   if (process.env.MOCK_API === 'true') {
@@ -83,40 +86,16 @@ export async function listSessions(
   }
 
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+  const effectiveGithubToken = githubToken || process.env.GITHUB_TOKEN;
+
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
     return [];
   }
 
   try {
-    const url = new URL('https://jules.googleapis.com/v1alpha/sessions');
-    url.searchParams.set('pageSize', pageSize.toString());
-
-    const response = await fetchWithRetry(
-        url.toString(),
-        {
-            headers: {
-                'X-Goog-Api-Key': effectiveApiKey,
-            },
-            next: { revalidate: 0, tags: ['sessions'] },
-            requestId,
-        }
-    );
-
-    if (!response.ok) {
-        console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
-        const errorBody = await response.text();
-        console.error('Error body:', errorBody);
-        return [];
-    }
-
-    const data: ListSessionsResponse = await response.json();
-    
-    return (data.sessions || []).map(session => ({
-        ...session,
-        createTime: session.createTime || '',
-    }));
-
+      // Use cached session logic
+      return await getCachedSessions(effectiveApiKey, effectiveGithubToken || undefined, requestId, forceRefresh);
   } catch (error) {
     console.error('Error fetching sessions:', error);
     return [];

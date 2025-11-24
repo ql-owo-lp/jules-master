@@ -112,7 +112,7 @@ function HomePageContent() {
     startFetching(async () => {
       try {
         const [fetchedSessions, fetchedJobs, fetchedQuickReplies] = await Promise.all([
-          listSessions(apiKey, undefined, requestId),
+          listSessions(apiKey, undefined, requestId, githubToken, options.isRefresh),
           getJobs(),
           getQuickReplies()
         ]);
@@ -131,7 +131,7 @@ function HomePageContent() {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast]);
+  }, [apiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast, githubToken]);
 
   // Cancel any pending request on unmount
   useEffect(() => {

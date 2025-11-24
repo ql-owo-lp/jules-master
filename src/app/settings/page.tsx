@@ -94,6 +94,10 @@ export default function SettingsPage() {
   const [autoRetryMessage, setAutoRetryMessage] = useLocalStorage<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
   const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
   const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
+  const [sessionCacheDays, setSessionCacheDays] = useLocalStorage<number>("jules-session-cache-days", 3);
+  const [sessionInProgressInterval, setSessionInProgressInterval] = useLocalStorage<number>("jules-session-in-progress-interval", 60);
+  const [sessionCompletedInterval, setSessionCompletedInterval] = useLocalStorage<number>("jules-session-completed-interval", 1800);
+  const [sessionPendingInterval, setSessionPendingInterval] = useLocalStorage<number>("jules-session-pending-interval", 300);
   const [debugMode, setDebugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
@@ -112,6 +116,10 @@ export default function SettingsPage() {
   const [autoRetryMessageValue, setAutoRetryMessageValue] = useState(autoRetryMessage);
   const [autoContinueEnabledValue, setAutoContinueEnabledValue] = useState(autoContinueEnabled);
   const [autoContinueMessageValue, setAutoContinueMessageValue] = useState(autoContinueMessage);
+  const [sessionCacheDaysValue, setSessionCacheDaysValue] = useState(sessionCacheDays);
+  const [sessionInProgressIntervalValue, setSessionInProgressIntervalValue] = useState(sessionInProgressInterval);
+  const [sessionCompletedIntervalValue, setSessionCompletedIntervalValue] = useState(sessionCompletedInterval);
+  const [sessionPendingIntervalValue, setSessionPendingIntervalValue] = useState(sessionPendingInterval);
   const [debugModeValue, setDebugModeValue] = useState(debugMode);
 
   const [showApiKey, setShowApiKey] = useState(false);
@@ -154,6 +162,10 @@ export default function SettingsPage() {
   useEffect(() => { setAutoRetryMessageValue(autoRetryMessage); }, [autoRetryMessage]);
   useEffect(() => { setAutoContinueEnabledValue(autoContinueEnabled); }, [autoContinueEnabled]);
   useEffect(() => { setAutoContinueMessageValue(autoContinueMessage); }, [autoContinueMessage]);
+  useEffect(() => { setSessionCacheDaysValue(sessionCacheDays); }, [sessionCacheDays]);
+  useEffect(() => { setSessionInProgressIntervalValue(sessionInProgressInterval); }, [sessionInProgressInterval]);
+  useEffect(() => { setSessionCompletedIntervalValue(sessionCompletedInterval); }, [sessionCompletedInterval]);
+  useEffect(() => { setSessionPendingIntervalValue(sessionPendingInterval); }, [sessionPendingInterval]);
   useEffect(() => { setDebugModeValue(debugMode); }, [debugMode]);
 
   useEffect(() => {
@@ -179,6 +191,10 @@ export default function SettingsPage() {
           if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
           if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
           if (!isSetInLocalStorage("jules-auto-continue-message")) setAutoContinueMessage(dbSettings.autoContinueMessage);
+          if (!isSetInLocalStorage("jules-session-cache-days")) setSessionCacheDays(dbSettings.sessionCacheDays);
+          if (!isSetInLocalStorage("jules-session-in-progress-interval")) setSessionInProgressInterval(dbSettings.sessionInProgressInterval);
+          if (!isSetInLocalStorage("jules-session-completed-interval")) setSessionCompletedInterval(dbSettings.sessionCompletedInterval);
+          if (!isSetInLocalStorage("jules-session-pending-interval")) setSessionPendingInterval(dbSettings.sessionPendingInterval);
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);
@@ -189,7 +205,8 @@ export default function SettingsPage() {
       setIdlePollInterval, setActivePollInterval, setTitleTruncateLength, setLineClamp,
       setSessionItemsPerPage, setJobsPerPage, setDefaultSessionCount, setPrStatusPollInterval,
       setHistoryPromptsCount, setAutoApprovalInterval, setAutoRetryEnabled, setAutoRetryMessage,
-      setAutoContinueEnabled, setAutoContinueMessage
+      setAutoContinueEnabled, setAutoContinueMessage, setSessionCacheDays, setSessionInProgressInterval,
+      setSessionCompletedInterval, setSessionPendingInterval
   ]);
 
   // --- Effects for Messages ---
@@ -240,6 +257,10 @@ export default function SettingsPage() {
     setAutoRetryMessage(autoRetryMessageValue);
     setAutoContinueEnabled(autoContinueEnabledValue);
     setAutoContinueMessage(autoContinueMessageValue);
+    setSessionCacheDays(sessionCacheDaysValue);
+    setSessionInProgressInterval(sessionInProgressIntervalValue);
+    setSessionCompletedInterval(sessionCompletedIntervalValue);
+    setSessionPendingInterval(sessionPendingIntervalValue);
     setDebugMode(debugModeValue);
 
     try {
@@ -268,6 +289,10 @@ export default function SettingsPage() {
                 autoRetryMessage: autoRetryMessageValue,
                 autoContinueEnabled: autoContinueEnabledValue,
                 autoContinueMessage: autoContinueMessageValue,
+                sessionCacheDays: sessionCacheDaysValue,
+                sessionInProgressInterval: sessionInProgressIntervalValue,
+                sessionCompletedInterval: sessionCompletedIntervalValue,
+                sessionPendingInterval: sessionPendingIntervalValue,
                 theme: currentTheme,
             }),
         });
@@ -806,6 +831,51 @@ export default function SettingsPage() {
                             value={defaultSessionCountValue}
                             onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
                             min="1"
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="session-cache-days">Session Cache Retention (days)</Label>
+                        <Input
+                            id="session-cache-days"
+                            type="number"
+                            value={sessionCacheDaysValue}
+                            onChange={(e) => setSessionCacheDaysValue(Number(e.target.value))}
+                            min="1"
+                        />
+                        <p className="text-xs text-muted-foreground">Stop updating sessions older than this.</p>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="session-in-progress-interval">In-Progress Session Poll Interval (seconds)</Label>
+                        <Input
+                            id="session-in-progress-interval"
+                            type="number"
+                            value={sessionInProgressIntervalValue}
+                            onChange={(e) => setSessionInProgressIntervalValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="session-completed-interval">Completed Session Poll Interval (seconds)</Label>
+                        <Input
+                            id="session-completed-interval"
+                            type="number"
+                            value={sessionCompletedIntervalValue}
+                            onChange={(e) => setSessionCompletedIntervalValue(Number(e.target.value))}
+                            min="60"
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="session-pending-interval">Pending Approval Poll Interval (seconds)</Label>
+                        <Input
+                            id="session-pending-interval"
+                            type="number"
+                            value={sessionPendingIntervalValue}
+                            onChange={(e) => setSessionPendingIntervalValue(Number(e.target.value))}
+                            min="10"
                         />
                     </div>
                 </CardContent>

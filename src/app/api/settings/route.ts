@@ -25,6 +25,10 @@ export async function GET() {
         autoRetryMessage: "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution",
         autoContinueEnabled: true,
         autoContinueMessage: "Sounds good. Now go ahead finish the work",
+        sessionCacheDays: 3,
+        sessionInProgressInterval: 60,
+        sessionCompletedInterval: 1800,
+        sessionPendingInterval: 300,
       });
     }
 
@@ -58,6 +62,10 @@ export async function POST(request: Request) {
         autoRetryMessage: body.autoRetryMessage,
         autoContinueEnabled: body.autoContinueEnabled,
         autoContinueMessage: body.autoContinueMessage,
+        sessionCacheDays: body.sessionCacheDays,
+        sessionInProgressInterval: body.sessionInProgressInterval,
+        sessionCompletedInterval: body.sessionCompletedInterval,
+        sessionPendingInterval: body.sessionPendingInterval,
     }
 
     const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);

@@ -4,6 +4,7 @@
 import type { Session, Activity } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { fetchWithRetry } from "@/lib/fetch-client";
+import { updateSessionInCache } from "@/lib/session-cache";
 
 type ListActivitiesResponse = {
   activities: Activity[];
@@ -107,6 +108,10 @@ export async function approvePlan(
       return null;
     }
     const updatedSession: Session = await response.json();
+
+    // Update cache
+    await updateSessionInCache(updatedSession);
+
     revalidatePath(`/sessions/${sessionId}`);
     revalidatePath(`/`);
     return updatedSession;
@@ -147,6 +152,10 @@ export async function sendMessage(
       return null;
     }
     const updatedSession: Session = await response.json();
+
+    // Update cache
+    await updateSessionInCache(updatedSession);
+
     revalidatePath(`/sessions/${sessionId}`);
     revalidatePath(`/`);
     return updatedSession;
