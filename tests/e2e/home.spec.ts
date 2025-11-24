@@ -36,17 +36,18 @@ test.describe('Home Page', () => {
     await page.addInitScript(() => {
        window.localStorage.removeItem('jules-api-key');
     });
-    await page.goto('/');
-
-    // Click settings (Header component)
-    await page.getByRole('button', { name: 'Open settings' }).click();
+    // We need to go to settings page to set API key now
+    await page.goto('/settings');
 
     // Fill API Key
     const apiKeyInput = page.getByLabel('Jules API Key');
     await apiKeyInput.fill('new-test-api-key');
 
     // Save
-    await page.getByRole('button', { name: 'Save Changes' }).click();
+    await page.getByRole('button', { name: 'Save General Settings' }).click();
+
+    // Go back to home
+    await page.goto('/');
 
     // Verify alert is gone
     await expect(page.getByText('API Key Not Set')).toBeHidden();

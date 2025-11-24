@@ -26,25 +26,19 @@ test.describe('Comprehensive UI Tests', () => {
       await expect(settingsButton).toBeVisible();
       await settingsButton.click();
 
-      const sheet = page.getByRole('dialog', { name: 'Settings' });
+      // Settings sheet now only contains Quick Settings (Theme)
+      const sheet = page.getByRole('dialog', { name: 'Quick Settings' });
       await expect(sheet).toBeVisible();
-
-      // Verify General settings
-      await expect(sheet.getByText('Jules API Key')).toBeVisible();
-      await expect(sheet.getByLabel('Jules API Key')).toHaveValue('test-api-key');
-
-      await expect(sheet.getByText('GitHub Personal Access Token')).toBeVisible();
-      await expect(sheet.getByLabel('GitHub Personal Access Token')).toHaveValue('test-github-token');
 
       // Verify Theme toggle exists
       await expect(sheet.getByText('Theme', { exact: true })).toBeVisible();
 
-      // Verify Job & Session List settings
-      await expect(sheet.getByText('Job & Session List')).toBeVisible();
-      await expect(sheet.getByLabel('Jobs Per Page')).toBeVisible();
+      // Verify other settings are NOT present
+      await expect(sheet.getByText('Jules API Key')).not.toBeVisible();
+      await expect(sheet.getByText('Job & Session List')).not.toBeVisible();
 
-      // Close sheet - wait for button to be ready
-      const saveButton = sheet.getByRole('button', { name: 'Save Changes' });
+      // Close sheet
+      const saveButton = sheet.getByRole('button', { name: 'Save Preference' });
       await expect(saveButton).toBeVisible();
       await saveButton.click();
       await expect(sheet).toBeHidden();
@@ -74,12 +68,12 @@ test.describe('Comprehensive UI Tests', () => {
       await jobsLink.click();
       await expect(page).toHaveURL(/\/$/);
 
-      // Verify "Messages" link
-      const messagesLink = page.getByRole('link', { name: 'Messages' });
-      await expect(messagesLink).toBeVisible();
-      await messagesLink.click();
-      await expect(page).toHaveURL(/\/prompts/);
-      await expect(page.getByText('Predefined Messages', { exact: true })).toBeVisible();
+      // Verify "Settings" link
+      const settingsLink = page.getByRole('link', { name: 'Settings' });
+      await expect(settingsLink).toBeVisible();
+      await settingsLink.click();
+      await expect(page).toHaveURL(/\/settings/);
+      await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
     });
   });
 
@@ -154,9 +148,10 @@ test.describe('Comprehensive UI Tests', () => {
     });
   });
 
-  test.describe('Messages Page', () => {
+  test.describe('Messages Settings', () => {
     test('should display predefined messages list and adding new message', async ({ page }) => {
-      await page.goto('/prompts');
+      await page.goto('/settings');
+      await page.getByRole('tab', { name: 'Messages' }).click();
 
       // Use getByText for titles as CardTitle might not be a heading role
       await expect(page.getByText('Predefined Messages', { exact: true })).toBeVisible();

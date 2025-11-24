@@ -32,7 +32,7 @@ export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promis
             tx.insert(schema.predefinedPrompts).values(prompts).run();
         }
     });
-    revalidatePath('/prompts');
+    revalidatePath('/settings');
 }
 
 // --- History Prompts ---
@@ -75,7 +75,7 @@ export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<voi
             tx.insert(schema.quickReplies).values(replies).run();
         }
     });
-    revalidatePath('/prompts');
+    revalidatePath('/settings');
 }
 
 // --- Global Prompt ---
@@ -86,7 +86,7 @@ export async function getGlobalPrompt(): Promise<string> {
 
 export async function saveGlobalPrompt(prompt: string): Promise<void> {
     await appDatabase.globalPrompt.save(prompt);
-    revalidatePath('/prompts');
+    revalidatePath('/settings');
 }
 
 // --- Repo Prompt ---
@@ -97,5 +97,5 @@ export async function getRepoPrompt(repo: string): Promise<string> {
 
 export async function saveRepoPrompt(repo: string, prompt: string): Promise<void> {
     await appDatabase.repoPrompts.save(repo, prompt);
-    revalidatePath('/prompts');
+    revalidatePath('/settings');
 }
