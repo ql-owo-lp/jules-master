@@ -33,18 +33,18 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
         branch: string | undefined,
         requirePlanApproval: boolean,
         automationMode: AutomationMode
-    ): Promise<Session | null> => {
+    ): Promise<{ session: Session | null; error?: string }> => {
         if (!source || !branch) {
             toast({
                 variant: "destructive",
                 title: "Repository and branch must be selected.",
             });
-            return null;
+            return { session: null, error: "Repository and branch must be selected." };
         }
 
         const effectiveApiKey = apiKey || julesApiKey;
 
-        const newSession = await createSession({
+        const result = await createSession({
             title: title,
             prompt: prompt,
             sourceContext: {
@@ -57,11 +57,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             automationMode
         }, effectiveApiKey);
 
-        if (!newSession) {
-            // The error toast is handled inside the creation form's retry loop
-            return null;
-        }
-        return newSession;
+        return result;
     }
 
     const handleJobsCreated = (newSessions: Session[], newJob: Job) => {

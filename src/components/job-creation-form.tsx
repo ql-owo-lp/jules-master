@@ -39,7 +39,7 @@ type JobCreationFormProps = {
     branch: string | undefined,
     requirePlanApproval: boolean,
     automationMode: AutomationMode
-  ) => Promise<Session | null>;
+  ) => Promise<{ session: Session | null; error?: string }>;
   disabled?: boolean;
   onReset?: () => void;
 };
@@ -206,8 +206,11 @@ export function JobCreationForm({
         let retries = 3;
         let newSession: Session | null = null;
         while (retries > 0 && !newSession) {
-            newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode);
+            const result = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode);
+            newSession = result.session;
+
             if (!newSession) {
+                console.error(`Failed to create session ${i + 1}:`, result.error);
                 retries--;
                 toast({
                     variant: "destructive",

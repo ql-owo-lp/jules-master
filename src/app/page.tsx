@@ -169,23 +169,33 @@ function HomePageContent() {
 
       let successfulApprovals = 0;
       let completedCount = 0;
+      const BATCH_SIZE = 5;
 
-      const approvalPromises = sessionIds.map(async (id) => {
-        try {
-            const result = await approvePlan(id, apiKey);
-            if (result) successfulApprovals++;
-        } catch (e) {
-           console.error(`Failed to approve plan for session ${id}`, e);
-        } finally {
-            completedCount++;
-            if (sessionIds.length > 1) {
-                setProgressCurrent(completedCount);
+      const processBatch = async (batch: string[]) => {
+        const promises = batch.map(async (id) => {
+             try {
+                const result = await approvePlan(id, apiKey);
+                if (result) successfulApprovals++;
+            } catch (e) {
+               console.error(`Failed to approve plan for session ${id}`, e);
+            } finally {
+                completedCount++;
+                if (sessionIds.length > 1) {
+                    setProgressCurrent(completedCount);
+                }
             }
-        }
-      });
+        });
+        await Promise.all(promises);
+      };
 
       try {
-        await Promise.all(approvalPromises);
+        for (let i = 0; i < sessionIds.length; i += BATCH_SIZE) {
+            const batch = sessionIds.slice(i, i + BATCH_SIZE);
+            await processBatch(batch);
+            if (i + BATCH_SIZE < sessionIds.length) {
+                await new Promise(resolve => setTimeout(resolve, 500)); // Throttle
+            }
+        }
 
         toast({
             title: "Bulk Approval Complete",
@@ -232,25 +242,35 @@ function HomePageContent() {
 
       let successfulMessages = 0;
       let completedCount = 0;
+      const BATCH_SIZE = 5;
 
-      const messagePromises = sessionIds.map(async (id) => {
-        try {
-            const result = await sendMessage(id, message, apiKey);
-            if (result) {
-                successfulMessages++;
+      const processBatch = async (batch: string[]) => {
+         const promises = batch.map(async (id) => {
+            try {
+                const result = await sendMessage(id, message, apiKey);
+                if (result) {
+                    successfulMessages++;
+                }
+            } catch (e) {
+                console.error(`Failed to send message to session ${id}`, e);
+            } finally {
+                completedCount++;
+                if (sessionIds.length > 1) {
+                    setProgressCurrent(completedCount);
+                }
             }
-        } catch (e) {
-            console.error(`Failed to send message to session ${id}`, e);
-        } finally {
-            completedCount++;
-            if (sessionIds.length > 1) {
-                setProgressCurrent(completedCount);
-            }
-        }
-      });
+         });
+         await Promise.all(promises);
+      }
 
         try {
-            await Promise.all(messagePromises);
+            for (let i = 0; i < sessionIds.length; i += BATCH_SIZE) {
+                const batch = sessionIds.slice(i, i + BATCH_SIZE);
+                await processBatch(batch);
+                if (i + BATCH_SIZE < sessionIds.length) {
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Throttle
+                }
+            }
 
             toast({
                 title: "Bulk Message Sent",

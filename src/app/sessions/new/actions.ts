@@ -10,14 +10,19 @@ type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
   automationMode?: AutomationMode;
 };
 
+export type SessionResult = {
+    session: Session | null;
+    error?: string;
+}
+
 export async function createSession(
   sessionData: CreateSessionBody,
   apiKey?: string | null
-): Promise<Session | null> {
+): Promise<SessionResult> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
-    return null;
+    return { session: null, error: "Jules API key is not configured." };
   }
   
   const body: Partial<CreateSessionBody> = { ...sessionData };
@@ -41,17 +46,15 @@ export async function createSession(
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(
-        `Failed to create session: ${response.status} ${response.statusText}`,
-        errorBody
-      );
-      return null;
+      const errorMessage = `Failed to create session: ${response.status} ${response.statusText}`;
+      console.error(errorMessage, errorBody);
+      return { session: null, error: `${errorMessage}. ${errorBody}` };
     }
 
     const newSession: Session = await response.json();
-    return newSession;
+    return { session: newSession };
   } catch (error) {
     console.error("Error creating session:", error);
-    return null;
+    return { session: null, error: error instanceof Error ? error.message : "Unknown error creating session" };
   }
 }
