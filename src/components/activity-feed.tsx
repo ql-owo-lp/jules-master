@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useState, forwardRef } from "react";
+import { useState, forwardRef, useEffect } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -61,6 +61,14 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
     countdown,
     pollInterval
 }, ref) => {
+  const [debugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
+
+  useEffect(() => {
+    if (debugMode && isRefreshing) {
+      console.log("Refreshing activity feed...");
+    }
+  }, [debugMode, isRefreshing]);
+
   if (activities.length === 0) {
      return (
       <Card>
