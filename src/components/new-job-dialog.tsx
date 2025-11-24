@@ -16,9 +16,15 @@ import { useEnv } from "@/components/env-provider";
 type NewJobDialogProps = {
     isPage?: boolean;
     children?: ReactNode;
+    initialValues?: {
+        prompt?: string;
+        repo?: string;
+        branch?: string;
+        jobName?: string;
+    };
 }
 
-export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
+export function NewJobDialog({ isPage = false, children, initialValues }: NewJobDialogProps) {
     const { julesApiKey } = useEnv();
     const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
     const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -99,6 +105,7 @@ export function NewJobDialog({ isPage = false, children }: NewJobDialogProps) {
             onCreateJob={handleCreateSession}
             disabled={!hasApiKey}
             onReset={isPage ? undefined : handleReset}
+            initialValues={initialValues}
         />
     );
 

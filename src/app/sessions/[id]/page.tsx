@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useRef, useCallback } from "react";
+import { useState, useEffect, useTransition, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { notFound, useSearchParams, useParams } from "next/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -13,6 +13,7 @@ import { getJobs, getQuickReplies } from "@/app/config/actions";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PrStatus } from "@/components/pr-status";
 import { useEnv } from "@/components/env-provider";
+import { NewJobDialog } from "@/components/new-job-dialog";
 
 import {
   Card,
@@ -35,6 +36,7 @@ import {
 } from "@/components/ui/tabs";
 import {
   ArrowLeft,
+  Copy,
   Calendar,
   CheckSquare,
   Clock,
@@ -257,6 +259,26 @@ export default function SessionDetailPage() {
     content: reply.prompt,
   }));
 
+  const getRepoNameFromSource = (source: string | undefined): string | undefined => {
+      if (!source) return undefined;
+      // source format: sources/github/owner/repo
+      const parts = source.split('/');
+      if (parts.length >= 4) {
+          return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+      }
+      return undefined;
+  };
+
+  const duplicateInitialValues = useMemo(() => {
+    if (!session) return undefined;
+    return {
+        prompt: session.prompt,
+        repo: getRepoNameFromSource(session.sourceContext?.source),
+        branch: session.sourceContext?.githubRepoContext?.startingBranch,
+        jobName: job?.name
+    };
+  }, [session, job]);
+
 
   if (!isClient || (isFetching && !session)) {
     return (
@@ -288,15 +310,23 @@ export default function SessionDetailPage() {
     <div className="flex flex-col flex-1 bg-background">
       <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
         <div className="space-y-8 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-             <Button variant="outline" size="icon" asChild>
-                <Link href={backPath}>
-                    <ArrowLeft className="h-4 w-4" />
-                    <span className="sr-only">Back to list</span>
-                </Link>
-            </Button>
-            <h1 className="text-3xl font-bold tracking-tight" title={session.title}>{job?.name || session.title}</h1>
-            {session.state && <JobStatusBadge status={session.state} />}
+          <div className="flex items-center justify-between">
+             <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" asChild>
+                    <Link href={backPath}>
+                        <ArrowLeft className="h-4 w-4" />
+                        <span className="sr-only">Back to list</span>
+                    </Link>
+                </Button>
+                <h1 className="text-3xl font-bold tracking-tight" title={session.title}>{job?.name || session.title}</h1>
+                {session.state && <JobStatusBadge status={session.state} />}
+             </div>
+             <NewJobDialog initialValues={duplicateInitialValues}>
+                <Button variant="outline">
+                    <Copy className="mr-2 h-4 w-4" />
+                    Duplicate
+                </Button>
+             </NewJobDialog>
           </div>
 
           {session.state === "AWAITING_PLAN_APPROVAL" && (

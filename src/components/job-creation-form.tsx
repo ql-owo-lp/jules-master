@@ -42,6 +42,12 @@ type JobCreationFormProps = {
   ) => Promise<Session | null>;
   disabled?: boolean;
   onReset?: () => void;
+  initialValues?: {
+    prompt?: string;
+    repo?: string;
+    branch?: string;
+    jobName?: string;
+  };
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -50,7 +56,8 @@ export function JobCreationForm({
   onJobsCreated,
   onCreateJob,
   disabled,
-  onReset
+  onReset,
+  initialValues
 }: JobCreationFormProps) {
   const [prompt, setPrompt] = useState("");
   const [jobName, setJobName] = useState("");
@@ -100,10 +107,48 @@ export function JobCreationForm({
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (initialValues) {
+      if (initialValues.prompt) setPrompt(initialValues.prompt);
+      if (initialValues.jobName) setJobName(initialValues.jobName);
+      if (initialValues.repo) {
+        // We need to wait for sources to be loaded to select the correct object
+        // This is handled in the effect below that watches 'sources'
+      }
+      // Branch is handled similarly
+    }
+  }, [initialValues]);
+
+  // Handle initial values selection once sources are loaded
+  useEffect(() => {
+    if (initialValues?.repo && sources.length > 0) {
+        // format: owner/repo
+        const [owner, repo] = initialValues.repo.split('/');
+        const source = sources.find(s => s.githubRepo.owner === owner && s.githubRepo.repo === repo);
+        if (source) {
+            setSelectedSource(source);
+            if (initialValues.branch) {
+                // We set this immediately, but it might be overridden by the branch validation logic
+                // if the branches aren't loaded yet. However, since branches are part of the Source object,
+                // this should be fine.
+                const branchExists = source.githubRepo.branches.some(b => b.displayName === initialValues.branch);
+                if (branchExists) {
+                    setSelectedBranch(initialValues.branch);
+                }
+            }
+        }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialValues, sources]);
+
   // Update sessionCount if the default value from storage changes
   useEffect(() => {
-    setSessionCount(defaultSessionCount);
-  }, [defaultSessionCount]);
+    if (!initialValues) {
+       setSessionCount(defaultSessionCount);
+    } else {
+        setSessionCount(1);
+    }
+  }, [defaultSessionCount, initialValues]);
 
   const handleRefresh = useCallback(async () => {
     startRefreshTransition(async () => {
