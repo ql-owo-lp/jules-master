@@ -52,4 +52,8 @@ export const settings = sqliteTable('settings', {
   theme: text('theme').notNull().default('system'),
   historyPromptsCount: integer('history_prompts_count').notNull().default(10),
   autoApprovalInterval: integer('auto_approval_interval').notNull().default(60),
+  autoRetryEnabled: integer('auto_retry_enabled', { mode: 'boolean' }).notNull().default(true),
+  autoRetryMessage: text('auto_retry_message').notNull().default("You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution"),
+  autoContinueEnabled: integer('auto_continue_enabled', { mode: 'boolean' }).notNull().default(true),
+  autoContinueMessage: text('auto_continue_message').notNull().default("Sounds good. Now go ahead finish the work"),
 });
