@@ -100,9 +100,9 @@ export default function RootLayout({
                     </SidebarMenuItem>
                      <SidebarMenuItem>
                       <SidebarMenuButton asChild>
-                        <Link href="/prompts">
+                        <Link href="/settings">
                           <BookText />
-                          <span>Messages</span>
+                          <span>Settings</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
