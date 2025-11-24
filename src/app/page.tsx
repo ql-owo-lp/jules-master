@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useCallback, Suspense, useMemo } from "react";
+import { useState, useEffect, useTransition, useCallback, Suspense, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -10,7 +10,7 @@ import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listSessions } from "@/app/sessions/actions";
+import { listSessions, cancelSessionRequest } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
 import { getJobs, getQuickReplies } from "@/app/config/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +56,8 @@ function HomePageContent() {
   const [progressTotal, setProgressTotal] = useState(0);
   const [progressLabel, setProgressLabel] = useState("");
   
+  const activeRequestId = useRef<string | null>(null);
+
   // Effect to sync job filter with URL param
   useEffect(() => {
     setJobFilter(jobIdParam);
@@ -92,6 +94,14 @@ function HomePageContent() {
   }
 
   const fetchAllData = useCallback(async (options: {isRefresh: boolean} = {isRefresh: false}) => {
+    if (activeRequestId.current) {
+        cancelSessionRequest(activeRequestId.current);
+        activeRequestId.current = null;
+    }
+
+    const requestId = crypto.randomUUID();
+    activeRequestId.current = requestId;
+
     if (options.isRefresh) {
         toast({
             title: "Refreshing sessions...",
@@ -100,20 +110,37 @@ function HomePageContent() {
     }
 
     startFetching(async () => {
-      const [fetchedSessions, fetchedJobs, fetchedQuickReplies] = await Promise.all([
-        listSessions(apiKey),
-        getJobs(),
-        getQuickReplies()
-      ]);
-      const validSessions = fetchedSessions.filter(s => s);
-      setSessions(validSessions);
-      setJobs(fetchedJobs);
-      setQuickReplies(fetchedQuickReplies);
-      setLastUpdatedAt(Date.now());
-      setCountdown(sessionListPollInterval);
+      try {
+        const [fetchedSessions, fetchedJobs, fetchedQuickReplies] = await Promise.all([
+          listSessions(apiKey, undefined, requestId),
+          getJobs(),
+          getQuickReplies()
+        ]);
+        const validSessions = fetchedSessions.filter(s => s);
+        setSessions(validSessions);
+        setJobs(fetchedJobs);
+        setQuickReplies(fetchedQuickReplies);
+        setLastUpdatedAt(Date.now());
+        setCountdown(sessionListPollInterval);
+      } catch (e) {
+          // Ignore abort errors
+      } finally {
+        if (activeRequestId.current === requestId) {
+          activeRequestId.current = null;
+        }
+      }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast]);
+
+  // Cancel any pending request on unmount
+  useEffect(() => {
+    return () => {
+      if (activeRequestId.current) {
+        cancelSessionRequest(activeRequestId.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setIsClient(true);
