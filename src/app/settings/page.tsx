@@ -96,6 +96,13 @@ export default function SettingsPage() {
   const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
   const [debugMode, setDebugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
 
+  // Session Cache Settings
+  const [sessionCacheInProgressInterval, setSessionCacheInProgressInterval] = useLocalStorage<number>("jules-session-cache-in-progress-interval", 60);
+  const [sessionCacheCompletedNoPrInterval, setSessionCacheCompletedNoPrInterval] = useLocalStorage<number>("jules-session-cache-completed-no-pr-interval", 1800);
+  const [sessionCachePendingApprovalInterval, setSessionCachePendingApprovalInterval] = useLocalStorage<number>("jules-session-cache-pending-approval-interval", 300);
+  const [sessionCacheMaxAgeDays, setSessionCacheMaxAgeDays] = useLocalStorage<number>("jules-session-cache-max-age-days", 3);
+
+
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
   const [idlePollIntervalValue, setIdlePollIntervalValue] = useState(idlePollInterval);
@@ -113,6 +120,12 @@ export default function SettingsPage() {
   const [autoContinueEnabledValue, setAutoContinueEnabledValue] = useState(autoContinueEnabled);
   const [autoContinueMessageValue, setAutoContinueMessageValue] = useState(autoContinueMessage);
   const [debugModeValue, setDebugModeValue] = useState(debugMode);
+
+  const [sessionCacheInProgressIntervalValue, setSessionCacheInProgressIntervalValue] = useState(sessionCacheInProgressInterval);
+  const [sessionCacheCompletedNoPrIntervalValue, setSessionCacheCompletedNoPrIntervalValue] = useState(sessionCacheCompletedNoPrInterval);
+  const [sessionCachePendingApprovalIntervalValue, setSessionCachePendingApprovalIntervalValue] = useState(sessionCachePendingApprovalInterval);
+  const [sessionCacheMaxAgeDaysValue, setSessionCacheMaxAgeDaysValue] = useState(sessionCacheMaxAgeDays);
+
 
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -156,6 +169,11 @@ export default function SettingsPage() {
   useEffect(() => { setAutoContinueMessageValue(autoContinueMessage); }, [autoContinueMessage]);
   useEffect(() => { setDebugModeValue(debugMode); }, [debugMode]);
 
+  useEffect(() => { setSessionCacheInProgressIntervalValue(sessionCacheInProgressInterval); }, [sessionCacheInProgressInterval]);
+  useEffect(() => { setSessionCacheCompletedNoPrIntervalValue(sessionCacheCompletedNoPrInterval); }, [sessionCacheCompletedNoPrInterval]);
+  useEffect(() => { setSessionCachePendingApprovalIntervalValue(sessionCachePendingApprovalInterval); }, [sessionCachePendingApprovalInterval]);
+  useEffect(() => { setSessionCacheMaxAgeDaysValue(sessionCacheMaxAgeDays); }, [sessionCacheMaxAgeDays]);
+
   useEffect(() => {
     setIsClient(true);
     const fetchSettings = async () => {
@@ -179,6 +197,11 @@ export default function SettingsPage() {
           if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
           if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
           if (!isSetInLocalStorage("jules-auto-continue-message")) setAutoContinueMessage(dbSettings.autoContinueMessage);
+
+          if (!isSetInLocalStorage("jules-session-cache-in-progress-interval")) setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
+          if (!isSetInLocalStorage("jules-session-cache-completed-no-pr-interval")) setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
+          if (!isSetInLocalStorage("jules-session-cache-pending-approval-interval")) setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
+          if (!isSetInLocalStorage("jules-session-cache-max-age-days")) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);
@@ -189,7 +212,8 @@ export default function SettingsPage() {
       setIdlePollInterval, setActivePollInterval, setTitleTruncateLength, setLineClamp,
       setSessionItemsPerPage, setJobsPerPage, setDefaultSessionCount, setPrStatusPollInterval,
       setHistoryPromptsCount, setAutoApprovalInterval, setAutoRetryEnabled, setAutoRetryMessage,
-      setAutoContinueEnabled, setAutoContinueMessage
+      setAutoContinueEnabled, setAutoContinueMessage, setSessionCacheInProgressInterval,
+      setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays
   ]);
 
   // --- Effects for Messages ---
@@ -242,6 +266,11 @@ export default function SettingsPage() {
     setAutoContinueMessage(autoContinueMessageValue);
     setDebugMode(debugModeValue);
 
+    setSessionCacheInProgressInterval(sessionCacheInProgressIntervalValue);
+    setSessionCacheCompletedNoPrInterval(sessionCacheCompletedNoPrIntervalValue);
+    setSessionCachePendingApprovalInterval(sessionCachePendingApprovalIntervalValue);
+    setSessionCacheMaxAgeDays(sessionCacheMaxAgeDaysValue);
+
     try {
         const response = await fetch('/api/settings');
         let currentTheme = 'system';
@@ -269,6 +298,10 @@ export default function SettingsPage() {
                 autoContinueEnabled: autoContinueEnabledValue,
                 autoContinueMessage: autoContinueMessageValue,
                 theme: currentTheme,
+                sessionCacheInProgressInterval: sessionCacheInProgressIntervalValue,
+                sessionCacheCompletedNoPrInterval: sessionCacheCompletedNoPrIntervalValue,
+                sessionCachePendingApprovalInterval: sessionCachePendingApprovalIntervalValue,
+                sessionCacheMaxAgeDays: sessionCacheMaxAgeDaysValue,
             }),
         });
 
@@ -805,6 +838,46 @@ export default function SettingsPage() {
                             type="number"
                             value={defaultSessionCountValue}
                             onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
+                            min="1"
+                        />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="session-cache-in-progress-interval">Cache Update: In Progress (seconds)</Label>
+                        <Input
+                            id="session-cache-in-progress-interval"
+                            type="number"
+                            value={sessionCacheInProgressIntervalValue}
+                            onChange={(e) => setSessionCacheInProgressIntervalValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="session-cache-completed-no-pr-interval">Cache Update: Completed No PR (seconds)</Label>
+                        <Input
+                            id="session-cache-completed-no-pr-interval"
+                            type="number"
+                            value={sessionCacheCompletedNoPrIntervalValue}
+                            onChange={(e) => setSessionCacheCompletedNoPrIntervalValue(Number(e.target.value))}
+                            min="60"
+                        />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="session-cache-pending-approval-interval">Cache Update: Pending Approval (seconds)</Label>
+                        <Input
+                            id="session-cache-pending-approval-interval"
+                            type="number"
+                            value={sessionCachePendingApprovalIntervalValue}
+                            onChange={(e) => setSessionCachePendingApprovalIntervalValue(Number(e.target.value))}
+                            min="30"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="session-cache-max-age-days">Stop updating sessions older than (days)</Label>
+                        <Input
+                            id="session-cache-max-age-days"
+                            type="number"
+                            value={sessionCacheMaxAgeDaysValue}
+                            onChange={(e) => setSessionCacheMaxAgeDaysValue(Number(e.target.value))}
                             min="1"
                         />
                     </div>
