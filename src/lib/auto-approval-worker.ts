@@ -17,7 +17,9 @@ async function runAutoApprovalCheck() {
     if (!apiKey) {
         console.warn("AutoApprovalWorker: JULES_API_KEY not set. Skipping check.");
         isRunning = false;
-        scheduleNextRun();
+        if (process.env.NODE_ENV !== 'test') {
+            scheduleNextRun();
+        }
         return;
     }
 
@@ -74,7 +76,9 @@ async function runAutoApprovalCheck() {
         console.error("AutoApprovalWorker: Error during check cycle:", error);
     } finally {
         isRunning = false;
-        scheduleNextRun();
+        if (process.env.NODE_ENV !== 'test') {
+            scheduleNextRun();
+        }
     }
 }
 
@@ -109,5 +113,5 @@ function scheduleNextRun() {
 export async function startAutoApprovalWorker() {
     console.log(`AutoApprovalWorker: Starting...`);
     // Run immediately once
-    runAutoApprovalCheck();
+    return runAutoApprovalCheck();
 }

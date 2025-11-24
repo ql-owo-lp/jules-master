@@ -29,7 +29,9 @@ async function runAutoContinueCheck() {
     if (!apiKey) {
         console.warn("AutoContinueWorker: JULES_API_KEY not set. Skipping check.");
         isRunning = false;
-        scheduleNextRun();
+        if (process.env.NODE_ENV !== 'test') {
+            scheduleNextRun();
+        }
         return;
     }
 
@@ -38,7 +40,9 @@ async function runAutoContinueCheck() {
         const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
         if (settingsResult.length === 0 || !settingsResult[0].autoContinueEnabled) {
              isRunning = false;
-             scheduleNextRun();
+             if (process.env.NODE_ENV !== 'test') {
+                scheduleNextRun();
+             }
              return;
         }
 
@@ -49,7 +53,9 @@ async function runAutoContinueCheck() {
 
         if (allJobs.length === 0) {
             isRunning = false;
-            scheduleNextRun();
+            if (process.env.NODE_ENV !== 'test') {
+                scheduleNextRun();
+            }
             return;
         }
 
@@ -76,7 +82,9 @@ async function runAutoContinueCheck() {
 
         if (sessionIds.length === 0) {
             isRunning = false;
-            scheduleNextRun();
+            if (process.env.NODE_ENV !== 'test') {
+                scheduleNextRun();
+            }
             return;
         }
 
@@ -131,7 +139,9 @@ async function runAutoContinueCheck() {
         console.error("AutoContinueWorker: Error during check cycle:", error);
     } finally {
         isRunning = false;
-        scheduleNextRun();
+        if (process.env.NODE_ENV !== 'test') {
+            scheduleNextRun();
+        }
     }
 }
 
@@ -163,5 +173,5 @@ function scheduleNextRun() {
 
 export async function startAutoContinueWorker() {
     console.log(`AutoContinueWorker: Starting...`);
-    runAutoContinueCheck();
+    return runAutoContinueCheck();
 }

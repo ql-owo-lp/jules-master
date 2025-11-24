@@ -1,8 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { groupSessionsByTopic, createDynamicJobs } from '../src/lib/utils';
+import { groupSessionsByTopic, createDynamicJobs, cn } from '../src/lib/utils';
 import { Session } from '../src/lib/types';
 
 describe('Utils', () => {
+  describe('cn', () => {
+    it('should merge class names correctly', () => {
+      expect(cn('bg-red-500', 'text-white')).toBe('bg-red-500 text-white');
+    });
+
+    it('should handle conditional classes', () => {
+      expect(cn('bg-red-500', false && 'text-white', 'p-4')).toBe('bg-red-500 p-4');
+    });
+
+    it('should override conflicting tailwind classes', () => {
+      expect(cn('p-2', 'p-4')).toBe('p-4');
+      expect(cn('bg-red-500', 'bg-blue-500')).toBe('bg-blue-500');
+    });
+  });
   describe('groupSessionsByTopic', () => {
     it('should group sessions by topic', () => {
       const sessions: Session[] = [
