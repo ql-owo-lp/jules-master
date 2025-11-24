@@ -82,31 +82,52 @@ export async function listSessions(
     return [];
   }
 
+  let allSessions: Session[] = [];
+  let nextPageToken: string | undefined | null = null;
+
   try {
-    const response = await fetch(
-      `https://jules.googleapis.com/v1alpha/sessions?pageSize=${pageSize}`,
-      {
-        headers: {
-          'X-Goog-Api-Key': effectiveApiKey,
-        },
-        next: { revalidate: 0, tags: ['sessions'] }, 
-      }
-    );
+    do {
+        const url = new URL('https://jules.googleapis.com/v1alpha/sessions');
+        url.searchParams.set('pageSize', pageSize.toString());
+        if (nextPageToken) {
+            url.searchParams.set('pageToken', nextPageToken);
+        }
 
-    if (!response.ok) {
-      console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
-      const errorBody = await response.text();
-      console.error('Error body:', errorBody);
-      return [];
-    }
+        const response = await fetch(
+            url.toString(),
+            {
+                headers: {
+                    'X-Goog-Api-Key': effectiveApiKey,
+                },
+                next: { revalidate: 0, tags: ['sessions'] },
+            }
+        );
 
-    const data: ListSessionsResponse = await response.json();
-    
-    // Ensure all sessions have a createTime for sorting and display
-    return (data.sessions || []).map(session => ({
-      ...session,
-      createTime: session.createTime || '', 
-    }));
+        if (!response.ok) {
+            console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
+            const errorBody = await response.text();
+            console.error('Error body:', errorBody);
+            // If we have some sessions, return them, otherwise return empty
+            if (allSessions.length > 0) {
+                break;
+            }
+            return [];
+        }
+
+        const data: ListSessionsResponse = await response.json();
+
+        if (data.sessions) {
+            const mappedSessions = data.sessions.map(session => ({
+                ...session,
+                createTime: session.createTime || '',
+            }));
+            allSessions = [...allSessions, ...mappedSessions];
+        }
+
+        nextPageToken = data.nextPageToken;
+    } while (nextPageToken);
+
+    return allSessions;
 
   } catch (error) {
     console.error('Error fetching sessions:', error);
