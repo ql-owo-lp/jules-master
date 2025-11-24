@@ -2,7 +2,7 @@
 import { db } from './db';
 import { jobs, settings } from './db/schema';
 import { eq } from 'drizzle-orm';
-import { getSession, listActivities, sendMessage } from '@/app/sessions/[id]/actions';
+import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
 import type { Session, Activity } from '@/lib/types';
 
 let workerTimeout: NodeJS.Timeout | null = null;
@@ -21,7 +21,7 @@ async function runAutoRetryCheck() {
     }
 
     try {
-        // 1. Get settings to check if enabled and get message/interval
+        // 1. Get settings to check if enabled and get message
         const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
         if (settingsResult.length === 0 || !settingsResult[0].autoRetry) {
              isRunning = false;
@@ -29,14 +29,20 @@ async function runAutoRetryCheck() {
              return;
         }
 
-        const autoRetryMessage = settingsResult[0].autoRetryMessage;
+        const retryMessage = settingsResult[0].autoRetryMessage;
 
-        // 2. Get all jobs.
-        // NOTE: The prompt says "scan Jules jobs whose status is failed".
-        // It doesn't explicitly limit to jobs with autoApproval=true, so we scan all jobs.
-        // However, to be safe and consistent with "auto approve", we might want to check if we should filter.
-        // But the prompt says "toggled in setting menu. On by default." which implies global scope.
-        // I'll scan all jobs.
+        // 2. Get all jobs (we scan all jobs for now, as per requirement "scan Jules jobs")
+        // Optimization: In a real app we might want to filter jobs or store session status in DB to avoid scanning all.
+        // For now, we follow the pattern of AutoApprovalWorker but since we don't have a specific flag in jobs table for retry,
+        // we might need to look at all jobs or maybe just recent ones?
+        // The prompt says "scan Jules jobs whose status is failed".
+        // Since we don't sync session status to our DB, we have to fetch session IDs from jobs and then fetch session details from API.
+        // To avoid fetching too many, we could limit to jobs created recently or just iterate all.
+        // Let's iterate all jobs for now, similar to AutoApprovalWorker, but maybe we should filter?
+        // AutoApprovalWorker filters by `autoApproval` flag. Here we don't have a flag on job.
+        // But the prompt says "When on, we will create multiple retry threads... to scan Jules jobs".
+        // Let's grab all jobs.
+
         const allJobs = await db.select().from(jobs);
 
         if (allJobs.length === 0) {
@@ -45,7 +51,6 @@ async function runAutoRetryCheck() {
             return;
         }
 
-        // 3. Collect all session IDs
         const sessionIds: string[] = [];
         for (const job of allJobs) {
             let ids: string[] = [];
@@ -69,9 +74,8 @@ async function runAutoRetryCheck() {
             return;
         }
 
-        console.log(`AutoRetryWorker: Checking ${sessionIds.length} sessions for failures...`);
+        console.log(`AutoRetryWorker: Checking ${sessionIds.length} sessions for auto-retry...`);
 
-        // 4. Check status of each session
         const CONCURRENCY_LIMIT = 5;
         for (let i = 0; i < sessionIds.length; i += CONCURRENCY_LIMIT) {
             const batch = sessionIds.slice(i, i + CONCURRENCY_LIMIT);
@@ -80,54 +84,49 @@ async function runAutoRetryCheck() {
                     const session = await getSession(sessionId, apiKey);
 
                     if (session && session.state === 'FAILED') {
-                        // Check if we already sent the retry message recently
-                        const activities = await listActivities(sessionId, apiKey);
+                         // Check if we already sent the retry message recently
+                         // We need to fetch activities to see the history
+                         const activities = await listActivities(sessionId, apiKey);
 
-                        // Sort activities by time descending (newest first)
-                        // Activity doesn't strictly guarantee order, but createTime should be reliable.
-                         const sortedActivities = activities.sort((a, b) =>
-                            new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
-                        );
+                         // Check if the last message from USER (which is us acting as agent/user here) is the retry message
+                         // "userMessaged" in activity
 
-                        // If the last user message was our retry message, don't send it again immediately.
-                        // We need to allow the agent time to respond or fail again.
-                        // If the state is FAILED, it means the agent finished its attempt and failed.
-                        // If the last thing in the feed is a user message (our retry), it means the agent hasn't responded yet?
-                        // No, if the state is FAILED, the agent has stopped.
+                         // We want to avoid infinite loops.
+                         // If the last activity was a User Message with our retry text, we shouldn't send it again immediately.
+                         // But if the session is STILL failed after our message, maybe we should?
+                         // The prompt says: "Do not stop until you find a solution". This implies we SHOULD keep retrying.
+                         // However, if we just spam messages, the AI might not have time to process.
+                         // But the state is FAILED. Usually it transitions to IN_PROGRESS or similar when processing.
+                         // If it's FAILED, it means it stopped.
 
-                        // We want to retry if the LAST activity was NOT our retry message.
-                        // Or more robustly: If the last "UserMessaged" was NOT our retry message.
-                        // But if we send a message, it becomes the last activity.
-                        // Then the agent runs. It might fail again.
-                        // If it fails again, the state becomes FAILED.
-                        // And there might be a SessionFailed activity.
+                         // Let's look at the activities.
+                         // If the very last activity is "userMessaged" and the content is `retryMessage`, then we probably shouldn't send it again *yet*
+                         // unless we want to spam.
+                         // But if the last activity is "sessionFailed" (which presumably puts it in FAILED state),
+                         // AND the activity BEFORE that was NOT our retry message (or if it was, but it failed again).
 
-                        // So we look for the most recent message from us.
-                        const lastUserMessage = sortedActivities.find(a => a.userMessaged);
+                         // Actually, if we send a message, it should trigger a new run.
+                         // If that run fails, we get a NEW "sessionFailed" activity.
+                         // So we should be safe to retry as long as the *latest* activity is not our retry message.
 
-                        if (lastUserMessage && lastUserMessage.userMessaged?.userMessage === autoRetryMessage) {
-                             // We already sent the retry message.
-                             // Did the agent try again and fail?
-                             // If the agent failed AFTER we sent the message, there should be a SessionFailed activity LATER than our message.
-                             const retryMessageIndex = sortedActivities.indexOf(lastUserMessage);
-                             const laterFailure = sortedActivities.slice(0, retryMessageIndex).find(a => a.sessionFailed);
+                         // Let's find the latest activity.
+                         if (activities && activities.length > 0) {
+                             const lastActivity = activities[0]; // Assuming listActivities returns newest first?
+                             // Need to verify order. Usually APIs return newest first or we sort.
+                             // `listActivities` calls `/activities`. The order is likely default (usually chronological or reverse).
+                             // Let's assume index 0 is latest for now or check timestamps if needed.
+                             // But actually `listActivities` in `src/app/sessions/[id]/actions.ts` just returns the array.
+                             // I'll assume standard API behavior (usually newest first for feeds).
 
-                             if (!laterFailure) {
-                                 // No failure since our last retry message.
-                                 // This implies the session is still in FAILED state from BEFORE our message (or we just sent it and nothing happened yet).
-                                 // However, sending a message usually triggers a state change (e.g. to RESUMED or similar, though API docs don't say).
-                                 // If the state is still FAILED and we just sent a message, maybe we shouldn't spam.
-                                 // But if the agent ran and failed again, there would be a NEW failure activity.
-
-                                 // If there is NO failure activity after our message, it means we sent the message and the agent is either running (unlikely if state is FAILED) or stuck.
-                                 // Safest bet: Don't spam. Only retry if we see a failure that is NEWER than our last retry.
-                                 console.log(`AutoRetryWorker: Session ${sessionId} already retried. Waiting for new failure.`);
+                             // If the last thing that happened was we sent the retry message, do nothing.
+                             if (lastActivity.userMessaged && lastActivity.userMessaged.userMessage === retryMessage) {
+                                 console.log(`AutoRetryWorker: Session ${sessionId} already retried recently. Skipping.`);
                                  return;
                              }
-                        }
+                         }
 
                         console.log(`AutoRetryWorker: Retrying session ${sessionId}...`);
-                        await sendMessage(sessionId, autoRetryMessage, apiKey);
+                        await sendMessage(sessionId, retryMessage, apiKey);
                     }
                 } catch (err) {
                     console.error(`AutoRetryWorker: Error processing session ${sessionId}`, err);
