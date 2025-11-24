@@ -4,11 +4,13 @@ import {
     getJobs, addJob,
     getPredefinedPrompts, savePredefinedPrompts,
     getQuickReplies, saveQuickReplies,
-    getGlobalPrompt, saveGlobalPrompt
+    getGlobalPrompt, saveGlobalPrompt,
+    getHistoryPrompts, saveHistoryPrompt,
+    getRepoPrompt, saveRepoPrompt
 } from '../src/app/config/actions';
 import { Job, PredefinedPrompt } from '../src/lib/types';
 import { db } from '../src/lib/db';
-import { jobs, predefinedPrompts, quickReplies, globalPrompt } from '../src/lib/db/schema';
+import { jobs, predefinedPrompts, quickReplies, globalPrompt, historyPrompts, repoPrompts } from '../src/lib/db/schema';
 
 // Mock next/cache
 vi.mock('next/cache', () => ({
@@ -22,6 +24,8 @@ describe('Config Actions', () => {
         await db.delete(predefinedPrompts);
         await db.delete(quickReplies);
         await db.delete(globalPrompt);
+        await db.delete(historyPrompts);
+        await db.delete(repoPrompts);
     });
 
     afterAll(async () => {
@@ -30,6 +34,8 @@ describe('Config Actions', () => {
         await db.delete(predefinedPrompts);
         await db.delete(quickReplies);
         await db.delete(globalPrompt);
+        await db.delete(historyPrompts);
+        await db.delete(repoPrompts);
     });
 
     describe('Jobs', () => {
@@ -158,6 +164,51 @@ describe('Config Actions', () => {
          it('should return empty string if no global prompt set', async () => {
             const retrieved = await getGlobalPrompt();
             expect(retrieved).toBe('');
+        });
+    });
+
+    describe('History Prompts', () => {
+        beforeEach(async () => {
+            await db.delete(historyPrompts);
+        });
+
+        it('should save and retrieve history prompts', async () => {
+            await saveHistoryPrompt('History 1');
+            await saveHistoryPrompt('History 2');
+            const retrieved = await getHistoryPrompts();
+            expect(retrieved).toHaveLength(2);
+            expect(retrieved.find(p => p.prompt === 'History 1')).toBeDefined();
+        });
+
+        it('should not save duplicate history prompts', async () => {
+            await saveHistoryPrompt('History 1');
+            await saveHistoryPrompt('History 1');
+            const retrieved = await getHistoryPrompts();
+            expect(retrieved).toHaveLength(1);
+        });
+    });
+
+    describe('Repo Prompt', () => {
+        beforeEach(async () => {
+            await db.delete(repoPrompts);
+        });
+
+        it('should save and retrieve a repo-specific prompt', async () => {
+            await saveRepoPrompt('user/repo1', 'Repo Prompt 1');
+            const retrieved = await getRepoPrompt('user/repo1');
+            expect(retrieved).toBe('Repo Prompt 1');
+        });
+
+        it('should return an empty string for a repo without a specific prompt', async () => {
+            const retrieved = await getRepoPrompt('user/repo-unseen');
+            expect(retrieved).toBe('');
+        });
+
+        it('should update an existing repo prompt', async () => {
+            await saveRepoPrompt('user/repo1', 'Initial Prompt');
+            await saveRepoPrompt('user/repo1', 'Updated Prompt');
+            const retrieved = await getRepoPrompt('user/repo1');
+            expect(retrieved).toBe('Updated Prompt');
         });
     });
 });
