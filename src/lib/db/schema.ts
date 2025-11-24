@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import type { SourceContext, SessionOutput, AutomationMode } from '@/lib/types';
 
 export const jobs = sqliteTable('jobs', {
   id: text('id').primaryKey(),
@@ -56,4 +57,25 @@ export const settings = sqliteTable('settings', {
   autoRetryMessage: text('auto_retry_message').notNull().default("You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution"),
   autoContinueEnabled: integer('auto_continue_enabled', { mode: 'boolean' }).notNull().default(true),
   autoContinueMessage: text('auto_continue_message').notNull().default("Sounds good. Now go ahead finish the work"),
+  // Session Cache Settings
+  sessionCacheInProgressInterval: integer('session_cache_in_progress_interval').notNull().default(60),
+  sessionCacheCompletedNoPrInterval: integer('session_cache_completed_no_pr_interval').notNull().default(1800), // 30 minutes
+  sessionCachePendingApprovalInterval: integer('session_cache_pending_approval_interval').notNull().default(300), // 5 minutes
+  sessionCacheMaxAgeDays: integer('session_cache_max_age_days').notNull().default(3),
+});
+
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  title: text('title').notNull(),
+  prompt: text('prompt').notNull(),
+  sourceContext: text('source_context', { mode: 'json' }).$type<SourceContext>(),
+  createTime: text('create_time'),
+  updateTime: text('update_time'),
+  state: text('state').notNull(),
+  url: text('url'),
+  outputs: text('outputs', { mode: 'json' }).$type<SessionOutput[]>(),
+  requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
+  automationMode: text('automation_mode').$type<AutomationMode>(),
+  lastUpdated: integer('last_updated').notNull(), // Timestamp in ms
 });
