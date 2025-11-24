@@ -4,6 +4,7 @@
 import type { Session, Source } from '@/lib/types';
 import { revalidateTag } from 'next/cache';
 import { fetchWithRetry, cancelRequest } from '@/lib/fetch-client';
+import { getCachedSessions, syncStaleSessions, upsertSession, forceRefreshSession } from '@/lib/session-service';
 
 type ListSessionsResponse = {
   sessions: Session[];
@@ -89,38 +90,52 @@ export async function listSessions(
   }
 
   try {
-    const url = new URL('https://jules.googleapis.com/v1alpha/sessions');
-    url.searchParams.set('pageSize', pageSize.toString());
+    // 1. Get cached sessions from DB
+    let sessions = await getCachedSessions();
 
-    const response = await fetchWithRetry(
-        url.toString(),
-        {
-            headers: {
-                'X-Goog-Api-Key': effectiveApiKey,
-            },
-            next: { revalidate: 0, tags: ['sessions'] },
-            requestId,
+    // 2. If DB is empty, perform an initial fetch from API to populate it
+    if (sessions.length === 0) {
+        console.log("Session cache is empty, performing initial fetch...");
+        // Fetch the first page or so to populate.
+        // NOTE: We might want to fetch *all* pages if we want a complete cache,
+        // but for now let's just fetch the first page to be responsive.
+        // Ideally, we should have a background job to fetch all history.
+        // We reuse fetchSessionsPage logic but simplified here.
+        const firstPage = await fetchSessionsPage(effectiveApiKey, null, 100); // Fetch a reasonable chunk
+        for (const s of firstPage.sessions) {
+            await upsertSession(s);
         }
-    );
-
-    if (!response.ok) {
-        console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
-        const errorBody = await response.text();
-        console.error('Error body:', errorBody);
-        return [];
+        sessions = await getCachedSessions();
     }
 
-    const data: ListSessionsResponse = await response.json();
-    
-    return (data.sessions || []).map(session => ({
-        ...session,
-        createTime: session.createTime || '',
-    }));
+    // 3. Trigger background sync for stale sessions
+    // We do not await this, so the UI is fast.
+    // However, in serverless environments, this might be cut short.
+    // In a long-running container (docker-compose), this is fine.
+    // We catch errors to prevent crashing.
+    (async () => {
+        try {
+            await syncStaleSessions(effectiveApiKey);
+        } catch (e) {
+            console.error("Background session sync failed", e);
+        }
+    })();
+
+    return sessions;
 
   } catch (error) {
-    console.error('Error fetching sessions:', error);
+    console.error('Error in listSessions:', error);
     return [];
   }
+}
+
+export async function refreshSession(sessionId: string, apiKey?: string | null) {
+     const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+      if (!effectiveApiKey) {
+        console.error("Jules API key is not configured.");
+        return;
+      }
+    await forceRefreshSession(sessionId, effectiveApiKey);
 }
 
 export async function fetchSessionsPage(

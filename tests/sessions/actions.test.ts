@@ -2,11 +2,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { listSessions, fetchSessionsPage, listSources, cancelSessionRequest } from '@/app/sessions/actions';
 import * as fetchClient from '@/lib/fetch-client';
+import * as sessionService from '@/lib/session-service';
 
 // Mock the fetch-client module
 vi.mock('@/lib/fetch-client', () => ({
   fetchWithRetry: vi.fn(),
   cancelRequest: vi.fn(),
+}));
+
+// Mock the session-service module
+vi.mock('@/lib/session-service', () => ({
+  getCachedSessions: vi.fn(),
+  upsertSession: vi.fn(),
+  syncStaleSessions: vi.fn(),
+  forceRefreshSession: vi.fn(),
 }));
 
 describe('Session Actions', () => {
@@ -25,31 +34,51 @@ describe('Session Actions', () => {
       expect(sessions[0].id).toBe('session-1');
     });
 
-    it('should call fetchWithRetry and return sessions', async () => {
-      const mockSessions = [{ id: '1', name: 'Session 1' }];
-      (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({ sessions: mockSessions }),
-      });
+    it('should return cached sessions if available', async () => {
+      const mockSessions = [{ id: '1', name: 'Session 1', title: 'Title' } as any];
+      (sessionService.getCachedSessions as vi.Mock).mockResolvedValue(mockSessions);
 
       const sessions = await listSessions('test-key');
-      expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
-        'https://jules.googleapis.com/v1alpha/sessions?pageSize=50',
-        expect.any(Object)
-      );
-      expect(sessions).toEqual(mockSessions.map(s => ({ ...s, createTime: '' })));
+      expect(sessions).toEqual(mockSessions);
+      expect(sessionService.getCachedSessions).toHaveBeenCalled();
+      expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
     });
 
-    it('should handle API errors gracefully', async () => {
-      (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
-        ok: false,
-        status: 500,
-        statusText: 'Server Error',
-        text: async () => 'Error details',
+    it('should fetch from API if cache is empty', async () => {
+       (sessionService.getCachedSessions as vi.Mock)
+            .mockResolvedValueOnce([]) // First call empty
+            .mockResolvedValueOnce([{ id: '1', name: 'Session 1', title: 'Title' }]); // Second call after populate
+
+       (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ sessions: [{ id: '1', name: 'Session 1', title: 'Title' }] }),
       });
 
       const sessions = await listSessions('test-key');
-      expect(sessions).toEqual([]);
+
+      // Should have called fetchSessionsPage (via logic inside listSessions)
+      // fetchSessionsPage uses fetchWithRetry.
+      // In listSessions, we call fetchSessionsPage with pageSize 100
+      expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
+        'https://jules.googleapis.com/v1alpha/sessions?pageSize=100',
+        expect.any(Object)
+      );
+
+      expect(sessionService.upsertSession).toHaveBeenCalled();
+      expect(sessions.length).toBe(1);
+    });
+
+    it('should trigger background sync', async () => {
+       const mockSessions = [{ id: '1', name: 'Session 1', title: 'Title' } as any];
+      (sessionService.getCachedSessions as vi.Mock).mockResolvedValue(mockSessions);
+
+      await listSessions('test-key');
+      // We can't easily await the background sync as it is not awaited in the action.
+      // But we can check if it was called.
+      // Actually, since it's a promise floating in the void, checking if it was called might require a small delay or just relying on the fact that the function started execution.
+      // But syncStaleSessions is called synchronously (the promise creation), so the mock should record the call.
+
+      expect(sessionService.syncStaleSessions).toHaveBeenCalledWith('test-key');
     });
   });
 
