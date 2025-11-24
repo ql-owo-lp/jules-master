@@ -199,8 +199,9 @@ export function JobCreationForm({
       }
 
       for (let i = 0; i < sessionCount; i++) {
+        const sessionIndex = i;
         if (sessionCount > 1) {
-             setProgressCurrent(i + 1);
+             setProgressCurrent(sessionIndex + 1);
         }
 
         let retries = 3;
@@ -208,10 +209,11 @@ export function JobCreationForm({
         while (retries > 0 && !newSession) {
             newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode);
             if (!newSession) {
+                console.error(`Failed to create session ${sessionIndex + 1}. Retries remaining: ${retries - 1}`);
                 retries--;
                 toast({
                     variant: "destructive",
-                    title: `Failed to create session ${i + 1}`,
+                    title: `Failed to create session ${sessionIndex + 1}`,
                     description: `Retrying... (${3 - retries}/3)`,
                 });
                 await sleep(1000); // wait before retrying
@@ -224,7 +226,7 @@ export function JobCreationForm({
         } else {
              toast({
                 variant: "destructive",
-                title: `Failed to create session ${i + 1} after multiple retries.`,
+                title: `Failed to create session ${sessionIndex + 1} after multiple retries.`,
              });
         }
         await sleep(500); // 500ms interval

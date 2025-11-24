@@ -3,6 +3,7 @@
 
 import type { Session, Source } from '@/lib/types';
 import { revalidateTag } from 'next/cache';
+import { fetchWithRetry, cancelRequest } from '@/lib/fetch-client';
 
 type ListSessionsResponse = {
   sessions: Session[];
@@ -67,9 +68,14 @@ const MOCK_SOURCES: Source[] = [
   },
 ];
 
+export async function cancelSessionRequest(requestId: string) {
+  cancelRequest(requestId);
+}
+
 export async function listSessions(
   apiKey?: string | null,
-  pageSize: number = 50
+  pageSize: number = 50,
+  requestId?: string
 ): Promise<Session[]> {
   // Check for mock flag
   if (process.env.MOCK_API === 'true') {
@@ -86,13 +92,14 @@ export async function listSessions(
     const url = new URL('https://jules.googleapis.com/v1alpha/sessions');
     url.searchParams.set('pageSize', pageSize.toString());
 
-    const response = await fetch(
+    const response = await fetchWithRetry(
         url.toString(),
         {
             headers: {
                 'X-Goog-Api-Key': effectiveApiKey,
             },
             next: { revalidate: 0, tags: ['sessions'] },
+            requestId,
         }
     );
 
@@ -139,7 +146,7 @@ export async function fetchSessionsPage(
             url.searchParams.set('pageToken', pageToken);
         }
 
-        const response = await fetch(
+        const response = await fetchWithRetry(
             url.toString(),
             {
                 headers: {
@@ -195,7 +202,7 @@ export async function listSources(apiKey?: string | null): Promise<Source[]> {
         url.searchParams.set('pageToken', nextPageToken);
       }
 
-      const response = await fetch(url.toString(), {
+      const response = await fetchWithRetry(url.toString(), {
         headers: {
           'X-Goog-Api-Key': effectiveApiKey,
         },
