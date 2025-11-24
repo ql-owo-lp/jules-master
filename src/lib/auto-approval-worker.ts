@@ -1,8 +1,9 @@
 
 import { db } from './db';
-import { jobs, settings } from './db/schema';
+import { settings } from './db/schema';
 import { eq } from 'drizzle-orm';
-import { getSession, approvePlan } from '@/app/sessions/[id]/actions';
+import { fetchSessionsPage } from '@/app/sessions/actions';
+import { approvePlan } from '@/app/sessions/[id]/actions';
 import type { Session } from '@/lib/types';
 
 let workerTimeout: NodeJS.Timeout | null = null;
@@ -21,68 +22,53 @@ async function runAutoApprovalCheck() {
     }
 
     try {
-        // 1. Get all jobs marked for auto-approval
-        const autoApprovalJobs = await db.select().from(jobs).where(eq(jobs.autoApproval, true));
+        console.log("AutoApprovalWorker: Starting check for all sessions...");
 
-        if (autoApprovalJobs.length === 0) {
-            isRunning = false;
-            scheduleNextRun();
-            return;
-        }
+        let nextPageToken: string | undefined = undefined;
+        let processedCount = 0;
+        let approvedCount = 0;
 
-        // 2. Collect all session IDs
-        const sessionIds: string[] = [];
-        for (const job of autoApprovalJobs) {
-            let ids: string[] = [];
+        do {
+            // Fetch a page of sessions
+            const result = await fetchSessionsPage(apiKey, nextPageToken, 50);
+            const sessions = result.sessions;
+            nextPageToken = result.nextPageToken;
 
-            // Handle potential type mismatch or JSON parsing
-            if (Array.isArray(job.sessionIds)) {
-                ids = job.sessionIds;
-            } else if (typeof job.sessionIds === 'string') {
-                try {
-                    ids = JSON.parse(job.sessionIds);
-                } catch (e) {
-                    console.error(`AutoApprovalWorker: Failed to parse sessionIds for job ${job.id}`, e);
-                    continue;
-                }
+            if (sessions.length === 0) break;
+
+            processedCount += sessions.length;
+
+            // Filter for sessions awaiting plan approval
+            const pendingSessions = sessions.filter(s => s.state === 'AWAITING_PLAN_APPROVAL');
+
+            if (pendingSessions.length > 0) {
+                 console.log(`AutoApprovalWorker: Found ${pendingSessions.length} pending sessions in current batch. Approving...`);
+
+                 // Approve them
+                 // limiting concurrency to 5 requests at a time
+                 const CONCURRENCY_LIMIT = 5;
+                 for (let i = 0; i < pendingSessions.length; i += CONCURRENCY_LIMIT) {
+                     const batch = pendingSessions.slice(i, i + CONCURRENCY_LIMIT);
+                     await Promise.all(batch.map(async (session) => {
+                         try {
+                             console.log(`AutoApprovalWorker: Approving session ${session.id}...`);
+                             const result = await approvePlan(session.id, apiKey);
+                             if (result) {
+                                 console.log(`AutoApprovalWorker: Session ${session.id} approved successfully.`);
+                                 approvedCount++;
+                             } else {
+                                 console.error(`AutoApprovalWorker: Failed to approve session ${session.id}.`);
+                             }
+                         } catch (err) {
+                             console.error(`AutoApprovalWorker: Error processing session ${session.id}`, err);
+                         }
+                     }));
+                 }
             }
 
-            if (ids && Array.isArray(ids)) {
-                sessionIds.push(...ids);
-            }
-        }
+        } while (nextPageToken);
 
-        if (sessionIds.length === 0) {
-            isRunning = false;
-            scheduleNextRun();
-            return;
-        }
-
-        console.log(`AutoApprovalWorker: Checking ${sessionIds.length} sessions for auto-approval...`);
-
-        // 3. Check status of each session
-        // limiting concurrency to 5 requests at a time
-        const CONCURRENCY_LIMIT = 5;
-        for (let i = 0; i < sessionIds.length; i += CONCURRENCY_LIMIT) {
-            const batch = sessionIds.slice(i, i + CONCURRENCY_LIMIT);
-            await Promise.all(batch.map(async (sessionId) => {
-                try {
-                    const session = await getSession(sessionId, apiKey);
-
-                    if (session && session.state === 'AWAITING_PLAN_APPROVAL') {
-                        console.log(`AutoApprovalWorker: Approving session ${sessionId}...`);
-                        const result = await approvePlan(sessionId, apiKey);
-                        if (result) {
-                            console.log(`AutoApprovalWorker: Session ${sessionId} approved successfully.`);
-                        } else {
-                            console.error(`AutoApprovalWorker: Failed to approve session ${sessionId}.`);
-                        }
-                    }
-                } catch (err) {
-                    console.error(`AutoApprovalWorker: Error processing session ${sessionId}`, err);
-                }
-            }));
-        }
+        console.log(`AutoApprovalWorker: Cycle complete. Processed ${processedCount} sessions, approved ${approvedCount}.`);
 
     } catch (error) {
         console.error("AutoApprovalWorker: Error during check cycle:", error);

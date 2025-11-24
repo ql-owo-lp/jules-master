@@ -83,35 +83,92 @@ export async function listSessions(
   }
 
   try {
+    const url = new URL('https://jules.googleapis.com/v1alpha/sessions');
+    url.searchParams.set('pageSize', pageSize.toString());
+
     const response = await fetch(
-      `https://jules.googleapis.com/v1alpha/sessions?pageSize=${pageSize}`,
-      {
-        headers: {
-          'X-Goog-Api-Key': effectiveApiKey,
-        },
-        next: { revalidate: 0, tags: ['sessions'] }, 
-      }
+        url.toString(),
+        {
+            headers: {
+                'X-Goog-Api-Key': effectiveApiKey,
+            },
+            next: { revalidate: 0, tags: ['sessions'] },
+        }
     );
 
     if (!response.ok) {
-      console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
-      const errorBody = await response.text();
-      console.error('Error body:', errorBody);
-      return [];
+        console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
+        const errorBody = await response.text();
+        console.error('Error body:', errorBody);
+        return [];
     }
 
     const data: ListSessionsResponse = await response.json();
     
-    // Ensure all sessions have a createTime for sorting and display
     return (data.sessions || []).map(session => ({
-      ...session,
-      createTime: session.createTime || '', 
+        ...session,
+        createTime: session.createTime || '',
     }));
 
   } catch (error) {
     console.error('Error fetching sessions:', error);
     return [];
   }
+}
+
+export async function fetchSessionsPage(
+    apiKey?: string | null,
+    pageToken?: string | null,
+    pageSize: number = 100
+): Promise<{ sessions: Session[], nextPageToken?: string }> {
+     // Check for mock flag
+     if (process.env.MOCK_API === 'true') {
+        return { sessions: MOCK_SESSIONS };
+     }
+
+     const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+     if (!effectiveApiKey) {
+       console.error("Jules API key is not configured.");
+       return { sessions: [] };
+     }
+
+     try {
+        const url = new URL('https://jules.googleapis.com/v1alpha/sessions');
+        url.searchParams.set('pageSize', pageSize.toString());
+        if (pageToken) {
+            url.searchParams.set('pageToken', pageToken);
+        }
+
+        const response = await fetch(
+            url.toString(),
+            {
+                headers: {
+                    'X-Goog-Api-Key': effectiveApiKey,
+                },
+                next: { revalidate: 0, tags: ['sessions'] },
+            }
+        );
+
+        if (!response.ok) {
+            console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
+            const errorBody = await response.text();
+            console.error('Error body:', errorBody);
+            return { sessions: [] };
+        }
+
+        const data: ListSessionsResponse = await response.json();
+
+        const sessions = (data.sessions || []).map(session => ({
+            ...session,
+            createTime: session.createTime || '',
+        }));
+
+        return { sessions, nextPageToken: data.nextPageToken };
+
+     } catch (error) {
+        console.error('Error fetching sessions page:', error);
+        return { sessions: [] };
+     }
 }
 
 export async function listSources(apiKey?: string | null): Promise<Source[]> {

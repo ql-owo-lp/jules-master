@@ -22,6 +22,7 @@ import { JobStatusBadge } from "./job-status-badge";
 import { formatDistanceToNow } from "date-fns";
 import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2, Bot, MessageSquareReply } from "lucide-react";
 import { Button } from "./ui/button";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
@@ -59,6 +60,8 @@ type SessionListProps = {
   jobPage: number;
   totalJobPages: number;
   onJobPageChange: (page: number) => void;
+  progressCurrent?: number;
+  progressTotal?: number;
 };
 
 export function SessionList({
@@ -82,10 +85,19 @@ export function SessionList({
   jobPage,
   totalJobPages,
   onJobPageChange,
+  progressCurrent = 0,
+  progressTotal = 0,
 }: SessionListProps) {
   const router = useRouter();
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
   const [openAccordionItems, setOpenAccordionItems] = useState<string[]>(jobIdParam ? [jobIdParam] : []);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isActionPending) {
+        setActiveJobId(null);
+    }
+  }, [isActionPending]);
   
   const [sessionsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
   const [sessionPages, setSessionPages] = useState<Record<string, number>>({});
@@ -462,23 +474,38 @@ export function SessionList({
                                     <p>{details?.working || 0} In Progress</p>
                                 </TooltipContent>
                             </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="flex items-center gap-1 h-auto p-0" 
-                                        onClick={(e) => { e.stopPropagation(); onApprovePlan(details?.pending || []); }}
-                                        disabled={!details?.pending.length || isActionPending}
-                                      >
-                                        <Hand className="h-4 w-4 text-yellow-500" />
-                                        <span>{details?.pending.length || 0}</span>
-                                      </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Approve {details?.pending.length || 0} pending session(s)</p>
-                                </TooltipContent>
-                            </Tooltip>
+                             {activeJobId === job.id && isActionPending && progressTotal > 0 ? (
+                                <div className="flex items-center gap-2 w-32" onClick={(e) => e.stopPropagation()}>
+                                    <Progress value={(progressCurrent / progressTotal) * 100} className="h-2" />
+                                    <span className="text-xs text-muted-foreground w-12 text-right">
+                                        {Math.round((progressCurrent / progressTotal) * 100)}%
+                                    </span>
+                                </div>
+                             ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="flex items-center gap-1 h-auto p-0"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (details?.pending.length) {
+                                                    setActiveJobId(job.id);
+                                                    onApprovePlan(details.pending);
+                                                }
+                                            }}
+                                            disabled={!details?.pending.length || isActionPending}
+                                        >
+                                            <Hand className="h-4 w-4 text-yellow-500" />
+                                            <span>{details?.pending.length || 0}</span>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Approve {details?.pending.length || 0} pending session(s)</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                             )}
                         </div>
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                              <MessageDialog
