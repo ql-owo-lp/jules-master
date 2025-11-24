@@ -4,6 +4,7 @@
 import type { Session, Source } from '@/lib/types';
 import { revalidateTag } from 'next/cache';
 import { fetchWithRetry, cancelRequest } from '@/lib/fetch-client';
+import { getLocalSessions, updateStaleSessions, syncAllSessions } from '@/lib/session-service';
 
 type ListSessionsResponse = {
   sessions: Session[];
@@ -89,38 +90,39 @@ export async function listSessions(
   }
 
   try {
-    const url = new URL('https://jules.googleapis.com/v1alpha/sessions');
-    url.searchParams.set('pageSize', pageSize.toString());
+    // 1. Get cached sessions from DB
+    const localSessions = await getLocalSessions(pageSize);
 
-    const response = await fetchWithRetry(
-        url.toString(),
-        {
-            headers: {
-                'X-Goog-Api-Key': effectiveApiKey,
-            },
-            next: { revalidate: 0, tags: ['sessions'] },
-            requestId,
-        }
+    // 2. Trigger background update for stale sessions
+    // We don't await this so the UI response is fast.
+    // However, in Vercel/Serverless environment, this might be terminated.
+    // In a long-running container (which seems to be the case here), this works.
+    updateStaleSessions(effectiveApiKey).catch(err =>
+        console.error("Failed to update stale sessions in background", err)
     );
 
-    if (!response.ok) {
-        console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
-        const errorBody = await response.text();
-        console.error('Error body:', errorBody);
-        return [];
+    // If local DB is empty, maybe we should do an initial sync?
+    if (localSessions.length === 0) {
+        console.log("Local session cache empty, performing initial sync...");
+        await syncAllSessions(effectiveApiKey);
+        return getLocalSessions(pageSize);
     }
 
-    const data: ListSessionsResponse = await response.json();
-    
-    return (data.sessions || []).map(session => ({
-        ...session,
-        createTime: session.createTime || '',
-    }));
+    return localSessions;
 
   } catch (error) {
     console.error('Error fetching sessions:', error);
     return [];
   }
+}
+
+// New action to force sync all sessions (e.g. user clicks refresh)
+export async function forceSyncSessions(apiKey?: string | null) {
+     const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+     if (!effectiveApiKey) return;
+
+     await syncAllSessions(effectiveApiKey);
+     revalidateTag('sessions');
 }
 
 export async function fetchSessionsPage(
@@ -235,5 +237,3 @@ export async function listSources(apiKey?: string | null): Promise<Source[]> {
 export async function refreshSources() {
   revalidateTag('sources');
 }
-
-    

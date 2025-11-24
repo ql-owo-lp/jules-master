@@ -2,8 +2,9 @@
 "use server";
 
 import type { Session, Activity } from "@/lib/types";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { fetchWithRetry } from "@/lib/fetch-client";
+import { updateLocalSession } from "@/lib/session-service";
 
 type ListActivitiesResponse = {
   activities: Activity[];
@@ -36,6 +37,11 @@ export async function getSession(
       return null;
     }
     const session: Session = await response.json();
+
+    // Update local cache since we have fresh data
+    await updateLocalSession(session);
+    revalidateTag('sessions');
+
     return session;
   } catch (error) {
     console.error("Error fetching session:", error);
@@ -107,6 +113,11 @@ export async function approvePlan(
       return null;
     }
     const updatedSession: Session = await response.json();
+
+    // Update local cache
+    await updateLocalSession(updatedSession);
+    revalidateTag('sessions');
+
     revalidatePath(`/sessions/${sessionId}`);
     revalidatePath(`/`);
     return updatedSession;
@@ -147,6 +158,11 @@ export async function sendMessage(
       return null;
     }
     const updatedSession: Session = await response.json();
+
+    // Update local cache
+    await updateLocalSession(updatedSession);
+    revalidateTag('sessions');
+
     revalidatePath(`/sessions/${sessionId}`);
     revalidatePath(`/`);
     return updatedSession;

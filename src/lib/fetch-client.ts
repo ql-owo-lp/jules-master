@@ -1,10 +1,17 @@
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Interface for Next.js specific fetch config, as it's not always globally available in all contexts (e.g. strict TS)
+interface NextFetchRequestConfig {
+  revalidate?: number | false;
+  tags?: string[];
+}
+
 interface FetchOptions extends RequestInit {
   retries?: number;
   backoff?: number;
   requestId?: string;
+  next?: NextFetchRequestConfig;
 }
 
 type QueueItem = {
