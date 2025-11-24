@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const jobs = sqliteTable('jobs', {
   id: text('id').primaryKey(),
@@ -47,8 +47,19 @@ export const settings = sqliteTable('settings', {
   theme: text('theme').notNull().default('system'),
   historyPromptsCount: integer('history_prompts_count').notNull().default(10),
   autoApprovalInterval: integer('auto_approval_interval').notNull().default(60),
-  autoRetryEnabled: integer('auto_retry_enabled', { mode: 'boolean' }).notNull().default(true),
+  autoRetry: integer('auto_retry', { mode: 'boolean' }).notNull().default(true),
+  autoContinue: integer('auto_continue', { mode: 'boolean' }).notNull().default(true),
+  autoRetryInterval: integer('auto_retry_interval').notNull().default(60),
+  autoContinueInterval: integer('auto_continue_interval').notNull().default(60),
   autoRetryMessage: text('auto_retry_message').notNull().default('You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution'),
-  autoContinueEnabled: integer('auto_continue_enabled', { mode: 'boolean' }).notNull().default(false),
   autoContinueMessage: text('auto_continue_message').notNull().default('Sounds good. Now go ahead finish the work'),
+});
+
+export const processedSessions = sqliteTable('processed_sessions', {
+  sessionId: text('session_id').notNull(),
+  automationType: text('automation_type').notNull(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.sessionId, table.automationType] }),
+  };
 });

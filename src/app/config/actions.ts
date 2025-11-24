@@ -8,25 +8,11 @@ import { revalidatePath } from 'next/cache';
 import { eq, desc } from 'drizzle-orm';
 
 // --- Jobs ---
-// --- Mock Data ---
-let MOCK_JOBS: Job[] = [];
-
-export async function resetMockJobs() {
-    MOCK_JOBS = [];
-}
-
 export async function getJobs(): Promise<Job[]> {
-    if (process.env.MOCK_API === 'true') {
-        return MOCK_JOBS;
-    }
     return appDatabase.jobs.getAll();
 }
 
 export async function addJob(job: Job): Promise<void> {
-    if (process.env.MOCK_API === 'true') {
-        MOCK_JOBS.push(job);
-        return;
-    }
     await appDatabase.jobs.create(job);
     revalidatePath('/jobs');
     revalidatePath('/');

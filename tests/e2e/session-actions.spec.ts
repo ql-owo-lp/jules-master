@@ -25,9 +25,6 @@ test.describe('Session Actions', () => {
     // We need to expand it first.
     const accordionTrigger = page.getByRole('button', { name: /Uncategorized Sessions/ });
 
-    // Wait for jobs to be loaded
-    await expect(page.getByText('Test Job')).toBeVisible();
-
     // Wait for trigger to be visible (implies sessions loaded)
     await expect(accordionTrigger).toBeVisible({ timeout: 10000 });
 
@@ -40,7 +37,7 @@ test.describe('Session Actions', () => {
     await expect(page.getByText('Mock Session 1', { exact: false })).toBeVisible();
 
     // Find the row for Mock Session 1
-    const row = page.locator('tr', { hasText: 'Test Job' });
+    const row = page.locator('tr', { hasText: 'Mock Session 1' });
 
     // --- Test Send Message Dialog ---
 
