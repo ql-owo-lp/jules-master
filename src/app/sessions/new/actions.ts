@@ -2,6 +2,7 @@
 "use server";
 
 import type { Session, AutomationMode } from "@/lib/types";
+import { fetchWithRetry } from "@/lib/fetch-client";
 
 // The partial session type for the create request body
 type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
@@ -27,7 +28,7 @@ export async function createSession(
 
 
   try {
-    const response = await fetch(
+    const response = await fetchWithRetry(
       "https://jules.googleapis.com/v1alpha/sessions",
       {
         method: "POST",
