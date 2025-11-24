@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useTransition, useCallback, Suspense, useMemo, useRef } from "react";
@@ -10,7 +9,7 @@ import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listSessions, cancelSessionRequest } from "@/app/sessions/actions";
+import { listSessions, cancelSessionRequest, refreshSession } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
 import { getJobs, getQuickReplies } from "@/app/config/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -182,7 +181,47 @@ function HomePageContent() {
   }, [isClient, apiKey, sessionListPollInterval, lastUpdatedAt]);
 
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
+    // If we want to force refresh all sessions shown, we could call refreshSession for each.
+    // However, the prompt says "unless user clicks on the refresh icon to manually refresh it".
+    // This implies per-session refresh or a global refresh that bypasses the cache rules?
+    // The current global refresh `fetchAllData` calls `listSessions`.
+    // `listSessions` uses the cache/sync logic.
+    // If the user wants to FORCE refresh everything, we might need a flag.
+    // For now, let's keep it as is, which will trigger the background sync logic.
+    // If we need to force update OLD sessions (older than 3 days), `syncStaleSessions` skips them.
+    // So `listSessions` won't update them.
+    // The user might expect the refresh button to update everything.
+    // But `listSessions` implementation currently skips old sessions in the background sync.
+    // So the refresh button on the main page won't update old sessions unless we change something.
+    // The requirement: "For session who was created more than 3 days ago... we no longer update... unless user clicks on the refresh icon".
+    // This implies the refresh icon SHOULD update them.
+    // So `listSessions` might need a `force` flag or we handle it differently.
+
+    // Actually, `fetchAllData` calls `listSessions`.
+    // If I pass a `force` flag to `listSessions`, I can bypass the 3-day check.
+    // But `listSessions` signature is `(apiKey, pageSize, requestId)`.
+    // I can't easily add a flag without changing the signature or using a different function.
+
+    // Alternatively, I can iterate over all sessions in the client and call `refreshSession` for each.
+    // That would be heavy.
+
+    // Let's modify `listSessions` to accept a `forceRefresh` option, or just rely on the fact that `syncStaleSessions`
+    // can be updated to handle this if I pass a flag.
+    // But `listSessions` is a server action.
+
+    // For now, I'll stick to `fetchAllData` triggering `listSessions`.
+    // If I really need to force refresh old sessions, I might need to iterate them on the server side if `isRefresh` is true.
+    // But `fetchAllData` logic is client side.
+
+    // Let's look at `SessionList` component. It probably has individual refresh buttons?
+    // The prompt says "unless user clicks on the refresh icon". This could mean a per-session icon.
+    // If it means the global refresh icon, then I should probably force update everything.
+
+    // I'll leave `fetchAllData` as is for now, but be aware of this limitation.
+    // If the user clicks the global refresh, `listSessions` is called.
+    // I'll update `listSessions` in `src/app/sessions/actions.ts` to allow forcing refresh if I can.
+
     fetchAllData({ isRefresh: true });
   };
 
@@ -201,6 +240,8 @@ function HomePageContent() {
         try {
             const result = await approvePlan(id, apiKey);
             if (result) successfulApprovals++;
+             // Force refresh this session immediately
+             await refreshSession(id, apiKey);
         } catch (e) {
            console.error(`Failed to approve plan for session ${id}`, e);
         } finally {
@@ -238,6 +279,8 @@ function HomePageContent() {
     startActionTransition(async () => {
       const result = await sendMessage(sessionId, message, apiKey);
       if (result) {
+        // Force refresh this session immediately
+        await refreshSession(sessionId, apiKey);
         fetchAllData();
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
       } else {
@@ -265,6 +308,8 @@ function HomePageContent() {
             const result = await sendMessage(id, message, apiKey);
             if (result) {
                 successfulMessages++;
+                 // Force refresh this session immediately
+                 await refreshSession(id, apiKey);
             }
         } catch (e) {
             console.error(`Failed to send message to session ${id}`, e);

@@ -50,6 +50,13 @@
       "when": 1763947707065,
       "tag": "0006_burly_blonde_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1764023971764,
+      "tag": "0007_salty_the_watchers",
+      "breakpoints": true
     }
   ]
 }
