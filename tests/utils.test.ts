@@ -1,8 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { groupSessionsByTopic, createDynamicJobs } from '../src/lib/utils';
+import { groupSessionsByTopic, createDynamicJobs, cn } from '../src/lib/utils';
 import { Session } from '../src/lib/types';
 
 describe('Utils', () => {
+  describe('cn', () => {
+    it('should merge classes correctly', () => {
+      expect(cn('class1', 'class2')).toBe('class1 class2');
+    });
+
+    it('should handle conditional classes', () => {
+      expect(cn('class1', { class2: true, class3: false })).toBe('class1 class2');
+    });
+
+    it('should override conflicting classes', () => {
+      expect(cn('p-4', 'p-2')).toBe('p-2');
+    });
+  });
   describe('groupSessionsByTopic', () => {
     it('should group sessions by topic', () => {
       const sessions: Session[] = [

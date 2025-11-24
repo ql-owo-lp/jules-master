@@ -111,3 +111,6 @@ export async function startAutoApprovalWorker() {
     // Run immediately once
     runAutoApprovalCheck();
 }
+
+// Export for testing
+export { runAutoApprovalCheck };

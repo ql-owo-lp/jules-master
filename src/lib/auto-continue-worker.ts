@@ -165,3 +165,6 @@ export async function startAutoContinueWorker() {
     console.log(`AutoContinueWorker: Starting...`);
     runAutoContinueCheck();
 }
+
+// Export for testing
+export { runAutoContinueCheck };

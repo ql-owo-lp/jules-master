@@ -153,3 +153,6 @@ export async function startAutoRetryWorker() {
     console.log(`AutoRetryWorker: Starting...`);
     runAutoRetryCheck();
 }
+
+// Export for testing
+export { runAutoRetryCheck };
