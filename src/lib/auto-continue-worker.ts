@@ -21,7 +21,7 @@ const getPullRequestUrl = (session: Session | null): string | null => {
     return null;
 }
 
-async function runAutoContinueCheck() {
+export async function runAutoContinueCheck() {
     if (isRunning) return;
     isRunning = true;
 
@@ -163,5 +163,5 @@ function scheduleNextRun() {
 
 export async function startAutoContinueWorker() {
     console.log(`AutoContinueWorker: Starting...`);
-    runAutoContinueCheck();
+    await runAutoContinueCheck();
 }

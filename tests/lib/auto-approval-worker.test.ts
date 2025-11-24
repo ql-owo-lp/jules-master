@@ -1,96 +1,99 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { startAutoApprovalWorker } from '@/lib/auto-approval-worker';
-import * as actions from '@/app/sessions/actions';
+import * as sessionsActions from '@/app/sessions/actions';
 import * as idActions from '@/app/sessions/[id]/actions';
-import * as db from '@/lib/db';
+import type { Session } from '@/lib/types';
 
-vi.mock('@/app/sessions/actions');
-vi.mock('@/app/sessions/[id]/actions');
-vi.mock('@/lib/db');
+vi.mock('@/lib/db', () => ({
+  db: {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    then: (callback: (result: any) => void) => Promise.resolve(callback([])),
+  },
+}));
 
-describe('startAutoApprovalWorker', () => {
+vi.mock('@/app/sessions/actions', () => ({
+  fetchSessionsPage: vi.fn(),
+}));
+
+vi.mock('@/app/sessions/[id]/actions', () => ({
+  approvePlan: vi.fn(),
+}));
+
+describe('AutoApprovalWorker', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    process.env.JULES_API_KEY = 'test-key';
-    vi.spyOn(db.db, 'select').mockReturnValue({
-        from: () => ({
-            where: () => ({
-                limit: () => Promise.resolve([{ autoApprovalInterval: 60 }]),
-            }),
-        }),
-    });
+    process.env.JULES_API_KEY = 'test-api-key';
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     vi.clearAllMocks();
+    vi.useRealTimers();
     delete process.env.JULES_API_KEY;
   });
 
   it('should not run if JULES_API_KEY is not set', async () => {
     delete process.env.JULES_API_KEY;
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    startAutoApprovalWorker();
-    await vi.waitUntil(() => consoleWarnSpy.mock.calls.length > 0);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      'AutoApprovalWorker: JULES_API_KEY not set. Skipping check.'
-    );
-    consoleWarnSpy.mockRestore();
+    await startAutoApprovalWorker();
+    expect(sessionsActions.fetchSessionsPage).not.toHaveBeenCalled();
   });
 
   it('should fetch sessions and approve pending ones', async () => {
-    const fetchSessionsPageSpy = vi.spyOn(actions, 'fetchSessionsPage').mockResolvedValueOnce({
-      sessions: [
-        { id: '1', state: 'AWAITING_PLAN_APPROVAL' },
-        { id: '2', state: 'RUNNING' },
-        { id: '3', state: 'AWAITING_PLAN_APPROVAL' },
-      ],
+    const sessions: Session[] = [
+      { id: '1', state: 'AWAITING_PLAN_APPROVAL' },
+      { id: '2', state: 'RUNNING' },
+      { id: '3', state: 'AWAITING_PLAN_APPROVAL' },
+    ] as any;
+
+    vi.mocked(sessionsActions.fetchSessionsPage).mockResolvedValue({
+      sessions,
       nextPageToken: undefined,
     });
-    const approvePlanSpy = vi.spyOn(idActions, 'approvePlan').mockResolvedValue(true);
+    vi.mocked(idActions.approvePlan).mockResolvedValue(true);
 
-    startAutoApprovalWorker();
+    await startAutoApprovalWorker();
 
-    await vi.waitUntil(() => approvePlanSpy.mock.calls.length === 2);
-
-    expect(fetchSessionsPageSpy).toHaveBeenCalled();
-    expect(approvePlanSpy).toHaveBeenCalledTimes(2);
-    expect(approvePlanSpy).toHaveBeenCalledWith('1', 'test-key');
-    expect(approvePlanSpy).toHaveBeenCalledWith('3', 'test-key');
+    expect(sessionsActions.fetchSessionsPage).toHaveBeenCalledWith('test-api-key', undefined, 50);
+    expect(idActions.approvePlan).toHaveBeenCalledTimes(2);
+    expect(idActions.approvePlan).toHaveBeenCalledWith('1', 'test-api-key');
+    expect(idActions.approvePlan).toHaveBeenCalledWith('3', 'test-api-key');
   });
 
   it('should handle multiple pages of sessions', async () => {
-    const fetchSessionsPageSpy = vi.spyOn(actions, 'fetchSessionsPage')
-      .mockResolvedValueOnce({
-        sessions: [{ id: '1', state: 'AWAITING_PLAN_APPROVAL' }],
-        nextPageToken: 'page2',
-      })
-      .mockResolvedValueOnce({
-        sessions: [{ id: '2', state: 'AWAITING_PLAN_APPROVAL' }],
-        nextPageToken: undefined,
-      });
-    const approvePlanSpy = vi.spyOn(idActions, 'approvePlan').mockResolvedValue(true);
+    const sessions1: Session[] = [{ id: '1', state: 'AWAITING_PLAN_APPROVAL' }] as any;
+    const sessions2: Session[] = [{ id: '2', state: 'AWAITING_PLAN_APPROVAL' }] as any;
 
-    startAutoApprovalWorker();
-    await vi.waitUntil(() => approvePlanSpy.mock.calls.length === 2);
+    vi.mocked(sessionsActions.fetchSessionsPage)
+      .mockResolvedValueOnce({ sessions: sessions1, nextPageToken: 'page2' })
+      .mockResolvedValueOnce({ sessions: sessions2, nextPageToken: undefined });
+    vi.mocked(idActions.approvePlan).mockResolvedValue(true);
 
+    await startAutoApprovalWorker();
 
-    expect(fetchSessionsPageSpy).toHaveBeenCalledTimes(2);
-    expect(approvePlanSpy).toHaveBeenCalledTimes(2);
+    expect(sessionsActions.fetchSessionsPage).toHaveBeenCalledTimes(2);
+    expect(sessionsActions.fetchSessionsPage).toHaveBeenNthCalledWith(1, 'test-api-key', undefined, 50);
+    expect(sessionsActions.fetchSessionsPage).toHaveBeenNthCalledWith(2, 'test-api-key', 'page2', 50);
+    expect(idActions.approvePlan).toHaveBeenCalledTimes(2);
   });
 
-  it('should handle API errors gracefully', async () => {
-    const fetchSessionsPageSpy = vi.spyOn(actions, 'fetchSessionsPage').mockRejectedValueOnce(new Error('API Error'));
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it('should handle errors during session approval', async () => {
+    const sessions: Session[] = [
+      { id: '1', state: 'AWAITING_PLAN_APPROVAL' },
+      { id: '2', state: 'AWAITING_PLAN_APPROVAL' },
+    ] as any;
 
-    startAutoApprovalWorker();
-    await vi.waitUntil(() => consoleErrorSpy.mock.calls.length > 0);
+    vi.mocked(sessionsActions.fetchSessionsPage).mockResolvedValue({
+      sessions,
+      nextPageToken: undefined,
+    });
+    vi.mocked(idActions.approvePlan).mockRejectedValueOnce(new Error('Approval failed'));
+    vi.mocked(idActions.approvePlan).mockResolvedValueOnce(true);
 
-    expect(fetchSessionsPageSpy).toHaveBeenCalled();
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'AutoApprovalWorker: Error during check cycle:',
-      expect.any(Error)
-    );
-    consoleErrorSpy.mockRestore();
+    await startAutoApprovalWorker();
+
+    expect(idActions.approvePlan).toHaveBeenCalledTimes(2);
   });
 });

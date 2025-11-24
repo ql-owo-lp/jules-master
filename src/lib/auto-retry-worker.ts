@@ -8,7 +8,7 @@ import { differenceInHours } from 'date-fns';
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
 
-async function runAutoRetryCheck() {
+export async function runAutoRetryCheck() {
     if (isRunning) return;
     isRunning = true;
 
@@ -151,5 +151,5 @@ function scheduleNextRun() {
 
 export async function startAutoRetryWorker() {
     console.log(`AutoRetryWorker: Starting...`);
-    runAutoRetryCheck();
+    await runAutoRetryCheck();
 }

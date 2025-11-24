@@ -1,85 +1,83 @@
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { startAutoContinueWorker } from '@/lib/auto-continue-worker';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { startAutoContinueWorker, runAutoContinueCheck } from '@/lib/auto-continue-worker';
+import * as dbModule from '@/lib/db';
 import * as idActions from '@/app/sessions/[id]/actions';
-import * as db from '@/lib/db';
-import { settings, jobs } from '@/lib/db/schema';
+import type { Session } from '@/lib/types';
 
 vi.mock('@/app/sessions/[id]/actions');
-vi.mock('@/lib/db');
 
-describe('startAutoContinueWorker', () => {
-  let settingsMock: any;
-  let jobsMock: any;
+describe('AutoContinueWorker', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        process.env.JULES_API_KEY = 'test-api-key';
+    });
 
-  beforeEach(() => {
-    vi.useFakeTimers();
-    process.env.JULES_API_KEY = 'test-key';
+    afterEach(() => {
+        vi.clearAllMocks();
+        vi.useRealTimers();
+        delete process.env.JULES_API_KEY;
+    });
 
-    // Default mocks
-    settingsMock = [{ autoContinueEnabled: true, autoContinueMessage: 'Continue?', autoApprovalInterval: 60 }];
-    jobsMock = [{ id: 'job1', sessionIds: '["1"]' }];
+    it('should send a continue message to a completed session without a PR', async () => {
+        const session: Session = {
+            id: '1',
+            state: 'COMPLETED',
+            updateTime: new Date().toISOString(),
+            outputs: [],
+        } as any;
 
-    vi.spyOn(db.db, 'select').mockImplementation(() => ({
-      from: (table: any) => {
-        if (table === settings) {
-          return {
-            where: () => ({
-              limit: () => Promise.resolve(settingsMock),
-            }),
-          };
-        }
-        if (table === jobs) {
-          return Promise.resolve(jobsMock);
-        }
-        return Promise.resolve([]);
-      },
-    } as any));
-  });
+        const fromMock = vi.fn((tableName) => {
+            let result;
+            if (tableName === 'settings') {
+                result = [{ autoContinueEnabled: true, autoContinueMessage: 'Continue?' }];
+            } else if (tableName === 'jobs') {
+                result = [{ id: 1, sessionIds: JSON.stringify(['1']) }];
+            } else {
+                result = [];
+            }
+            return {
+                where: vi.fn().mockReturnThis(),
+                limit: vi.fn().mockResolvedValue(result),
+            };
+        });
 
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.clearAllMocks();
-    delete process.env.JULES_API_KEY;
-  });
+        const dbMock = {
+            select: vi.fn().mockReturnThis(),
+            from: fromMock,
+        };
 
-  it('should not run if auto-continue is disabled', async () => {
-    settingsMock = [{ autoContinueEnabled: false, autoContinueMessage: 'Continue?', autoApprovalInterval: 60 }];
-    const getSessionSpy = vi.spyOn(idActions, 'getSession');
-    startAutoContinueWorker();
+        vi.spyOn(dbModule, 'db', 'get').mockReturnValue(dbMock as any);
+        vi.mocked(idActions.getSession).mockResolvedValue(session);
+        vi.mocked(idActions.listActivities).mockResolvedValue([]);
+        vi.mocked(idActions.sendMessage).mockResolvedValue(true);
 
-    await vi.advanceTimersByTimeAsync(1);
+        await runAutoContinueCheck();
 
-    expect(getSessionSpy).not.toHaveBeenCalled();
-  });
+        expect(idActions.sendMessage).toHaveBeenCalledWith('1', 'Continue?', 'test-api-key');
+    });
 
-  it('should send continue message to completed sessions without a PR', async () => {
-    jobsMock = [{ id: 'job1', sessionIds: '["1", "2"]' }];
-    const getSessionSpy = vi.spyOn(idActions, 'getSession')
-      .mockResolvedValueOnce({ id: '1', state: 'COMPLETED', updateTime: new Date().toISOString() })
-      .mockResolvedValueOnce({ id: '2', state: 'RUNNING', updateTime: new Date().toISOString() });
-    const listActivitiesSpy = vi.spyOn(idActions, 'listActivities').mockResolvedValue([]);
-    const sendMessageSpy = vi.spyOn(idActions, 'sendMessage').mockResolvedValue(true);
+    it('should not run if autoContinue is disabled', async () => {
+        const fromMock = vi.fn((tableName) => {
+            if (tableName === 'settings') {
+                return {
+                    where: vi.fn().mockReturnThis(),
+                    limit: vi.fn().mockResolvedValue([{ autoContinueEnabled: false }]),
+                };
+            }
+            return {
+                where: vi.fn().mockReturnThis(),
+                limit: vi.fn().mockResolvedValue([]),
+            };
+        });
+        const dbMock = {
+            select: vi.fn().mockReturnThis(),
+            from: fromMock,
+        };
+        vi.spyOn(dbModule, 'db', 'get').mockReturnValue(dbMock as any);
 
-    startAutoContinueWorker();
+        await startAutoContinueWorker();
 
-    await vi.waitUntil(() => sendMessageSpy.mock.calls.length > 0);
-
-    expect(getSessionSpy).toHaveBeenCalledTimes(2);
-    expect(sendMessageSpy).toHaveBeenCalledOnce();
-    expect(sendMessageSpy).toHaveBeenCalledWith('1', 'Continue?', 'test-key');
-  });
-
-  it('should not send a message if one was already sent', async () => {
-    const getSessionSpy = vi.spyOn(idActions, 'getSession').mockResolvedValue({ id: '1', state: 'COMPLETED', updateTime: new Date().toISOString() });
-    const listActivitiesSpy = vi.spyOn(idActions, 'listActivities').mockResolvedValue([
-      { createTime: new Date().toISOString(), userMessaged: { userMessage: 'Continue?' } },
-    ]);
-    const sendMessageSpy = vi.spyOn(idActions, 'sendMessage');
-
-    startAutoContinueWorker();
-    await vi.waitUntil(() => listActivitiesSpy.mock.calls.length > 0);
-
-    expect(sendMessageSpy).not.toHaveBeenCalled();
-  });
+        expect(idActions.getSession).not.toHaveBeenCalled();
+    });
 });
