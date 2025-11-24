@@ -21,6 +21,12 @@ export async function GET() {
         prStatusPollInterval: 60,
         theme: 'system',
         autoApprovalInterval: 60,
+        autoRetry: true,
+        autoRetryInterval: 60,
+        autoRetryMessage: "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution",
+        autoContinue: true,
+        autoContinueInterval: 60,
+        autoContinueMessage: "Sounds good. Now go ahead finish the work",
       });
     }
 
@@ -50,6 +56,12 @@ export async function POST(request: Request) {
         prStatusPollInterval: body.prStatusPollInterval,
         theme: body.theme,
         autoApprovalInterval: body.autoApprovalInterval,
+        autoRetry: body.autoRetry,
+        autoRetryInterval: body.autoRetryInterval,
+        autoRetryMessage: body.autoRetryMessage,
+        autoContinue: body.autoContinue,
+        autoContinueInterval: body.autoContinueInterval,
+        autoContinueMessage: body.autoContinueMessage,
     }
 
     const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
