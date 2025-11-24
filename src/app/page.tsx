@@ -55,6 +55,7 @@ function HomePageContent() {
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
   const [progressLabel, setProgressLabel] = useState("");
+  const [processingJobId, setProcessingJobId] = useState<string | null>(null);
   
   // Effect to sync job filter with URL param
   useEffect(() => {
@@ -159,8 +160,12 @@ function HomePageContent() {
     fetchAllData({ isRefresh: true });
   };
 
-  const handleApprovePlan = (sessionIds: string[]) => {
+  const handleApprovePlan = (sessionIds: string[], jobId?: string) => {
     startActionTransition(async () => {
+      if (jobId) {
+        setProcessingJobId(jobId);
+      }
+
       if (sessionIds.length > 1) {
         setProgressLabel("Approving plans...");
         setProgressTotal(sessionIds.length);
@@ -203,6 +208,7 @@ function HomePageContent() {
       } finally {
         setProgressCurrent(0);
         setProgressTotal(0);
+        setProcessingJobId(null);
       }
     });
   };
@@ -340,7 +346,7 @@ function HomePageContent() {
         current={progressCurrent}
         total={progressTotal}
         label={progressLabel}
-        isVisible={isActionPending && progressTotal > 1}
+        isVisible={isActionPending && progressTotal > 1 && !processingJobId}
       />
       <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
         <div className="space-y-8 px-4 sm:px-6 lg:px-8">
@@ -372,6 +378,9 @@ function HomePageContent() {
             onRefresh={handleRefresh}
             isRefreshing={isFetching}
             isActionPending={isActionPending}
+            processingJobId={processingJobId}
+            progressCurrent={progressCurrent}
+            progressTotal={progressTotal}
             onApprovePlan={handleApprovePlan}
             onSendMessage={handleSendMessage}
             onBulkSendMessage={handleBulkSendMessage}

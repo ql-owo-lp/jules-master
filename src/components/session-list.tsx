@@ -34,6 +34,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./
 import { Skeleton } from "./ui/skeleton";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { MessageDialog } from "./message-dialog";
+import { Progress } from "@/components/ui/progress";
 
 
 type SessionListProps = {
@@ -45,7 +46,10 @@ type SessionListProps = {
   onRefresh: () => void;
   isRefreshing?: boolean;
   isActionPending?: boolean;
-  onApprovePlan: (sessionIds: string[]) => void;
+  processingJobId?: string | null;
+  progressCurrent?: number;
+  progressTotal?: number;
+  onApprovePlan: (sessionIds: string[], jobId?: string) => void;
   onSendMessage: (sessionId: string, message: string) => void;
   onBulkSendMessage: (sessionIds: string[], message: string) => void;
   countdown: number;
@@ -70,6 +74,9 @@ export function SessionList({
   onRefresh,
   isRefreshing,
   isActionPending,
+  processingJobId,
+  progressCurrent,
+  progressTotal,
   onApprovePlan,
   onSendMessage,
   onBulkSendMessage,
@@ -462,13 +469,19 @@ export function SessionList({
                                     <p>{details?.working || 0} In Progress</p>
                                 </TooltipContent>
                             </Tooltip>
+                            {processingJobId === job.id && isActionPending ? (
+                                <div className="flex items-center gap-2 w-32">
+                                     <Progress value={progressTotal ? (progressCurrent || 0) / progressTotal * 100 : 0} className="h-2 w-full" />
+                                     <span className="text-xs text-muted-foreground w-12 text-right">{progressCurrent}/{progressTotal}</span>
+                                </div>
+                            ) : (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                       <Button 
                                         variant="ghost" 
                                         size="sm" 
                                         className="flex items-center gap-1 h-auto p-0" 
-                                        onClick={(e) => { e.stopPropagation(); onApprovePlan(details?.pending || []); }}
+                                        onClick={(e) => { e.stopPropagation(); onApprovePlan(details?.pending || [], job.id); }}
                                         disabled={!details?.pending.length || isActionPending}
                                       >
                                         <Hand className="h-4 w-4 text-yellow-500" />
@@ -479,6 +492,7 @@ export function SessionList({
                                     <p>Approve {details?.pending.length || 0} pending session(s)</p>
                                 </TooltipContent>
                             </Tooltip>
+                            )}
                         </div>
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                              <MessageDialog
@@ -613,13 +627,19 @@ export function SessionList({
                                   <p>{unknownSessionsDetails.working} In Progress</p>
                               </TooltipContent>
                           </Tooltip>
+                           {processingJobId === 'uncategorized' && isActionPending ? (
+                                <div className="flex items-center gap-2 w-32">
+                                     <Progress value={progressTotal ? (progressCurrent || 0) / progressTotal * 100 : 0} className="h-2 w-full" />
+                                     <span className="text-xs text-muted-foreground w-12 text-right">{progressCurrent}/{progressTotal}</span>
+                                </div>
+                            ) : (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="sm"
                                       className="flex items-center gap-1 h-auto p-0"
-                                      onClick={(e) => { e.stopPropagation(); onApprovePlan(unknownSessionsDetails.pending); }}
+                                      onClick={(e) => { e.stopPropagation(); onApprovePlan(unknownSessionsDetails.pending, 'uncategorized'); }}
                                       disabled={!unknownSessionsDetails.pending.length || isActionPending}
                                     >
                                       <Hand className="h-4 w-4 text-yellow-500" />
@@ -630,6 +650,7 @@ export function SessionList({
                                   <p>Approve {unknownSessionsDetails.pending.length} pending session(s)</p>
                               </TooltipContent>
                           </Tooltip>
+                          )}
                       </div>
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                            <MessageDialog
