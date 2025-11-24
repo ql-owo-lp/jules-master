@@ -26,13 +26,14 @@ test.describe('Navigation', () => {
     // Verify "Session List" link (Jobs & Sessions covers this)
     // Skipping explicit check for "Session List" as it seems merged into "Jobs & Sessions"
 
-    // Verify "Messages" link
+    // Verify "Settings" link
     // Re-query the element
-    const messagesLink = page.getByRole('link', { name: 'Messages' });
-    await expect(messagesLink).toBeVisible();
+    const settingsLink = page.getByRole('link', { name: 'Settings' });
+    await expect(settingsLink).toBeVisible();
     // Click and verify navigation
-    await messagesLink.click();
-    await expect(page).toHaveURL(/\/prompts/);
-    await expect(page.getByText('Predefined Messages', { exact: true })).toBeVisible();
+    await settingsLink.click();
+    await expect(page).toHaveURL(/\/settings/);
+    // Use heading role to be specific
+    await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
   });
 });
