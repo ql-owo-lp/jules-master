@@ -21,7 +21,7 @@ const getPullRequestUrl = (session: Session | null): string | null => {
     return null;
 }
 
-async function runAutoContinueCheck() {
+export async function runAutoContinueCheck(options = { schedule: true }) {
     if (isRunning) return;
     isRunning = true;
 
@@ -29,7 +29,9 @@ async function runAutoContinueCheck() {
     if (!apiKey) {
         console.warn("AutoContinueWorker: JULES_API_KEY not set. Skipping check.");
         isRunning = false;
-        scheduleNextRun();
+        if (options.schedule) {
+            scheduleNextRun();
+        }
         return;
     }
 
@@ -131,7 +133,9 @@ async function runAutoContinueCheck() {
         console.error("AutoContinueWorker: Error during check cycle:", error);
     } finally {
         isRunning = false;
-        scheduleNextRun();
+        if (options.schedule) {
+            scheduleNextRun();
+        }
     }
 }
 
@@ -164,4 +168,13 @@ function scheduleNextRun() {
 export async function startAutoContinueWorker() {
     console.log(`AutoContinueWorker: Starting...`);
     runAutoContinueCheck();
+}
+
+// For testing purposes only
+export function _resetForTest() {
+    isRunning = false;
+    if (workerTimeout) {
+        clearTimeout(workerTimeout);
+        workerTimeout = null;
+    }
 }

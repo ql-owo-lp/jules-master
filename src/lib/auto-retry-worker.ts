@@ -8,7 +8,7 @@ import { differenceInHours } from 'date-fns';
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
 
-async function runAutoRetryCheck() {
+export async function runAutoRetryCheck(options = { schedule: true }) {
     if (isRunning) return;
     isRunning = true;
 
@@ -16,7 +16,9 @@ async function runAutoRetryCheck() {
     if (!apiKey) {
         console.warn("AutoRetryWorker: JULES_API_KEY not set. Skipping check.");
         isRunning = false;
-        scheduleNextRun();
+        if (options.schedule) {
+            scheduleNextRun();
+        }
         return;
     }
 
@@ -117,7 +119,9 @@ async function runAutoRetryCheck() {
         console.error("AutoRetryWorker: Error during check cycle:", error);
     } finally {
         isRunning = false;
-        scheduleNextRun();
+        if (options.schedule) {
+            scheduleNextRun();
+        }
     }
 }
 
@@ -152,4 +156,13 @@ function scheduleNextRun() {
 export async function startAutoRetryWorker() {
     console.log(`AutoRetryWorker: Starting...`);
     runAutoRetryCheck();
+}
+
+// For testing purposes only
+export function _resetForTest() {
+    isRunning = false;
+    if (workerTimeout) {
+        clearTimeout(workerTimeout);
+        workerTimeout = null;
+    }
 }

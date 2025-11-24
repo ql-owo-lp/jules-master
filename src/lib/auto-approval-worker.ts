@@ -9,7 +9,7 @@ import type { Session } from '@/lib/types';
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
 
-async function runAutoApprovalCheck() {
+export async function runAutoApprovalCheck(options = { schedule: true }) {
     if (isRunning) return;
     isRunning = true;
 
@@ -17,7 +17,9 @@ async function runAutoApprovalCheck() {
     if (!apiKey) {
         console.warn("AutoApprovalWorker: JULES_API_KEY not set. Skipping check.");
         isRunning = false;
-        scheduleNextRun();
+        if (options.schedule) {
+            scheduleNextRun();
+        }
         return;
     }
 
@@ -74,7 +76,9 @@ async function runAutoApprovalCheck() {
         console.error("AutoApprovalWorker: Error during check cycle:", error);
     } finally {
         isRunning = false;
-        scheduleNextRun();
+        if (options.schedule) {
+            scheduleNextRun();
+        }
     }
 }
 
@@ -110,4 +114,13 @@ export async function startAutoApprovalWorker() {
     console.log(`AutoApprovalWorker: Starting...`);
     // Run immediately once
     runAutoApprovalCheck();
+}
+
+// For testing purposes only
+export function _resetForTest() {
+    isRunning = false;
+    if (workerTimeout) {
+        clearTimeout(workerTimeout);
+        workerTimeout = null;
+    }
 }
