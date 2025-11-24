@@ -26,6 +26,7 @@ export function PrStatus({ prUrl }: PrStatusProps) {
   const storageKey = prUrl ? `pr-status-${prUrl}` : "pr-status-null";
   const [cachedData, setCachedData] = useLocalStorage<CachedStatus | null>(storageKey, null);
   const [pollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
+  const [debugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
 
   // Displayed status is derived from cached data
   const status = cachedData?.status;
@@ -51,12 +52,18 @@ export function PrStatus({ prUrl }: PrStatusProps) {
 
       if (isStale) {
         // Background update
+        if (debugMode) {
+            console.log(`Refreshing PR status cache for ${prUrl}`);
+        }
         try {
              const prStatus = await getPullRequestStatus(prUrl, githubToken || envGithubToken || "");
              setCachedData({
                  status: prStatus,
                  timestamp: Date.now(),
              });
+             if (debugMode) {
+                 console.log(`PR status updated for ${prUrl}:`, prStatus);
+             }
         } catch (error) {
             console.error("Failed to fetch PR status", error);
             // If failed, maybe update timestamp so we don't retry immediately?

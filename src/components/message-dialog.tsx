@@ -52,6 +52,7 @@ export function MessageDialog({
     const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>(initialPrompts);
     const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>(initialReplies);
     const { toast } = useToast();
+    const [debugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
 
     // When the dialog opens, re-read from local storage, in case another dialog updated it.
     useEffect(() => {
@@ -77,6 +78,9 @@ export function MessageDialog({
 
     const handleSend = () => {
         if (!message.trim()) return;
+        if (debugMode) {
+            console.log("Sending message:", message);
+        }
         onSendMessage(message);
         setOpen(false);
         setMessage("");
