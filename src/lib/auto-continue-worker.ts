@@ -163,5 +163,5 @@ function scheduleNextRun() {
 
 export async function startAutoContinueWorker() {
     console.log(`AutoContinueWorker: Starting...`);
-    return runAutoContinueCheck();
+    runAutoContinueCheck();
 }

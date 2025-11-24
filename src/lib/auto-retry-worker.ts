@@ -151,5 +151,5 @@ function scheduleNextRun() {
 
 export async function startAutoRetryWorker() {
     console.log(`AutoRetryWorker: Starting...`);
-    return runAutoRetryCheck();
+    runAutoRetryCheck();
 }
