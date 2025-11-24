@@ -52,6 +52,25 @@ To run the app on a mobile device, you have two options:
     ```
     *Note: `cleartext: true` allows http connections on Android.*
 
+## Testing
+
+We use **Playwright** to test the application's UI on mobile viewports. This ensures that the responsive design works correctly on smaller screens, mimicking the experience in the Capacitor app.
+
+### Running Mobile E2E Tests
+
+1.  **Install Playwright Browsers (if not already installed):**
+    ```bash
+    npx playwright install
+    ```
+
+2.  **Run Tests:**
+    ```bash
+    npm run test:e2e
+    ```
+    This will run tests against Desktop Chrome, Mobile Chrome (Pixel 5), and Mobile Safari (iPhone 12).
+
+    *Note: If you are running on Linux and see errors about missing dependencies for WebKit (Mobile Safari), you may need to install system dependencies or stick to testing Mobile Chrome.*
+
 ## Building the App
 
 1.  **Sync Capacitor Config:**
