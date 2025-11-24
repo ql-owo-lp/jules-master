@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Button } from "./ui/button";
 import { GitPullRequest, GitMerge, CheckCircle, XCircle, Clock, AlertTriangle, GitPullRequestClosed, CircleDotDashed } from "lucide-react";
@@ -113,7 +114,7 @@ export function PrStatus({ prUrl }: PrStatusProps) {
   }
 
   if (isLoading && status === undefined) {
-    return <Skeleton className="h-8 w-8 rounded-full" />;
+    return <Skeleton className="h-8 w-8 rounded-full" aria-label="Loading PR status" />;
   }
   
   if (!status && !isLoading) {
@@ -197,7 +198,7 @@ export function PrStatus({ prUrl }: PrStatusProps) {
       break;
   }
   
-  const checkRuns = status.checks.runs;
+  const checkRuns = status.state === 'OPEN' ? status.checks.runs : [];
 
   return (
     <TooltipProvider>

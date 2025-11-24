@@ -5,6 +5,7 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
+    environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**', 'tests/e2e/**'],
     fileParallelism: false,
@@ -17,7 +18,8 @@ export default defineConfig({
         'src/app/api/auth/[...nextauth]/route.ts',
         'src/lib/db/schema.ts',
         'src/ai/dev.ts',
-        'src/lib/db/migrate.ts'
+        'src/lib/db/migrate.ts',
+        'src/lib/db/migrations/**'
       ],
     },
   },
