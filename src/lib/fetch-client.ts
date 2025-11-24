@@ -172,7 +172,7 @@ export async function fetchWithRetry(
           if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
             attempt++;
             if (attempt < retries) {
-              const sleepTime = backoff * Math.pow(2, attempt - 1) * (1 + Math.random() * 0.1);
+              const sleepTime = backoff * Math.pow(2, attempt - 1);
               console.warn(`Request failed (${response.status}). Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`);
 
               if (effectiveSignal.aborted) throw new DOMException('Aborted', 'AbortError');

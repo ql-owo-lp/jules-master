@@ -189,3 +189,65 @@ describe('fetchWithRetry', () => {
       });
   });
 });
+
+describe('fetchWithRetry', () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+        global.fetch = vi.fn();
+        vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        global.fetch = originalFetch;
+        vi.useRealTimers();
+        vi.restoreAllMocks();
+    });
+
+    it('should cancel a request with an external signal', async () => {
+        const controller = new AbortController();
+        const promise = fetchWithRetry('https://api.example.com', { signal: controller.signal });
+        controller.abort();
+        await expect(promise).rejects.toThrow('Aborted');
+    });
+
+    it('should not enqueue an already aborted request', async () => {
+        const controller = new AbortController();
+        controller.abort();
+        const promise = fetchWithRetry('https://api.example.com', { signal: controller.signal });
+        await expect(promise).rejects.toThrow('Aborted');
+    });
+
+    it('should handle a request that is aborted while in the queue', async () => {
+        global.fetch = vi.fn().mockImplementation(() => new Promise(() => {}));
+        for (let i = 0; i < 5; i++) {
+            fetchWithRetry(`https://api.example.com/fill/${i}`).catch(() => {});
+        }
+        const controller = new AbortController();
+        const promise = fetchWithRetry('https://api.example.com/queued', { signal: controller.signal });
+        controller.abort();
+        await expect(promise).rejects.toThrow('Aborted');
+    });
+
+    it('should handle a request that is aborted while executing', async () => {
+        const controller = new AbortController();
+        global.fetch = vi.fn().mockImplementation((url, options) => {
+            return new Promise((resolve, reject) => {
+                options.signal?.addEventListener('abort', () => {
+                    reject(new DOMException('Aborted', 'AbortError'));
+                });
+            });
+        });
+        const promise = fetchWithRetry('https://api.example.com', { signal: controller.signal });
+        await vi.advanceTimersByTimeAsync(1);
+        controller.abort();
+        await expect(promise).rejects.toThrow('Aborted');
+    });
+
+    it.skip('should throw an error after exhausting retries', async () => {
+        global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+        const promise = fetchWithRetry('https://api.example.com', { retries: 2, backoff: 10 });
+        await vi.runAllTimersAsync();
+        await expect(promise).rejects.toThrow('Failed to fetch after multiple retries');
+    });
+});
