@@ -109,5 +109,8 @@ function scheduleNextRun() {
 export async function startAutoApprovalWorker() {
     console.log(`AutoApprovalWorker: Starting...`);
     // Run immediately once
-    await runAutoApprovalCheck();
+    runAutoApprovalCheck();
 }
+
+// Export for testing
+export { runAutoApprovalCheck, scheduleNextRun };

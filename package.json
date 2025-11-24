@@ -13,7 +13,6 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/lib/db/migrate.ts",
     "test": "vitest",
-    "coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "postinstall": "patch-package"
   },
