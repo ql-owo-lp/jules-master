@@ -383,6 +383,8 @@ function HomePageContent() {
             jobPage={jobPage}
             totalJobPages={totalJobPages}
             onJobPageChange={handleJobPageChange}
+            progressCurrent={progressCurrent}
+            progressTotal={progressTotal}
           >
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div className="space-y-2">
