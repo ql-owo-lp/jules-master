@@ -43,6 +43,13 @@
       "when": 1763914560896,
       "tag": "0005_early_groot",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1763947707065,
+      "tag": "0006_burly_blonde_phantom",
+      "breakpoints": true
     }
   ]
 }
