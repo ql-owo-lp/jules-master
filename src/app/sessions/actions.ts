@@ -3,6 +3,7 @@
 
 import type { Session, Source } from '@/lib/types';
 import { revalidateTag } from 'next/cache';
+import { fetchWithRetry } from '@/lib/fetch-client';
 
 type ListSessionsResponse = {
   sessions: Session[];
@@ -86,7 +87,7 @@ export async function listSessions(
     const url = new URL('https://jules.googleapis.com/v1alpha/sessions');
     url.searchParams.set('pageSize', pageSize.toString());
 
-    const response = await fetch(
+    const response = await fetchWithRetry(
         url.toString(),
         {
             headers: {
@@ -139,7 +140,7 @@ export async function fetchSessionsPage(
             url.searchParams.set('pageToken', pageToken);
         }
 
-        const response = await fetch(
+        const response = await fetchWithRetry(
             url.toString(),
             {
                 headers: {
@@ -195,7 +196,7 @@ export async function listSources(apiKey?: string | null): Promise<Source[]> {
         url.searchParams.set('pageToken', nextPageToken);
       }
 
-      const response = await fetch(url.toString(), {
+      const response = await fetchWithRetry(url.toString(), {
         headers: {
           'X-Goog-Api-Key': effectiveApiKey,
         },

@@ -208,6 +208,7 @@ export function JobCreationForm({
         while (retries > 0 && !newSession) {
             newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode);
             if (!newSession) {
+                console.error(`Failed to create session ${i + 1}. Retries remaining: ${retries - 1}`);
                 retries--;
                 toast({
                     variant: "destructive",

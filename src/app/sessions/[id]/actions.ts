@@ -3,6 +3,7 @@
 
 import type { Session, Activity } from "@/lib/types";
 import { revalidatePath } from "next/cache";
+import { fetchWithRetry } from "@/lib/fetch-client";
 
 type ListActivitiesResponse = {
   activities: Activity[];
@@ -19,7 +20,7 @@ export async function getSession(
     return null;
   }
   try {
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}`,
       {
         headers: {
@@ -52,7 +53,7 @@ export async function listActivities(
     return [];
   }
   try {
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}/activities`,
       {
         headers: {
