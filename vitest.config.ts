@@ -17,7 +17,8 @@ export default defineConfig({
         'src/app/api/auth/[...nextauth]/route.ts',
         'src/lib/db/schema.ts',
         'src/ai/dev.ts',
-        'src/lib/db/migrate.ts'
+        'src/lib/db/migrate.ts',
+        '**/*.sql'
       ],
     },
   },

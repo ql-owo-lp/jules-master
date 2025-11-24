@@ -187,5 +187,29 @@ describe('fetchWithRetry', () => {
 
            await expect(promise).rejects.toThrow('Aborted');
       });
+
+      it('should remove the request from the queue when cancelled', async () => {
+        // Mock fetch that hangs to fill queue
+        global.fetch = vi.fn().mockImplementation(() => new Promise(() => {}));
+
+        // Fill the queue
+        for (let i = 0; i < 5; i++) {
+            fetchWithRetry(`https://api.example.com/fill/${i}`).catch(() => {});
+        }
+
+        const requestId = 'req-cancel-queue';
+        const promise = fetchWithRetry('https://api.example.com/queued', { requestId });
+
+        // It should be in queue now (active count = 5)
+        cancelRequest(requestId);
+        await expect(promise).rejects.toThrow('Aborted');
+      });
+
+      it('should handle external signal abort', async () => {
+        const controller = new AbortController();
+        const promise = fetchWithRetry('https://api.example.com', { signal: controller.signal });
+        controller.abort();
+        await expect(promise).rejects.toThrow('Aborted');
+      });
   });
 });
