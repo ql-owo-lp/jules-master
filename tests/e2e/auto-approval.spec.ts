@@ -22,9 +22,9 @@ test.describe('Auto Approval Features', () => {
         await expect(requireApprovalLabel).toBeVisible();
 
         // 2. Check Settings Page for "Auto Approval Check Interval"
-        await page.goto('/');
-        await page.getByRole('button', { name: 'Open settings' }).click();
-        await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+        await page.goto('/settings');
+        // Switch to Automation tab
+        await page.getByRole('tab', { name: 'Automation' }).click();
 
         // Check for Auto Approval Interval input
         const autoApprovalInput = page.getByLabel('Auto Approval Check Interval (seconds)');
@@ -94,8 +94,9 @@ test.describe('Auto Approval Features', () => {
     });
 
     test('should persist Auto Approval Interval setting', async ({ page }) => {
-        await page.goto('/');
-        await page.getByRole('button', { name: 'Open settings' }).click();
+        await page.goto('/settings');
+        // Switch to Automation tab
+        await page.getByRole('tab', { name: 'Automation' }).click();
 
         const input = page.getByLabel('Auto Approval Check Interval (seconds)');
         await expect(input).toBeVisible();
@@ -104,14 +105,16 @@ test.describe('Auto Approval Features', () => {
         await input.fill('123');
 
         // Save Changes
-        await page.getByRole('button', { name: 'Save Changes' }).click();
+        await page.getByRole('button', { name: 'Save Automation Settings' }).click();
 
         // Wait for toast or dialog close
         await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible();
 
         // Reload and verify
         await page.reload();
-        await page.getByRole('button', { name: 'Open settings' }).click();
+        // Switch to Automation tab
+        await page.getByRole('tab', { name: 'Automation' }).click();
+
         await expect(page.getByLabel('Auto Approval Check Interval (seconds)')).toHaveValue('123');
     });
 });

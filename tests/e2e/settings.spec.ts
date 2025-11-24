@@ -2,10 +2,10 @@
 import { test, expect } from '@playwright/test';
 
 test('should display PR Status Cache Refresh Interval setting', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/settings');
 
-  // Open settings sheet
-  await page.getByRole('button', { name: 'Open settings' }).click();
+  // Switch to Configuration tab
+  await page.getByRole('tab', { name: 'Configuration' }).click();
 
   // Check if the setting input is visible
   const label = page.getByText('PR Status Cache Refresh Interval (seconds)');
@@ -19,7 +19,7 @@ test('should display PR Status Cache Refresh Interval setting', async ({ page })
   await input.fill('120');
 
   // Save changes
-  await page.getByRole('button', { name: 'Save Changes' }).click();
+  await page.getByRole('button', { name: 'Save Configuration' }).click();
 
   // Verify toast
   // Use exact match to differentiate from screen reader text which might contain more content
@@ -27,6 +27,9 @@ test('should display PR Status Cache Refresh Interval setting', async ({ page })
 
   // Reload and verify persistence
   await page.reload();
-  await page.getByRole('button', { name: 'Open settings' }).click();
+
+  // Switch to Configuration tab
+  await page.getByRole('tab', { name: 'Configuration' }).click();
+
   await expect(page.getByLabel('PR Status Cache Refresh Interval (seconds)')).toHaveValue('120');
 });
