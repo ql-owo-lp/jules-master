@@ -14,9 +14,16 @@
     "db:migrate": "tsx src/lib/db/migrate.ts",
     "test": "vitest",
     "test:e2e": "playwright test",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "cap:sync": "cap sync",
+    "cap:open:android": "cap open android",
+    "cap:open:ios": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.20.0",
     "@hookform/resolvers": "^4.1.3",
