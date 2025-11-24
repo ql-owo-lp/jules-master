@@ -46,6 +46,46 @@ describe('Utils', () => {
         expect(groupedSessions.get('Test Topic 1')?.length).toBe(1);
         expect(remainingUnknown.length).toBe(1);
     });
+
+    it('should handle sessions with an empty prompt', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: '' },
+      ];
+      const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(0);
+      expect(remainingUnknown.length).toBe(1);
+      expect(remainingUnknown[0].id).toBe('1');
+    });
+
+    it('should handle sessions with a prompt containing only whitespace', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: ' ' },
+      ];
+      const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(0);
+      expect(remainingUnknown.length).toBe(1);
+      expect(remainingUnknown[0].id).toBe('1');
+    });
+
+    it('should handle topics with special characters', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: '[TOPIC]: # (Topic with spaces and !@#$%^&*())\nSome details' },
+      ];
+      const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(1);
+      expect(groupedSessions.get('Topic with spaces and !@#$%^&*()')?.length).toBe(1);
+      expect(remainingUnknown.length).toBe(0);
+    });
+
+    it('should handle sessions with null or undefined prompts', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: undefined },
+        { id: '2', prompt: null as any },
+      ];
+      const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(0);
+      expect(remainingUnknown.length).toBe(2);
+    });
   });
 
   describe('createDynamicJobs', () => {
@@ -92,5 +132,47 @@ describe('Utils', () => {
         expect(jobs[0].repo).toBe('unknown');
         expect(jobs[0].branch).toBe('unknown');
       });
+
+    it('should handle sessions with missing createTime', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', [
+        { id: '1', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+        { id: '2', createTime: '2023-01-01T13:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+      ]);
+
+      const jobs = createDynamicJobs(groupedSessions);
+
+      expect(jobs.length).toBe(1);
+      expect(jobs[0].name).toBe('Test Job 1');
+      expect(jobs[0].createdAt).toBe('2023-01-01T13:00:00Z');
+    });
+
+    it('should correctly identify the latest session', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', [
+        { id: '1', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+        { id: '2', createTime: '2023-01-01T14:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+        { id: '3', createTime: '2023-01-01T13:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+      ]);
+
+      const jobs = createDynamicJobs(groupedSessions);
+
+      expect(jobs.length).toBe(1);
+      expect(jobs[0].name).toBe('Test Job 1');
+      expect(jobs[0].createdAt).toBe('2023-01-01T14:00:00Z');
+    });
+
+    it('should use the current time if no sessions have a createTime', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', [
+        { id: '1', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+      ]);
+
+      const jobs = createDynamicJobs(groupedSessions);
+
+      expect(jobs.length).toBe(1);
+      expect(jobs[0].name).toBe('Test Job 1');
+      expect(jobs[0].createdAt).toBeDefined();
+    });
   });
 });
