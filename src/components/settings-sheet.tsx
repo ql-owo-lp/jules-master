@@ -50,6 +50,7 @@ export function SettingsSheet() {
   const [autoRetryMessage, setAutoRetryMessage] = useLocalStorage<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
   const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
   const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
+  const [debugMode, setDebugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
 
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
@@ -68,6 +69,7 @@ export function SettingsSheet() {
   const [autoRetryMessageValue, setAutoRetryMessageValue] = useState(autoRetryMessage);
   const [autoContinueEnabledValue, setAutoContinueEnabledValue] = useState(autoContinueEnabled);
   const [autoContinueMessageValue, setAutoContinueMessageValue] = useState(autoContinueMessage);
+  const [debugModeValue, setDebugModeValue] = useState(debugMode);
   
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -93,6 +95,7 @@ export function SettingsSheet() {
   useEffect(() => { setAutoRetryMessageValue(autoRetryMessage); }, [autoRetryMessage]);
   useEffect(() => { setAutoContinueEnabledValue(autoContinueEnabled); }, [autoContinueEnabled]);
   useEffect(() => { setAutoContinueMessageValue(autoContinueMessage); }, [autoContinueMessage]);
+  useEffect(() => { setDebugModeValue(debugMode); }, [debugMode]);
   
   // Fetch settings from DB on mount and populate if local storage is empty
   useEffect(() => {
@@ -165,6 +168,7 @@ export function SettingsSheet() {
     setAutoRetryMessage(autoRetryMessageValue);
     setAutoContinueEnabled(autoContinueEnabledValue);
     setAutoContinueMessage(autoContinueMessageValue);
+    setDebugMode(debugModeValue);
 
     try {
         await fetch('/api/settings', {
@@ -226,6 +230,19 @@ export function SettingsSheet() {
                  <div>
                     <h3 className="text-lg font-medium">General</h3>
                     <p className="text-sm text-muted-foreground">API keys and theme preferences.</p>
+                </div>
+                <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="debug-mode">Debug Mode</Label>
+                        <p className="text-xs text-muted-foreground">
+                            Enable detailed logging to the browser console.
+                        </p>
+                    </div>
+                    <Switch
+                        id="debug-mode"
+                        checked={debugModeValue}
+                        onCheckedChange={setDebugModeValue}
+                    />
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="api-key">Jules API Key</Label>
