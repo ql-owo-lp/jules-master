@@ -102,6 +102,9 @@ export default function SettingsPage() {
   const [sessionCachePendingApprovalInterval, setSessionCachePendingApprovalInterval] = useLocalStorage<number>("jules-session-cache-pending-approval-interval", 300);
   const [sessionCacheMaxAgeDays, setSessionCacheMaxAgeDays] = useLocalStorage<number>("jules-session-cache-max-age-days", 3);
 
+  const [autoDeleteStaleBranches, setAutoDeleteStaleBranches] = useLocalStorage<boolean>("jules-auto-delete-stale-branches", false);
+  const [autoDeleteStaleBranchesAfterDays, setAutoDeleteStaleBranchesAfterDays] = useLocalStorage<number>("jules-auto-delete-stale-branches-after-days", 3);
+
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
   const [idlePollIntervalValue, setIdlePollIntervalValue] = useState(idlePollInterval);
@@ -125,6 +128,9 @@ export default function SettingsPage() {
   const [sessionCacheCompletedNoPrIntervalValue, setSessionCacheCompletedNoPrIntervalValue] = useState(sessionCacheCompletedNoPrInterval);
   const [sessionCachePendingApprovalIntervalValue, setSessionCachePendingApprovalIntervalValue] = useState(sessionCachePendingApprovalInterval);
   const [sessionCacheMaxAgeDaysValue, setSessionCacheMaxAgeDaysValue] = useState(sessionCacheMaxAgeDays);
+
+  const [autoDeleteStaleBranchesValue, setAutoDeleteStaleBranchesValue] = useState(autoDeleteStaleBranches);
+  const [autoDeleteStaleBranchesAfterDaysValue, setAutoDeleteStaleBranchesAfterDaysValue] = useState(autoDeleteStaleBranchesAfterDays);
 
 
   const [showApiKey, setShowApiKey] = useState(false);
@@ -174,6 +180,9 @@ export default function SettingsPage() {
   useEffect(() => { setSessionCachePendingApprovalIntervalValue(sessionCachePendingApprovalInterval); }, [sessionCachePendingApprovalInterval]);
   useEffect(() => { setSessionCacheMaxAgeDaysValue(sessionCacheMaxAgeDays); }, [sessionCacheMaxAgeDays]);
 
+  useEffect(() => { setAutoDeleteStaleBranchesValue(autoDeleteStaleBranches); }, [autoDeleteStaleBranches]);
+  useEffect(() => { setAutoDeleteStaleBranchesAfterDaysValue(autoDeleteStaleBranchesAfterDays); }, [autoDeleteStaleBranchesAfterDays]);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -203,6 +212,8 @@ export default function SettingsPage() {
           if (!isSetInLocalStorage("jules-session-cache-completed-no-pr-interval")) setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
           if (!isSetInLocalStorage("jules-session-cache-pending-approval-interval")) setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
           if (!isSetInLocalStorage("jules-session-cache-max-age-days")) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
+          if (!isSetInLocalStorage("jules-auto-delete-stale-branches")) setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
+          if (!isSetInLocalStorage("jules-auto-delete-stale-branches-after-days")) setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);
@@ -214,7 +225,8 @@ export default function SettingsPage() {
       setSessionItemsPerPage, setJobsPerPage, setDefaultSessionCount, setPrStatusPollInterval,
       setHistoryPromptsCount, setAutoApprovalInterval, setAutoRetryEnabled, setAutoRetryMessage,
       setAutoContinueEnabled, setAutoContinueMessage,
-      setSessionCacheInProgressInterval, setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays
+      setSessionCacheInProgressInterval, setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays,
+      setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays
   ]);
 
   // --- Effects for Messages ---
@@ -272,6 +284,9 @@ export default function SettingsPage() {
     setSessionCachePendingApprovalInterval(sessionCachePendingApprovalIntervalValue);
     setSessionCacheMaxAgeDays(sessionCacheMaxAgeDaysValue);
 
+    setAutoDeleteStaleBranches(autoDeleteStaleBranchesValue);
+    setAutoDeleteStaleBranchesAfterDays(autoDeleteStaleBranchesAfterDaysValue);
+
     try {
         const response = await fetch('/api/settings');
         let currentTheme = 'system';
@@ -305,6 +320,9 @@ export default function SettingsPage() {
                 sessionCacheCompletedNoPrInterval: sessionCacheCompletedNoPrIntervalValue,
                 sessionCachePendingApprovalInterval: sessionCachePendingApprovalIntervalValue,
                 sessionCacheMaxAgeDays: sessionCacheMaxAgeDaysValue,
+
+                autoDeleteStaleBranches: autoDeleteStaleBranchesValue,
+                autoDeleteStaleBranchesAfterDays: autoDeleteStaleBranchesAfterDaysValue,
             }),
         });
 
@@ -722,6 +740,25 @@ export default function SettingsPage() {
                             min="10"
                         />
                     </div>
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="auto-delete-stale-branches">Auto Delete Stale Branches</Label>
+                            <p className="text-xs text-muted-foreground">Automatically delete branches after their PRs are merged.</p>
+                        </div>
+                        <Switch id="auto-delete-stale-branches" checked={autoDeleteStaleBranchesValue} onCheckedChange={setAutoDeleteStaleBranchesValue} />
+                    </div>
+                    {autoDeleteStaleBranchesValue && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="auto-delete-stale-branches-after-days">Auto Delete Stale Branches After (days)</Label>
+                            <Input
+                                id="auto-delete-stale-branches-after-days"
+                                type="number"
+                                value={autoDeleteStaleBranchesAfterDaysValue}
+                                onChange={(e) => setAutoDeleteStaleBranchesAfterDaysValue(Number(e.target.value))}
+                                min="1"
+                            />
+                        </div>
+                    )}
                 </CardContent>
                 <CardFooter>
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Automation Settings</Button>

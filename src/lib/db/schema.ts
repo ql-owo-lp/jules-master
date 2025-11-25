@@ -62,6 +62,8 @@ export const settings = sqliteTable('settings', {
   sessionCacheCompletedNoPrInterval: integer('session_cache_completed_no_pr_interval').notNull().default(1800), // 30 minutes
   sessionCachePendingApprovalInterval: integer('session_cache_pending_approval_interval').notNull().default(300), // 5 minutes
   sessionCacheMaxAgeDays: integer('session_cache_max_age_days').notNull().default(3),
+  autoDeleteStaleBranches: integer('auto_delete_stale_branches', { mode: 'boolean' }).notNull().default(false),
+  autoDeleteStaleBranchesAfterDays: integer('auto_delete_stale_branches_after_days').notNull().default(3),
 });
 
 export const sessions = sqliteTable('sessions', {
