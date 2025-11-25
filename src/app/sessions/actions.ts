@@ -27,7 +27,7 @@ const MOCK_SESSIONS: Session[] = [
     id: 'session-1',
     title: 'Mock Session 1',
     state: 'COMPLETED',
-    createTime: new Date().toISOString(),
+    createTime: '2024-01-01T12:00:00.000Z',
     sourceContext: {
       source: 'sources/github/test-owner/test-repo',
       githubRepoContext: {
@@ -41,7 +41,7 @@ const MOCK_SESSIONS: Session[] = [
     id: 'session-2',
     title: 'Mock Session 2',
     state: 'AWAITING_USER_FEEDBACK',
-    createTime: new Date(Date.now() - 100000).toISOString(),
+    createTime: '2024-01-01T11:58:20.000Z',
     sourceContext: {
       source: 'sources/github/test-owner/test-repo',
       githubRepoContext: {

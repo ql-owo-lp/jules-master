@@ -1,49 +1,29 @@
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import Page, expect, sync_playwright
 
-def verify_settings(page):
-    # Navigate to the settings page (assuming it's at /settings or accessible via UI)
-    # Since I'm not sure of the exact URL structure, I'll try to find the settings button on home page first
-    # or go directly to /settings if it exists.
-    # The page.tsx at root has settings in top right corner probably.
-    # But let's try direct navigation to /settings as that's where I added the page.
+def verify_settings_page(page: Page):
+  """
+  This test verifies that the new auto-delete settings are visible on the
+  settings page.
+  """
+  # 1. Arrange: Go to the settings page.
+  page.goto("http://localhost:9002/settings")
 
-    # Wait for server to be ready
-    try:
-        page.goto("http://localhost:9002/settings")
-    except Exception as e:
-        print(f"Failed to load page: {e}")
-        return
+  # 2. Act: Find the "Automation" tab and click it.
+  automation_tab = page.get_by_role("tab", name="Automation")
+  automation_tab.click()
 
-    # Check for the new "Cache" tab
-    # The tabs are implemented using Radix UI Tabs
+  # 3. Assert: Confirm the new settings are visible.
+  expect(page.get_by_label("Auto Delete Stale Branches")).to_be_visible()
 
-    # Wait for the tabs to appear
-    page.wait_for_selector('button[role="tab"]')
-
-    # Click on the "Cache" tab
-    cache_tab = page.get_by_role("tab", name="Cache")
-    if cache_tab.is_visible():
-        cache_tab.click()
-        print("Clicked Cache tab")
-    else:
-        print("Cache tab not found")
-        return
-
-    # Verify the new inputs are present
-    # Labels: "In Progress Update Interval", "Pending Approval Update Interval", "Completed (No PR) Update Interval", "Max Session Age to Update"
-
-    page.wait_for_selector('label:has-text("In Progress Update Interval")')
-
-    # Take a screenshot
-    page.screenshot(path="verification_screenshot.png")
-    print("Screenshot taken")
+  # 4. Screenshot: Capture the final result for visual verification.
+  page.screenshot(path="/app/verification_screenshot.png")
 
 if __name__ == "__main__":
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        try:
-            verify_settings(page)
-        finally:
-            browser.close()
+  with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    page = browser.new_page()
+    try:
+      verify_settings_page(page)
+    finally:
+      browser.close()

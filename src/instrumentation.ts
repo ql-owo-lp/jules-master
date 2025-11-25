@@ -4,9 +4,11 @@ export async function register() {
         const { startAutoApprovalWorker } = await import('./lib/auto-approval-worker');
         const { startAutoRetryWorker } = await import('./lib/auto-retry-worker');
         const { startAutoContinueWorker } = await import('./lib/auto-continue-worker');
+        const { startAutoDeleteStaleBranchWorker } = await import('./lib/auto-delete-stale-branch-worker');
 
         startAutoApprovalWorker();
         startAutoRetryWorker();
         startAutoContinueWorker();
+        startAutoDeleteStaleBranchWorker();
     }
 }

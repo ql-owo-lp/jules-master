@@ -1,0 +1,2 @@
+ALTER TABLE `settings` ADD `auto_delete_stale_branches` integer DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE `settings` ADD `auto_delete_stale_branches_after_days` integer DEFAULT 3 NOT NULL;
