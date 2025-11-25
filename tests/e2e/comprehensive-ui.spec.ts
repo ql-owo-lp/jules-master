@@ -189,4 +189,18 @@ test.describe('Comprehensive UI Tests', () => {
       await expect(page.locator('td', { hasText: testContent })).toBeVisible();
     });
   });
+
+  test.describe('Automation Settings', () => {
+    test('should display auto-delete settings and allow configuration', async ({ page }) => {
+      await page.goto('/settings');
+      await page.getByRole('tab', { name: 'Automation' }).click();
+
+      await expect(page.getByLabel('Auto Delete Stale Branches')).toBeVisible();
+      await page.getByLabel('Auto Delete Stale Branches').check();
+      await expect(page.getByLabel('Auto Delete Stale Branches After (days)')).toBeVisible();
+      await page.getByLabel('Auto Delete Stale Branches After (days)').fill('5');
+      await page.getByRole('button', { name: 'Save Automation Settings' }).click();
+      await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible();
+    });
+  });
 });

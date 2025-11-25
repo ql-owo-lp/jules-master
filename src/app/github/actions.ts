@@ -125,7 +125,7 @@ const getPullRequestStatusFromApi = unstable_cache(
         }
       }
 
-      return { state, checks };
+      return { state, checks, merged_at: prData.merged_at };
 
     } catch (error) {
       console.error('Error fetching pull request status:', error);
