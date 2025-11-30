@@ -1,7 +1,7 @@
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-interface FetchOptions extends RequestInit {
+export interface FetchOptions extends RequestInit {
   retries?: number;
   backoff?: number;
   requestId?: string;

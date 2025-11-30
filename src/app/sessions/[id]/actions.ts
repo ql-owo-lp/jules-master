@@ -3,7 +3,7 @@
 
 import type { Session, Activity } from "@/lib/types";
 import { revalidatePath } from "next/cache";
-import { fetchWithRetry } from "@/lib/fetch-client";
+import { fetchWithRetry, type FetchOptions } from "@/lib/fetch-client";
 
 type ListActivitiesResponse = {
   activities: Activity[];
@@ -12,7 +12,8 @@ type ListActivitiesResponse = {
 
 export async function getSession(
   sessionId: string,
-  apiKey?: string | null
+  apiKey?: string | null,
+  retryOptions?: Pick<FetchOptions, 'retries' | 'backoff'>
 ): Promise<Session | null> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
@@ -27,6 +28,7 @@ export async function getSession(
           "X-Goog-Api-Key": effectiveApiKey,
         },
         cache: "no-store", // Always fetch latest for session details
+        ...retryOptions,
       }
     );
     if (!response.ok) {

@@ -1,10 +1,10 @@
 
 import { db } from './db';
-import { jobs, settings } from './db/schema';
-import { eq } from 'drizzle-orm';
+import { jobs, settings, sessions } from './db/schema';
+import { eq, inArray } from 'drizzle-orm';
 import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
 import type { Session } from '@/lib/types';
-import { differenceInHours } from 'date-fns';
+import { differenceInHours, differenceInDays } from 'date-fns';
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
@@ -46,10 +46,19 @@ export async function runAutoContinueCheck(options = { schedule: true }) {
 
         const continueMessage = settingsResult[0].autoContinueMessage;
 
-        // 2. Get all jobs
-        const allJobs = await db.select().from(jobs);
+        // 2. Get recently started jobs (created within last 3 days)
+        const recentJobs = await db.select().from(jobs); // Fetch all and filter in memory to avoid complex date logic in SQL if format is varying
 
-        if (allJobs.length === 0) {
+        const now = new Date();
+        const filteredJobs = recentJobs.filter(job => {
+            const createdAt = new Date(job.createdAt);
+            // Check if valid date
+            if (isNaN(createdAt.getTime())) return false;
+            // Filter out jobs older than 3 days
+            return differenceInDays(now, createdAt) <= 3;
+        });
+
+        if (filteredJobs.length === 0) {
             isRunning = false;
             scheduleNextRun();
             return;
@@ -57,7 +66,7 @@ export async function runAutoContinueCheck(options = { schedule: true }) {
 
         // 3. Collect all session IDs
         const sessionIds: string[] = [];
-        for (const job of allJobs) {
+        for (const job of filteredJobs) {
             let ids: string[] = [];
 
             if (Array.isArray(job.sessionIds)) {
@@ -86,11 +95,56 @@ export async function runAutoContinueCheck(options = { schedule: true }) {
 
         // 4. Check status of each session
         const CONCURRENCY_LIMIT = 5;
-        for (let i = 0; i < sessionIds.length; i += CONCURRENCY_LIMIT) {
-            const batch = sessionIds.slice(i, i + CONCURRENCY_LIMIT);
+        // Batch check local session cache to filter out completed ones
+        // We can check local 'sessions' table.
+        // If session exists locally and state is 'COMPLETED', we might skip it depending on logic.
+        // User requested: "do not check for 'complete' sessions".
+        // Current worker logic: check if 'COMPLETED' AND 'NO PR'.
+        // So if local cache says 'COMPLETED' AND 'HAS PR', we can skip.
+
+        // Let's filter sessionIds that are definitely done.
+        const pendingSessionIds: string[] = [];
+
+        // We can't easily query all sessionIds at once if list is huge, but with 3 days filter it should be small.
+        const cachedSessions = await db.select().from(sessions).where(inArray(sessions.id, sessionIds));
+        const cachedSessionMap = new Map(cachedSessions.map(s => [s.id, s]));
+
+        for (const sessionId of sessionIds) {
+            const cached = cachedSessionMap.get(sessionId);
+            if (cached && cached.state === 'COMPLETED') {
+                // Check if it has PR in outputs
+                let hasPR = false;
+                if (cached.outputs && cached.outputs.length > 0) {
+                    for (const output of cached.outputs) {
+                        if (output.pullRequest?.url) {
+                            hasPR = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (hasPR) {
+                    // Already completed with PR, skip
+                    continue;
+                }
+                // If Completed but no PR, we might need to check again (maybe it failed to update or PR just appeared),
+                // but if this worker is the one sending nudges, it needs to fetch to be sure.
+                // However, user said "do not check for 'complete' sessions".
+                // If we interpret strictly: if cached as complete, don't check.
+                // But that defeats the purpose of this worker (handling stuck completions).
+                // Let's assume user means "If we know it is 'Done' (Completed + PR), stop checking."
+            }
+            pendingSessionIds.push(sessionId);
+        }
+
+        console.log(`AutoContinueWorker: Checking ${pendingSessionIds.length} sessions for auto-continue...`);
+
+        for (let i = 0; i < pendingSessionIds.length; i += CONCURRENCY_LIMIT) {
+            const batch = pendingSessionIds.slice(i, i + CONCURRENCY_LIMIT);
             await Promise.all(batch.map(async (sessionId) => {
                 try {
-                    const session = await getSession(sessionId, apiKey);
+                    // Use larger retry window: start 5s, max ~5m (7 retries: 5, 10, 20, 40, 80, 160, 320)
+                    const session = await getSession(sessionId, apiKey, { retries: 7, backoff: 5000 });
 
                     // Skip if session updateTime is older than 24 hours to prevent "Zombie" activation
                     if (session?.updateTime) {
