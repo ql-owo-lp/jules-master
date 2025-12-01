@@ -21,6 +21,17 @@ class RequestQueue {
   private activeCount = 0;
   private readonly maxConcurrent = 5; // Global concurrency limit
   private activeRequests: Map<string, QueueItem> = new Map(); // Map requestId to QueueItem (both queued and active)
+  private lastRequestTime = 0;
+  private minInterval = 200; // Minimum interval between requests in ms
+  private backoffUntil = 0; // Timestamp until which backoff is active
+
+  reportRateLimit(retryAfter: number = 0) {
+    const now = Date.now();
+    // Default backoff of 5 seconds if retryAfter not provided, or respect retryAfter
+    const delay = retryAfter > 0 ? retryAfter : 5000;
+    this.backoffUntil = now + delay;
+    console.warn(`Rate limit reported. Backing off until ${new Date(this.backoffUntil).toISOString()}`);
+  }
 
   enqueue(fn: (signal: AbortSignal) => Promise<Response>, options: { signal?: AbortSignal | null, requestId?: string }): Promise<Response> {
     return new Promise((resolve, reject) => {
@@ -92,8 +103,36 @@ class RequestQueue {
       return;
     }
 
-    const item = this.queue.shift();
-    if (!item) return;
+    const now = Date.now();
+
+    // Check backoff
+    if (now < this.backoffUntil) {
+      const waitTime = this.backoffUntil - now;
+      setTimeout(() => this.processQueue(), waitTime);
+      return;
+    }
+
+    // Rate Limiting: Check time since last request
+    const timeSinceLastRequest = now - this.lastRequestTime;
+
+    if (timeSinceLastRequest < this.minInterval) {
+      const waitTime = this.minInterval - timeSinceLastRequest;
+      setTimeout(() => this.processQueue(), waitTime);
+      return;
+    }
+
+    // Update last request time immediately to prevent other concurrent processQueue calls from proceeding
+    this.lastRequestTime = Date.now();
+
+    // LIFO: Process the last item added
+    const item = this.queue.pop();
+    if (!item) {
+        // Should not happen as we check length above, but race conditions possible?
+        // Actually, since this is JS single-threaded event loop, it shouldn't be null if length > 0.
+        // But if setTimeout was involved, maybe queue changed?
+        // If queue is empty, we just return.
+        return;
+    }
 
     // Determine effective signal
     let effectiveSignal: AbortSignal;
@@ -152,6 +191,19 @@ class RequestQueue {
 // Singleton instance
 const globalQueue = new RequestQueue();
 
+export function resetQueue() {
+  // @ts-ignore - Accessing private members for testing
+  globalQueue.queue = [];
+  // @ts-ignore
+  globalQueue.activeCount = 0;
+  // @ts-ignore
+  globalQueue.activeRequests.clear();
+  // @ts-ignore
+  globalQueue.lastRequestTime = 0;
+  // @ts-ignore
+  globalQueue.backoffUntil = 0;
+}
+
 export function cancelRequest(requestId: string) {
   globalQueue.cancelRequest(requestId);
 }
@@ -168,6 +220,20 @@ export async function fetchWithRetry(
         try {
           // Pass the effective signal (queue controller) to fetch
           const response = await fetch(url, { ...fetchOptions, signal: effectiveSignal });
+
+          if (response.status === 429) {
+            // Report rate limit to global queue to trigger backoff for other requests
+            // Parse retry-after header if available (seconds)
+            const retryAfterHeader = response.headers.get('Retry-After');
+            let retryAfterMs = 0;
+            if (retryAfterHeader) {
+                const retryAfterSec = parseInt(retryAfterHeader, 10);
+                if (!isNaN(retryAfterSec)) {
+                    retryAfterMs = retryAfterSec * 1000;
+                }
+            }
+            globalQueue.reportRateLimit(retryAfterMs);
+          }
 
           if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
             attempt++;
