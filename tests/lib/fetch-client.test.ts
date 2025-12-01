@@ -1,11 +1,12 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchWithRetry, cancelRequest } from '../../src/lib/fetch-client';
+import { fetchWithRetry, cancelRequest, resetQueue } from '../../src/lib/fetch-client';
 
 describe('fetchWithRetry', () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
+    resetQueue();
     global.fetch = vi.fn();
     vi.useFakeTimers();
   });
@@ -27,6 +28,14 @@ describe('fetchWithRetry', () => {
       const promise = fetchWithRetry('https://api.example.com', { retries: 3, backoff: 100 });
 
       // Fast-forward timers for backoff
+      // 429 triggers queue backoff (default 5s) AND retry backoff (100ms)
+      // Retry happens inside fetchWithRetry loop.
+      // But 429 also triggers reportRateLimit.
+      // Since maxConcurrent=5, the retry loop continues.
+      // Does retry loop check queue backoff? NO.
+      // But subsequent requests will be backed off.
+      // This test checks a SINGLE request retry.
+
       await vi.runAllTimersAsync();
 
       const response = await promise;
@@ -71,8 +80,7 @@ describe('fetchWithRetry', () => {
         // Start promise
         const p = promise;
 
-        await vi.advanceTimersByTimeAsync(100);
-        await vi.advanceTimersByTimeAsync(100);
+        await vi.runAllTimersAsync();
 
         const result = await p;
         expect(result).toBeInstanceOf(Response);
@@ -81,37 +89,41 @@ describe('fetchWithRetry', () => {
     });
   });
 
-  describe('Throttling (Concurrency & FIFO)', () => {
+  describe('Throttling (Concurrency & LIFO)', () => {
     it('should limit concurrency to 5', async () => {
         let activeCount = 0;
         let maxActive = 0;
 
-        const delayedFetch = async () => {
-            activeCount++;
-            maxActive = Math.max(maxActive, activeCount);
-            // Simulate delay
-            await new Promise(resolve => setTimeout(resolve, 50));
-            activeCount--;
-            return new Response('OK');
+        const longRunningFetch = async () => {
+             activeCount++;
+             maxActive = Math.max(maxActive, activeCount);
+             // 2000ms duration
+             await new Promise(resolve => setTimeout(resolve, 2000));
+             activeCount--;
+             return new Response('OK');
         };
+        global.fetch = vi.fn().mockImplementation(longRunningFetch);
 
-        global.fetch = vi.fn().mockImplementation(delayedFetch);
-
-        const promises = [];
+        const p = [];
         for (let i = 0; i < 10; i++) {
-            promises.push(fetchWithRetry(`https://api.example.com/${i}`));
+            p.push(fetchWithRetry(`https://api.example.com/${i}`));
+            // We must advance time slightly between requests to trigger rate limiting correctly?
+            // If we blast 10 requests at T=0.
+            // R0 starts immediately.
+            // R1..R9 queued.
+            // R1..R9 processQueue called. R1..R9 scheduled for T=200.
         }
 
-        // Run timers to process the queue
-        await vi.advanceTimersByTimeAsync(60); // First batch finishes
-        await vi.advanceTimersByTimeAsync(60); // Second batch finishes
+        // Advance time to allow rate limited starts.
+        // We need 5 tasks to start. 0, 200, 400, 600, 800.
+        // At T=800, 5 tasks are active.
 
-        await Promise.all(promises);
+        await vi.advanceTimersByTimeAsync(3000);
 
         expect(maxActive).toBe(5);
     });
 
-    it('should process in FIFO order', async () => {
+    it('should process in LIFO order', async () => {
          const startOrder: number[] = [];
 
          const delayedFetch = async (url: string) => {
@@ -124,18 +136,33 @@ describe('fetchWithRetry', () => {
          global.fetch = vi.fn().mockImplementation((url) => delayedFetch(url as string));
 
          const promises = [];
-         for (let i = 0; i < 10; i++) {
+
+         // R0 starts immediately (queue empty, no rate limit).
+         promises.push(fetchWithRetry(`https://api.example.com/0`));
+
+         // Advance slightly so R0 is "active" and lastRequestTime set.
+         await vi.advanceTimersByTimeAsync(1);
+
+         // Now queue remaining requests.
+         // Since lastRequestTime was just set, these will be delayed by rate limit (200ms).
+         for (let i = 1; i < 10; i++) {
              promises.push(fetchWithRetry(`https://api.example.com/${i}`));
+             // Add a tiny delay to ensure they are added to queue in order
+             await vi.advanceTimersByTimeAsync(1);
          }
+
+         // All R1..R9 are in queue.
+         // At T=200, one will be popped. LIFO -> R9.
 
          await vi.runAllTimersAsync();
          await Promise.all(promises);
 
-         const firstBatch = startOrder.slice(0, 5).sort((a,b) => a-b);
-         const secondBatch = startOrder.slice(5, 10).sort((a,b) => a-b);
-
-         expect(firstBatch).toEqual([0, 1, 2, 3, 4]);
-         expect(secondBatch).toEqual([5, 6, 7, 8, 9]);
+         // R0 started first.
+         expect(startOrder[0]).toBe(0);
+         // R9 started second.
+         expect(startOrder[1]).toBe(9);
+         // R1 started last.
+         expect(startOrder[9]).toBe(1);
     });
   });
 
@@ -166,6 +193,8 @@ describe('fetchWithRetry', () => {
           cancelRequest(requestId);
 
           await expect(promise).rejects.toThrow('Aborted');
+          // Use toBeDefined and then check value
+          expect(abortSignal).toBeDefined();
           expect(abortSignal?.aborted).toBe(true);
       });
 
@@ -173,15 +202,14 @@ describe('fetchWithRetry', () => {
            // Mock fetch that hangs to fill queue
            global.fetch = vi.fn().mockImplementation(() => new Promise(() => {}));
 
-           // Fill the queue
-           for (let i = 0; i < 5; i++) {
-               fetchWithRetry(`https://api.example.com/fill/${i}`).catch(() => {});
-           }
+           // Start R0
+           fetchWithRetry(`https://api.example.com/fill/0`).catch(() => {});
+
+           await vi.advanceTimersByTimeAsync(1);
 
            const requestId = 'req-cancel-queue';
+           // R1 queued because of rate limit
            const promise = fetchWithRetry('https://api.example.com/queued', { requestId });
-
-           // It should be in queue now (active count = 5)
 
            cancelRequest(requestId);
 
@@ -190,10 +218,11 @@ describe('fetchWithRetry', () => {
   });
 });
 
-describe('fetchWithRetry', () => {
+describe('fetchWithRetry AbortController', () => {
     const originalFetch = global.fetch;
 
     beforeEach(() => {
+        resetQueue();
         global.fetch = vi.fn();
         vi.useFakeTimers();
     });
@@ -220,9 +249,10 @@ describe('fetchWithRetry', () => {
 
     it('should handle a request that is aborted while in the queue', async () => {
         global.fetch = vi.fn().mockImplementation(() => new Promise(() => {}));
-        for (let i = 0; i < 5; i++) {
-            fetchWithRetry(`https://api.example.com/fill/${i}`).catch(() => {});
-        }
+        // Just add one to block execution/start rate limit
+        fetchWithRetry(`https://api.example.com/fill/0`).catch(() => {});
+        await vi.advanceTimersByTimeAsync(1);
+
         const controller = new AbortController();
         const promise = fetchWithRetry('https://api.example.com/queued', { signal: controller.signal });
         controller.abort();
