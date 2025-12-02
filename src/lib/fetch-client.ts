@@ -16,6 +16,29 @@ type QueueItem = {
   requestId?: string;
 };
 
+// Helper to parse Retry-After header
+function parseRetryAfter(header: string | null): number {
+  if (!header) return 0;
+
+  // Try parsing as seconds first (most common for rate limits)
+  // Check if it looks like a number
+  if (/^\d+$/.test(header)) {
+      const retryAfterSec = parseInt(header, 10);
+      if (!isNaN(retryAfterSec)) {
+        return retryAfterSec * 1000;
+      }
+  }
+
+  // Try parsing as date
+  const date = Date.parse(header);
+  if (!isNaN(date)) {
+    const delay = date - Date.now();
+    return delay > 0 ? delay : 0;
+  }
+
+  return 0;
+}
+
 class RequestQueue {
   private queue: QueueItem[] = [];
   private activeCount = 0;
@@ -29,7 +52,10 @@ class RequestQueue {
     const now = Date.now();
     // Default backoff of 5 seconds if retryAfter not provided, or respect retryAfter
     const delay = retryAfter > 0 ? retryAfter : 5000;
-    this.backoffUntil = now + delay;
+
+    // Ensure we don't reduce the backoff if it's already set further in the future
+    this.backoffUntil = Math.max(this.backoffUntil, now + delay);
+
     console.warn(`Rate limit reported. Backing off until ${new Date(this.backoffUntil).toISOString()}`);
   }
 
@@ -127,10 +153,6 @@ class RequestQueue {
     // LIFO: Process the last item added
     const item = this.queue.pop();
     if (!item) {
-        // Should not happen as we check length above, but race conditions possible?
-        // Actually, since this is JS single-threaded event loop, it shouldn't be null if length > 0.
-        // But if setTimeout was involved, maybe queue changed?
-        // If queue is empty, we just return.
         return;
     }
 
@@ -138,14 +160,6 @@ class RequestQueue {
     let effectiveSignal: AbortSignal;
 
     if (item.controller) {
-        // If item has a controller, use it. But we should also respect externalSignal.
-        // If externalSignal aborts, we should abort the controller?
-        // Or create a combined signal?
-        // For simplicity, if we have an internal controller, we use it.
-        // If external signal fires, we remove item via event listener above.
-        // But if item is already executing?
-        // We should ideally abort the internal controller if external signal fires.
-
         if (item.externalSignal) {
              if (item.externalSignal.aborted) {
                  item.controller.abort();
@@ -221,24 +235,31 @@ export async function fetchWithRetry(
           // Pass the effective signal (queue controller) to fetch
           const response = await fetch(url, { ...fetchOptions, signal: effectiveSignal });
 
+          let sleepTime = 0;
+
           if (response.status === 429) {
-            // Report rate limit to global queue to trigger backoff for other requests
-            // Parse retry-after header if available (seconds)
             const retryAfterHeader = response.headers.get('Retry-After');
-            let retryAfterMs = 0;
-            if (retryAfterHeader) {
-                const retryAfterSec = parseInt(retryAfterHeader, 10);
-                if (!isNaN(retryAfterSec)) {
-                    retryAfterMs = retryAfterSec * 1000;
-                }
-            }
+            const retryAfterMs = parseRetryAfter(retryAfterHeader);
+
+            // Update global queue with rate limit info
             globalQueue.reportRateLimit(retryAfterMs);
+
+            // For the current request sleep time, respect retryAfterMs
+            sleepTime = retryAfterMs;
           }
 
           if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
             attempt++;
             if (attempt < retries) {
-              const sleepTime = backoff * Math.pow(2, attempt - 1);
+              // Calculate exponential backoff
+              const backoffSleep = backoff * Math.pow(2, attempt - 1);
+
+              // Use the maximum of calculated backoff and Retry-After
+              sleepTime = Math.max(sleepTime, backoffSleep);
+
+              // Cap sleep time to avoid excessive waits if needed?
+              // For now, assume Retry-After is authoritative, but if it's crazy high, maybe log it.
+
               console.warn(`Request failed (${response.status}). Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`);
 
               if (effectiveSignal.aborted) throw new DOMException('Aborted', 'AbortError');
