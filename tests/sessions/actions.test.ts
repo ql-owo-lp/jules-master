@@ -28,18 +28,18 @@ describe('Session Actions', () => {
   describe('listSessions', () => {
     it('should return mock sessions when MOCK_API is true', async () => {
       process.env.MOCK_API = 'true';
-      const sessions = await listSessions();
-      expect(sessions).toBeDefined();
-      expect(sessions.length).toBe(2);
-      expect(sessions[0].id).toBe('session-1');
+      const result = await listSessions();
+      expect(result.sessions).toBeDefined();
+      expect(result.sessions.length).toBe(2);
+      expect(result.sessions[0].id).toBe('session-1');
     });
 
     it('should return cached sessions if available', async () => {
       const mockSessions = [{ id: '1', name: 'Session 1', title: 'Title' } as any];
       (sessionService.getCachedSessions as vi.Mock).mockResolvedValue(mockSessions);
 
-      const sessions = await listSessions('test-key');
-      expect(sessions).toEqual(mockSessions);
+      const result = await listSessions('test-key');
+      expect(result.sessions).toEqual(mockSessions);
       expect(sessionService.getCachedSessions).toHaveBeenCalled();
       expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
     });
@@ -54,7 +54,7 @@ describe('Session Actions', () => {
         json: async () => ({ sessions: [{ id: '1', name: 'Session 1', title: 'Title' }] }),
       });
 
-      const sessions = await listSessions('test-key');
+      const result = await listSessions('test-key');
 
       // Should have called fetchSessionsPage (via logic inside listSessions)
       // fetchSessionsPage uses fetchWithRetry.
@@ -65,7 +65,7 @@ describe('Session Actions', () => {
       );
 
       expect(sessionService.upsertSession).toHaveBeenCalled();
-      expect(sessions.length).toBe(1);
+      expect(result.sessions.length).toBe(1);
     });
 
     it('should trigger background sync', async () => {

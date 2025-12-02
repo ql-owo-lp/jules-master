@@ -110,12 +110,21 @@ function HomePageContent() {
 
     startFetching(async () => {
       try {
-        const [fetchedSessions, fetchedJobs, fetchedQuickReplies] = await Promise.all([
+        const [fetchedSessionsResult, fetchedJobs, fetchedQuickReplies] = await Promise.all([
           listSessions(apiKey, undefined, requestId),
           getJobs(),
           getQuickReplies()
         ]);
-        const validSessions = fetchedSessions.filter(s => s);
+
+        if (fetchedSessionsResult.error) {
+           toast({
+             variant: "destructive",
+             title: "Error fetching sessions",
+             description: fetchedSessionsResult.error
+           });
+        }
+
+        const validSessions = (fetchedSessionsResult.sessions || []).filter(s => s);
         setSessions(validSessions);
         setJobs(fetchedJobs);
         setQuickReplies(fetchedQuickReplies);
