@@ -66,6 +66,7 @@ export function JobCreationForm({
   
   const [requirePlanApproval, setRequirePlanApproval] = useLocalStorage<boolean>("jules-new-job-require-plan-approval", false);
   const [automationMode, setAutomationMode] = useLocalStorage<AutomationMode>("jules-new-job-automation-mode", "AUTO_CREATE_PR");
+  const [backgroundJob, setBackgroundJob] = useLocalStorage<boolean>("jules-new-job-background", true);
   const [applyGlobalPrompt, setApplyGlobalPrompt] = useState(true);
 
   const [isPending, startTransition] = useTransition();
@@ -249,67 +250,138 @@ export function JobCreationForm({
       const sessionIds: string[] = [];
       const title = jobName.trim() || new Date().toLocaleString();
 
-      if (sessionCount > 1) {
-        setProgressTotal(sessionCount);
-        setProgressCurrent(0);
-      }
+      if (backgroundJob) {
+        // Background job processing
+        const { createBackgroundJob } = await import('@/app/jobs/actions');
 
-      for (let i = 0; i < sessionCount; i++) {
-        const sessionIndex = i;
+        // We create a Job entry first to hold the reference
+        const jobId = crypto.randomUUID();
+        const newJob: Job = {
+            id: jobId,
+            name: title,
+            sessionIds: [], // Will be populated as background jobs complete? No, current logic is distinct.
+            // Actually, if we background it, we don't have session IDs yet.
+            // But the current UI expects a Job to have sessions.
+            // If we don't return sessions immediately, the UI might not show the Job as active.
+            // We should probably rely on the background processor to update the Job in DB.
+            // But we need to create the Job entry here so the user sees it in the list (even if empty).
+            createdAt: new Date().toISOString(),
+            repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
+            branch: selectedBranch,
+            autoApproval: !requirePlanApproval,
+        };
+        await addJob(newJob);
+
+        toast({
+            title: "Jobs scheduled",
+            description: `${sessionCount} jobs have been scheduled in the background.`,
+        });
+
         if (sessionCount > 1) {
-             setProgressCurrent(sessionIndex + 1);
+             setProgressTotal(sessionCount);
+             setProgressCurrent(0);
         }
 
-        let retries = 3;
-        let newSession: Session | null = null;
-        while (retries > 0 && !newSession) {
-            newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode);
-            if (!newSession) {
-                console.error(`Failed to create session ${sessionIndex + 1}. Retries remaining: ${retries - 1}`);
-                retries--;
+        // Enqueue jobs
+        for (let i = 0; i < sessionCount; i++) {
+            if (sessionCount > 1) setProgressCurrent(i + 1);
+
+            // We need to pass the API key to the background job.
+            // Security note: We are passing it to the server action, which runs on server.
+            // It should be safe as long as the transport is secure.
+            if (!apiKey && !process.env.JULES_API_KEY) {
                 toast({
                     variant: "destructive",
-                    title: `Failed to create session ${sessionIndex + 1}`,
-                    description: `Retrying... (${3 - retries}/3)`,
+                    title: "API Key Missing",
+                    description: "Cannot schedule background job without API key.",
                 });
-                await sleep(1000); // wait before retrying
+                break;
             }
+
+            await createBackgroundJob(
+                title,
+                finalPrompt,
+                selectedSource,
+                selectedBranch,
+                requirePlanApproval,
+                automationMode,
+                apiKey || "",
+                jobId
+            );
         }
 
-        if (newSession) {
-           createdSessions.push({ ...newSession, title });
-           sessionIds.push(newSession.id);
-        } else {
-             toast({
-                variant: "destructive",
-                title: `Failed to create session ${sessionIndex + 1} after multiple retries.`,
-             });
-        }
-        await sleep(500); // 500ms interval
-      }
-      
-      const newJob: Job = {
-        id: crypto.randomUUID(),
-        name: title,
-        sessionIds,
-        createdAt: new Date().toISOString(),
-        repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
-        branch: selectedBranch,
-        autoApproval: !requirePlanApproval,
-      };
-      
-      await addJob(newJob);
-
-      if (createdSessions.length > 0) {
-        onJobsCreated(createdSessions, newJob);
+        onJobsCreated([], newJob);
         setPrompt("");
         setSelectedPromptId(null);
         setJobName("");
         setSessionCount(defaultSessionCount);
-      }
+        setProgressCurrent(0);
+        setProgressTotal(0);
 
-      setProgressCurrent(0);
-      setProgressTotal(0);
+      } else {
+        // Client-side processing (existing logic)
+        if (sessionCount > 1) {
+            setProgressTotal(sessionCount);
+            setProgressCurrent(0);
+        }
+
+        for (let i = 0; i < sessionCount; i++) {
+            const sessionIndex = i;
+            if (sessionCount > 1) {
+                setProgressCurrent(sessionIndex + 1);
+            }
+
+            let retries = 3;
+            let newSession: Session | null = null;
+            while (retries > 0 && !newSession) {
+                newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode);
+                if (!newSession) {
+                    console.error(`Failed to create session ${sessionIndex + 1}. Retries remaining: ${retries - 1}`);
+                    retries--;
+                    toast({
+                        variant: "destructive",
+                        title: `Failed to create session ${sessionIndex + 1}`,
+                        description: `Retrying... (${3 - retries}/3)`,
+                    });
+                    await sleep(1000); // wait before retrying
+                }
+            }
+
+            if (newSession) {
+            createdSessions.push({ ...newSession, title });
+            sessionIds.push(newSession.id);
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: `Failed to create session ${sessionIndex + 1} after multiple retries.`,
+                });
+            }
+            await sleep(500); // 500ms interval
+        }
+
+        const newJob: Job = {
+            id: crypto.randomUUID(),
+            name: title,
+            sessionIds,
+            createdAt: new Date().toISOString(),
+            repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
+            branch: selectedBranch,
+            autoApproval: !requirePlanApproval,
+        };
+
+        await addJob(newJob);
+
+        if (createdSessions.length > 0) {
+            onJobsCreated(createdSessions, newJob);
+            setPrompt("");
+            setSelectedPromptId(null);
+            setJobName("");
+            setSessionCount(defaultSessionCount);
+        }
+
+        setProgressCurrent(0);
+        setProgressTotal(0);
+      }
     });
   };
 
@@ -539,14 +611,25 @@ export function JobCreationForm({
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="require-plan-approval" 
-                checked={requirePlanApproval} 
-                onCheckedChange={setRequirePlanApproval}
-                disabled={isPending || disabled}
-              />
-              <Label htmlFor="require-plan-approval">Require Plan Approval</Label>
+            <div className="flex flex-col space-y-4">
+                <div className="flex items-center space-x-2">
+                <Switch
+                    id="require-plan-approval"
+                    checked={requirePlanApproval}
+                    onCheckedChange={setRequirePlanApproval}
+                    disabled={isPending || disabled}
+                />
+                <Label htmlFor="require-plan-approval">Require Plan Approval</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                <Switch
+                    id="background-job"
+                    checked={backgroundJob}
+                    onCheckedChange={setBackgroundJob}
+                    disabled={isPending || disabled}
+                />
+                <Label htmlFor="background-job">Background Job</Label>
+                </div>
             </div>
              <div className="space-y-2">
                 <Label htmlFor="automation-mode">Automation Mode</Label>

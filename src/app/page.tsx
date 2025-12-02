@@ -55,6 +55,8 @@ function HomePageContent() {
   const [progressTotal, setProgressTotal] = useState(0);
   const [progressLabel, setProgressLabel] = useState("");
   
+  const [queueStatus, setQueueStatus] = useState<{ pendingCount: number; totalCount: number; isProcessing: boolean } | null>(null);
+
   const activeRequestId = useRef<string | null>(null);
 
   // Effect to sync job filter with URL param
@@ -121,6 +123,12 @@ function HomePageContent() {
         setQuickReplies(fetchedQuickReplies);
         setLastUpdatedAt(Date.now());
         setCountdown(sessionListPollInterval);
+
+        // Fetch queue status
+        const { getBackgroundQueueStatus } = await import('@/app/jobs/actions');
+        const qs = await getBackgroundQueueStatus();
+        setQueueStatus(qs);
+
       } catch (e) {
           // Ignore abort errors
       } finally {
@@ -179,6 +187,22 @@ function HomePageContent() {
 
     return () => clearInterval(timer);
   }, [isClient, apiKey, sessionListPollInterval, lastUpdatedAt]);
+
+  const prevPendingCount = useRef<number>(0);
+  useEffect(() => {
+      if (!queueStatus) return;
+
+      if (prevPendingCount.current > 0 && queueStatus.pendingCount === 0) {
+          // All pending jobs finished. Force refresh.
+          toast({
+              title: "Jobs Completed",
+              description: "Background processing has finished. Refreshing list...",
+          });
+          fetchAllData({ isRefresh: true });
+      }
+
+      prevPendingCount.current = queueStatus.pendingCount;
+  }, [queueStatus, fetchAllData, toast]);
 
 
   const handleRefresh = async () => {
@@ -435,6 +459,18 @@ function HomePageContent() {
               </AlertDescription>
             </Alert>
           )}
+
+          {queueStatus && queueStatus.pendingCount > 0 && (
+             <Alert variant="default" className="bg-purple-50 border-purple-200 text-purple-900 dark:bg-purple-950 dark:border-purple-800 dark:text-purple-200">
+              <Activity className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <AlertTitle>Processing Background Jobs</AlertTitle>
+              <AlertDescription>
+                There are {queueStatus.pendingCount} job(s) queued for processing.
+                {queueStatus.isProcessing ? " Processing now..." : " Waiting for processor..."}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <SessionList
             sessions={sessions}
             jobs={paginatedJobs}
