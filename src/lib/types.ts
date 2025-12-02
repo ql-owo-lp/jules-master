@@ -15,6 +15,8 @@ export type Session = {
   outputs?: SessionOutput[];
   requirePlanApproval?: boolean;
   automationMode?: AutomationMode;
+  retryCount?: number;
+  lastError?: string;
 };
 
 export type Job = {
@@ -25,6 +27,12 @@ export type Job = {
     repo: string;
     branch: string;
     autoApproval?: boolean;
+    background?: boolean;
+    prompt?: string;
+    sessionCount?: number;
+    status?: string;
+    automationMode?: AutomationMode;
+    requirePlanApproval?: boolean;
 }
 
 export type SourceContext = {

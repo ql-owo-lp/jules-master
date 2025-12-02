@@ -62,6 +62,7 @@ type SessionListProps = {
   onJobPageChange: (page: number) => void;
   progressCurrent?: number;
   progressTotal?: number;
+  pendingBackgroundWork?: { pendingJobs: number, retryingSessions: number };
 };
 
 export function SessionList({
@@ -87,6 +88,7 @@ export function SessionList({
   onJobPageChange,
   progressCurrent = 0,
   progressTotal = 0,
+  pendingBackgroundWork,
 }: SessionListProps) {
   const router = useRouter();
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
@@ -377,6 +379,14 @@ export function SessionList({
                   <CardDescription>
                       A list of your jobs and their sessions.
                   </CardDescription>
+                  {pendingBackgroundWork && (pendingBackgroundWork.pendingJobs > 0 || pendingBackgroundWork.retryingSessions > 0) && (
+                    <div className="mt-2 text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>
+                            Pending Execution: {pendingBackgroundWork.pendingJobs} Jobs, {pendingBackgroundWork.retryingSessions} Retrying Sessions
+                        </span>
+                    </div>
+                  )}
               </div>
             </div>
             {lastUpdatedAt && (
