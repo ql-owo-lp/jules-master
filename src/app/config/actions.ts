@@ -18,6 +18,33 @@ export async function addJob(job: Job): Promise<void> {
     revalidatePath('/');
 }
 
+export async function getPendingBackgroundWorkCount(): Promise<{ pendingJobs: number, retryingSessions: number }> {
+    const pendingJobs = await db.select().from(schema.jobs).where(eq(schema.jobs.status, 'PENDING'));
+
+    // For retrying sessions, we want sessions that are FAILED and have retries left (retryCount < maxRetries)
+    // AND probably where last error was recoverable?
+    // We'll simplify and count FAILED sessions that have retryCount < 50 (since max could be 50).
+    // Or we could try to be more specific.
+    // The requirement says "failed due to 'too many requests' error, we will keep retrying it for 50 times. Otherwise... 3 times."
+
+    const failedSessions = await db.select().from(schema.sessions).where(eq(schema.sessions.state, 'FAILED'));
+    let retryingSessionsCount = 0;
+
+    for (const session of failedSessions) {
+        const errorReason = session.lastError || "";
+        const isRateLimit = errorReason.toLowerCase().includes("too many requests") || errorReason.includes("429");
+        const maxRetries = isRateLimit ? 50 : 3;
+        if ((session.retryCount || 0) < maxRetries) {
+            retryingSessionsCount++;
+        }
+    }
+
+    return {
+        pendingJobs: pendingJobs.length,
+        retryingSessions: retryingSessionsCount
+    };
+}
+
 // --- Predefined Prompts ---
 export async function getPredefinedPrompts(): Promise<PredefinedPrompt[]> {
     return appDatabase.predefinedPrompts.getAll();

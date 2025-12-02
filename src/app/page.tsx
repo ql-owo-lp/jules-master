@@ -11,7 +11,7 @@ import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions, cancelSessionRequest, refreshSession } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
-import { getJobs, getQuickReplies } from "@/app/config/actions";
+import { getJobs, getQuickReplies, getPendingBackgroundWorkCount } from "@/app/config/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,8 @@ function HomePageContent() {
   const [quickReplies, setQuickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
   const [lastUpdatedAt, setLastUpdatedAt] = useLocalStorage<number | null>("jules-last-updated-at", null);
   
+  const [pendingBackgroundWork, setPendingBackgroundWork] = useState<{ pendingJobs: number, retryingSessions: number } | undefined>(undefined);
+
   const [isClient, setIsClient] = useState(false);
   const [isFetching, startFetching] = useTransition();
   const [isActionPending, startActionTransition] = useTransition();
@@ -110,10 +112,11 @@ function HomePageContent() {
 
     startFetching(async () => {
       try {
-        const [fetchedSessionsResult, fetchedJobs, fetchedQuickReplies] = await Promise.all([
+        const [fetchedSessionsResult, fetchedJobs, fetchedQuickReplies, fetchedPendingWork] = await Promise.all([
           listSessions(apiKey, undefined, requestId),
           getJobs(),
-          getQuickReplies()
+          getQuickReplies(),
+          getPendingBackgroundWorkCount()
         ]);
 
         if (fetchedSessionsResult.error) {
@@ -128,6 +131,7 @@ function HomePageContent() {
         setSessions(validSessions);
         setJobs(fetchedJobs);
         setQuickReplies(fetchedQuickReplies);
+        setPendingBackgroundWork(fetchedPendingWork);
         setLastUpdatedAt(Date.now());
         setCountdown(sessionListPollInterval);
       } catch (e) {
@@ -466,6 +470,7 @@ function HomePageContent() {
             onJobPageChange={handleJobPageChange}
             progressCurrent={progressCurrent}
             progressTotal={progressTotal}
+            pendingBackgroundWork={pendingBackgroundWork}
           >
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div className="space-y-2">
