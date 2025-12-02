@@ -66,6 +66,7 @@ export function JobCreationForm({
   
   const [requirePlanApproval, setRequirePlanApproval] = useLocalStorage<boolean>("jules-new-job-require-plan-approval", false);
   const [automationMode, setAutomationMode] = useLocalStorage<AutomationMode>("jules-new-job-automation-mode", "AUTO_CREATE_PR");
+  const [backgroundJob, setBackgroundJob] = useLocalStorage<boolean>("jules-new-job-background", true);
   const [applyGlobalPrompt, setApplyGlobalPrompt] = useState(true);
 
   const [isPending, startTransition] = useTransition();
@@ -249,6 +250,36 @@ export function JobCreationForm({
       const sessionIds: string[] = [];
       const title = jobName.trim() || new Date().toLocaleString();
 
+      if (backgroundJob) {
+        const newJob: Job = {
+            id: crypto.randomUUID(),
+            name: title,
+            sessionIds: [],
+            createdAt: new Date().toISOString(),
+            repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
+            branch: selectedBranch,
+            autoApproval: !requirePlanApproval,
+            background: true,
+            prompt: finalPrompt,
+            sessionCount: sessionCount,
+            status: 'PENDING',
+            automationMode: automationMode,
+            requirePlanApproval: requirePlanApproval
+        };
+        await addJob(newJob);
+        toast({
+            title: "Background Job Scheduled",
+            description: "The job has been scheduled to run in the background.",
+        });
+
+        onJobsCreated([], newJob); // Pass empty sessions as they will be created later
+        setPrompt("");
+        setSelectedPromptId(null);
+        setJobName("");
+        setSessionCount(defaultSessionCount);
+        return;
+      }
+
       if (sessionCount > 1) {
         setProgressTotal(sessionCount);
         setProgressCurrent(0);
@@ -296,6 +327,7 @@ export function JobCreationForm({
         repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
         branch: selectedBranch,
         autoApproval: !requirePlanApproval,
+        background: false,
       };
       
       await addJob(newJob);
@@ -539,6 +571,15 @@ export function JobCreationForm({
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div className="flex items-center space-x-2">
+                <Switch
+                    id="background-job"
+                    checked={backgroundJob}
+                    onCheckedChange={setBackgroundJob}
+                    disabled={isPending || disabled}
+                />
+                <Label htmlFor="background-job">Background Job</Label>
+            </div>
             <div className="flex items-center space-x-2">
               <Switch 
                 id="require-plan-approval" 

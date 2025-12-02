@@ -10,6 +10,12 @@ export const jobs = sqliteTable('jobs', {
   repo: text('repo').notNull(),
   branch: text('branch').notNull(),
   autoApproval: integer('auto_approval', { mode: 'boolean' }).notNull().default(false),
+  background: integer('background', { mode: 'boolean' }).notNull().default(false),
+  prompt: text('prompt'),
+  sessionCount: integer('session_count'),
+  status: text('status'), // 'PENDING', 'PROCESSING', 'COMPLETED'
+  automationMode: text('automation_mode').$type<AutomationMode>(),
+  requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
 });
 
 export const predefinedPrompts = sqliteTable('predefined_prompts', {
@@ -80,4 +86,6 @@ export const sessions = sqliteTable('sessions', {
   requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
   automationMode: text('automation_mode').$type<AutomationMode>(),
   lastUpdated: integer('last_updated').notNull(), // Timestamp in ms
+  retryCount: integer('retry_count').notNull().default(0),
+  lastError: text('last_error'),
 });
