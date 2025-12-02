@@ -77,16 +77,16 @@ export async function listSessions(
   apiKey?: string | null,
   pageSize: number = 50,
   requestId?: string
-): Promise<Session[]> {
+): Promise<{ sessions: Session[], error?: string }> {
   // Check for mock flag
   if (process.env.MOCK_API === 'true') {
-     return MOCK_SESSIONS;
+     return { sessions: MOCK_SESSIONS };
   }
 
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
-    return [];
+    return { sessions: [] };
   }
 
   try {
@@ -101,7 +101,12 @@ export async function listSessions(
         // but for now let's just fetch the first page to be responsive.
         // Ideally, we should have a background job to fetch all history.
         // We reuse fetchSessionsPage logic but simplified here.
-        const firstPage = await fetchSessionsPage(effectiveApiKey, null, 100); // Fetch a reasonable chunk
+        const firstPage = await fetchSessionsPage(effectiveApiKey, null, 100);
+
+        if (firstPage.error) {
+            return { sessions: [], error: firstPage.error };
+        }
+
         for (const s of firstPage.sessions) {
             await upsertSession(s);
         }
@@ -121,11 +126,11 @@ export async function listSessions(
         }
     })();
 
-    return sessions;
+    return { sessions };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in listSessions:', error);
-    return [];
+    return { sessions: [], error: error.message || 'Unknown error occurred in listSessions' };
   }
 }
 
@@ -142,7 +147,7 @@ export async function fetchSessionsPage(
     apiKey?: string | null,
     pageToken?: string | null,
     pageSize: number = 100
-): Promise<{ sessions: Session[], nextPageToken?: string }> {
+): Promise<{ sessions: Session[], nextPageToken?: string, error?: string }> {
      // Check for mock flag
      if (process.env.MOCK_API === 'true') {
         return { sessions: MOCK_SESSIONS };
@@ -168,14 +173,17 @@ export async function fetchSessionsPage(
                     'X-Goog-Api-Key': effectiveApiKey,
                 },
                 next: { revalidate: 0, tags: ['sessions'] },
+                backoff: 5000,
             }
         );
 
         if (!response.ok) {
-            console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
+            const errorText = `Failed to fetch sessions: ${response.status} ${response.statusText}`;
+            console.error(errorText);
             const errorBody = await response.text();
             console.error('Error body:', errorBody);
-            return { sessions: [] };
+            // Include status code in error message for easier identification
+            return { sessions: [], error: `${errorText}. ${errorBody ? 'Details in logs.' : ''}` };
         }
 
         const data: ListSessionsResponse = await response.json();
@@ -187,9 +195,9 @@ export async function fetchSessionsPage(
 
         return { sessions, nextPageToken: data.nextPageToken };
 
-     } catch (error) {
+     } catch (error: any) {
         console.error('Error fetching sessions page:', error);
-        return { sessions: [] };
+        return { sessions: [], error: error.message || 'Unknown error fetching sessions' };
      }
 }
 
@@ -250,5 +258,3 @@ export async function listSources(apiKey?: string | null): Promise<Source[]> {
 export async function refreshSources() {
   revalidateTag('sources');
 }
-
-    
