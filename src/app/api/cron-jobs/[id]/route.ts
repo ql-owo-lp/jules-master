@@ -7,10 +7,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const data = await request.json();
     if (data.hasOwnProperty('enabled')) {
-         await toggleCronJob(id, data.enabled);
-    } else {
-         await updateCronJob(id, data);
+      await toggleCronJob(id, data.enabled);
+      delete data.enabled;
     }
+    await updateCronJob(id, data);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update cron job' }, { status: 500 });
