@@ -131,15 +131,73 @@ async function processPendingJobs(apiKey: string) {
                 }
 
                 if (newSession) {
-                    createdSessionIds.push(newSession.id);
-                    successCount++;
-                    // Upsert session to DB immediately so it's tracked
-                    await upsertSession(newSession);
 
-                    // Persist progress immediately
-                    await db.update(jobs).set({
-                        sessionIds: createdSessionIds // Drizzle handles JSON stringify
-                    }).where(eq(jobs.id, job.id));
+                    try {
+                        // Upsert session to DB immediately so it's tracked
+                        await upsertSession(newSession);
+
+                        // Only add to list if DB update succeeds
+                        createdSessionIds.push(newSession.id);
+                        successCount++;
+
+                        // Persist progress immediately
+                        await db.update(jobs).set({
+                            sessionIds: createdSessionIds // Drizzle handles JSON stringify
+                        }).where(eq(jobs.id, job.id));
+
+                    } catch (dbError) {
+                        console.error(`BackgroundJobWorker: Error updating progress for job ${job.id} session ${i+1}`, dbError);
+                        // If DB update fails, we don't increment successCount, so it will be retried or picked up later.
+                        // However, the session WAS created in the API. This is a partial state.
+                        // The loop continues, effectively retrying the "store session" part?
+                        // No, the loop counter 'i' increments. So we skip this session in the job progress tracking if we don't handle it.
+                        // But wait, 'i' is the loop variable. 'successCount' is what we use to determine completion.
+
+                        // We need to retry this step properly.
+                        // Let's add a small retry block for the DB operation itself.
+                        let dbRetries = 3;
+                        while(dbRetries > 0) {
+                            try {
+                                if (dbRetries < 3) await sleep(500);
+
+                                // Try upsert again if it failed
+                                await upsertSession(newSession);
+
+                                // Check if we already pushed to createdSessionIds in previous attempt? No, we moved it inside.
+                                // But if upsertSession succeeded in previous attempt but db.update(jobs) failed?
+                                // Upsert is idempotent.
+
+                                // If this is a retry, and we haven't pushed yet (which we haven't), push now.
+                                if (!createdSessionIds.includes(newSession.id)) {
+                                     createdSessionIds.push(newSession.id);
+                                     successCount++;
+                                }
+
+                                await db.update(jobs).set({
+                                    sessionIds: createdSessionIds
+                                }).where(eq(jobs.id, job.id));
+
+                                break; // Success
+                            } catch (retryError) {
+                                dbRetries--;
+                                console.error(`BackgroundJobWorker: DB Retry ${3-dbRetries} failed`, retryError);
+                                if (dbRetries === 0) {
+                                    // If we really can't save to DB, we shouldn't increment successCount?
+                                    // But createdSessionIds was updated in memory? No, only if we reached that line.
+                                    // If we failed all retries, we might want to NOT increment successCount, so next time it tries to create session again.
+                                    // But that creates DUPLICATE sessions in API.
+
+                                    // Best effort: Log it. We might lose track of this session in the job, but we don't crash.
+                                    // But if we don't increment successCount, the loop might try to create another session for index 'i'?
+                                    // Actually, 'i' increments. 'successCount' tracks success.
+                                    // If we fail here, successCount is NOT incremented (unless we did it inside).
+                                    // So successCount lags behind i.
+                                    // At end of loop: successCount < sessionCount => FAILED or PARTIAL_SUCCESS.
+                                    // This is acceptable behavior: failure to save = partial success.
+                                }
+                            }
+                        }
+                    }
 
                 } else {
                      console.error(`BackgroundJobWorker: Failed to create session ${i+1} for job ${job.id} after retries.`);
@@ -152,19 +210,26 @@ async function processPendingJobs(apiKey: string) {
             // Update Job final status
             const finalStatus = successCount === sessionCount ? 'COMPLETED' : (successCount > 0 ? 'PARTIAL_SUCCESS' : 'FAILED');
 
-            await db.update(jobs).set({
-                status: finalStatus,
-                sessionIds: createdSessionIds
-            }).where(eq(jobs.id, job.id));
-
-            console.log(`BackgroundJobWorker: Job ${job.id} processed. Status: ${finalStatus}. Created ${successCount}/${sessionCount} sessions.`);
+            try {
+                await db.update(jobs).set({
+                    status: finalStatus,
+                    sessionIds: createdSessionIds
+                }).where(eq(jobs.id, job.id));
+                console.log(`BackgroundJobWorker: Job ${job.id} processed. Status: ${finalStatus}. Created ${successCount}/${sessionCount} sessions.`);
+            } catch (dbError) {
+                console.error(`BackgroundJobWorker: Error updating final status for job ${job.id}`, dbError);
+            }
 
         } catch (e) {
             console.error(`BackgroundJobWorker: Error processing job ${job.id}`, e);
              // If we fail here, we leave it as PROCESSING or whatever it was, so it can be picked up again?
              // Or we mark it as failed if it's a fatal error?
              // For now, let's mark as FAILED to avoid infinite loops on bad data.
-             await db.update(jobs).set({ status: 'FAILED' }).where(eq(jobs.id, job.id));
+             try {
+                await db.update(jobs).set({ status: 'FAILED' }).where(eq(jobs.id, job.id));
+             } catch (dbError) {
+                 console.error(`BackgroundJobWorker: Critical error updating failure status for job ${job.id}`, dbError);
+             }
         }
     }
 }
