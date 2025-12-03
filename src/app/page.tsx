@@ -67,6 +67,14 @@ function HomePageContent() {
     setJobFilter(jobIdParam);
   }, [jobIdParam]);
 
+  useEffect(() => {
+    setRepoFilter(repoParam || 'all');
+  }, [repoParam]);
+
+  useEffect(() => {
+    setStatusFilter(statusParam || 'all');
+  }, [statusParam]);
+
   const { filteredJobs, unknownSessions } = useMemo(() => {
     const allJobSessionIds = new Set(jobs.flatMap(j => j.sessionIds));
     let unknown = sessions.filter(s => !allJobSessionIds.has(s.id));
