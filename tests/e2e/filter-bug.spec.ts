@@ -30,3 +30,35 @@ test("Job filter should be preserved after viewing a session", async ({ page }) 
   // Check that the URL is correct
   await expect(page).toHaveURL(/.*\/sessions\/session-2\?jobId=job-2/);
 });
+
+test("Job filter should be correctly displayed when loading with jobId in URL", async ({
+  page,
+}) => {
+  // Mock data to ensure the job and session exist
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "jules-jobs",
+      JSON.stringify([
+        { id: "job-1", name: "Job 1", sessionIds: ["session-1"] },
+      ])
+    );
+    localStorage.setItem(
+      "jules-sessions",
+      JSON.stringify([
+        { id: "session-1", title: "Session 1", state: "COMPLETED" },
+      ])
+    );
+  });
+
+  // Navigate to the page with a jobId in the query params
+  await page.goto("/?jobId=job-1");
+
+  // Check if the combobox for job filtering displays "Job 1"
+  const jobFilterButton = page.locator(
+    'button[role="combobox"][name="filter-job"]'
+  );
+
+  // The button text should contain "Job 1"
+  await expect(jobFilterButton).toHaveText(/Job 1/);
+});

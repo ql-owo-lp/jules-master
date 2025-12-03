@@ -88,6 +88,21 @@ describe('Session Actions', () => {
       expect(result.error).toContain('Jules API key is not configured');
       expect(result.sessions).toEqual([]);
     });
+
+    it('should not trigger background sync on initial fetch', async () => {
+      (sessionService.getCachedSessions as vi.Mock)
+        .mockResolvedValueOnce([]) // First call empty
+        .mockResolvedValueOnce([{ id: '1', name: 'Session 1', title: 'Title' }]); // Second call after populate
+
+      (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ sessions: [{ id: '1', name: 'Session 1', title: 'Title' }] }),
+      });
+
+      await listSessions('test-key');
+
+      expect(sessionService.syncStaleSessions).not.toHaveBeenCalled();
+    });
   });
 
   describe('fetchSessionsPage', () => {

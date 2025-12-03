@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useCallback, Suspense, useMemo, useRef } from "react";
+import React, { useState, useEffect, useTransition, useCallback, Suspense, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
+import { Terminal, X, Briefcase, GitMerge, Activity, Wand2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions, cancelSessionRequest, refreshSession } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
@@ -20,6 +20,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { groupSessionsByTopic, createDynamicJobs } from "@/lib/utils";
 import { useEnv } from "@/components/env-provider";
 import { FloatingProgressBar } from "@/components/floating-progress-bar";
+import { NewJobDialog } from "@/components/new-job-dialog";
 
 function HomePageContent() {
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
@@ -83,8 +84,15 @@ function HomePageContent() {
     if (repoFilter !== 'all') {
       j = j.filter(job => job.repo === repoFilter);
     }
+    if (statusFilter !== 'all') {
+      const sessionMap = new Map(sessions.map(s => [s.id, s]));
+      j = j.filter(job => job.sessionIds.some(sessionId => {
+        const session = sessionMap.get(sessionId);
+        return session && session.state === statusFilter;
+      }));
+    }
     return { filteredJobs: j, unknownSessions: remainingUnknown };
-  }, [jobs, sessions, jobFilter, repoFilter]);
+  }, [jobs, sessions, jobFilter, repoFilter, statusFilter]);
 
   const totalJobPages = Math.ceil(filteredJobs.length / jobsPerPage);
   const paginatedJobs = filteredJobs.slice((jobPage - 1) * jobsPerPage, jobPage * jobsPerPage);
@@ -467,6 +475,14 @@ function HomePageContent() {
               </AlertDescription>
             </Alert>
           )}
+          <div className="flex justify-end">
+            <NewJobDialog>
+                <Button disabled={!hasJulesApiKey}>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Create New Job
+                </Button>
+            </NewJobDialog>
+          </div>
           <SessionList
             sessions={sessions}
             jobs={paginatedJobs}
@@ -520,7 +536,7 @@ function HomePageContent() {
                   <Label htmlFor="filter-job">Job Name</Label>
                    <Combobox 
                     options={allJobOptions}
-                    selectedValue={jobFilter || 'all'}
+                    selectedValue={jobFilter}
                     onValueChange={(val) => onJobFilterChange(val === 'all' ? null : val)}
                     placeholder="Filter by job..."
                     searchPlaceholder="Search jobs..."

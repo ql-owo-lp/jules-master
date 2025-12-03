@@ -56,6 +56,16 @@ describe('Utils', () => {
       expect(groupedSessions.size).toBe(1);
       expect(groupedSessions.get('Test Topic 1')?.length).toBe(2);
     });
+
+    it('should handle trailing whitespace after the topic', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: '[TOPIC]: # (Test Topic 1) \nSome details' },
+      ];
+      const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(1);
+      expect(groupedSessions.get('Test Topic 1')?.length).toBe(1);
+      expect(remainingUnknown.length).toBe(0);
+    });
   });
 
   describe('createDynamicJobs', () => {
@@ -110,6 +120,20 @@ describe('Utils', () => {
       ]);
       const jobs = createDynamicJobs(groupedSessions);
       expect(jobs[0].createdAt).toBe('2023-01-01T12:00:00Z');
+    });
+
+    it('should use the repo and branch from the latest session', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', [
+        { id: '1', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+        { id: '2', createTime: '2023-01-02T12:00:00Z', sourceContext: { source: 'test/repo2', githubRepoContext: { startingBranch: 'develop' } } },
+      ]);
+
+      const jobs = createDynamicJobs(groupedSessions);
+
+      expect(jobs.length).toBe(1);
+      expect(jobs[0].repo).toBe('test/repo2');
+      expect(jobs[0].branch).toBe('develop');
     });
   });
 });

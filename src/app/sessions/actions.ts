@@ -91,9 +91,10 @@ export async function listSessions(
   try {
     // 1. Get cached sessions from DB
     let sessions = await getCachedSessions();
+    const isInitialFetch = sessions.length === 0;
 
     // 2. If DB is empty, perform an initial fetch from API to populate it
-    if (sessions.length === 0) {
+    if (isInitialFetch) {
         console.log("Session cache is empty, performing initial fetch...");
         // Fetch the first page or so to populate.
         // NOTE: We might want to fetch *all* pages if we want a complete cache,
@@ -117,13 +118,15 @@ export async function listSessions(
     // However, in serverless environments, this might be cut short.
     // In a long-running container (docker-compose), this is fine.
     // We catch errors to prevent crashing.
-    (async () => {
-        try {
-            await syncStaleSessions(effectiveApiKey);
-        } catch (e) {
-            console.error("Background session sync failed", e);
-        }
-    })();
+    if (!isInitialFetch) {
+      (async () => {
+          try {
+              await syncStaleSessions(effectiveApiKey);
+          } catch (e) {
+              console.error("Background session sync failed", e);
+          }
+      })();
+    }
 
     return { sessions };
 

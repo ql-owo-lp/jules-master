@@ -13,7 +13,7 @@ export function groupSessionsByTopic(sessions: Session[]): { groupedSessions: Ma
 
   sessions.forEach(session => {
     const firstLine = session.prompt?.split('\n')[0] || '';
-    const match = firstLine.match(/^\[TOPIC\]: # \((.+)\)$/);
+    const match = firstLine.match(/^\[TOPIC\]: # \((.+)\)\s*$/);
     if (match) {
       const jobName = match[1].trim();
       if (!groupedSessions.has(jobName)) {
@@ -32,8 +32,6 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
   return Array.from(groupedSessions.entries())
     .filter(([, sessions]) => sessions.length > 0)
     .map(([jobName, sessions]) => {
-      const repo = sessions[0].sourceContext?.source || 'unknown';
-      const branch = sessions[0].sourceContext?.githubRepoContext?.startingBranch || 'unknown';
       const latestSession = sessions.reduce((latest, current) => {
         const latestTime = new Date(latest.createTime || 0);
         const currentTime = new Date(current.createTime || 0);
@@ -44,10 +42,14 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
         return currentTime > latestTime ? current : latest;
       }, sessions[0]);
 
+      const repo = latestSession.sourceContext?.source || 'unknown';
+      const branch = latestSession.sourceContext?.githubRepoContext?.startingBranch || 'unknown';
+
       // Combine timestamp and a random string to ensure the ID is unique
       const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+      const slug = jobName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       return {
-        id: `dynamic-${jobName}-${uniqueSuffix}`,
+        id: `dynamic-${slug}-${uniqueSuffix}`,
         name: jobName,
         sessionIds: sessions.map(s => s.id),
         createdAt: latestSession.createTime || new Date().toISOString(),

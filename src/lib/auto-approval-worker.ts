@@ -26,6 +26,13 @@ export async function runAutoApprovalCheck(options = { schedule: true }) {
     try {
         console.log("AutoApprovalWorker: Starting check for all sessions...");
 
+        const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+        const autoApprovalEnabled = settingsResult.length > 0 && settingsResult[0].autoApprovalEnabled;
+
+        if (!autoApprovalEnabled) {
+            console.log("AutoApprovalWorker: Auto-approval is disabled. Skipping approval part of the check.");
+        }
+
         let nextPageToken: string | undefined = undefined;
         let processedCount = 0;
         let approvedCount = 0;
@@ -43,7 +50,7 @@ export async function runAutoApprovalCheck(options = { schedule: true }) {
             // Filter for sessions awaiting plan approval
             const pendingSessions = sessions.filter(s => s.state === 'AWAITING_PLAN_APPROVAL');
 
-            if (pendingSessions.length > 0) {
+            if (pendingSessions.length > 0 && autoApprovalEnabled) {
                  console.log(`AutoApprovalWorker: Found ${pendingSessions.length} pending sessions in current batch. Approving...`);
 
                  // Approve them
