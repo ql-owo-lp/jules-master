@@ -520,7 +520,7 @@ function HomePageContent() {
                   <Label htmlFor="filter-job">Job Name</Label>
                    <Combobox 
                     options={allJobOptions}
-                    selectedValue={jobFilter || 'all'}
+                    selectedValue={jobFilter}
                     onValueChange={(val) => onJobFilterChange(val === 'all' ? null : val)}
                     placeholder="Filter by job..."
                     searchPlaceholder="Search jobs..."
