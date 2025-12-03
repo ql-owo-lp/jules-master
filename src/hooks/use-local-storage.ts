@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { storageEmitter } from "@/lib/storage-event";
 
 // This hook can't be used during server-side rendering.
@@ -10,7 +10,6 @@ export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T) => void] {
-  
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -28,6 +27,13 @@ export function useLocalStorage<T>(
       return initialValue;
     }
   });
+
+  // Use a ref to store the latest value for the event handler
+  // This avoids including storedValue in the useEffect dependency array
+  const storedValueRef = useRef(storedValue);
+  useEffect(() => {
+    storedValueRef.current = storedValue;
+  }, [storedValue]);
 
   const setValue = useCallback(
     (value: T) => {
@@ -50,7 +56,7 @@ export function useLocalStorage<T>(
   // Effect to listen for storage change events from other instances of the hook
   useEffect(() => {
     const handleStorageChange = (event: { key: string, value: any }) => {
-        if (event.key === key && JSON.stringify(event.value) !== JSON.stringify(storedValue)) {
+        if (event.key === key && JSON.stringify(event.value) !== JSON.stringify(storedValueRef.current)) {
             setStoredValue(event.value);
         }
     };
@@ -60,7 +66,7 @@ export function useLocalStorage<T>(
     return () => {
         storageEmitter.off("change", handleStorageChange);
     };
-  }, [key, storedValue]);
+  }, [key]);
 
   // Re-read from local storage when isClient becomes true
   useEffect(() => {
