@@ -1,4 +1,4 @@
-
+import React from 'react';
 "use client";
 
 import {
@@ -24,7 +24,7 @@ import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2, Bo
 import { Button } from "./ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem, CommandList } from "./ui/command";
@@ -91,6 +91,7 @@ export function SessionList({
   pendingBackgroundWork,
 }: SessionListProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
   const [openAccordionItems, setOpenAccordionItems] = useState<string[]>(jobIdParam ? [jobIdParam] : []);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
@@ -243,7 +244,7 @@ export function SessionList({
       <TableBody>
         {sessionsToRender.map(session => {
           const prUrl = getPullRequestUrl(session);
-          const backPath = isUncategorized ? '' : `?jobId=${jobIdParam}`;
+          const backPath = isUncategorized ? '' : `?${searchParams.toString()}`;
 
           return (
             <TableRow 
