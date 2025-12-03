@@ -92,6 +92,8 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
     }
 }
 
+const DEFAULT_INTERVAL_SECONDS = 3600;
+
 function scheduleNextRun() {
     if (workerTimeout) {
         clearTimeout(workerTimeout);
@@ -99,17 +101,16 @@ function scheduleNextRun() {
 
     db.select().from(settings).where(eq(settings.id, 1)).limit(1)
         .then(settingsResult => {
-            let intervalSeconds = 3600;
-
+            const intervalSeconds = settingsResult[0]?.autoDeleteStaleBranchesInterval ?? DEFAULT_INTERVAL_SECONDS;
             workerTimeout = setTimeout(() => {
                 runAutoDeleteStaleBranchCheck();
             }, intervalSeconds * 1000);
         })
         .catch(e => {
             console.error("AutoDeleteStaleBranchWorker: Failed to fetch settings, using default interval.", e);
-             workerTimeout = setTimeout(() => {
+            workerTimeout = setTimeout(() => {
                 runAutoDeleteStaleBranchCheck();
-            }, 3600 * 1000);
+            }, DEFAULT_INTERVAL_SECONDS * 1000);
         });
 }
 
