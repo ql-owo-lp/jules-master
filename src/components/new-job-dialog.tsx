@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, ReactNode } from "react";
+import React from "react";
 import { useRouter } from 'next/navigation';
 import { JobCreationForm } from "@/components/job-creation-form";
 import { useLocalStorage } from "@/hooks/use-local-storage";

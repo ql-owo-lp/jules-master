@@ -13,7 +13,7 @@ export function groupSessionsByTopic(sessions: Session[]): { groupedSessions: Ma
 
   sessions.forEach(session => {
     const firstLine = session.prompt?.split('\n')[0] || '';
-    const match = firstLine.match(/^\[TOPIC\]: # \((.+)\)\s*$/);
+    const match = firstLine.match(/^\[TOPIC\]:\s*#\s*\((.+)\)\s*$/);
     if (match) {
       const jobName = match[1].trim();
       if (!groupedSessions.has(jobName)) {

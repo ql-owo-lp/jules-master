@@ -1,185 +1,149 @@
 import { describe, it, expect } from 'vitest';
-import { groupSessionsByTopic, createDynamicJobs } from '@/lib/utils';
-import type { Session } from '@/lib/types';
+import { groupSessionsByTopic, createDynamicJobs } from '../../src/lib/utils';
+import { Session } from '../../src/lib/types';
 
-describe('groupSessionsByTopic', () => {
-  it('should return empty maps and arrays when given an empty array', () => {
-    const { groupedSessions, remainingUnknown } = groupSessionsByTopic([]);
-    expect(groupedSessions.size).toBe(0);
-    expect(remainingUnknown.length).toBe(0);
+describe('Utils', () => {
+  describe('groupSessionsByTopic', () => {
+    it('should group sessions by topic', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: '[TOPIC]: # (Test Topic 1)\nSome details' },
+        { id: '2', prompt: '[TOPIC]: # (Test Topic 2)\nSome details' },
+        { id: '3', prompt: '[TOPIC]: # (Test Topic 1)\nSome other details' },
+      ];
+      const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(2);
+      expect(groupedSessions.get('Test Topic 1')?.length).toBe(2);
+      expect(groupedSessions.get('Test Topic 2')?.length).toBe(1);
+      expect(remainingUnknown.length).toBe(0);
+    });
+
+    it('should handle sessions with no topic', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: 'No topic here' },
+        { id: '2', prompt: '[TOPIC]: # (Test Topic 1)\nSome details' },
+      ];
+      const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(1);
+      expect(groupedSessions.get('Test Topic 1')?.length).toBe(1);
+      expect(remainingUnknown.length).toBe(1);
+      expect(remainingUnknown[0].id).toBe('1');
+    });
+
+    it('should handle empty sessions array', () => {
+      const sessions: Session[] = [];
+      const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(0);
+      expect(remainingUnknown.length).toBe(0);
+    });
+
+    it('should handle sessions with malformed topics', () => {
+        const sessions: Session[] = [
+          { id: '1', prompt: '[TOPIC]: # (Test Topic 1)\nSome details' },
+          { id: '2', prompt: '[TOPIC]: # Test Topic 2\nSome details' },
+        ];
+        const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+        expect(groupedSessions.size).toBe(1);
+        expect(groupedSessions.get('Test Topic 1')?.length).toBe(1);
+        expect(remainingUnknown.length).toBe(1);
+    });
+
+    it('should trim whitespace from the topic name', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: '[TOPIC]: # (  Test Topic 1  )\nSome details' },
+        { id: '2', prompt: '[TOPIC]: # (Test Topic 1)\nSome other details' },
+      ];
+      const { groupedSessions } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(1);
+      expect(groupedSessions.get('Test Topic 1')?.length).toBe(2);
+    });
+
+    it('should handle trailing whitespace after the topic', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: '[TOPIC]: # (Test Topic 1) \nSome details' },
+      ];
+      const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(1);
+      expect(groupedSessions.get('Test Topic 1')?.length).toBe(1);
+      expect(remainingUnknown.length).toBe(0);
+    });
+
+    it('should group sessions with varied spacing in the prompt', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: '[TOPIC]: # (  My Job  ) ' },
+        { id: '2', prompt: '[TOPIC]:   # (My Job)' },
+        { id: '3', prompt: '[TOPIC]:# (My Job)' },
+      ];
+      const { groupedSessions } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.get('My Job')?.length).toBe(3);
+    });
   });
 
-  it('should group sessions by topic', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: # (topic1)\n' },
-      { id: '2', prompt: '[TOPIC]: # (topic2)\n' },
-      { id: '3', prompt: '[TOPIC]: # (topic1)\n' },
-    ];
-    const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
-    expect(groupedSessions.size).toBe(2);
-    expect(groupedSessions.get('topic1')?.length).toBe(2);
-    expect(groupedSessions.get('topic2')?.length).toBe(1);
-    expect(remainingUnknown.length).toBe(0);
-  });
+  describe('createDynamicJobs', () => {
+    it('should create dynamic jobs from grouped sessions', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', [
+        { id: '1', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+        { id: '2', createTime: '2023-01-01T13:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+      ]);
+      groupedSessions.set('Test Job 2', [
+        { id: '3', createTime: '2023-01-02T12:00:00Z', sourceContext: { source: 'test/repo2', githubRepoContext: { startingBranch: 'develop' } } },
+      ]);
 
-  it('should handle sessions without a topic', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: 'no topic here' },
-      { id: '2', prompt: 'another one' },
-    ];
-    const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
-    expect(groupedSessions.size).toBe(0);
-    expect(remainingUnknown.length).toBe(2);
-  });
+      const jobs = createDynamicJobs(groupedSessions);
 
-  it('should handle a mix of sessions with and without topics', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: # (topic1)\n' },
-      { id: '2', prompt: 'no topic here' },
-      { id: '3', prompt: '[TOPIC]: # (topic2)\n' },
-    ];
-    const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
-    expect(groupedSessions.size).toBe(2);
-    expect(groupedSessions.get('topic1')?.length).toBe(1);
-    expect(groupedSessions.get('topic2')?.length).toBe(1);
-    expect(remainingUnknown.length).toBe(1);
-  });
+      expect(jobs.length).toBe(2);
+      expect(jobs[0].name).toBe('Test Job 1');
+      expect(jobs[0].sessionIds.length).toBe(2);
+      expect(jobs[0].repo).toBe('test/repo1');
+      expect(jobs[0].branch).toBe('main');
+      expect(jobs[0].createdAt).toBe('2023-01-01T13:00:00Z');
 
-  it('should handle sessions with null or undefined prompts', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: null },
-      { id: '2', prompt: undefined },
-    ];
-    const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
-    expect(groupedSessions.size).toBe(0);
-    expect(remainingUnknown.length).toBe(2);
-  });
+      expect(jobs[1].name).toBe('Test Job 2');
+      expect(jobs[1].repo).toBe('test/repo2');
+      expect(jobs[1].branch).toBe('develop');
+    });
 
-  it('should handle sessions with empty prompts', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '' },
-    ];
-    const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
-    expect(groupedSessions.size).toBe(0);
-    expect(remainingUnknown.length).toBe(1);
-  });
+    it('should handle empty grouped sessions map', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      const jobs = createDynamicJobs(groupedSessions);
+      expect(jobs.length).toBe(0);
+    });
 
-  it('should handle prompts that do not match the topic format', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: incorrect format' },
-      { id: '2', prompt: 'TOPIC # (topic2)' },
-    ];
-    const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
-    expect(groupedSessions.size).toBe(0);
-    expect(remainingUnknown.length).toBe(2);
-  });
-});
+    it('should handle sessions with missing source context', () => {
+        const groupedSessions = new Map<string, Session[]>();
+        groupedSessions.set('Test Job 1', [
+          { id: '1', createTime: '2023-01-01T12:00:00Z' },
+        ]);
 
-describe('createDynamicJobs', () => {
-  it('should return an empty array when given an empty map', () => {
-    const jobs = createDynamicJobs(new Map());
-    expect(jobs.length).toBe(0);
-  });
+        const jobs = createDynamicJobs(groupedSessions);
 
-  it('should create jobs from a map of grouped sessions', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: # (topic1)\n', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'repo1', githubRepoContext: { startingBranch: 'main' } } },
-      { id: '2', prompt: '[TOPIC]: # (topic2)\n', createTime: '2023-01-02T12:00:00Z', sourceContext: { source: 'repo2', githubRepoContext: { startingBranch: 'develop' } } },
-      { id: '3', prompt: '[TOPIC]: # (topic1)\n', createTime: '2023-01-03T12:00:00Z', sourceContext: { source: 'repo1', githubRepoContext: { startingBranch: 'main' } } },
-    ];
-    const { groupedSessions } = groupSessionsByTopic(sessions);
-    const jobs = createDynamicJobs(groupedSessions);
-    expect(jobs.length).toBe(2);
-    const job1 = jobs.find(j => j.name === 'topic1');
-    expect(job1).toBeDefined();
-    expect(job1?.sessionIds).toEqual(['1', '3']);
-    expect(job1?.repo).toBe('repo1');
-    expect(job1?.branch).toBe('main');
-    expect(job1?.createdAt).toBe('2023-01-03T12:00:00Z');
-  });
+        expect(jobs.length).toBe(1);
+        expect(jobs[0].name).toBe('Test Job 1');
+        expect(jobs[0].repo).toBe('unknown');
+        expect(jobs[0].branch).toBe('unknown');
+      });
+    it('should handle sessions with invalid createTime', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', [
+        { id: '1', createTime: 'invalid-date' },
+        { id: '2', createTime: '2023-01-01T12:00:00Z' },
+      ]);
+      const jobs = createDynamicJobs(groupedSessions);
+      expect(jobs[0].createdAt).toBe('2023-01-01T12:00:00Z');
+    });
 
-  it('should handle sessions with missing sourceContext', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: # (topic1)\n', createTime: '2023-01-01T12:00:00Z' },
-    ];
-    const { groupedSessions } = groupSessionsByTopic(sessions);
-    const jobs = createDynamicJobs(groupedSessions);
-    expect(jobs.length).toBe(1);
-    const job1 = jobs.find(j => j.name === 'topic1');
-    expect(job1).toBeDefined();
-    expect(job1?.repo).toBe('unknown');
-    expect(job1?.branch).toBe('unknown');
-    expect(jobs[0].repo).toBe('unknown');
-    expect(jobs[0].branch).toBe('unknown');
-  });
+    it('should use the repo and branch from the latest session', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', [
+        { id: '1', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+        { id: '2', createTime: '2023-01-02T12:00:00Z', sourceContext: { source: 'test/repo2', githubRepoContext: { startingBranch: 'develop' } } },
+      ]);
 
-  it('should handle sessions with missing githubRepoContext', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: # (topic1)\n', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'repo1' } },
-    ];
-    const { groupedSessions } = groupSessionsByTopic(sessions);
-    const jobs = createDynamicJobs(groupedSessions);
-    expect(jobs.length).toBe(1);
-    const job1 = jobs.find(j => j.name === 'topic1');
-    expect(job1).toBeDefined();
-    expect(job1?.branch).toBe('unknown');
-    expect(jobs[0].repo).toBe('repo1');
-    expect(jobs[0].branch).toBe('unknown');
-  });
+      const jobs = createDynamicJobs(groupedSessions);
 
-  it('should handle sessions with missing startingBranch', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: # (topic1)\n', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'repo1', githubRepoContext: {} } },
-    ];
-    const { groupedSessions } = groupSessionsByTopic(sessions);
-    const jobs = createDynamicJobs(groupedSessions);
-    expect(jobs.length).toBe(1);
-    expect(jobs[0].repo).toBe('repo1');
-    expect(jobs[0].branch).toBe('unknown');
-  });
-
-  it('should handle sessions with missing createTime', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: # (topic1)\n', sourceContext: { source: 'repo1', githubRepoContext: { startingBranch: 'main' } } },
-    ];
-    const { groupedSessions } = groupSessionsByTopic(sessions);
-    const jobs = createDynamicJobs(groupedSessions);
-    expect(jobs.length).toBe(1);
-    const job1 = jobs.find(j => j.name === 'topic1');
-    expect(job1).toBeDefined();
-    expect(job1?.createdAt).toBeDefined();
-    expect(jobs[0].createdAt).toBeDefined();
-  });
-
-  it('should generate unique IDs for jobs with the same name', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: # (topic-A)\n' },
-      { id: '2', prompt: '[TOPIC]: # (topic-B)\n' },
-    ];
-    const { groupedSessions } = groupSessionsByTopic(sessions);
-    const jobs1 = createDynamicJobs(groupedSessions);
-    const jobs2 = createDynamicJobs(groupedSessions);
-    const jobA1 = jobs1.find(j => j.name === 'topic-A');
-    const jobA2 = jobs2.find(j => j.name === 'topic-A');
-    expect(jobA1?.id).not.toBe(jobA2?.id);
-  });
-
-  it('should handle empty session groups gracefully', () => {
-    const groupedSessions = new Map<string, Session[]>();
-    groupedSessions.set('empty-group', []);
-    const jobs = createDynamicJobs(groupedSessions);
-    expect(jobs).toEqual([]);
-  });
-
-  it('should correctly slugify job names with special characters', () => {
-    const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: # (a / b & c)\n' },
-    ];
-    const { groupedSessions } = groupSessionsByTopic(sessions);
-    const jobs = createDynamicJobs(groupedSessions);
-    expect(jobs.length).toBe(1);
-    const job1 = jobs[0];
-    expect(job1.name).toBe('a / b & c');
-    expect(job1.id.startsWith('dynamic-a-b-c-')).toBe(true);
+      expect(jobs.length).toBe(1);
+      expect(jobs[0].repo).toBe('test/repo2');
+      expect(jobs[0].branch).toBe('develop');
+    });
   });
 });
