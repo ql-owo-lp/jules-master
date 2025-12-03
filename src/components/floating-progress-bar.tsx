@@ -22,7 +22,7 @@ export function FloatingProgressBar({
   isVisible,
   className,
 }: FloatingProgressBarProps) {
-  if (!isVisible) return null
+  if (!isVisible || total === 0) return null
 
   const percentage = total > 0 ? Math.round((current / total) * 100) : 0
 
