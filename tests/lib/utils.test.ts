@@ -163,4 +163,11 @@ describe('createDynamicJobs', () => {
     const jobA2 = jobs2.find(j => j.name === 'topic-A');
     expect(jobA1?.id).not.toBe(jobA2?.id);
   });
+
+  it('should handle empty session groups gracefully', () => {
+    const groupedSessions = new Map<string, Session[]>();
+    groupedSessions.set('empty-group', []);
+    const jobs = createDynamicJobs(groupedSessions);
+    expect(jobs).toEqual([]);
+  });
 });

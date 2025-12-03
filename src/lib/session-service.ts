@@ -186,7 +186,7 @@ export async function syncStaleSessions(apiKey: string) {
 
       default:
         // Default fall back
-        if (age > settings.sessionCacheCompletedNoPrInterval * 1000) {
+        if (age > settings.sessionCachePendingApprovalInterval * 1000) {
             shouldUpdate = true;
         }
         break;
