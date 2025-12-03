@@ -56,6 +56,16 @@ describe('Utils', () => {
       expect(groupedSessions.size).toBe(1);
       expect(groupedSessions.get('Test Topic 1')?.length).toBe(2);
     });
+
+    it('should handle trailing whitespace after the topic', () => {
+      const sessions: Session[] = [
+        { id: '1', prompt: '[TOPIC]: # (Test Topic 1) \nSome details' },
+      ];
+      const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+      expect(groupedSessions.size).toBe(1);
+      expect(groupedSessions.get('Test Topic 1')?.length).toBe(1);
+      expect(remainingUnknown.length).toBe(0);
+    });
   });
 
   describe('createDynamicJobs', () => {
