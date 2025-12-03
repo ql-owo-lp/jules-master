@@ -42,7 +42,8 @@ export async function deleteCronJob(id: string) {
 
 export async function updateCronJob(id: string, data: Partial<CronJob>) {
   try {
-    await db.update(cronJobs).set(data).where(eq(cronJobs.id, id));
+    const { id: _, createdAt, lastRunAt, ...rest } = data;
+    await db.update(cronJobs).set(rest).where(eq(cronJobs.id, id));
   } catch (error) {
     console.error("Failed to update cron job:", error);
     throw error;
