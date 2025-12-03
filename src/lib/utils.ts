@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -45,11 +46,9 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
       const repo = latestSession.sourceContext?.source || 'unknown';
       const branch = latestSession.sourceContext?.githubRepoContext?.startingBranch || 'unknown';
 
-      // Combine timestamp and a random string to ensure the ID is unique
-      const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
       const slug = jobName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       return {
-        id: `dynamic-${slug}-${uniqueSuffix}`,
+        id: `dynamic-${slug}-${uuidv4()}`,
         name: jobName,
         sessionIds: sessions.map(s => s.id),
         createdAt: latestSession.createTime || new Date().toISOString(),

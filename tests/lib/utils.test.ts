@@ -182,4 +182,16 @@ describe('createDynamicJobs', () => {
     expect(job1.name).toBe('a / b & c');
     expect(job1.id.startsWith('dynamic-a-b-c-')).toBe(true);
   });
+
+  it('should create a job with a unique UUID', () => {
+    const sessions = [
+      { id: '1', prompt: '[TOPIC]: # (Test Job)', createTime: new Date().toISOString() },
+    ] as Session[];
+    const { groupedSessions } = groupSessionsByTopic(sessions);
+    const jobs = createDynamicJobs(groupedSessions);
+    expect(jobs).toHaveLength(1);
+    const idParts = jobs[0].id.split('-');
+    const uuid = idParts.slice(idParts.length - 5).join('-');
+    expect(uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  });
 });
