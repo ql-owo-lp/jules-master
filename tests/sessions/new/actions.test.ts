@@ -77,5 +77,41 @@ describe('Session New Actions', () => {
       const session = await createSession(sessionData);
       expect(session).toBeNull();
     });
+
+    it('should include autoRetryEnabled and autoContinueEnabled if they are true', async () => {
+        const sessionDataWithFlags = { ...sessionData, autoRetryEnabled: true, autoContinueEnabled: true };
+        const mockSession = { id: 'new-session', ...sessionDataWithFlags };
+        (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+            ok: true,
+            json: async () => mockSession,
+        });
+
+        await createSession(sessionDataWithFlags);
+        expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
+            'https://jules.googleapis.com/v1alpha/sessions',
+            expect.objectContaining({
+                body: JSON.stringify(sessionDataWithFlags),
+            })
+        );
+    });
+
+    it('should not include autoRetryEnabled or autoContinueEnabled if they are false', async () => {
+        const sessionDataWithoutFlags = { ...sessionData, autoRetryEnabled: false, autoContinueEnabled: false };
+        const mockSession = { id: 'new-session', ...sessionDataWithoutFlags };
+        (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+            ok: true,
+            json: async () => mockSession,
+        });
+
+        await createSession(sessionDataWithoutFlags);
+        const expectedBody = { ...sessionData };
+
+        expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
+            'https://jules.googleapis.com/v1alpha/sessions',
+            expect.objectContaining({
+                body: JSON.stringify(expectedBody),
+            })
+        );
+    });
   });
 });
