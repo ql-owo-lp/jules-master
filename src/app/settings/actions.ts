@@ -16,6 +16,14 @@ export async function getCronJobs(): Promise<CronJob[]> {
 
 export async function createCronJob(data: Omit<CronJob, "id" | "createdAt" | "lastRunAt">) {
   try {
+    const existing = await db.query.cronJobs.findFirst({
+      where: eq(cronJobs.name, data.name),
+    });
+
+    if (existing) {
+      throw new Error(`Cron job with name "${data.name}" already exists.`);
+    }
+
     const newCronJob = {
       ...data,
       id: crypto.randomUUID(),
