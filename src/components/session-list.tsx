@@ -1,5 +1,5 @@
-
 "use client";
+import React from "react";
 
 import {
   Card,
@@ -153,20 +153,28 @@ export function SessionList({
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
-    const jobSessionIds = job.sessionIds;
+    const sessionsForJob = job.sessionIds
+      .map(id => sessionMap.get(id))
+      .filter((s): s is Session => !!s)
+      .filter(s => statusFilter === 'all' || s.state === statusFilter);
+
+    const filteredSessionIds = sessionsForJob.map(s => s.id);
+
     if (checked) {
-      setSelectedSessionIds(ids => [...new Set([...ids, ...jobSessionIds])]);
+      setSelectedSessionIds(ids => [...new Set([...ids, ...filteredSessionIds])]);
     } else {
-      setSelectedSessionIds(ids => ids.filter(id => !jobSessionIds.includes(id)));
+      setSelectedSessionIds(ids => ids.filter(id => !filteredSessionIds.includes(id)));
     }
   };
 
   const handleSelectAllForUnknown = (checked: boolean) => {
-    const unknownSessionIds = unknownSessions.map(s => s.id);
+    const filteredUnknownSessions = unknownSessions.filter(s => statusFilter === 'all' || s.state === statusFilter);
+    const filteredUnknownSessionIds = filteredUnknownSessions.map(s => s.id);
+
     if (checked) {
-        setSelectedSessionIds(ids => [...new Set([...ids, ...unknownSessionIds])]);
+      setSelectedSessionIds(ids => [...new Set([...ids, ...filteredUnknownSessionIds])]);
     } else {
-        setSelectedSessionIds(ids => ids.filter(id => !unknownSessionIds.includes(id)));
+      setSelectedSessionIds(ids => ids.filter(id => !filteredUnknownSessionIds.includes(id)));
     }
   };
 
@@ -215,7 +223,7 @@ export function SessionList({
     setSessionPages(prev => ({ ...prev, [jobId]: newPage }));
   };
   
-  const unknownSessionIds = unknownSessions.map(s => s.id);
+  const unknownSessionIds = unknownSessions.filter(s => statusFilter === 'all' || s.state === statusFilter).map(s => s.id);
   const isAllUnknownSelected = unknownSessionIds.length > 0 && unknownSessionIds.every(id => selectedSessionIds.includes(id));
   const isSomeUnknownSelected = unknownSessionIds.some(id => selectedSessionIds.includes(id));
   const selectAllUnknownState = isAllUnknownSelected ? true : (isSomeUnknownSelected ? 'indeterminate' : false);
@@ -431,7 +439,7 @@ export function SessionList({
                     .filter((s): s is Session => !!s)
                     .filter(s => statusFilter === 'all' || s.state === statusFilter);
 
-                  const jobSessionIds = job.sessionIds;
+                  const jobSessionIds = sessionsForJob.map(s => s.id);
                   const isAllSelected = jobSessionIds.length > 0 && jobSessionIds.every(id => selectedSessionIds.includes(id));
                   const isSomeSelected = jobSessionIds.some(id => selectedSessionIds.includes(id));
                   const selectAllState = isAllSelected ? true : (isSomeSelected ? 'indeterminate' : false);

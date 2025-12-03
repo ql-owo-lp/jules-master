@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import type { State } from "@/lib/types";
 import { cn } from "@/lib/utils";
