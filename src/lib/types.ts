@@ -53,6 +53,7 @@ export type PullRequest = {
   url:string;
   title: string;
   description: string;
+  status?: 'OPEN' | 'MERGED' | 'CLOSED' | 'DRAFT' | 'UNKNOWN';
 };
 
 export type AutomationMode = 'AUTOMATION_MODE_UNSPECIFIED' | 'AUTO_CREATE_PR';
