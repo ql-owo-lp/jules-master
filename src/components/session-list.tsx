@@ -23,7 +23,7 @@ import { formatDistanceToNow } from "date-fns";
 import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2, Bot, MessageSquareReply } from "lucide-react";
 import { Button } from "./ui/button";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { cn, getPullRequestUrls } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -195,17 +195,6 @@ export function SessionList({
     }
   }, [jobIdParam, openAccordionItems]);
   
-  const getPullRequestUrl = (session: Session): string | null => {
-    if (session.outputs && session.outputs.length > 0) {
-      for (const output of session.outputs) {
-        if (output.pullRequest?.url) {
-          return output.pullRequest.url;
-        }
-      }
-    }
-    return null;
-  }
-  
   const truncate = (str: string, length: number) => {
     if (!str) return '';
     return str.length > length ? str.substring(0, length) + "..." : str;
@@ -242,7 +231,7 @@ export function SessionList({
       </TableHeader>
       <TableBody>
         {sessionsToRender.map(session => {
-          const prUrl = getPullRequestUrl(session);
+          const prUrls = getPullRequestUrls(session);
           const backPath = isUncategorized ? '' : `?jobId=${jobIdParam}`;
 
           return (
@@ -285,7 +274,7 @@ export function SessionList({
                       )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <PrStatus prUrl={prUrl} />
+                    <PrStatus prUrls={prUrls} />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>

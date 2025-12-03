@@ -12,7 +12,7 @@ import { useEnv } from "@/components/env-provider";
 
 
 type PrStatusProps = {
-  prUrl: string | null;
+  prUrls: string[];
 };
 
 type CachedStatus = {
@@ -20,10 +20,10 @@ type CachedStatus = {
   timestamp: number;
 };
 
-export function PrStatus({ prUrl }: PrStatusProps) {
+function SinglePrStatus({ prUrl }: { prUrl: string }) {
   // We store the cached status object (with timestamp) in local storage
   // Key includes the PR URL to be unique
-  const storageKey = prUrl ? `pr-status-${prUrl}` : "pr-status-null";
+  const storageKey = `pr-status-${prUrl}`;
   const [cachedData, setCachedData] = useLocalStorage<CachedStatus | null>(storageKey, null);
   const [pollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
   const [debugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
@@ -87,10 +87,6 @@ export function PrStatus({ prUrl }: PrStatusProps) {
   // But we need the latest `cachedData` inside the effect.
   // The effect runs on mount (and when prUrl/token changes).
   // This is what we want: Check on mount if stale.
-
-  if (!prUrl) {
-    return <div className="w-10 h-10" />;
-  }
 
   // If no token is provided (inferred from status), just show a simple link icon
   if (status?.state === 'NO_TOKEN') {
@@ -244,4 +240,43 @@ export function PrStatus({ prUrl }: PrStatusProps) {
       </Tooltip>
     </TooltipProvider>
   );
+}
+
+export function PrStatus({ prUrls }: PrStatusProps) {
+    if (!prUrls || prUrls.length === 0) {
+        return <div className="w-10 h-10" />;
+    }
+
+    if (prUrls.length === 1) {
+        return <SinglePrStatus prUrl={prUrls[0]} />;
+    }
+
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                     <div className="relative">
+                        <GitPullRequest className="h-5 w-5 text-muted-foreground" />
+                        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full h-4 w-4 text-xs flex items-center justify-center">
+                            {prUrls.length}
+                        </span>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <div className="space-y-2 p-2">
+                        <p className="font-semibold">{prUrls.length} Pull Requests</p>
+                        <ul className="list-disc list-inside">
+                            {prUrls.map((url, index) => (
+                                <li key={url}>
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                        PR #{url.split('/').pop()}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    )
 }

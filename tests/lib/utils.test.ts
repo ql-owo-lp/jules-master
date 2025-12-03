@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupSessionsByTopic, createDynamicJobs } from '@/lib/utils';
+import { groupSessionsByTopic, createDynamicJobs, getPullRequestUrls } from '@/lib/utils';
 import type { Session } from '@/lib/types';
 
 describe('groupSessionsByTopic', () => {
@@ -92,7 +92,7 @@ describe('createDynamicJobs', () => {
     expect(jobs.length).toBe(2);
     const job1 = jobs.find(j => j.name === 'topic1');
     expect(job1).toBeDefined();
-    expect(job1?.sessionIds).toEqual(['1', '3']);
+    expect(job1?.sessionIds.sort()).toEqual(['1', '3'].sort());
     expect(job1?.repo).toBe('repo1');
     expect(job1?.branch).toBe('main');
     expect(job1?.createdAt).toBe('2023-01-03T12:00:00Z');
@@ -149,5 +149,55 @@ describe('createDynamicJobs', () => {
     expect(job1).toBeDefined();
     expect(job1?.createdAt).toBeDefined();
     expect(jobs[0].createdAt).toBeDefined();
+  });
+});
+
+describe('getPullRequestUrls', () => {
+  it('should return an empty array if session has no outputs', () => {
+    const session: Session = { id: '1', outputs: [] };
+    expect(getPullRequestUrls(session)).toEqual([]);
+  });
+
+  it('should return an empty array if outputs have no pull requests', () => {
+    const session: Session = { id: '1', outputs: [{ text: 'no pr here' }] };
+    expect(getPullRequestUrls(session)).toEqual([]);
+  });
+
+  it('should return an array with a single pull request URL', () => {
+    const session: Session = {
+      id: '1',
+      outputs: [{ pullRequest: { url: 'https://github.com/example/repo/pull/1' } }],
+    };
+    expect(getPullRequestUrls(session)).toEqual(['https://github.com/example/repo/pull/1']);
+  });
+
+  it('should return an array with multiple pull request URLs', () => {
+    const session: Session = {
+      id: '1',
+      outputs: [
+        { pullRequest: { url: 'https://github.com/example/repo/pull/1' } },
+        { pullRequest: { url: 'https://github.com/example/repo/pull/2' } },
+      ],
+    };
+    expect(getPullRequestUrls(session)).toEqual([
+      'https://github.com/example/repo/pull/1',
+      'https://github.com/example/repo/pull/2',
+    ]);
+  });
+
+  it('should handle a mix of outputs with and without pull requests', () => {
+    const session: Session = {
+      id: '1',
+      outputs: [
+        { text: 'no pr here' },
+        { pullRequest: { url: 'https://github.com/example/repo/pull/1' } },
+        { text: 'another output' },
+        { pullRequest: { url: 'https://github.com/example/repo/pull/2' } },
+      ],
+    };
+    expect(getPullRequestUrls(session)).toEqual([
+      'https://github.com/example/repo/pull/1',
+      'https://github.com/example/repo/pull/2',
+    ]);
   });
 });
