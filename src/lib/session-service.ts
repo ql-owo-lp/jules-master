@@ -85,26 +85,16 @@ export async function getCachedSessions(): Promise<Session[]> {
  * Helper to determine if a session has a merged PR.
  */
 function isPrMerged(session: Session): boolean {
-  // Logic to check if any output has a PR that is merged.
-  // Currently, the SessionOutput type has pullRequest which has url, title, description.
-  // It doesn't strictly have 'merged' status in the Session object itself usually.
-  // However, the prompt says "For sessions that was already compeleted, we check if the status of the PR, if it's merged, then we no longer update it."
-  // This implies we might need to fetch PR status separately or it's part of the session data we get from Jules?
-  // Looking at `SessionOutput`, it only has `pullRequest`.
-  // Looking at `PullRequestStatus` in types.ts, it has state 'MERGED'.
-  // But where is that stored?
-  // The `fetchSession` response from Jules API might contain more info, or we rely on `checkPrStatus` elsewhere.
-  // For now, let's assume we can't easily know if it's merged just from `Session` object unless we extend it or check elsewhere.
-  // BUT, the requirements say: "For sessions that was already compeleted, we check if the status of the PR, if it's merged, then we no longer update it."
+  if (!session.outputs) {
+    return false;
+  }
 
-  // If we don't have PR status in the session object, we might need to skip this check or implement a separate check.
-  // However, `src/app/sessions/actions.ts` has `listSessions` but no logic about PR status.
-  // `src/app/page.tsx` seems to show PR status if github token is set.
-  // Let's assume for now we don't have "merged" info in the session cache directly unless we add it.
-  // But wait, the prompt implies we *should* check it.
+  for (const output of session.outputs) {
+    if (output.pullRequest?.status === 'MERGED') {
+      return true;
+    }
+  }
 
-  // Let's implement a placeholder or best-effort check.
-  // If we can't check, we default to updating.
   return false;
 }
 
@@ -174,6 +164,9 @@ export async function syncStaleSessions(apiKey: string) {
         break;
 
       case 'COMPLETED':
+        if (isPrMerged(session)) {
+          break;
+        }
         // If completed:
         // If PR merged -> No update. (We need to know if PR is merged. For now, we'll assume we update every 30 mins if we don't know).
         // If no PR -> Update every 30 mins.
@@ -186,7 +179,7 @@ export async function syncStaleSessions(apiKey: string) {
 
       default:
         // Default fall back
-        if (age > settings.sessionCacheCompletedNoPrInterval * 1000) {
+        if (age > settings.sessionCachePendingApprovalInterval * 1000) {
             shouldUpdate = true;
         }
         break;

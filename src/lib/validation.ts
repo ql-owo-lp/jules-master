@@ -22,5 +22,7 @@ export const settingsSchema = z.object({
   sessionCacheMaxAgeDays: z.number(),
   autoDeleteStaleBranches: z.boolean(),
   autoDeleteStaleBranchesAfterDays: z.number(),
-  historyPromptsCount: z.number(),
+  historyPromptsCount: z.number().min(0, {
+    message: "History prompts count must be a non-negative number.",
+  }),
 });

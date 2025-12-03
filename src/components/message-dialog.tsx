@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, ReactElement, useEffect } from "react";
+import React, { useState, ReactElement, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -76,6 +76,13 @@ export function MessageDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, storageKey, setMessage]);
 
+    const handleOpenChange = (isOpen: boolean) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+            setMessage("");
+        }
+    };
+
     const handleSend = () => {
         if (!message.trim()) return;
         if (debugMode) {
@@ -83,7 +90,6 @@ export function MessageDialog({
         }
         onSendMessage(message);
         setOpen(false);
-        setMessage("");
     };
 
     const handleReset = () => {
@@ -101,7 +107,7 @@ export function MessageDialog({
     );
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             {tooltip ? (
                 <Tooltip>
                     <TooltipTrigger asChild>
