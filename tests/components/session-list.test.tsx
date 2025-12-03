@@ -210,4 +210,52 @@ describe('SessionList', () => {
 
     expect(screen.getByText('Uncategorized Sessions')).not.toBeNull();
   });
+
+  it('should display "No sessions for this job" when a job has no sessions', async () => {
+    render(
+      <SessionList
+        sessions={[]}
+        jobs={[
+          {
+            id: 'job-1',
+            name: 'Test Job',
+            status: 'COMPLETED',
+            sessionIds: [],
+            sessionCount: 0,
+            repo: 'test-repo',
+            branch: 'test-branch',
+            createdAt: new Date().toISOString(),
+          },
+        ]}
+        unknownSessions={[]}
+        quickReplies={[]}
+        lastUpdatedAt={null}
+        onRefresh={() => {}}
+        isRefreshing={false}
+        isActionPending={false}
+        onApprovePlan={() => {}}
+        onSendMessage={() => {}}
+        onBulkSendMessage={() => {}}
+        countdown={0}
+        pollInterval={0}
+        jobIdParam={null}
+        statusFilter="all"
+        titleTruncateLength={50}
+        jobPage={1}
+        totalJobPages={1}
+        onJobPageChange={() => {}}
+      >
+        <div />
+      </SessionList>
+    );
+
+    const accordionTrigger = screen.getByText('Test Job');
+    act(() => {
+      accordionTrigger.click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('No sessions for this job')).not.toBeNull();
+    });
+  });
 });

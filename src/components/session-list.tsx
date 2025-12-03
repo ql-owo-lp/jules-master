@@ -637,7 +637,7 @@ export function SessionList({
                             )}
                           </>
                         ) : (
-                          <p className="p-4 text-sm text-muted-foreground text-center">No sessions match the current filter.</p>
+                          <p className="p-4 text-sm text-muted-foreground text-center">{job.sessionIds.length === 0 ? "No sessions for this job" : "No sessions match the current filter."}</p>
                         )}
                       </AccordionContent>
                     </AccordionItem>
