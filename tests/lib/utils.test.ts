@@ -150,4 +150,18 @@ describe('createDynamicJobs', () => {
     expect(job1?.createdAt).toBeDefined();
     expect(jobs[0].createdAt).toBeDefined();
   });
+
+  it('should use the source context from the latest session', () => {
+    const sessions: Session[] = [
+      { id: '1', prompt: '[TOPIC]: # (topic1)\n', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'repo1', githubRepoContext: { startingBranch: 'main' } } },
+      { id: '2', prompt: '[TOPIC]: # (topic1)\n', createTime: '2023-01-02T12:00:00Z', sourceContext: { source: 'repo2', githubRepoContext: { startingBranch: 'develop' } } },
+    ];
+    const { groupedSessions } = groupSessionsByTopic(sessions);
+    const jobs = createDynamicJobs(groupedSessions);
+    expect(jobs.length).toBe(1);
+    const job1 = jobs.find(j => j.name === 'topic1');
+    expect(job1).toBeDefined();
+    expect(job1?.repo).toBe('repo2');
+    expect(job1?.branch).toBe('develop');
+  });
 });
