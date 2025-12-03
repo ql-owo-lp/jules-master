@@ -46,6 +46,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
+    if (Object.keys(body).length === 0) {
+      return NextResponse.json({ error: 'At least one setting must be provided.' }, { status: 400 });
+    }
+
     const validation = settingsSchema.safeParse(body);
 
     if (!validation.success) {
