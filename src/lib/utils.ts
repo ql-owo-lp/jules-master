@@ -33,7 +33,18 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
       const repo = sessions[0].sourceContext?.source || 'unknown';
       const branch = sessions[0].sourceContext?.githubRepoContext?.startingBranch || 'unknown';
       const latestSession = sessions.reduce((latest, current) => {
-         return (new Date(current.createTime || 0) > new Date(latest.createTime || 0)) ? current : latest;
+        const currentDate = new Date(current.createTime || 0);
+        const latestDate = new Date(latest.createTime || 0);
+
+        if (isNaN(currentDate.getTime())) {
+            return latest;
+        }
+
+        if (isNaN(latestDate.getTime())) {
+            return current;
+        }
+
+        return currentDate > latestDate ? current : latest;
       }, sessions[0]);
 
       return {

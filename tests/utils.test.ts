@@ -92,5 +92,18 @@ describe('Utils', () => {
         expect(jobs[0].repo).toBe('unknown');
         expect(jobs[0].branch).toBe('unknown');
       });
+    it('should handle sessions with invalid createTime', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', [
+        { id: '2', createTime: 'invalid-date' },
+        { id: '1', createTime: '2023-01-01T12:00:00Z' },
+      ]);
+
+      const jobs = createDynamicJobs(groupedSessions);
+
+      expect(jobs.length).toBe(1);
+      expect(jobs[0].name).toBe('Test Job 1');
+      expect(jobs[0].createdAt).toBe('2023-01-01T12:00:00Z');
+    });
   });
 });
