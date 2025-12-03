@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useCallback, Suspense, useMemo, useRef } from "react";
+import React, { useState, useEffect, useTransition, useCallback, Suspense, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -83,8 +83,15 @@ function HomePageContent() {
     if (repoFilter !== 'all') {
       j = j.filter(job => job.repo === repoFilter);
     }
+    if (statusFilter !== 'all') {
+      const sessionMap = new Map(sessions.map(s => [s.id, s]));
+      j = j.filter(job => job.sessionIds.some(sessionId => {
+        const session = sessionMap.get(sessionId);
+        return session && session.state === statusFilter;
+      }));
+    }
     return { filteredJobs: j, unknownSessions: remainingUnknown };
-  }, [jobs, sessions, jobFilter, repoFilter]);
+  }, [jobs, sessions, jobFilter, repoFilter, statusFilter]);
 
   const totalJobPages = Math.ceil(filteredJobs.length / jobsPerPage);
   const paginatedJobs = filteredJobs.slice((jobPage - 1) * jobsPerPage, jobPage * jobsPerPage);
