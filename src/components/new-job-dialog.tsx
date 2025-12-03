@@ -71,10 +71,12 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
     }
 
     const handleJobsCreated = (newSessions: Session[], newJob: Job) => {
-        toast({
-            title: "Job submitted!",
-            description: `${newSessions.length} new session(s) have been created.`,
-        });
+        if (!newJob.background) {
+            toast({
+                title: "Job submitted!",
+                description: `${newSessions.length} new session(s) have been created.`,
+            });
+        }
         
         // Update job cache immediately
         setJobs([...jobs, newJob]);
