@@ -6,10 +6,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const data = await request.json();
-    if (data.hasOwnProperty('enabled')) {
-      await toggleCronJob(id, data.enabled);
-      delete data.enabled;
-    }
     await updateCronJob(id, data);
     return NextResponse.json({ success: true });
   } catch (error) {
