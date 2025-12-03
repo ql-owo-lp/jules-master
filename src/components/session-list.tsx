@@ -226,7 +226,7 @@ export function SessionList({
     content: reply.prompt,
   }));
 
-  const renderSessionRows = (sessionsToRender: Session[], isUncategorized: boolean) => (
+  const renderSessionRows = (sessionsToRender: Session[], isUncategorized: boolean, jobId?: string) => (
     <>
     <Table>
       <TableHeader>
@@ -243,7 +243,7 @@ export function SessionList({
       <TableBody>
         {sessionsToRender.map(session => {
           const prUrl = getPullRequestUrl(session);
-          const backPath = isUncategorized ? '' : `?jobId=${jobIdParam}`;
+          const backPath = isUncategorized ? '' : `?jobId=${jobId || jobIdParam}`;
 
           return (
             <TableRow 
@@ -598,7 +598,7 @@ export function SessionList({
                         ) : sessionsForJob.length > 0 ? (
                           <>
                             <div>
-                              {renderSessionRows(paginatedSessions, false)}
+                              {renderSessionRows(paginatedSessions, false, job.id)}
                             </div>
                             {totalPages > 1 && (
                               <div className="flex justify-center items-center gap-2 p-2 border-t">
