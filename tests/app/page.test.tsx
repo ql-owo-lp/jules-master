@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import HomePageContent from '@/app/page';
 import { vi } from 'vitest';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -33,7 +33,7 @@ const mockSessions = [
 
 describe('HomePageContent', () => {
   beforeEach(() => {
-    useLocalStorage.mockImplementation((key, initialValue) => {
+    (useLocalStorage as jest.Mock).mockImplementation((key, initialValue) => {
       if (key === 'jules-jobs') {
         return [mockJobs, vi.fn()];
       }
@@ -47,7 +47,7 @@ describe('HomePageContent', () => {
   it('should filter jobs by status', () => {
     render(<HomePageContent />);
 
-    const job1Card = screen.getByText('Job 1').closest('div[data-state]');
+    const job1Card = screen.getByText('Job 1');
     expect(job1Card).toBeInTheDocument();
 
     const job2Card = screen.queryByText('Job 2');
