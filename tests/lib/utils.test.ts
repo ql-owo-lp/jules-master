@@ -150,4 +150,11 @@ describe('createDynamicJobs', () => {
     expect(job1?.createdAt).toBeDefined();
     expect(jobs[0].createdAt).toBeDefined();
   });
+
+  it('should handle an empty sessions array for a job', () => {
+    const groupedSessions = new Map<string, Session[]>();
+    groupedSessions.set('topic1', []);
+    const jobs = createDynamicJobs(groupedSessions);
+    expect(jobs.length).toBe(0);
+  });
 });

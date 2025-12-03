@@ -29,20 +29,22 @@ export function groupSessionsByTopic(sessions: Session[]): { groupedSessions: Ma
 }
 
 export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[] {
-    return Array.from(groupedSessions.entries()).map(([jobName, sessions]) => {
-      const repo = sessions[0].sourceContext?.source || 'unknown';
-      const branch = sessions[0].sourceContext?.githubRepoContext?.startingBranch || 'unknown';
-      const latestSession = sessions.reduce((latest, current) => {
-         return (new Date(current.createTime || 0) > new Date(latest.createTime || 0)) ? current : latest;
-      }, sessions[0]);
+    return Array.from(groupedSessions.entries())
+      .filter(([, sessions]) => sessions.length > 0)
+      .map(([jobName, sessions]) => {
+        const repo = sessions[0].sourceContext?.source || 'unknown';
+        const branch = sessions[0].sourceContext?.githubRepoContext?.startingBranch || 'unknown';
+        const latestSession = sessions.reduce((latest, current) => {
+           return (new Date(current.createTime || 0) > new Date(latest.createTime || 0)) ? current : latest;
+        }, sessions[0]);
 
-      return {
-        id: `dynamic-${jobName}`,
-        name: jobName,
-        sessionIds: sessions.map(s => s.id),
-        createdAt: latestSession.createTime || new Date().toISOString(),
-        repo: repo,
-        branch: branch,
-      };
-    });
+        return {
+          id: `dynamic-${jobName}`,
+          name: jobName,
+          sessionIds: sessions.map(s => s.id),
+          createdAt: latestSession.createTime || new Date().toISOString(),
+          repo: repo,
+          branch: branch,
+        };
+      });
 }
