@@ -73,6 +73,20 @@ describe('Utils', () => {
       expect(jobs[1].branch).toBe('develop');
     });
 
+    it('should use the latest session for repo and branch information', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', [
+        { id: '1', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+        { id: '2', createTime: '2023-01-01T13:00:00Z', sourceContext: { source: 'test/repo2', githubRepoContext: { startingBranch: 'develop' } } },
+      ]);
+
+      const jobs = createDynamicJobs(groupedSessions);
+
+      expect(jobs.length).toBe(1);
+      expect(jobs[0].repo).toBe('test/repo2');
+      expect(jobs[0].branch).toBe('develop');
+    });
+
     it('should handle empty grouped sessions map', () => {
       const groupedSessions = new Map<string, Session[]>();
       const jobs = createDynamicJobs(groupedSessions);
