@@ -443,10 +443,6 @@ export function SessionList({
                     currentPage * sessionsPerPage
                   );
 
-                  if (statusFilter !== 'all' && sessionsForJob.length === 0) {
-                    return null;
-                  }
-
                   const isJobProcessing = job.status === 'PROCESSING' || job.status === 'PENDING';
                   const createdSessionsCount = jobSessionIds.length;
                   const totalSessionsCount = job.sessionCount || 0;

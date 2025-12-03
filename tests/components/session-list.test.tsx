@@ -210,4 +210,52 @@ describe('SessionList', () => {
 
     expect(screen.getByText('Uncategorized Sessions')).not.toBeNull();
   });
+
+  it('should not hide the job when the status filter is applied and there are no matching sessions', () => {
+    render(
+      <SessionList
+        sessions={[
+          {
+            id: 'session-1',
+            title: 'Test Session',
+            state: 'COMPLETED',
+            createTime: new Date().toISOString(),
+          },
+        ]}
+        jobs={[
+          {
+            id: 'job-1',
+            name: 'Test Job',
+            status: 'COMPLETED',
+            sessionIds: ['session-1'],
+            sessionCount: 1,
+            repo: 'test-repo',
+            branch: 'test-branch',
+            createdAt: new Date().toISOString(),
+          },
+        ]}
+        unknownSessions={[]}
+        quickReplies={[]}
+        lastUpdatedAt={null}
+        onRefresh={() => {}}
+        isRefreshing={false}
+        isActionPending={false}
+        onApprovePlan={() => {}}
+        onSendMessage={() => {}}
+        onBulkSendMessage={() => {}}
+        countdown={0}
+        pollInterval={0}
+        jobIdParam={null}
+        statusFilter="AWAITING_PLAN_APPROVAL"
+        titleTruncateLength={50}
+        jobPage={1}
+        totalJobPages={1}
+        onJobPageChange={() => {}}
+      >
+        <div />
+      </SessionList>
+    );
+
+    expect(screen.queryByText('Test Job')).not.toBeNull();
+  });
 });
