@@ -46,10 +46,12 @@ function HomePageContent() {
   const router = useRouter();
   const jobIdParam = searchParams.get("jobId");
   const jobPageParam = searchParams.get("jobPage");
+  const repoParam = searchParams.get("repo");
+  const statusParam = searchParams.get("status");
 
   const [jobFilter, setJobFilter] = useState<string | null>(jobIdParam);
-  const [repoFilter, setRepoFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [repoFilter, setRepoFilter] = useState<string>(repoParam || 'all');
+  const [statusFilter, setStatusFilter] = useState<string>(statusParam || 'all');
   
   const [jobPage, setJobPage] = useState(jobPageParam ? parseInt(jobPageParam, 10) : 1);
 
@@ -378,10 +380,19 @@ function HomePageContent() {
   const onRepoFilterChange = (value: string) => {
     setRepoFilter(value);
     setJobPage(1);
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('repo', value);
+    newParams.delete('jobPage');
+    router.push(`?${newParams.toString()}`);
   };
+
   const onStatusFilterChange = (value: string) => {
     setStatusFilter(value);
     setJobPage(1);
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('status', value);
+    newParams.delete('jobPage');
+    router.push(`?${newParams.toString()}`);
   }
   
   const repoOptions = useMemo(() => [
