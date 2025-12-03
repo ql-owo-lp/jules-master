@@ -38,11 +38,16 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
         const latestTime = new Date(latest.createTime || 0);
         const currentTime = new Date(current.createTime || 0);
 
-        if (isNaN(latestTime.getTime())) return current;
         if (isNaN(currentTime.getTime())) return latest;
+        if (isNaN(latestTime.getTime())) return current;
 
         return currentTime > latestTime ? current : latest;
       }, sessions[0]);
+
+      const createdAtTime = new Date(latestSession.createTime || 0);
+      const createdAt = isNaN(createdAtTime.getTime())
+        ? new Date().toISOString()
+        : latestSession.createTime!;
 
       // Combine timestamp and a random string to ensure the ID is unique
       const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
@@ -50,7 +55,7 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
         id: `dynamic-${jobName}-${uniqueSuffix}`,
         name: jobName,
         sessionIds: sessions.map(s => s.id),
-        createdAt: latestSession.createTime || new Date().toISOString(),
+        createdAt: createdAt,
         repo: repo,
         branch: branch,
       };

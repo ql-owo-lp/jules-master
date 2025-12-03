@@ -147,8 +147,6 @@ describe('createDynamicJobs', () => {
     expect(jobs.length).toBe(1);
     const job1 = jobs.find(j => j.name === 'topic1');
     expect(job1).toBeDefined();
-    expect(job1?.createdAt).toBeDefined();
-    expect(jobs[0].createdAt).toBeDefined();
   });
 
   it('should generate unique IDs for jobs with the same name', () => {

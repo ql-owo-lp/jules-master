@@ -98,9 +98,10 @@ describe('Utils', () => {
         const jobs = createDynamicJobs(groupedSessions);
 
         expect(jobs.length).toBe(1);
-        expect(jobs[0].name).toBe('Test Job 1');
-        expect(jobs[0].repo).toBe('unknown');
-        expect(jobs[0].branch).toBe('unknown');
+        const job1 = jobs.find(j => j.name === 'Test Job 1');
+        expect(job1).toBeDefined();
+        expect(job1?.repo).toBe('unknown');
+        expect(job1?.branch).toBe('unknown');
       });
     it('should handle sessions with invalid createTime', () => {
       const groupedSessions = new Map<string, Session[]>();
@@ -110,6 +111,16 @@ describe('Utils', () => {
       ]);
       const jobs = createDynamicJobs(groupedSessions);
       expect(jobs[0].createdAt).toBe('2023-01-01T12:00:00Z');
+    });
+
+    it('should handle all sessions having an invalid createTime', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', [
+        { id: '1', createTime: 'invalid-date' },
+        { id: '2', createTime: 'another-invalid-date' },
+      ]);
+      const jobs = createDynamicJobs(groupedSessions);
+      expect(!isNaN(new Date(jobs[0].createdAt).getTime())).toBe(true);
     });
   });
 });
