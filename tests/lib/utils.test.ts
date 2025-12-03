@@ -170,4 +170,16 @@ describe('createDynamicJobs', () => {
     const jobs = createDynamicJobs(groupedSessions);
     expect(jobs).toEqual([]);
   });
+
+  it('should correctly slugify job names with special characters', () => {
+    const sessions: Session[] = [
+      { id: '1', prompt: '[TOPIC]: # (a / b & c)\n' },
+    ];
+    const { groupedSessions } = groupSessionsByTopic(sessions);
+    const jobs = createDynamicJobs(groupedSessions);
+    expect(jobs.length).toBe(1);
+    const job1 = jobs[0];
+    expect(job1.name).toBe('a / b & c');
+    expect(job1.id.startsWith('dynamic-a-b-c-')).toBe(true);
+  });
 });
