@@ -9,8 +9,8 @@ test.describe('Navigation', () => {
     await expect(page.getByRole('link', { name: 'Jules Master' }).first()).toBeVisible();
 
     // Verify "New Job" button
-    await expect(page.getByRole('button', { name: 'New Job' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'New Job' })).toBeEnabled();
+    await expect(page.locator('header').getByRole('button', { name: 'New Job' })).toBeVisible();
+    await expect(page.locator('header').getByRole('button', { name: 'New Job' })).toBeEnabled();
 
     // Verify "Jobs & Sessions" link
     const jobListLink = page.getByRole('link', { name: 'Jobs & Sessions' });

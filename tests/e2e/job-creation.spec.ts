@@ -12,7 +12,7 @@ test.describe('Job Creation', () => {
   test('should open new job dialog and fill form with mock data', async ({ page }) => {
     await page.goto('/');
 
-    await page.getByRole('button', { name: 'New Job' }).click();
+    await page.locator('header').getByRole('button', { name: 'New Job' }).click();
 
     await expect(page.getByRole('heading', { name: 'Create a New Job' })).toBeVisible();
 
@@ -68,5 +68,15 @@ test.describe('Job Creation', () => {
      await page.goto('/');
      const newJobLink = page.locator('a[href="/jobs/new"]');
      await expect(newJobLink).toBeVisible();
+  });
+
+  test('should create a new job and navigate to its page', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('header').getByRole('button', { name: 'New Job' }).click();
+    await page.getByLabel('Job Name').fill('My New Test Job');
+    await page.getByRole('textbox', { name: 'Session Prompts' }).fill('Implement a new feature');
+    await page.getByRole('button', { name: 'Create Job' }).click();
+    await page.waitForURL(url => url.search.includes('jobId='));
+    await expect(page.getByText('My New Test Job')).toBeVisible();
   });
 });

@@ -2,8 +2,10 @@
 "use client";
 
 import { SettingsSheet } from "./settings-sheet";
-import { Bot, PanelLeft } from "lucide-react";
+import { Bot, PanelLeft, Plus } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { NewJobDialog } from "@/components/new-job-dialog";
 import { SidebarTrigger, useSidebar } from "./ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -37,7 +39,14 @@ export function Header() {
                 </Link>
              </div>
           </div>
-          <SettingsSheet />
+          <div className="flex items-center gap-2">
+            <NewJobDialog>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> New Job
+              </Button>
+            </NewJobDialog>
+            <SettingsSheet />
+          </div>
         </div>
       </div>
     </header>
