@@ -147,7 +147,7 @@ export function Combobox({
                     {group.options.map((option) => (
                         <CommandItem
                         key={option.value}
-                        value={`${option.label} ${option.content || ''}`}
+                        value={option.value}
                         onSelect={() => {
                             onValueChange(option.value === selectedValue ? null : option.value)
                             setOpen(false)
