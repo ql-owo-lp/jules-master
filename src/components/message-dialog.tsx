@@ -78,9 +78,6 @@ export function MessageDialog({
 
     const handleOpenChange = (isOpen: boolean) => {
         setOpen(isOpen);
-        if (!isOpen) {
-            setMessage("");
-        }
     };
 
     const handleSend = () => {

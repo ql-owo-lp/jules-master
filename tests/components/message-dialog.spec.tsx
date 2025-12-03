@@ -18,7 +18,7 @@ vi.mock('@/hooks/use-local-storage', () => ({
 describe('MessageDialog', () => {
   const trigger = <Button>Open Dialog</Button>;
 
-  it('clears the message when the dialog is closed and reopened', () => {
+  it('persists the message when the dialog is closed and reopened', () => {
     const handleSendMessage = vi.fn();
     render(
       <MessageDialog
@@ -45,7 +45,7 @@ describe('MessageDialog', () => {
     // Reopen the dialog
     fireEvent.click(screen.getByText('Open Dialog'));
 
-    // Check if the message is cleared
-    expect(textarea.value).toBe('');
+    // Check if the message is persisted
+    expect(textarea.value).toBe('Hello, World!');
   });
 });
