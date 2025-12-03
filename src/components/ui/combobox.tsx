@@ -148,6 +148,7 @@ export function Combobox({
                         <CommandItem
                         key={option.value}
                         value={option.value}
+                        data-testid={`combobox-option-${option.value}`}
                         onSelect={() => {
                             onValueChange(option.value === selectedValue ? null : option.value)
                             setOpen(false)

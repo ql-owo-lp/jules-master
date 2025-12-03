@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -364,7 +364,7 @@ export function JobCreationForm({
       const selectedHistory = historyPrompts.find(p => p.id === promptId);
       if (selectedHistory) {
         setPrompt(selectedHistory.prompt);
-        // We keep the current job name as is, or the user can manually update it.
+        setJobName(""); // Clear the job name
       }
     }
   };
