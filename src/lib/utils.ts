@@ -15,7 +15,7 @@ export function groupSessionsByTopic(sessions: Session[]): { groupedSessions: Ma
     const firstLine = session.prompt?.split('\n')[0] || '';
     const match = firstLine.match(/^\[TOPIC\]: # \((.+)\)$/);
     if (match) {
-      const jobName = match[1];
+      const jobName = match[1].trim();
       if (!groupedSessions.has(jobName)) {
         groupedSessions.set(jobName, []);
       }
