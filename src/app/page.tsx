@@ -20,8 +20,10 @@ import { Combobox } from "@/components/ui/combobox";
 import { groupSessionsByTopic, createDynamicJobs } from "@/lib/utils";
 import { useEnv } from "@/components/env-provider";
 import { FloatingProgressBar } from "@/components/floating-progress-bar";
+import { CreateJobForm } from "@/components/create-job-form";
 
 function HomePageContent() {
+  const [showCreateJobForm, setShowCreateJobForm] = useState(false);
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
@@ -430,6 +432,11 @@ function HomePageContent() {
   const hasJulesApiKey = !!(julesApiKey || apiKey);
   const hasGithubToken = !!(envGithubToken || githubToken);
 
+  const handleJobCreated = () => {
+    setShowCreateJobForm(false);
+    fetchAllData();
+  };
+
   return (
     <div className="flex flex-col flex-1 bg-background">
       <FloatingProgressBar
@@ -440,6 +447,13 @@ function HomePageContent() {
       />
       <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
         <div className="space-y-8 px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-semibold">Jobs</h1>
+            <Button onClick={() => setShowCreateJobForm(!showCreateJobForm)}>
+              {showCreateJobForm ? "Cancel" : "Create New Job"}
+            </Button>
+          </div>
+          {showCreateJobForm && <CreateJobForm onJobCreated={handleJobCreated} />}
           {!hasJulesApiKey && (
             <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
               <Terminal className="h-4 w-4 text-amber-600 dark:text-amber-400" />

@@ -1,4 +1,5 @@
 
+import React from 'react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
