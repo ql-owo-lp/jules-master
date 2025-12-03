@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { NewJobDialog } from "@/components/new-job-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
@@ -36,7 +35,7 @@ export default function NewJobPage() {
                   </AlertDescription>
                 </Alert>
               )}
-               <NewJobDialog isPage />
+               {apiKey && <NewJobDialog isPage />}
             </>
           )}
         </div>
