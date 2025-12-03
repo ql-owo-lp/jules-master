@@ -21,7 +21,8 @@ import {
 import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { formatDistanceToNow } from "date-fns";
-import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2, Bot, MessageSquareReply, Clock } from "lucide-react";
+import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2, Bot, MessageSquareReply, Clock, Plus } from "lucide-react";
+import { NewJobDialog } from "./new-job-dialog";
 import { Button } from "./ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -389,19 +390,27 @@ export function SessionList({
                   )}
               </div>
             </div>
-            {lastUpdatedAt && (
-              <div className="text-sm text-muted-foreground text-right flex-shrink-0">
-                <div>
-                  Last updated:{" "}
-                  {new Date(lastUpdatedAt).toLocaleTimeString()}
-                </div>
-                {pollInterval > 0 && (
+            <div className="flex items-start gap-4">
+              <NewJobDialog>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Job
+                </Button>
+              </NewJobDialog>
+              {lastUpdatedAt && (
+                <div className="text-sm text-muted-foreground text-right flex-shrink-0">
                   <div>
-                    Next poll in: {countdown}s
+                    Last updated:{" "}
+                    {new Date(lastUpdatedAt).toLocaleTimeString()}
                   </div>
-                )}
-              </div>
-            )}
+                  {pollInterval > 0 && (
+                    <div>
+                      Next poll in: {countdown}s
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {children}

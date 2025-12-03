@@ -34,6 +34,19 @@ export async function createSession(
     delete body.autoRetryEnabled;
   }
 
+  // Check for mock flag
+  if (process.env.MOCK_API === 'true') {
+    const mockSession: Session = {
+        name: `sessions/mock-${crypto.randomUUID()}`,
+        id: `session-${crypto.randomUUID()}`,
+        title: sessionData.title || 'Mock Created Session',
+        state: 'WORKING',
+        createTime: new Date().toISOString(),
+        sourceContext: sessionData.sourceContext,
+        prompt: sessionData.prompt,
+    };
+    return mockSession;
+  }
 
   try {
     const response = await fetchWithRetry(

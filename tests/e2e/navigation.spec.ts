@@ -8,9 +8,10 @@ test.describe('Navigation', () => {
     // Verify Home link (Logo) - use first() as it appears in Sidebar and Header
     await expect(page.getByRole('link', { name: 'Jules Master' }).first()).toBeVisible();
 
-    // Verify "New Job" button
-    await expect(page.locator('header').getByRole('button', { name: 'New Job' })).toBeVisible();
-    await expect(page.locator('header').getByRole('button', { name: 'New Job' })).toBeEnabled();
+    // Verify "New Job" button in the main content area (not sidebar)
+    const newJobButton = page.locator('main').getByRole('button', { name: 'New Job' });
+    await expect(newJobButton).toBeVisible();
+    await expect(newJobButton).toBeEnabled();
 
     // Verify "Jobs & Sessions" link
     const jobListLink = page.getByRole('link', { name: 'Jobs & Sessions' });
