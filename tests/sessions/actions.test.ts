@@ -80,6 +80,14 @@ describe('Session Actions', () => {
 
       expect(sessionService.syncStaleSessions).toHaveBeenCalledWith('test-key');
     });
+
+    it('should return an error if no API key is provided', async () => {
+      process.env.JULES_API_KEY = '';
+      const result = await listSessions();
+      expect(result.error).toBeDefined();
+      expect(result.error).toContain('Jules API key is not configured');
+      expect(result.sessions).toEqual([]);
+    });
   });
 
   describe('fetchSessionsPage', () => {

@@ -38,6 +38,7 @@ function HomePageContent() {
   const [isFetching, startFetching] = useTransition();
   const [isActionPending, startActionTransition] = useTransition();
   const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(sessionListPollInterval);
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
   const [jobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
@@ -122,13 +123,13 @@ function HomePageContent() {
         ]);
 
         if (fetchedSessionsResult.error) {
-           toast({
-             variant: "destructive",
-             title: "Error fetching sessions",
-             description: fetchedSessionsResult.error
-           });
+          setError(fetchedSessionsResult.error);
+          // Clear local storage to avoid showing stale data
+          setSessions([]);
+          setJobs([]);
+        } else {
+          setError(null);
         }
-
         const validSessions = (fetchedSessionsResult.sessions || []).filter(s => s);
         setSessions(validSessions);
         setJobs(fetchedJobs);
@@ -440,6 +441,13 @@ function HomePageContent() {
       />
       <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8">
         <div className="space-y-8 px-4 sm:px-6 lg:px-8">
+          {error && (
+            <Alert variant="destructive">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           {!hasJulesApiKey && (
             <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
               <Terminal className="h-4 w-4 text-amber-600 dark:text-amber-400" />

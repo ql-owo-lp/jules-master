@@ -85,8 +85,7 @@ export async function listSessions(
 
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
-    console.error("Jules API key is not configured.");
-    return { sessions: [] };
+    return { sessions: [], error: "Jules API key is not configured. Please set it in the settings." };
   }
 
   try {
