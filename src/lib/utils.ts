@@ -28,6 +28,18 @@ export function groupSessionsByTopic(sessions: Session[]): { groupedSessions: Ma
   return { groupedSessions, remainingUnknown };
 }
 
+// A simple hash function to generate a deterministic ID from a string.
+// Not for cryptographic use.
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
 export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[] {
   return Array.from(groupedSessions.entries())
     .filter(([, sessions]) => sessions.length > 0)
@@ -44,10 +56,15 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
         return currentTime > latestTime ? current : latest;
       }, sessions[0]);
 
-      // Combine timestamp and a random string to ensure the ID is unique
-      const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+      // Generate a deterministic ID based on the job name and session IDs
+      const sessionIds = sessions.map(s => s.id).sort();
+      const idSource = `${jobName}:${sessionIds.join(',')}`;
+      // Using a simple hash function for deterministic ID generation.
+      const hashedId = simpleHash(idSource);
+
       return {
-        id: `dynamic-${jobName}-${uniqueSuffix}`,
+        // Using jobName in the ID for readability and to avoid collisions.
+        id: `dynamic-${jobName.replace(/\s+/g, '-')}-${hashedId}`,
         name: jobName,
         sessionIds: sessions.map(s => s.id),
         createdAt: latestSession.createTime || new Date().toISOString(),

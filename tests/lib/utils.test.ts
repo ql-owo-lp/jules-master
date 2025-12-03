@@ -151,7 +151,7 @@ describe('createDynamicJobs', () => {
     expect(jobs[0].createdAt).toBeDefined();
   });
 
-  it('should generate unique IDs for jobs with the same name', () => {
+  it('should generate deterministic IDs for jobs', () => {
     const sessions: Session[] = [
       { id: '1', prompt: '[TOPIC]: # (topic-A)\n' },
       { id: '2', prompt: '[TOPIC]: # (topic-B)\n' },
@@ -161,7 +161,7 @@ describe('createDynamicJobs', () => {
     const jobs2 = createDynamicJobs(groupedSessions);
     const jobA1 = jobs1.find(j => j.name === 'topic-A');
     const jobA2 = jobs2.find(j => j.name === 'topic-A');
-    expect(jobA1?.id).not.toBe(jobA2?.id);
+    expect(jobA1?.id).toBe(jobA2?.id);
   });
 
   it('should handle empty session groups gracefully', () => {
