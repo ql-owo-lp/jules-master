@@ -1,0 +1,23 @@
+
+import { z } from 'zod';
+
+export const settingsSchema = z.object({
+  idlePollInterval: z.number(),
+  activePollInterval: z.number(),
+  titleTruncateLength: z.number(),
+  lineClamp: z.number(),
+  sessionItemsPerPage: z.number(),
+  jobsPerPage: z.number(),
+  defaultSessionCount: z.number(),
+  prStatusPollInterval: z.number(),
+  theme: z.string(),
+  autoApprovalInterval: z.number(),
+  autoRetryEnabled: z.boolean(),
+  autoRetryMessage: z.string(),
+  autoContinueEnabled: z.boolean(),
+  autoContinueMessage: z.string(),
+  sessionCacheInProgressInterval: z.number(),
+  sessionCacheCompletedNoPrInterval: z.number(),
+  sessionCachePendingApprovalInterval: z.number(),
+  sessionCacheMaxAgeDays: z.number(),
+});

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { settingsSchema } from '@/lib/validation';
 
 export async function GET() {
   try {
@@ -42,31 +43,16 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const validation = settingsSchema.safeParse(body);
 
-    // Validate or sanitize input if necessary
-    // For now, we assume the body matches the schema
+    if (!validation.success) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+    }
 
     const newSettings = {
-        id: 1, // Ensure we are updating the singleton row
-        idlePollInterval: body.idlePollInterval,
-        activePollInterval: body.activePollInterval,
-        titleTruncateLength: body.titleTruncateLength,
-        lineClamp: body.lineClamp,
-        sessionItemsPerPage: body.sessionItemsPerPage,
-        jobsPerPage: body.jobsPerPage,
-        defaultSessionCount: body.defaultSessionCount,
-        prStatusPollInterval: body.prStatusPollInterval,
-        theme: body.theme,
-        autoApprovalInterval: body.autoApprovalInterval,
-        autoRetryEnabled: body.autoRetryEnabled,
-        autoRetryMessage: body.autoRetryMessage,
-        autoContinueEnabled: body.autoContinueEnabled,
-        autoContinueMessage: body.autoContinueMessage,
-        sessionCacheInProgressInterval: body.sessionCacheInProgressInterval,
-        sessionCacheCompletedNoPrInterval: body.sessionCacheCompletedNoPrInterval,
-        sessionCachePendingApprovalInterval: body.sessionCachePendingApprovalInterval,
-        sessionCacheMaxAgeDays: body.sessionCacheMaxAgeDays,
-    }
+      id: 1, // Ensure we are updating the singleton row
+      ...validation.data,
+    };
 
     const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
 
