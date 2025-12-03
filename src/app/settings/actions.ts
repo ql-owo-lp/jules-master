@@ -10,7 +10,7 @@ export async function getCronJobs(): Promise<CronJob[]> {
     return jobs as CronJob[];
   } catch (error) {
     console.error("Failed to fetch cron jobs:", error);
-    return [];
+    throw error;
   }
 }
 
