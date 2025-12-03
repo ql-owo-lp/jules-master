@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Button } from "./ui/button";
 import { GitPullRequest, GitMerge, CheckCircle, XCircle, Clock, AlertTriangle, GitPullRequestClosed, CircleDotDashed } from "lucide-react";

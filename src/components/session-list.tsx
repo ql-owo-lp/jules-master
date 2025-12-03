@@ -153,11 +153,17 @@ export function SessionList({
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
-    const jobSessionIds = job.sessionIds;
+    const sessionsForJob = job.sessionIds
+      .map(id => sessionMap.get(id))
+      .filter((s): s is Session => !!s)
+      .filter(s => statusFilter === 'all' || s.state === statusFilter);
+
+    const visibleSessionIds = sessionsForJob.map(s => s.id);
+
     if (checked) {
-      setSelectedSessionIds(ids => [...new Set([...ids, ...jobSessionIds])]);
+      setSelectedSessionIds(ids => [...new Set([...ids, ...visibleSessionIds])]);
     } else {
-      setSelectedSessionIds(ids => ids.filter(id => !jobSessionIds.includes(id)));
+      setSelectedSessionIds(ids => ids.filter(id => !visibleSessionIds.includes(id)));
     }
   };
 
@@ -432,8 +438,9 @@ export function SessionList({
                     .filter(s => statusFilter === 'all' || s.state === statusFilter);
 
                   const jobSessionIds = job.sessionIds;
-                  const isAllSelected = jobSessionIds.length > 0 && jobSessionIds.every(id => selectedSessionIds.includes(id));
-                  const isSomeSelected = jobSessionIds.some(id => selectedSessionIds.includes(id));
+                  const visibleSessionIds = sessionsForJob.map(s => s.id);
+                  const isAllSelected = visibleSessionIds.length > 0 && visibleSessionIds.every(id => selectedSessionIds.includes(id));
+                  const isSomeSelected = visibleSessionIds.some(id => selectedSessionIds.includes(id));
                   const selectAllState = isAllSelected ? true : (isSomeSelected ? 'indeterminate' : false);
                   
                   const currentPage = sessionPages[job.id] || 1;

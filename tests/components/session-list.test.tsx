@@ -258,4 +258,80 @@ describe('SessionList', () => {
 
     expect(screen.queryByText('Test Job')).not.toBeNull();
   });
+
+  it('should correctly handle "select all" with a status filter', () => {
+    const sessions = [
+      {
+        id: 'session-1',
+        title: 'Session 1',
+        state: 'COMPLETED',
+        createTime: new Date().toISOString(),
+      },
+      {
+        id: 'session-2',
+        title: 'Session 2',
+        state: 'AWAITING_PLAN_APPROVAL',
+        createTime: new Date().toISOString(),
+      },
+    ];
+
+    const jobs = [
+      {
+        id: 'job-1',
+        name: 'Test Job',
+        status: 'COMPLETED',
+        sessionIds: ['session-1', 'session-2'],
+        sessionCount: 2,
+        repo: 'test-repo',
+        branch: 'test-branch',
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    render(
+      <SessionList
+        sessions={sessions}
+        jobs={jobs}
+        unknownSessions={[]}
+        quickReplies={[]}
+        lastUpdatedAt={null}
+        onRefresh={() => {}}
+        isRefreshing={false}
+        isActionPending={false}
+        onApprovePlan={() => {}}
+        onSendMessage={() => {}}
+        onBulkSendMessage={() => {}}
+        countdown={0}
+        pollInterval={0}
+        jobIdParam={null}
+        statusFilter="COMPLETED"
+        titleTruncateLength={50}
+        jobPage={1}
+        totalJobPages={1}
+        onJobPageChange={() => {}}
+      >
+        <div />
+      </SessionList>
+    );
+
+    const accordionTrigger = screen.getByText('Test Job');
+    act(() => {
+      accordionTrigger.click();
+    });
+
+    waitFor(() => {
+      const selectAllCheckbox = screen.getByLabelText(
+        'Select all sessions for job Test Job'
+      );
+      act(() => {
+        selectAllCheckbox.click();
+      });
+
+      const session1Checkbox = screen.getByLabelText('Select session session-1');
+      const session2Checkbox = screen.queryByLabelText('Select session session-2');
+
+      expect(session1Checkbox).toBeChecked();
+      expect(session2Checkbox).toBeNull();
+    });
+  });
 });
