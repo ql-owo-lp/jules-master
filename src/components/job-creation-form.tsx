@@ -515,7 +515,10 @@ export function JobCreationForm({
               onChange={(e) => {
                   setPrompt(e.target.value);
                   // If user types, we deselect any suggestion because it might differ now
-                  if (selectedPromptId) setSelectedPromptId(null);
+                  if (selectedPromptId) {
+                    setSelectedPromptId(null);
+                    setJobName("");
+                  }
               }}
               disabled={isPending || disabled}
               aria-label="Session Prompts"
