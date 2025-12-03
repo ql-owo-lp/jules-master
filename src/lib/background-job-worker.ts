@@ -1,7 +1,7 @@
 
 import { db } from './db';
 import { jobs, sessions, settings } from './db/schema';
-import { eq, and, isNotNull } from 'drizzle-orm';
+import { eq, and, isNotNull, sql } from 'drizzle-orm';
 import { listActivities, sendMessage } from '@/app/sessions/[id]/actions';
 import { createSession } from '@/app/sessions/new/actions';
 import { differenceInHours } from 'date-fns';
@@ -44,13 +44,15 @@ export async function runBackgroundJobCheck(options = { schedule: true }) {
 
 async function processPendingJobs(apiKey: string) {
     console.log("BackgroundJobWorker: Checking for pending jobs...");
-    const pendingJobs = await db.select().from(jobs).where(eq(jobs.status, 'PENDING'));
+    const pendingJobs = await db.select().from(jobs).where(
+        sql`${jobs.status} = 'PENDING' OR ${jobs.status} = 'PROCESSING'`
+    );
 
     if (pendingJobs.length === 0) {
         return;
     }
 
-    console.log(`BackgroundJobWorker: Found ${pendingJobs.length} pending jobs.`);
+    console.log(`BackgroundJobWorker: Found ${pendingJobs.length} pending/processing jobs.`);
 
     // We need to fetch sources to resolve repo/branch to Source object if needed.
     // However, createSession needs 'Source' object which contains ID and name.
@@ -84,13 +86,23 @@ async function processPendingJobs(apiKey: string) {
                 continue;
             }
 
-            await db.update(jobs).set({ status: 'PROCESSING' }).where(eq(jobs.id, job.id));
+            if (job.status !== 'PROCESSING') {
+                await db.update(jobs).set({ status: 'PROCESSING' }).where(eq(jobs.id, job.id));
+            }
 
-            const createdSessionIds: string[] = [];
+            // Get existing session IDs (might be partially filled if resumed)
+            // The job object from `db.select` parses JSON automatically for sessionIds because of the schema definition?
+            // Actually, in `drizzle-orm/sqlite-core`, `mode: 'json'` handles parsing.
+            // Let's ensure we have an array.
+            const existingSessionIds: string[] = job.sessionIds || [];
+            const createdSessionIds: string[] = [...existingSessionIds];
             const sessionCount = job.sessionCount;
-            let successCount = 0;
+            let successCount = existingSessionIds.length;
 
-            for (let i = 0; i < sessionCount; i++) {
+            console.log(`BackgroundJobWorker: Job ${job.id} has ${successCount}/${sessionCount} sessions created.`);
+
+            // Resume creation from where we left off
+            for (let i = successCount; i < sessionCount; i++) {
                 let retries = 3;
                 let newSession: Session | null = null;
 
@@ -120,6 +132,12 @@ async function processPendingJobs(apiKey: string) {
                     successCount++;
                     // Upsert session to DB immediately so it's tracked
                     await upsertSession(newSession);
+
+                    // Persist progress immediately
+                    await db.update(jobs).set({
+                        sessionIds: createdSessionIds // Drizzle handles JSON stringify
+                    }).where(eq(jobs.id, job.id));
+
                 } else {
                      console.error(`BackgroundJobWorker: Failed to create session ${i+1} for job ${job.id} after retries.`);
                 }
@@ -128,22 +146,21 @@ async function processPendingJobs(apiKey: string) {
                 await sleep(500);
             }
 
-            // Update Job
+            // Update Job final status
             const finalStatus = successCount === sessionCount ? 'COMPLETED' : (successCount > 0 ? 'PARTIAL_SUCCESS' : 'FAILED');
-
-            // We need to merge existing sessionIds if any (though for new jobs it should be empty)
-            // But let's follow the schema which stores JSON string of array.
-            const sessionIdsJson = JSON.stringify(createdSessionIds);
 
             await db.update(jobs).set({
                 status: finalStatus,
-                sessionIds: sessionIdsJson
+                sessionIds: createdSessionIds
             }).where(eq(jobs.id, job.id));
 
             console.log(`BackgroundJobWorker: Job ${job.id} processed. Status: ${finalStatus}. Created ${successCount}/${sessionCount} sessions.`);
 
         } catch (e) {
             console.error(`BackgroundJobWorker: Error processing job ${job.id}`, e);
+             // If we fail here, we leave it as PROCESSING or whatever it was, so it can be picked up again?
+             // Or we mark it as failed if it's a fatal error?
+             // For now, let's mark as FAILED to avoid infinite loops on bad data.
              await db.update(jobs).set({ status: 'FAILED' }).where(eq(jobs.id, job.id));
         }
     }

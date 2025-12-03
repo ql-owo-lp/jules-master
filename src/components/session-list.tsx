@@ -446,6 +446,11 @@ export function SessionList({
                   if (statusFilter !== 'all' && sessionsForJob.length === 0) {
                     return null;
                   }
+
+                  const isJobProcessing = job.status === 'PROCESSING' || job.status === 'PENDING';
+                  const createdSessionsCount = jobSessionIds.length;
+                  const totalSessionsCount = job.sessionCount || 0;
+                  const creationProgress = totalSessionsCount > 0 ? (createdSessionsCount / totalSessionsCount) * 100 : 0;
                   
                   return (
                     <AccordionItem value={job.id} key={job.id} className="border rounded-lg bg-card">
@@ -571,6 +576,20 @@ export function SessionList({
                         </div>
                        </div>
                       <AccordionContent className="p-0">
+                        {isJobProcessing && totalSessionsCount > 0 && (
+                            <div className="px-4 py-3 bg-muted/20 border-b">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span className="flex items-center gap-1">
+                                            {job.status === 'PENDING' ? 'Pending Start...' : 'Creating Sessions...'}
+                                            {job.status === 'PROCESSING' && <Loader2 className="h-3 w-3 animate-spin" />}
+                                        </span>
+                                        <span>{createdSessionsCount} / {totalSessionsCount}</span>
+                                    </div>
+                                    <Progress value={creationProgress} className="h-1.5" />
+                                </div>
+                            </div>
+                        )}
                         {isRefreshing && sessionsForJob.length === 0 ? (
                           <div className="p-4 space-y-2">
                             <Skeleton className="h-10 w-full" />
@@ -578,7 +597,7 @@ export function SessionList({
                           </div>
                         ) : sessionsForJob.length > 0 ? (
                           <>
-                            <div className="border-t">
+                            <div>
                               {renderSessionRows(paginatedSessions, false)}
                             </div>
                             {totalPages > 1 && (
