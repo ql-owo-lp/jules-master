@@ -149,15 +149,11 @@ export function SessionList({
   }, [unknownSessions, sessionMap]);
 
   // Handle selection logic
-  const handleSelectAllForJob = (jobId: string, checked: boolean) => {
-    const job = jobs.find(j => j.id === jobId);
-    if (!job) return;
-
-    const jobSessionIds = job.sessionIds;
+  const handleSelectAllForJob = (jobId: string, checked: boolean, sessionIdsToSelect: string[]) => {
     if (checked) {
-      setSelectedSessionIds(ids => [...new Set([...ids, ...jobSessionIds])]);
+      setSelectedSessionIds(ids => [...new Set([...ids, ...sessionIdsToSelect])]);
     } else {
-      setSelectedSessionIds(ids => ids.filter(id => !jobSessionIds.includes(id)));
+      setSelectedSessionIds(ids => ids.filter(id => !sessionIdsToSelect.includes(id)));
     }
   };
 
@@ -431,11 +427,11 @@ export function SessionList({
                     .filter((s): s is Session => !!s)
                     .filter(s => statusFilter === 'all' || s.state === statusFilter);
 
-                  const jobSessionIds = job.sessionIds;
+                  const jobSessionIds = sessionsForJob.map(s => s.id);
                   const isAllSelected = jobSessionIds.length > 0 && jobSessionIds.every(id => selectedSessionIds.includes(id));
                   const isSomeSelected = jobSessionIds.some(id => selectedSessionIds.includes(id));
                   const selectAllState = isAllSelected ? true : (isSomeSelected ? 'indeterminate' : false);
-                  
+
                   const currentPage = sessionPages[job.id] || 1;
                   const totalPages = Math.ceil(sessionsForJob.length / sessionsPerPage);
                   const paginatedSessions = sessionsForJob.slice(
@@ -457,7 +453,7 @@ export function SessionList({
                        <div className="flex items-center gap-4 px-4 data-[state=open]:border-b">
                          <Checkbox 
                             checked={selectAllState}
-                            onCheckedChange={(checked) => handleSelectAllForJob(job.id, !!checked)}
+                            onCheckedChange={(checked) => handleSelectAllForJob(job.id, !!checked, jobSessionIds)}
                             aria-label={`Select all sessions for job ${job.name}`}
                          />
                         <AccordionTrigger className="hover:no-underline flex-1 py-4">
