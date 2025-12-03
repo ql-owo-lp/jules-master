@@ -6,7 +6,7 @@ import { useState, ReactNode } from "react";
 import { useRouter } from 'next/navigation';
 import { JobCreationForm } from "@/components/job-creation-form";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Source, AutomationMode, Job } from "@/lib/types";
+import type { Session, Source, AutomationMode, Job, Settings } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/sessions/new/actions";
 import { revalidateSessions } from "@/app/sessions/actions";
@@ -38,7 +38,8 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
         source: Source | null, 
         branch: string | undefined,
         requirePlanApproval: boolean,
-        automationMode: AutomationMode
+        automationMode: AutomationMode,
+        settings: Settings | null
     ): Promise<Session | null> => {
         if (!source || !branch) {
             toast({
@@ -60,7 +61,9 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
                 }
             },
             requirePlanApproval,
-            automationMode
+            automationMode,
+            autoContinueEnabled: settings?.autoContinueEnabled,
+            autoRetryEnabled: settings?.autoRetryEnabled
         }, effectiveApiKey);
 
         if (!newSession) {

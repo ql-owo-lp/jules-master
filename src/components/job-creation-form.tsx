@@ -15,8 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { refreshSources, listSources } from "@/app/sessions/actions";
-import { getPredefinedPrompts, getGlobalPrompt, getRepoPrompt, addJob, getHistoryPrompts, saveHistoryPrompt } from "@/app/config/actions";
-import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode, HistoryPrompt } from "@/lib/types";
+import { getPredefinedPrompts, getGlobalPrompt, getRepoPrompt, addJob, getHistoryPrompts, saveHistoryPrompt, getSettings } from "@/app/config/actions";
+import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode, HistoryPrompt, Settings } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2, RefreshCw, X, Trash2, BookText } from "lucide-react";
 import { SourceSelection } from "./source-selection";
@@ -38,7 +38,8 @@ type JobCreationFormProps = {
     source: Source | null,
     branch: string | undefined,
     requirePlanApproval: boolean,
-    automationMode: AutomationMode
+    automationMode: AutomationMode,
+    settings: Settings | null
   ) => Promise<Session | null>;
   disabled?: boolean;
   onReset?: () => void;
@@ -84,6 +85,7 @@ export function JobCreationForm({
   const [historyPrompts, setHistoryPrompts] = useState<HistoryPrompt[]>([]);
   const [globalPrompt, setGlobalPrompt] = useState('');
   const [repoPrompt, setRepoPrompt] = useState('');
+  const [settings, setSettings] = useState<Settings | null>(null);
 
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
@@ -96,14 +98,16 @@ export function JobCreationForm({
   useEffect(() => {
     setIsClient(true);
     async function fetchData() {
-        const [prompts, gPrompt, hPrompts] = await Promise.all([
+        const [prompts, gPrompt, hPrompts, settings] = await Promise.all([
             getPredefinedPrompts(),
             getGlobalPrompt(),
-            getHistoryPrompts()
+            getHistoryPrompts(),
+            getSettings()
         ]);
         setPredefinedPrompts(prompts);
         setGlobalPrompt(gPrompt);
         setHistoryPrompts(hPrompts);
+        setSettings(settings);
     }
     fetchData();
   }, []);
@@ -294,7 +298,7 @@ export function JobCreationForm({
         let retries = 3;
         let newSession: Session | null = null;
         while (retries > 0 && !newSession) {
-            newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode);
+            newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode, settings);
             if (!newSession) {
                 console.error(`Failed to create session ${sessionIndex + 1}. Retries remaining: ${retries - 1}`);
                 retries--;
