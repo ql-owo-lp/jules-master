@@ -19,7 +19,6 @@ import {
 import Link from 'next/link';
 import { Bot, MessageSquare, PlusCircle, BookText, ExternalLink, PanelLeft } from 'lucide-react';
 import { Header } from '@/components/header';
-import { NewJobDialog } from '@/components/new-job-dialog';
 import { EnvProvider } from '@/components/env-provider';
 
 export const metadata = {
@@ -77,19 +76,6 @@ export default function RootLayout({
                 </SidebarHeader>
                 <SidebarGroup>
                   <SidebarMenu>
-                    <SidebarMenuItem>
-                       <NewJobDialog>
-                          <SidebarMenuButton>
-                              <PlusCircle />
-                              <span>New Job</span>
-                          </SidebarMenuButton>
-                       </NewJobDialog>
-                       <SidebarMenuAction asChild>
-                          <Link href="/jobs/new" target="_blank">
-                            <ExternalLink />
-                          </Link>
-                       </SidebarMenuAction>
-                    </SidebarMenuItem>
                      <SidebarMenuItem>
                       <SidebarMenuButton asChild>
                         <Link href="/">

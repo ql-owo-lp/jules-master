@@ -3,9 +3,9 @@
 ## Core Features:
 
 - API Key Configuration: Allow users to input and store their Jules API key in local storage for persistent use.
-- Batch Job Creation: Provide an input box where users can enter prompts to create multiple jobs.
-- Job Listing: Display a list of the current jobs created via the Jules API.
-- Menu Navigation: Implement a menu icon in the top right corner to access the settings panel.
+- Job Creation: A form with a textarea for users to enter one or more prompts, each on a new line, to create jobs.
+- Job Listing: A list of all created jobs, with details about their status and prompts.
+- Settings Panel: A menu, accessible from the top-right corner, for configuring the application, including the Jules API key.
 - Job Title Generation: Employ a tool, based on the provided prompts for job creation, to create titles that summarize what each job should do.
 
 ## Style Guidelines:

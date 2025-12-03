@@ -12,8 +12,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions, cancelSessionRequest, refreshSession } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
 import { getJobs, getQuickReplies, getPendingBackgroundWorkCount } from "@/app/config/actions";
+import { createJobs } from "@/app/jobs/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { CreateJobForm } from "@/components/create-job-form";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
@@ -430,6 +432,19 @@ function HomePageContent() {
   const hasJulesApiKey = !!(julesApiKey || apiKey);
   const hasGithubToken = !!(envGithubToken || githubToken);
 
+  const handleCreateJobs = async (prompts: string[]) => {
+    // We can use startActionTransition here as well to show a global spinner
+    // if we want, but the button has its own spinner which is probably better UX.
+    const { error } = await createJobs(prompts, apiKey);
+
+    if (error) {
+      throw new Error(error); // This will be caught by the form's error handler
+    }
+
+    // Refresh the jobs list to show the new job
+    fetchAllData();
+  };
+
   return (
     <div className="flex flex-col flex-1 bg-background">
       <FloatingProgressBar
@@ -459,6 +474,10 @@ function HomePageContent() {
               </AlertDescription>
             </Alert>
           )}
+          <CreateJobForm
+            onCreateJobs={handleCreateJobs}
+            disabled={!hasJulesApiKey}
+          />
           <SessionList
             sessions={sessions}
             jobs={paginatedJobs}
