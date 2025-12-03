@@ -108,15 +108,18 @@ async function processPendingJobs(apiKey: string) {
 
                 while (retries > 0 && !newSession) {
                     try {
-                        newSession = await createSession(
-                            job.name,
-                            job.prompt,
-                            source,
-                            job.branch,
-                            job.requirePlanApproval ?? false,
-                            (job.automationMode as AutomationMode) || 'AUTO_CREATE_PR',
-                            apiKey
-                        );
+                        newSession = await createSession({
+                            title: job.name,
+                            prompt: job.prompt,
+                            sourceContext: {
+                                source: source.name,
+                                githubRepoContext: {
+                                    startingBranch: job.branch,
+                                }
+                            },
+                            requirePlanApproval: job.requirePlanApproval ?? false,
+                            automationMode: (job.automationMode as AutomationMode) || 'AUTO_CREATE_PR',
+                        }, apiKey);
                     } catch (e) {
                          console.error(`BackgroundJobWorker: Error creating session ${i+1} for job ${job.id}`, e);
                     }
