@@ -100,6 +100,9 @@ function scheduleNextRun() {
     db.select().from(settings).where(eq(settings.id, 1)).limit(1)
         .then(settingsResult => {
             let intervalSeconds = 3600;
+            if (settingsResult.length > 0 && settingsResult[0].autoDeleteStaleBranchesCheckIntervalSeconds) {
+                intervalSeconds = settingsResult[0].autoDeleteStaleBranchesCheckIntervalSeconds;
+            }
 
             workerTimeout = setTimeout(() => {
                 runAutoDeleteStaleBranchCheck();
