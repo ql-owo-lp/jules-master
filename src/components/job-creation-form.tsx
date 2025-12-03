@@ -1,7 +1,6 @@
+import React, { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 
 "use client";
-
-import { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -241,7 +240,7 @@ export function JobCreationForm({
 
     startTransition(async () => {
       // Save to history prompts
-      await saveHistoryPrompt(prompt);
+      await saveHistoryPrompt(finalPrompt);
       // Refresh history prompts in UI
       const hPrompts = await getHistoryPrompts();
       setHistoryPrompts(hPrompts);
