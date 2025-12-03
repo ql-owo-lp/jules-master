@@ -32,8 +32,6 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
   return Array.from(groupedSessions.entries())
     .filter(([, sessions]) => sessions.length > 0)
     .map(([jobName, sessions]) => {
-      const repo = sessions[0].sourceContext?.source || 'unknown';
-      const branch = sessions[0].sourceContext?.githubRepoContext?.startingBranch || 'unknown';
       const latestSession = sessions.reduce((latest, current) => {
         const latestTime = new Date(latest.createTime || 0);
         const currentTime = new Date(current.createTime || 0);
@@ -43,6 +41,9 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
 
         return currentTime > latestTime ? current : latest;
       }, sessions[0]);
+
+      const repo = latestSession.sourceContext?.source || 'unknown';
+      const branch = latestSession.sourceContext?.githubRepoContext?.startingBranch || 'unknown';
 
       // Combine timestamp and a random string to ensure the ID is unique
       const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
