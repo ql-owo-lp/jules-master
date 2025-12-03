@@ -21,7 +21,7 @@ export async function createCronJob(data: Omit<CronJob, "id" | "createdAt" | "la
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       lastRunAt: null,
-      enabled: true,
+      enabled: data.enabled ?? true,
     };
     await db.insert(cronJobs).values(newCronJob);
     return newCronJob;
