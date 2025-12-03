@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { listSessions, fetchSessionsPage, listSources, cancelSessionRequest } from '@/app/sessions/actions';
 import * as fetchClient from '@/lib/fetch-client';
@@ -119,8 +118,20 @@ describe('Session Actions', () => {
         'https://jules.googleapis.com/v1alpha/sessions?pageSize=50&pageToken=prev-page',
         expect.any(Object)
       );
-      expect(result.sessions).toEqual(mockSessions.map(s => ({ ...s, createTime: '' })));
+      expect(result.sessions).toEqual([{...mockSessions[0], createTime: expect.any(String)}]);
       expect(result.nextPageToken).toBe(nextPageToken);
+    });
+
+    it('should provide a default createTime if missing', async () => {
+      const mockSessions = [{ id: '1', name: 'Session 1' }];
+      (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ sessions: mockSessions }),
+      });
+
+      const result = await fetchSessionsPage('test-key');
+      expect(result.sessions[0].createTime).toBeDefined();
+      expect(result.sessions[0].createTime).not.toBe('');
     });
   });
 

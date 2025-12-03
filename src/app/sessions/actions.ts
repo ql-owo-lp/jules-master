@@ -1,4 +1,3 @@
-
 'use server';
 
 import type { Session, Source } from '@/lib/types';
@@ -192,7 +191,7 @@ export async function fetchSessionsPage(
 
         const sessions = (data.sessions || []).map(session => ({
             ...session,
-            createTime: session.createTime || '',
+            createTime: session.createTime || new Date().toISOString(),
         }));
 
         return { sessions, nextPageToken: data.nextPageToken };
