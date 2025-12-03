@@ -7,7 +7,7 @@ import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
+import { Terminal, X, Briefcase, GitMerge, Activity, Wand2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions, cancelSessionRequest, refreshSession } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
@@ -20,6 +20,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { groupSessionsByTopic, createDynamicJobs } from "@/lib/utils";
 import { useEnv } from "@/components/env-provider";
 import { FloatingProgressBar } from "@/components/floating-progress-bar";
+import { NewJobDialog } from "@/components/new-job-dialog";
 
 function HomePageContent() {
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
@@ -467,6 +468,14 @@ function HomePageContent() {
               </AlertDescription>
             </Alert>
           )}
+          <div className="flex justify-end">
+            <NewJobDialog>
+                <Button disabled={!hasJulesApiKey}>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Create New Job
+                </Button>
+            </NewJobDialog>
+          </div>
           <SessionList
             sessions={sessions}
             jobs={paginatedJobs}
