@@ -49,6 +49,9 @@ test.describe('Home Page', () => {
     // Go back to home
     await page.goto('/');
 
+    // Reload the page to ensure the UI updates
+    await page.reload();
+
     // Verify alert is gone
     await expect(page.getByText('API Key Not Set')).toBeHidden();
   });

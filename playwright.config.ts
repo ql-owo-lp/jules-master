@@ -17,6 +17,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+  globalSetup: require.resolve('./tests/e2e/global-setup.ts'),
   webServer: {
     command: 'MOCK_API=true npm run dev',
     url: 'http://localhost:9002',
