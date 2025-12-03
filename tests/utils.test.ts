@@ -73,6 +73,13 @@ describe('Utils', () => {
       expect(jobs[1].branch).toBe('develop');
     });
 
+    it('should handle a group with an empty sessions array', () => {
+      const groupedSessions = new Map<string, Session[]>();
+      groupedSessions.set('Test Job 1', []);
+      const jobs = createDynamicJobs(groupedSessions);
+      expect(jobs.length).toBe(0);
+    });
+
     it('should handle empty grouped sessions map', () => {
       const groupedSessions = new Map<string, Session[]>();
       const jobs = createDynamicJobs(groupedSessions);
