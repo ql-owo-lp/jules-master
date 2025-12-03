@@ -150,4 +150,17 @@ describe('createDynamicJobs', () => {
     expect(job1?.createdAt).toBeDefined();
     expect(jobs[0].createdAt).toBeDefined();
   });
+
+  it('should generate unique IDs for jobs with the same name', () => {
+    const sessions: Session[] = [
+      { id: '1', prompt: '[TOPIC]: # (topic-A)\n' },
+      { id: '2', prompt: '[TOPIC]: # (topic-B)\n' },
+    ];
+    const { groupedSessions } = groupSessionsByTopic(sessions);
+    const jobs1 = createDynamicJobs(groupedSessions);
+    const jobs2 = createDynamicJobs(groupedSessions);
+    const jobA1 = jobs1.find(j => j.name === 'topic-A');
+    const jobA2 = jobs2.find(j => j.name === 'topic-A');
+    expect(jobA1?.id).not.toBe(jobA2?.id);
+  });
 });

@@ -36,8 +36,10 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
          return (new Date(current.createTime || 0) > new Date(latest.createTime || 0)) ? current : latest;
       }, sessions[0]);
 
+      // Combine timestamp and a random string to ensure the ID is unique
+      const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
       return {
-        id: `dynamic-${jobName}`,
+        id: `dynamic-${jobName}-${uniqueSuffix}`,
         name: jobName,
         sessionIds: sessions.map(s => s.id),
         createdAt: latestSession.createTime || new Date().toISOString(),
