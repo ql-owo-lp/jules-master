@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import crypto from 'crypto';
 
 import { Session, Job } from "@/lib/types";
 
@@ -45,7 +46,7 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
       }, sessions[0]);
 
       // Combine timestamp and a random string to ensure the ID is unique
-      const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+      const uniqueSuffix = `${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}`;
       return {
         id: `dynamic-${jobName}-${uniqueSuffix}`,
         name: jobName,

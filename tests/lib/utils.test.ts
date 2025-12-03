@@ -170,4 +170,15 @@ describe('createDynamicJobs', () => {
     const jobs = createDynamicJobs(groupedSessions);
     expect(jobs).toEqual([]);
   });
+
+  it('should generate unique IDs when called in rapid succession', () => {
+    const sessions: Session[] = [
+      { id: '1', prompt: '[TOPIC]: # (topic-A)\n' },
+    ];
+    const { groupedSessions } = groupSessionsByTopic(sessions);
+    const jobs = Array.from({ length: 100 }, () => createDynamicJobs(groupedSessions));
+    const ids = jobs.map(job => job[0].id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
 });
