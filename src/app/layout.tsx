@@ -92,9 +92,17 @@ export default function RootLayout({
                     </SidebarMenuItem>
                      <SidebarMenuItem>
                       <SidebarMenuButton asChild>
+                        <Link href="/jobs">
+                          <Bot />
+                          <span>Jobs</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
                         <Link href="/">
                           <MessageSquare />
-                          <span>Jobs & Sessions</span>
+                          <span>Sessions</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
