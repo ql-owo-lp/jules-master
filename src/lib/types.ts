@@ -33,7 +33,24 @@ export type Job = {
     status?: string;
     automationMode?: AutomationMode;
     requirePlanApproval?: boolean;
+    cronJobId?: string | null;
 }
+
+export type CronJob = {
+    id: string;
+    name: string;
+    schedule: string;
+    prompt: string;
+    repo: string;
+    branch: string;
+    createdAt: string;
+    lastRunAt: string | null;
+    enabled: boolean;
+    autoApproval: boolean;
+    automationMode?: AutomationMode;
+    requirePlanApproval?: boolean;
+    sessionCount?: number;
+};
 
 export type SourceContext = {
   source: string;

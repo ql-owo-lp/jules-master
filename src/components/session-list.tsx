@@ -20,7 +20,7 @@ import {
 import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { formatDistanceToNow } from "date-fns";
-import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2, Bot, MessageSquareReply } from "lucide-react";
+import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2, Bot, MessageSquareReply, Clock } from "lucide-react";
 import { Button } from "./ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -462,7 +462,19 @@ export function SessionList({
                          />
                         <AccordionTrigger className="hover:no-underline flex-1 py-4">
                             <div className="flex-1 text-left">
-                                <p className="font-semibold truncate" title={job.name}>{job.name}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-semibold truncate" title={job.name}>{job.name}</p>
+                                  {job.cronJobId && (
+                                     <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div onClick={(e) => { e.stopPropagation(); router.push('/settings'); }}>
+                                                <Clock className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground" />
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Created by Cron Job</p></TooltipContent>
+                                     </Tooltip>
+                                  )}
+                                </div>
                                 <p className="text-xs text-muted-foreground font-mono">{job.repo} / {job.branch}</p>
                             </div>
                         </AccordionTrigger>

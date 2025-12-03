@@ -61,6 +61,7 @@ import {
     saveRepoPrompt
 } from "@/app/config/actions";
 import { SourceSelection } from "@/components/source-selection";
+import { CronJobsList } from "@/components/cron-jobs-list";
 import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
 import type { PredefinedPrompt, Source } from "@/lib/types";
@@ -511,6 +512,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
@@ -584,6 +586,11 @@ export default function SettingsPage() {
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
                 </CardFooter>
             </Card>
+        </TabsContent>
+
+        {/* Cron Jobs Tab */}
+        <TabsContent value="cron" className="space-y-6">
+             <CronJobsList />
         </TabsContent>
 
         {/* Messages Tab */}
