@@ -1,9 +1,7 @@
 
+import { describe, it, expect, vi } from 'vitest';
 import { POST } from '@/app/api/settings/route';
 import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
-import { settings } from '@/lib/db/schema';
-import { vi } from 'vitest';
 
 vi.mock('@/lib/db', () => ({
   db: {
@@ -14,26 +12,34 @@ vi.mock('@/lib/db', () => ({
     update: vi.fn().mockReturnThis(),
     set: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
-    values: vi.fn().mockResolvedValue({}),
+    values: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-describe('POST /api/settings', () => {
-  it('should return a 400 error with detailed validation errors for invalid input', async () => {
-    const invalidData = {
-      idlePollInterval: 'not-a-number',
-    };
-
-    const req = new NextRequest('http://localhost/api/settings', {
+describe('Settings API', () => {
+  it('should return a 400 error if the request body is empty', async () => {
+    const request = new NextRequest('http://localhost/api/settings', {
       method: 'POST',
-      body: JSON.stringify(invalidData),
+      body: JSON.stringify({}),
     });
 
-    const response = await POST(req);
-    const body = await response.json();
+    const response = await POST(request);
+    const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toBeDefined();
-    expect(body.error.idlePollInterval).toEqual(['Expected number, received string']);
+    expect(data.error).toBe('At least one setting must be provided.');
+  });
+
+  it('should return a 400 error if the request body is invalid', async () => {
+    const request = new NextRequest('http://localhost/api/settings', {
+      method: 'POST',
+      body: JSON.stringify({ idlePollInterval: 'not-a-number' }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error.idlePollInterval).toEqual(['Expected number, received string']);
   });
 });
