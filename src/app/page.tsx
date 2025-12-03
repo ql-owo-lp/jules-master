@@ -82,8 +82,25 @@ function HomePageContent() {
     if (repoFilter !== 'all') {
       j = j.filter(job => job.repo === repoFilter);
     }
-    return { filteredJobs: j, unknownSessions: remainingUnknown };
-  }, [jobs, sessions, jobFilter, repoFilter]);
+
+    let finalJobs = j;
+    let finalUnknownSessions = remainingUnknown;
+
+    if (statusFilter !== 'all') {
+      const sessionMap = new Map(sessions.map(s => [s.id, s]));
+      finalJobs = j.map(job => ({
+        ...job,
+        sessionIds: job.sessionIds.filter(id => {
+          const session = sessionMap.get(id);
+          return session && session.state === statusFilter;
+        })
+      })).filter(job => job.sessionIds.length > 0);
+
+      finalUnknownSessions = remainingUnknown.filter(s => s.state === statusFilter);
+    }
+
+    return { filteredJobs: finalJobs, unknownSessions: finalUnknownSessions };
+  }, [jobs, sessions, jobFilter, repoFilter, statusFilter]);
 
   const totalJobPages = Math.ceil(filteredJobs.length / jobsPerPage);
   const paginatedJobs = filteredJobs.slice((jobPage - 1) * jobsPerPage, jobPage * jobsPerPage);
