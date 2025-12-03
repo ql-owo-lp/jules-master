@@ -30,6 +30,9 @@ export async function GET() {
         sessionCacheCompletedNoPrInterval: 1800,
         sessionCachePendingApprovalInterval: 300,
         sessionCacheMaxAgeDays: 3,
+        autoDeleteStaleBranches: false,
+        autoDeleteStaleBranchesAfterDays: 3,
+        historyPromptsCount: 10,
       });
     }
 

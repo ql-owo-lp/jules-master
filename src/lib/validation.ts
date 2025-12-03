@@ -20,4 +20,7 @@ export const settingsSchema = z.object({
   sessionCacheCompletedNoPrInterval: z.number(),
   sessionCachePendingApprovalInterval: z.number(),
   sessionCacheMaxAgeDays: z.number(),
+  autoDeleteStaleBranches: z.boolean(),
+  autoDeleteStaleBranchesAfterDays: z.number(),
+  historyPromptsCount: z.number(),
 });
