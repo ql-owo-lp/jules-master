@@ -73,6 +73,16 @@ describe('groupSessionsByTopic', () => {
     expect(groupedSessions.size).toBe(0);
     expect(remainingUnknown.length).toBe(2);
   });
+
+  it('should treat sessions with empty topics as unknown', () => {
+    const sessions: Session[] = [
+      { id: '1', prompt: '[TOPIC]: # ()\n' },
+      { id: '2', prompt: '[TOPIC]: # (   )\n' },
+    ];
+    const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
+    expect(groupedSessions.size).toBe(0);
+    expect(remainingUnknown.length).toBe(2);
+  });
 });
 
 describe('createDynamicJobs', () => {

@@ -13,13 +13,17 @@ export function groupSessionsByTopic(sessions: Session[]): { groupedSessions: Ma
 
   sessions.forEach(session => {
     const firstLine = session.prompt?.split('\n')[0] || '';
-    const match = firstLine.match(/^\[TOPIC\]: # \((.+)\)\s*$/);
+    const match = firstLine.match(/^\[TOPIC\]: # \((.*)\)\s*$/);
     if (match) {
       const jobName = match[1].trim();
-      if (!groupedSessions.has(jobName)) {
-        groupedSessions.set(jobName, []);
+      if (jobName) {
+        if (!groupedSessions.has(jobName)) {
+          groupedSessions.set(jobName, []);
+        }
+        groupedSessions.get(jobName)!.push(session);
+      } else {
+        remainingUnknown.push(session);
       }
-      groupedSessions.get(jobName)!.push(session);
     } else {
       remainingUnknown.push(session);
     }
