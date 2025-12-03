@@ -1,12 +1,12 @@
 
-import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import React, { Suspense } from 'react';
+import { render, screen } from '@testing-library/react';
 import HomePageContent from '@/app/page';
 import { vi } from 'vitest';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams('?status=COMPLETED'),
+  useSearchParams: () => new URLSearchParams('status=COMPLETED'),
   useRouter: () => ({
     push: vi.fn(),
   }),
@@ -33,7 +33,7 @@ const mockSessions = [
 
 describe('HomePageContent', () => {
   beforeEach(() => {
-    useLocalStorage.mockImplementation((key, initialValue) => {
+    (useLocalStorage as jest.Mock).mockImplementation((key, initialValue) => {
       if (key === 'jules-jobs') {
         return [mockJobs, vi.fn()];
       }
@@ -45,7 +45,11 @@ describe('HomePageContent', () => {
   });
 
   it('should filter jobs by status', () => {
-    render(<HomePageContent />);
+    render(
+      <Suspense fallback={<div>Loading...</div>}>
+        <HomePageContent />
+      </Suspense>
+    );
 
     const job1Card = screen.getByText('Job 1').closest('div[data-state]');
     expect(job1Card).toBeInTheDocument();

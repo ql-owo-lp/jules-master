@@ -1,21 +1,27 @@
 
-
 "use client";
 
-import { useState, ReactNode } from "react";
-import { useRouter } from 'next/navigation';
-import { JobCreationForm } from "@/components/job-creation-form";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Source, AutomationMode, Job, Settings } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
+import React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { JobCreationForm } from "./job-creation-form";
 import { createSession } from "@/app/sessions/new/actions";
-import { revalidateSessions } from "@/app/sessions/actions";
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { Job, PredefinedPrompt, Source, AutomationMode, Settings } from "@/lib/types";
 import { useEnv } from "@/components/env-provider";
+import { revalidateSessions } from "@/app/sessions/actions";
 
 type NewJobDialogProps = {
     isPage?: boolean;
-    children?: ReactNode;
+    children?: React.ReactNode;
     initialValues?: {
         prompt?: string;
         repo?: string;
@@ -30,7 +36,7 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
     const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
     const router = useRouter();
     const { toast } = useToast();
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = React.useState(false);
 
     const handleCreateSession = async (
         title: string, 
