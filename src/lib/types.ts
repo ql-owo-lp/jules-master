@@ -216,3 +216,8 @@ export type PullRequestStatus = {
     runs: Pick<CheckRun, 'name' | 'status' | 'conclusion'>[];
   }
 };
+
+export type Settings = {
+  autoContinueEnabled?: boolean;
+  autoRetryEnabled?: boolean;
+};

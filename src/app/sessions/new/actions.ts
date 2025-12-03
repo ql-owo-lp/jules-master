@@ -9,6 +9,8 @@ type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
   title?: string;
   requirePlanApproval?: boolean;
   automationMode?: AutomationMode;
+  autoContinueEnabled?: boolean;
+  autoRetryEnabled?: boolean;
 };
 
 export async function createSession(
@@ -24,6 +26,12 @@ export async function createSession(
   const body: Partial<CreateSessionBody> = { ...sessionData };
   if (!sessionData.requirePlanApproval) {
     delete body.requirePlanApproval;
+  }
+  if (!sessionData.autoContinueEnabled) {
+    delete body.autoContinueEnabled;
+  }
+  if (!sessionData.autoRetryEnabled) {
+    delete body.autoRetryEnabled;
   }
 
 

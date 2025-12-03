@@ -126,3 +126,8 @@ export async function saveRepoPrompt(repo: string, prompt: string): Promise<void
     await appDatabase.repoPrompts.save(repo, prompt);
     revalidatePath('/settings');
 }
+
+// --- Settings ---
+export async function getSettings() {
+    return db.query.settings.findFirst();
+}
