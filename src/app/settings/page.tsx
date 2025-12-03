@@ -610,6 +610,7 @@ export default function SettingsPage() {
                     value={globalPrompt}
                     onChange={(e) => setGlobalPrompt(e.target.value)}
                     disabled={isSavingMessage || isLoadingMessages}
+                    data-testid="global-prompt-textarea"
                 />
               </CardContent>
               <CardFooter className="flex justify-end">
