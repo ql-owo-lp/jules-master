@@ -18,9 +18,7 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
     if (!apiKey) {
         console.warn("AutoDeleteStaleBranchWorker: JULES_API_KEY not set. Skipping check.");
         isRunning = false;
-        if (options.schedule) {
-            scheduleNextRun();
-        }
+        // finally block will handle scheduling
         return;
     }
 
@@ -31,9 +29,7 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
         if (settingsResult.length === 0 || !settingsResult[0].autoDeleteStaleBranches) {
             console.log("AutoDeleteStaleBranchWorker: Auto-delete stale branches is disabled in settings. Skipping check.");
             isRunning = false;
-            if (options.schedule) {
-                scheduleNextRun();
-            }
+            // finally block will handle scheduling
             return;
         }
 
@@ -87,14 +83,14 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
     } finally {
         isRunning = false;
         if (options.schedule) {
-            scheduleNextRun();
+            scheduleNextRun(options);
         }
     }
 }
 
 const DEFAULT_INTERVAL_SECONDS = 3600;
 
-function scheduleNextRun() {
+function scheduleNextRun(options = { schedule: true }) {
     if (workerTimeout) {
         clearTimeout(workerTimeout);
     }
@@ -103,13 +99,13 @@ function scheduleNextRun() {
         .then(settingsResult => {
             const intervalSeconds = settingsResult[0]?.autoDeleteStaleBranchesInterval ?? DEFAULT_INTERVAL_SECONDS;
             workerTimeout = setTimeout(() => {
-                runAutoDeleteStaleBranchCheck();
+                runAutoDeleteStaleBranchCheck(options);
             }, intervalSeconds * 1000);
         })
         .catch(e => {
             console.error("AutoDeleteStaleBranchWorker: Failed to fetch settings, using default interval.", e);
             workerTimeout = setTimeout(() => {
-                runAutoDeleteStaleBranchCheck();
+                runAutoDeleteStaleBranchCheck(options);
             }, DEFAULT_INTERVAL_SECONDS * 1000);
         });
 }

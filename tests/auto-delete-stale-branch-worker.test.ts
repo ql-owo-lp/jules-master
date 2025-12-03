@@ -64,4 +64,18 @@ describe('runAutoDeleteStaleBranchCheck', () => {
 
         expect(actions.fetchSessionsPage).toHaveBeenCalledTimes(2);
     });
+
+    it('should not schedule the next run twice if auto-delete is disabled', async () => {
+        const settingsMock = db.limit as vi.Mock;
+        const customSettings = {
+            autoDeleteStaleBranches: false,
+        };
+        settingsMock.mockResolvedValue([customSettings]);
+
+        const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+
+        await runAutoDeleteStaleBranchCheck();
+
+        expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    });
 });
