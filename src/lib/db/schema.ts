@@ -16,6 +16,23 @@ export const jobs = sqliteTable('jobs', {
   status: text('status'), // 'PENDING', 'PROCESSING', 'COMPLETED'
   automationMode: text('automation_mode').$type<AutomationMode>(),
   requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
+  cronJobId: text('cron_job_id'),
+});
+
+export const cronJobs = sqliteTable('cron_jobs', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  schedule: text('schedule').notNull(),
+  prompt: text('prompt').notNull(),
+  repo: text('repo').notNull(),
+  branch: text('branch').notNull(),
+  createdAt: text('created_at').notNull(),
+  lastRunAt: text('last_run_at'),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  autoApproval: integer('auto_approval', { mode: 'boolean' }).notNull().default(false),
+  automationMode: text('automation_mode').$type<AutomationMode>(),
+  requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
+  sessionCount: integer('session_count').default(1),
 });
 
 export const predefinedPrompts = sqliteTable('predefined_prompts', {
