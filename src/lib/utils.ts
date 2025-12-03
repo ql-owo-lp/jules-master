@@ -45,11 +45,23 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
       const repo = latestSession.sourceContext?.source || 'unknown';
       const branch = latestSession.sourceContext?.githubRepoContext?.startingBranch || 'unknown';
 
-      // Combine timestamp and a random string to ensure the ID is unique
-      const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+      // Sort session IDs to ensure a consistent order
+      const sortedSessionIds = sessions.map(s => s.id).sort();
+
+      // Combine job name and sorted session IDs to create a stable hash
+      const idSource = `${jobName}-${sortedSessionIds.join('-')}`;
+
+      // Basic hash function for uniqueness
+      let hash = 0;
+      for (let i = 0; i < idSource.length; i++) {
+        const char = idSource.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0; // Convert to 32bit integer
+      }
+
       const slug = jobName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       return {
-        id: `dynamic-${slug}-${uniqueSuffix}`,
+        id: `dynamic-${slug}-${Math.abs(hash).toString(36)}`,
         name: jobName,
         sessionIds: sessions.map(s => s.id),
         createdAt: latestSession.createTime || new Date().toISOString(),
