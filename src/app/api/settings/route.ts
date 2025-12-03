@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const validation = settingsSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+      return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
     const newSettings = {
