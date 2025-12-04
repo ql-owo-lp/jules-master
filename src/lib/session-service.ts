@@ -84,7 +84,7 @@ export async function getCachedSessions(): Promise<Session[]> {
 /**
  * Helper to determine if a session has a merged PR.
  */
-function isPrMerged(session: Session): boolean {
+export function isPrMerged(session: Session): boolean {
   if (!session.outputs) {
     return false;
   }
@@ -167,13 +167,9 @@ export async function syncStaleSessions(apiKey: string) {
         if (isPrMerged(session)) {
           break;
         }
-        // If completed:
-        // If PR merged -> No update. (We need to know if PR is merged. For now, we'll assume we update every 30 mins if we don't know).
-        // If no PR -> Update every 30 mins.
-
-        // Let's assume for now we use the "Completed No PR" interval for all completed sessions unless we know otherwise.
+        // If completed and PR is not merged, update every 30 mins.
         if (age > settings.sessionCacheCompletedNoPrInterval * 1000) {
-             shouldUpdate = true;
+          shouldUpdate = true;
         }
         break;
 

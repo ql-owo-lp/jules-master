@@ -78,6 +78,13 @@
       "when": 1764790287923,
       "tag": "0010_mysterious_changeling",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1764797502348,
+      "tag": "0011_huge_grey_gargoyle",
+      "breakpoints": true
     }
   ]
 }

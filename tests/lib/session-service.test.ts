@@ -1,6 +1,6 @@
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { syncStaleSessions } from '@/lib/session-service';
+import { syncStaleSessions, isPrMerged } from '@/lib/session-service';
 import { db } from '@/lib/db';
 import { sessions, settings } from '@/lib/db/schema';
 import * as fetchClient from '@/lib/fetch-client';
@@ -15,6 +15,55 @@ vi.mock('@/lib/fetch-client');
 describe('Session Service', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+
+  describe('isPrMerged', () => {
+    it('should return true if a session has a merged pull request', () => {
+      const sessionWithMergedPr: Session = {
+        id: 'session-1',
+        name: 'sessions/session-1',
+        state: 'COMPLETED',
+        outputs: [
+          {
+            pullRequest: {
+              status: 'MERGED',
+              url: 'https://github.com/example/repo/pull/1',
+              title: 'Test PR',
+              description: 'This is a test pull request.',
+            },
+          },
+        ],
+      };
+      expect(isPrMerged(sessionWithMergedPr)).toBe(true);
+    });
+
+    it('should return false if a session has no outputs', () => {
+      const sessionWithoutOutputs: Session = {
+        id: 'session-2',
+        name: 'sessions/session-2',
+        state: 'COMPLETED',
+      };
+      expect(isPrMerged(sessionWithoutOutputs)).toBe(false);
+    });
+
+    it('should return false if a session has a pull request that is not merged', () => {
+      const sessionWithOpenPr: Session = {
+        id: 'session-3',
+        name: 'sessions/session-3',
+        state: 'COMPLETED',
+        outputs: [
+          {
+            pullRequest: {
+              status: 'OPEN',
+              url: 'https://github.com/example/repo/pull/2',
+              title: 'Test PR 2',
+              description: 'This is another test pull request.',
+            },
+          },
+        ],
+      };
+      expect(isPrMerged(sessionWithOpenPr)).toBe(false);
+    });
   });
 
   describe('syncStaleSessions', () => {

@@ -151,17 +151,24 @@ describe('createDynamicJobs', () => {
     expect(jobs[0].createdAt).toBeDefined();
   });
 
-  it('should generate unique IDs for jobs with the same name', () => {
+  it('should generate a stable ID for the same set of sessions', () => {
     const sessions: Session[] = [
-      { id: '1', prompt: '[TOPIC]: # (topic-A)\n' },
-      { id: '2', prompt: '[TOPIC]: # (topic-B)\n' },
+      { id: 'session-1', prompt: '[TOPIC]: # (Test Job)', createTime: '2023-01-01T12:00:00Z', title: 'Session 1', state: 'COMPLETED' },
+      { id: 'session-2', prompt: '[TOPIC]: # (Test Job)', createTime: '2023-01-01T13:00:00Z', title: 'Session 2', state: 'COMPLETED' },
     ];
+
     const { groupedSessions } = groupSessionsByTopic(sessions);
-    const jobs1 = createDynamicJobs(groupedSessions);
-    const jobs2 = createDynamicJobs(groupedSessions);
-    const jobA1 = jobs1.find(j => j.name === 'topic-A');
-    const jobA2 = jobs2.find(j => j.name === 'topic-A');
-    expect(jobA1?.id).not.toBe(jobA2?.id);
+    const dynamicJobs1 = createDynamicJobs(groupedSessions);
+
+    const sessionsReordered: Session[] = [
+      { id: 'session-2', prompt: '[TOPIC]: # (Test Job)', createTime: '2023-01-01T13:00:00Z', title: 'Session 2', state: 'COMPLETED' },
+      { id: 'session-1', prompt: '[TOPIC]: # (Test Job)', createTime: '2023-01-01T12:00:00Z', title: 'Session 1', state: 'COMPLETED' },
+    ];
+
+    const { groupedSessions: groupedSessionsReordered } = groupSessionsByTopic(sessionsReordered);
+    const dynamicJobs2 = createDynamicJobs(groupedSessionsReordered);
+
+    expect(dynamicJobs1[0].id).toBe(dynamicJobs2[0].id);
   });
 
   it('should handle empty session groups gracefully', () => {
@@ -169,5 +176,17 @@ describe('createDynamicJobs', () => {
     groupedSessions.set('empty-group', []);
     const jobs = createDynamicJobs(groupedSessions);
     expect(jobs).toEqual([]);
+  });
+
+  it('should correctly slugify job names with special characters', () => {
+    const sessions: Session[] = [
+      { id: '1', prompt: '[TOPIC]: # (a / b & c)\n' },
+    ];
+    const { groupedSessions } = groupSessionsByTopic(sessions);
+    const jobs = createDynamicJobs(groupedSessions);
+    expect(jobs.length).toBe(1);
+    const job1 = jobs[0];
+    expect(job1.name).toBe('a / b & c');
+    expect(job1.id.startsWith('dynamic-a-b-c-')).toBe(true);
   });
 });

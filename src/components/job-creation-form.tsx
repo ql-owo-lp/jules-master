@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -214,18 +214,20 @@ export function JobCreationForm({
     toast({ title: "Form Reset", description: "The new job form has been cleared."});
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    // The appending order is, “global prompt”, “pre-repo prompt”, “job prompt “. All of them are separated with two new lines
-    let finalPrompt = "";
+  const finalPrompt = useMemo(() => {
+    let result = "";
     if (applyGlobalPrompt && globalPrompt) {
-        finalPrompt += `${globalPrompt}\n\n`;
+      result += `${globalPrompt}\n\n`;
     }
     if (repoPrompt) {
-        finalPrompt += `${repoPrompt}\n\n`;
+      result += `${repoPrompt}\n\n`;
     }
-    finalPrompt += prompt;
+    result += prompt;
+    return result;
+  }, [prompt, applyGlobalPrompt, globalPrompt, repoPrompt]);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
     if (!finalPrompt.trim()) {
       toast({
@@ -614,7 +616,7 @@ export function JobCreationForm({
         <CardFooter className="flex justify-end">
           <Button
             type="submit"
-            disabled={isPending || disabled || !prompt.trim()}
+            disabled={isPending || disabled || !finalPrompt.trim()}
             className="bg-accent text-accent-foreground hover:bg-accent/90"
           >
             {isPending ? (

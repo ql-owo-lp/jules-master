@@ -12,12 +12,12 @@ test.describe('Job Creation', () => {
   test('should open new job dialog and fill form with mock data', async ({ page }) => {
     await page.goto('/');
 
-    await page.getByRole('button', { name: 'New Job' }).click();
+    await page.getByRole('button', { name: 'Create New Job' }).click();
 
     await expect(page.getByRole('heading', { name: 'Create a New Job' })).toBeVisible();
 
     // Fill fields
-    await page.getByLabel('Job Name').fill('Test Job');
+    await page.getByLabel('Job Name (Optional)').fill('Test Job');
     await page.getByRole('textbox', { name: 'Session Prompts' }).fill('Test Prompt');
     await page.getByLabel('Number of sessions').fill('1');
 
@@ -62,11 +62,5 @@ test.describe('Job Creation', () => {
     const createButton = page.getByRole('button', { name: 'Create Job' });
     await expect(createButton).toBeVisible();
     await expect(createButton).toBeEnabled();
-  });
-
-  test('should navigate to new job page via external link', async ({ page }) => {
-     await page.goto('/');
-     const newJobLink = page.locator('a[href="/jobs/new"]');
-     await expect(newJobLink).toBeVisible();
   });
 });

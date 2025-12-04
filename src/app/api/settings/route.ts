@@ -33,6 +33,7 @@ export async function GET() {
         autoDeleteStaleBranches: false,
         autoDeleteStaleBranchesAfterDays: 3,
         historyPromptsCount: 10,
+        debugMode: false,
       });
     }
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'At least one setting must be provided.' }, { status: 400 });
     }
 
-    const validation = settingsSchema.safeParse(body);
+    const validation = settingsSchema.partial().safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
 
     const newSettings = {
       id: 1, // Ensure we are updating the singleton row
-      ...validation.data,
+      ...Object.fromEntries(Object.entries(validation.data).filter(([, value]) => value !== undefined)),
     };
 
     const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
@@ -70,7 +71,11 @@ export async function POST(request: Request) {
         await db.insert(settings).values(newSettings);
     }
 
-    return NextResponse.json({ success: true });
+    if (newSettings.hasOwnProperty('debugMode') && newSettings.debugMode) {
+      console.log('Debug mode enabled. Settings saved:', newSettings);
+    }
+
+    return NextResponse.json({ success: true, message: 'Settings updated successfully.' });
   } catch (error) {
     console.error('Error saving settings:', error);
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
