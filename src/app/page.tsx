@@ -358,10 +358,11 @@ function HomePageContent() {
   }
 
   const handleClearFilters = () => {
-    onJobFilterChange(null);
-    onRepoFilterChange('all');
-    onStatusFilterChange('all');
+    setJobFilter(null);
+    setRepoFilter('all');
+    setStatusFilter('all');
     setJobPage(1);
+    router.push(`/`);
   }
 
   const onJobFilterChange = (value: string | null) => {

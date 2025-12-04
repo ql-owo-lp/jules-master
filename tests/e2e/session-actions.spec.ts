@@ -2,27 +2,17 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Session Actions', () => {
-  test.beforeEach(async ({ page }) => {
-    // Mock API key to enable session fetching logic in the frontend
-    await page.addInitScript(() => {
-      window.localStorage.setItem('jules-api-key', '"test-api-key"');
+    test.beforeEach(async ({ page }) => {
+        // Mock API key so the app tries to fetch sessions
+        await page.addInitScript(() => {
+            window.localStorage.setItem('jules-api-key', '"test-api-key"');
+        });
     });
-  });
 
   test('should open Send Message dialog and Quick Reply popover', async ({ page }) => {
     await page.goto('/');
 
-    // Ensure API key is set (if injection failed, set it via UI)
-    const alert = page.getByText('API Key Not Set');
-    if (await alert.isVisible()) {
-        await page.getByRole('button', { name: 'Open settings' }).click();
-        await page.getByLabel('Jules API Key').fill('test-api-key');
-        await page.getByRole('button', { name: 'Save Changes' }).click();
-        await expect(alert).toBeHidden();
-    }
-
-    // The screenshot shows "Uncategorized Sessions" accordion is collapsed by default.
-    // We need to expand it first.
+    // Expand Uncategorized Sessions accordion
     const accordionTrigger = page.getByRole('button', { name: /Uncategorized Sessions/ });
 
     // Wait for trigger to be visible (implies sessions loaded)

@@ -20,7 +20,7 @@ export default defineConfig({
   webServer: {
     command: 'MOCK_API=true npm run dev',
     url: 'http://localhost:9002',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     stdout: 'ignore',
     stderr: 'pipe',
     timeout: 120 * 1000,

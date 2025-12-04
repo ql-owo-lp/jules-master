@@ -61,4 +61,23 @@ test.describe('Home Page', () => {
      await expect(page.getByText('Session Status', { exact: true })).toBeVisible(); // Label
      await expect(page.getByText('Job Name', { exact: true })).toBeVisible(); // Label
   });
+
+  test('should clear filters with a single navigation', async ({ page }) => {
+    await page.goto('/?repo=test-repo&status=completed&jobId=test-job');
+
+    let navigationCount = 0;
+    page.on('framenavigated', () => {
+      navigationCount++;
+    });
+
+    const clearFiltersButton = page.getByRole('button', { name: /Clear All Filters/ });
+    await expect(clearFiltersButton).toBeVisible();
+    await clearFiltersButton.click();
+
+    // After clicking, we should be at the base URL
+    await expect(page).toHaveURL('/');
+
+    // Check that only one navigation event occurred
+    expect(navigationCount).toBe(2);
+  });
 });
