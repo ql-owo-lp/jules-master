@@ -205,7 +205,7 @@ export function CronJobForm({
         const payload = {
             name: jobName,
             schedule,
-            prompt: initialValues ? prompt : finalPrompt, // If editing, we trust the prompt box. If new, we construct it.
+            prompt: finalPrompt,
             repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
             branch: selectedBranch,
             sessionCount,
