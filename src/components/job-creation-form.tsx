@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -610,7 +610,7 @@ export function JobCreationForm({
         <CardFooter className="flex justify-end">
           <Button
             type="submit"
-            disabled={isPending || disabled || !prompt.trim()}
+            disabled={isPending || disabled || !prompt.trim() || !selectedSource || !selectedBranch}
             className="bg-accent text-accent-foreground hover:bg-accent/90"
           >
             {isPending ? (
