@@ -43,6 +43,7 @@ type JobCreationFormProps = {
   ) => Promise<Session | null>;
   disabled?: boolean;
   onReset?: () => void;
+  showResetButton?: boolean;
   initialValues?: {
     prompt?: string;
     repo?: string;
@@ -58,6 +59,7 @@ export function JobCreationForm({
   onCreateJob,
   disabled,
   onReset,
+  showResetButton,
   initialValues
 }: JobCreationFormProps) {
   const [prompt, setPrompt] = useState("");
@@ -450,10 +452,10 @@ export function JobCreationForm({
             Create a new job by providing a prompt. You can create multiple sessions for the same job.
             </CardDescription>
         </div>
-         {onReset && (
+         {showResetButton && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-4 right-4">
+                <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-4 right-4" data-testid="reset-button">
                     <Trash2 className="h-4 w-4"/>
                     <span className="sr-only">Reset Form</span>
                 </Button>

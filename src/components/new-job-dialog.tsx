@@ -110,6 +110,7 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
             onCreateJob={handleCreateSession}
             disabled={!hasApiKey}
             onReset={isPage ? undefined : handleReset}
+            showResetButton={true}
             initialValues={initialValues}
         />
     );
