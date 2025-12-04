@@ -51,7 +51,7 @@ type SessionListProps = {
   onBulkSendMessage: (sessionIds: string[], message: string) => void;
   countdown: number;
   pollInterval: number;
-  jobIdParam: string | null;
+  q: string | null;
   statusFilter: string;
   children: React.ReactNode;
   titleTruncateLength: number;
@@ -79,7 +79,7 @@ export function SessionList({
   onBulkSendMessage,
   countdown,
   pollInterval,
-  jobIdParam,
+  q,
   statusFilter,
   children,
   titleTruncateLength,
@@ -92,7 +92,7 @@ export function SessionList({
 }: SessionListProps) {
   const router = useRouter();
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
-  const [openAccordionItems, setOpenAccordionItems] = useState<string[]>(jobIdParam ? [jobIdParam] : []);
+  const [openAccordionItems, setOpenAccordionItems] = useState<string[]>(q ? [q] : []);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -190,10 +190,10 @@ export function SessionList({
 
   // Auto-open job from URL param
   useEffect(() => {
-    if (jobIdParam && !openAccordionItems.includes(jobIdParam)) {
-      setOpenAccordionItems(prev => [...prev, jobIdParam]);
+    if (q && !openAccordionItems.includes(q)) {
+      setOpenAccordionItems(prev => [...prev, q]);
     }
-  }, [jobIdParam, openAccordionItems]);
+  }, [q, openAccordionItems]);
   
   const getPullRequestUrl = (session: Session): string | null => {
     if (session.outputs && session.outputs.length > 0) {

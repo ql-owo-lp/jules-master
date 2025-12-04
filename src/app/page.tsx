@@ -45,12 +45,12 @@ function HomePageContent() {
 
   const searchParams = useSearchParams();
   const router = useRouter();
-  const jobIdParam = searchParams.get("jobId");
+  const q = searchParams.get("q");
   const jobPageParam = searchParams.get("jobPage");
   const repoParam = searchParams.get("repo");
   const statusParam = searchParams.get("status");
 
-  const [jobFilter, setJobFilter] = useState<string | null>(jobIdParam);
+  const [jobFilter, setJobFilter] = useState<string | null>(q);
   const [repoFilter, setRepoFilter] = useState<string>(repoParam || 'all');
   const [statusFilter, setStatusFilter] = useState<string>(statusParam || 'all');
   
@@ -61,11 +61,6 @@ function HomePageContent() {
   const [progressLabel, setProgressLabel] = useState("");
   
   const activeRequestId = useRef<string | null>(null);
-
-  // Effect to sync job filter with URL param
-  useEffect(() => {
-    setJobFilter(jobIdParam);
-  }, [jobIdParam]);
 
   const { filteredJobs, unknownSessions } = useMemo(() => {
     const allJobSessionIds = new Set(jobs.flatMap(j => j.sessionIds));
@@ -78,7 +73,7 @@ function HomePageContent() {
     let j = [...jobs, ...dynamicJobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     if (jobFilter) {
-      j = j.filter(job => job.id === jobFilter);
+      j = j.filter(job => job.name.toLowerCase().includes(jobFilter.toLowerCase()));
     }
     if (repoFilter !== 'all') {
       j = j.filter(job => job.repo === repoFilter);
@@ -370,9 +365,9 @@ function HomePageContent() {
     setJobPage(1);
     const newParams = new URLSearchParams(searchParams.toString());
     if (value) {
-      newParams.set('jobId', value);
+      newParams.set('q', value);
     } else {
-      newParams.delete('jobId');
+      newParams.delete('q');
     }
     newParams.delete('jobPage');
     router.push(`?${newParams.toString()}`);
@@ -481,7 +476,7 @@ function HomePageContent() {
             onBulkSendMessage={handleBulkSendMessage}
             countdown={countdown}
             pollInterval={sessionListPollInterval}
-            jobIdParam={jobIdParam}
+            q={q}
             statusFilter={statusFilter}
             titleTruncateLength={titleTruncateLength}
             jobPage={jobPage}
@@ -545,9 +540,15 @@ function HomePageContent() {
 export default function Home() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <HomePageContent />
+      <HomePageContentWithSearchParams />
     </Suspense>
-  )
+  );
+}
+
+function HomePageContentWithSearchParams() {
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q");
+  return <HomePageContent key={q} />;
 }
 
     
