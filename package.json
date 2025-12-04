@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/lib/db/migrate.ts",
-    "test": "vitest",
+    "test": "node --max-old-space-size=4096 node_modules/.bin/vitest",
     "test:e2e": "playwright test",
     "postinstall": "patch-package"
   },
@@ -84,6 +84,7 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.15",
-    "vitest-fetch-mock": "^0.4.5"
+    "vitest-fetch-mock": "^0.4.5",
+    "@vitejs/plugin-react": "^4.3.1"
   }
 }
