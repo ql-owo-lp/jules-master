@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
+import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -401,7 +402,7 @@ export default function SettingsPage() {
             if (data?.id) {
                 updatedPrompts = prompts.map((p) => p.id === data.id ? { ...p, title, prompt: promptText } : p);
             } else {
-                updatedPrompts = [...prompts, { id: crypto.randomUUID(), title, prompt: promptText }];
+                updatedPrompts = [...prompts, { id: uuidv4(), title, prompt: promptText }];
             }
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
@@ -411,7 +412,7 @@ export default function SettingsPage() {
             if (data?.id) {
                 updatedReplies = quickReplies.map((r) => r.id === data.id ? { ...r, title, prompt: promptText } : r);
             } else {
-                updatedReplies = [...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText }];
+                updatedReplies = [...quickReplies, { id: uuidv4(), title, prompt: promptText }];
             }
             await saveQuickReplies(updatedReplies);
             setQuickReplies(updatedReplies);
