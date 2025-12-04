@@ -73,21 +73,21 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
         return newSession;
     }
 
-    const handleJobsCreated = (newSessions: Session[], newJob: Job) => {
-        if (!newJob.background) {
-            toast({
-                title: "Job submitted!",
-                description: `${newSessions.length} new session(s) have been created.`,
+    const handleJobsCreated = (newSessions: Session[], newJobs: Job[]) => {
+        if (newJobs.length > 0 && !newJobs[0].background) {
+             toast({
+                title: "Job(s) submitted!",
+                description: `${newJobs.length} new job(s) with ${newSessions.length} session(s) have been created.`,
             });
         }
         
         // Update job cache immediately
-        setJobs([...jobs, newJob]);
+        setJobs([...jobs, ...newJobs]);
 
         // Revalidate server data in the background
         revalidateSessions();
         
-        const targetPath = `/?jobId=${newJob.id}`;
+        const targetPath = newJobs.length === 1 ? `/?jobId=${newJobs[0].id}` : `/`;
         if (isPage) {
             router.push(targetPath);
         } else {

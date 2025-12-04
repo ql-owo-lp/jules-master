@@ -1,31 +1,18 @@
-import { test, expect } from "@playwright/test";
 
-test("Batch Job Creation", async ({ page }) => {
-  test.setTimeout(120000); // Increase timeout to 120 seconds
-  // Set API key in local storage
-  await page.goto("/");
-  await page.evaluate(() => {
-    localStorage.setItem("jules-api-key", '"test-api-key"');
-  });
+import { test, expect } from '@playwright/test';
 
-  await page.goto("/jobs/new");
+test('Batch Job Creation', async ({ page }) => {
+  await page.goto('http://localhost:9002/jobs/new');
 
-  // Fill in the job details
-  await page.fill("#job-name", "My Batch Job");
-  await page.fill("#session-count", "1");
-  await page.fill(
-    "#prompts",
-    "Create a boba app!\nCreate a pizza app!\nCreate a soda app!"
-  );
+  await page.wait_for_selector('textarea[aria-label="Session Prompts"]');
 
-  // Click the create button
-  await page.click("button[type='submit']");
+  await page.fill('textarea[aria-label="Session Prompts"]', 'Prompt 1\nPrompt 2\nPrompt 3');
 
-  // Wait for the navigation to the home page to complete
-  await page.waitForURL("/");
+  await page.click('button:has-text("Create Job")');
 
-  // Verify that the jobs are created
-  await expect(page.locator("text=My Batch Job (1)")).toBeVisible();
-  await expect(page.locator("text=My Batch Job (2)")).toBeVisible();
-  await expect(page.locator("text=My Batch Job (3)")).toBeVisible();
+  await page.waitForURL('http://localhost:9002/');
+
+  expect(await page.isVisible('text="Prompt 1"')).toBe(true);
+  expect(await page.isVisible('text="Prompt 2"')).toBe(true);
+  expect(await page.isVisible('text="Prompt 3"')).toBe(true);
 });
