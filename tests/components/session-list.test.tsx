@@ -258,4 +258,86 @@ describe('SessionList', () => {
 
     expect(screen.queryByText('Test Job')).not.toBeNull();
   });
+
+  it('should only select filtered sessions when "select all" is clicked with a status filter', () => {
+    const sessions = [
+      {
+        id: 'session-1',
+        title: 'Completed Session',
+        state: 'COMPLETED',
+        createTime: new Date().toISOString(),
+      },
+      {
+        id: 'session-2',
+        title: 'Awaiting Plan Approval Session',
+        state: 'AWAITING_PLAN_APPROVAL',
+        createTime: new Date().toISOString(),
+      },
+    ];
+
+    const jobs = [
+      {
+        id: 'job-1',
+        name: 'Test Job',
+        status: 'COMPLETED',
+        sessionIds: ['session-1', 'session-2'],
+        sessionCount: 2,
+        repo: 'test-repo',
+        branch: 'test-branch',
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    const { rerender } = render(
+      <SessionList
+        sessions={sessions}
+        jobs={jobs}
+        unknownSessions={[]}
+        quickReplies={[]}
+        lastUpdatedAt={null}
+        onRefresh={() => {}}
+        isRefreshing={false}
+        isActionPending={false}
+        onApprovePlan={() => {}}
+        onSendMessage={() => {}}
+        onBulkSendMessage={() => {}}
+        countdown={0}
+        pollInterval={0}
+        jobIdParam={null}
+        statusFilter="COMPLETED"
+        titleTruncateLength={50}
+        jobPage={1}
+        totalJobPages={1}
+        onJobPageChange={() => {}}
+      >
+        <div />
+      </SessionList>
+    );
+
+    const accordionTrigger = screen.getByText('Test Job');
+    act(() => {
+      accordionTrigger.click();
+    });
+
+    waitFor(() => {
+      const selectAllCheckbox = screen.getByLabelText(
+        'Select all sessions for job Test Job'
+      );
+      act(() => {
+        selectAllCheckbox.click();
+      });
+
+      // Assert that the completed session is selected
+      const completedSessionCheckbox = screen.getByLabelText(
+        'Select session session-1'
+      );
+      expect(completedSessionCheckbox).toBeChecked();
+
+      // Assert that the awaiting plan approval session is not selected
+      const awaitingPlanApprovalSessionCheckbox = screen.queryByLabelText(
+        'Select session session-2'
+      );
+      expect(awaitingPlanApprovalSessionCheckbox).toBeNull();
+    });
+  });
 });
