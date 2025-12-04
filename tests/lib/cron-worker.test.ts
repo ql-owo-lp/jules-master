@@ -30,7 +30,6 @@ vi.mock('better-sqlite3', () => {
 
 // Mock cron-parser
 vi.mock('cron-parser', () => ({
-  default: {
     parseExpression: vi.fn((schedule) => {
         if (schedule === '* * * * *') {
             return {
@@ -48,7 +47,6 @@ vi.mock('cron-parser', () => ({
         }
         throw new Error('Invalid cron expression');
     }),
-  }
 }));
 
 describe('processCronJobs', () => {

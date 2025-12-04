@@ -1,8 +1,8 @@
 
 import { db } from "@/lib/db";
-import { cronJobs } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
-import type { CronJob } from "@/lib/types";
+import { cronJobs, jobs } from "@/lib/db/schema";
+import { eq, desc, count } from "drizzle-orm";
+import type { CronJob, State } from "@/lib/types";
 
 export async function getCronJobs(): Promise<CronJob[]> {
   try {
@@ -55,5 +55,34 @@ export async function toggleCronJob(id: string, enabled: boolean) {
     } catch (error) {
         console.error("Failed to toggle cron job:", error);
         throw error;
+    }
+}
+
+export async function getCronJobHistory(id: string, page: number, limit: number, status: string) {
+    try {
+        const where = [eq(jobs.cronJobId, id)];
+        if (status !== 'all') {
+            where.push(eq(jobs.status, status as State));
+        }
+
+        const historyJobs = await db.select().from(jobs).where(eq(jobs.cronJobId, id)).orderBy(desc(jobs.createdAt)).limit(limit).offset((page - 1) * limit);
+        const total = await db.select({ count: count() }).from(jobs).where(eq(jobs.cronJobId, id));
+
+        return {
+            jobs: historyJobs,
+            totalPages: Math.ceil(total[0].count / limit),
+        };
+    } catch (error) {
+        console.error("Failed to fetch cron job history:", error);
+        throw new Error("Failed to fetch cron job history");
+    }
+}
+
+export async function clearCronJobHistory(id: string) {
+    try {
+        await db.delete(jobs).where(eq(jobs.cronJobId, id));
+    } catch (error) {
+        console.error("Failed to clear cron job history:", error);
+        throw new Error("Failed to clear cron job history");
     }
 }
