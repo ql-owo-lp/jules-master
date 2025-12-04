@@ -1,5 +1,7 @@
+
 'use client';
 
+import React from 'react';
 import { Label } from '@/components/ui/label';
 import type { Branch } from '@/lib/types';
 import { GitBranch } from 'lucide-react';
