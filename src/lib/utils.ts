@@ -46,7 +46,7 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
       const branch = latestSession.sourceContext?.githubRepoContext?.startingBranch || 'unknown';
 
       // Combine timestamp and a random string to ensure the ID is unique
-      const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+      const uniqueSuffix = globalThis.crypto.randomUUID();
       const slug = jobName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       return {
         id: `dynamic-${slug}-${uniqueSuffix}`,

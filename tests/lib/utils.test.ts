@@ -182,4 +182,27 @@ describe('createDynamicJobs', () => {
     expect(job1.name).toBe('a / b & c');
     expect(job1.id.startsWith('dynamic-a-b-c-')).toBe(true);
   });
+
+  it('should generate unique IDs for each job across multiple calls', () => {
+    const groupedSessions = new Map<string, Session[]>();
+    groupedSessions.set('Test Job 1', [
+      { id: '1', createTime: '2023-01-01T12:00:00Z' },
+    ]);
+    groupedSessions.set('Test Job 2', [
+      { id: '2', createTime: '2023-01-02T12:00:00Z' },
+    ]);
+
+    const jobs1 = createDynamicJobs(groupedSessions);
+    const jobs2 = createDynamicJobs(groupedSessions);
+
+    const ids1 = new Set(jobs1.map(job => job.id));
+    const ids2 = new Set(jobs2.map(job => job.id));
+
+    expect(ids1.size).toBe(2);
+    expect(ids2.size).toBe(2);
+
+    for (const id of ids1) {
+      expect(ids2.has(id)).toBe(false);
+    }
+  });
 });
