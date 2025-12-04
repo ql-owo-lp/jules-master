@@ -53,6 +53,7 @@ describe('Settings API', () => {
       autoDeleteStaleBranches: true,
       autoDeleteStaleBranchesAfterDays: 7,
       historyPromptsCount: 20,
+      debugMode: true,
     };
 
     const postReq = new NextRequest('http://localhost/api/settings', {

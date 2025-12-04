@@ -87,6 +87,7 @@ export const settings = sqliteTable('settings', {
   sessionCacheMaxAgeDays: integer('session_cache_max_age_days').notNull().default(3),
   autoDeleteStaleBranches: integer('auto_delete_stale_branches', { mode: 'boolean' }).notNull().default(false),
   autoDeleteStaleBranchesAfterDays: integer('auto_delete_stale_branches_after_days').notNull().default(3),
+  debugMode: integer('debug_mode', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const sessions = sqliteTable('sessions', {

@@ -315,6 +315,7 @@ export default function SettingsPage() {
                 autoContinueEnabled: autoContinueEnabledValue,
                 autoContinueMessage: autoContinueMessageValue,
                 theme: currentTheme,
+                debugMode: debugModeValue,
 
                 // New Settings
                 sessionCacheInProgressInterval: sessionCacheInProgressIntervalValue,
