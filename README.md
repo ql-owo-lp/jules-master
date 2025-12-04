@@ -9,7 +9,7 @@ The primary goal of this project is to simplify the interaction with the Jules A
 ## Features
 
 - **API Key Configuration**: Securely input and store your Jules API key. You can use the `JULES_API_KEY` environment variable or configure it directly in the UI (stored in local storage).
-- **Batch Job Creation**: Easily create multiple jobs by entering prompts. The interface supports predefined prompts and history tracking. A "New Job" button on the main page opens a dialog to create new batch jobs.
+- **Batch Job Creation**: Easily create multiple jobs by entering prompts. You can create multiple sessions for the same job, or create multiple jobs by entering one prompt per line. The interface supports predefined prompts and history tracking.
 - **Job Listing**: View and manage a list of all your created jobs.
 - **AI-Powered Title Generation**: Utilizes Genkit (with Google AI) to automatically generate summary titles for your jobs based on the provided prompts.
 - **Modern UI**: Built with Next.js, Tailwind CSS, and Radix UI components for a responsive and accessible design.
