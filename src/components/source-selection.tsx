@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { listSources } from '@/app/sessions/actions';
 import type { Source } from '@/lib/types';

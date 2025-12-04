@@ -8,6 +8,7 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     environment: 'jsdom',
     exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**', 'tests/e2e/**'],
+    include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
     fileParallelism: false,
     coverage: {
       provider: 'v8',

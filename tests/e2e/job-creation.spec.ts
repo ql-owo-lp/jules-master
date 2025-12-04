@@ -69,4 +69,23 @@ test.describe('Job Creation', () => {
      const newJobLink = page.locator('a[href="/jobs/new"]');
      await expect(newJobLink).toBeVisible();
   });
+
+  test("should create a new batch job and see it in the list", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    await page.getByRole("button", { name: "New Job" }).click();
+
+    const jobName = "My New Batch Job";
+    await page.getByLabel("Job Name").fill(jobName);
+    await page.getByRole("textbox", { name: "Session Prompts" }).fill("Prompt 1\nPrompt 2");
+    await page.getByRole("button", { name: "Create Job" }).click();
+
+    await expect(
+      page.getByRole("heading", { name: "Create a New Job" })
+    ).toBeHidden();
+
+    await expect(page.getByText(jobName)).toBeVisible();
+  });
 });

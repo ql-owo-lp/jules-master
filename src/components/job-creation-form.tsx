@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useTransition, useCallback, useEffect, useMemo } from "react";
+import { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -31,7 +31,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FloatingProgressBar } from "@/components/floating-progress-bar";
 
 type JobCreationFormProps = {
-  onJobsCreated: (sessions: Session[], newJobs: Job[]) => void;
+  onJobsCreated: (sessions: Session[], newJob: Job) => void;
   onCreateJob: (
     title: string,
     prompt: string,
@@ -64,7 +64,6 @@ export function JobCreationForm({
   const [jobName, setJobName] = useState("");
   const [defaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
   const [sessionCount, setSessionCount] = useState(defaultSessionCount);
-  const [isBatchMode, setIsBatchMode] = useState(false);
   
   const [requirePlanApproval, setRequirePlanApproval] = useLocalStorage<boolean>("jules-new-job-require-plan-approval", false);
   const [automationMode, setAutomationMode] = useLocalStorage<AutomationMode>("jules-new-job-automation-mode", "AUTO_CREATE_PR");
@@ -155,16 +154,6 @@ export function JobCreationForm({
         setSessionCount(1);
     }
   }, [defaultSessionCount, initialValues]);
-
-  useEffect(() => {
-    const promptLines = prompt.split('\n').filter(line => line.trim() !== '').length;
-    if (promptLines > 1) {
-      setIsBatchMode(true);
-      setSessionCount(1);
-    } else {
-      setIsBatchMode(false);
-    }
-  }, [prompt]);
 
   const handleRefresh = useCallback(async () => {
     startRefreshTransition(async () => {
@@ -262,115 +251,93 @@ export function JobCreationForm({
       setHistoryPrompts(hPrompts);
 
       const createdSessions: Session[] = [];
-      const newJobs: Job[] = [];
+      const sessionIds: string[] = [];
+      const title = jobName.trim() || new Date().toLocaleString();
 
-      const prompts = isBatchMode ? prompt.split('\n').filter(p => p.trim() !== '') : [prompt];
-
-      if (isBatchMode && prompts.length > 1) {
-        setProgressTotal(prompts.length);
-        setProgressCurrent(0);
-      }
-
-      for (let i = 0; i < prompts.length; i++) {
-        const currentPrompt = prompts[i];
-        const title = isBatchMode ? currentPrompt.substring(0,50) : jobName.trim() || new Date().toLocaleString();
-
-        let finalPrompt = "";
-        if (applyGlobalPrompt && globalPrompt) {
-            finalPrompt += `${globalPrompt}\n\n`;
-        }
-        if (repoPrompt) {
-            finalPrompt += `${repoPrompt}\n\n`;
-        }
-        finalPrompt += currentPrompt;
-
-        if (backgroundJob) {
-          const newJob: Job = {
-              id: crypto.randomUUID(),
-              name: title,
-              sessionIds: [],
-              createdAt: new Date().toISOString(),
-              repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
-              branch: selectedBranch,
-              autoApproval: !requirePlanApproval,
-              background: true,
-              prompt: finalPrompt,
-              sessionCount: sessionCount,
-              status: 'PENDING',
-              automationMode: automationMode,
-              requirePlanApproval: requirePlanApproval
-          };
-          await addJob(newJob);
-          newJobs.push(newJob);
-        } else {
-          const sessionIds: string[] = [];
-          if (sessionCount > 1 && !isBatchMode) {
-            setProgressTotal(sessionCount);
-            setProgressCurrent(0);
-          }
-
-          for (let j = 0; j < sessionCount; j++) {
-            const sessionIndex = j;
-            if (sessionCount > 1 && !isBatchMode) {
-                setProgressCurrent(sessionIndex + 1);
-            }
-
-            let retries = 3;
-            let newSession: Session | null = null;
-            while (retries > 0 && !newSession) {
-                newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode, settings);
-                if (!newSession) {
-                    console.error(`Failed to create session ${sessionIndex + 1}. Retries remaining: ${retries - 1}`);
-                    retries--;
-                    toast({
-                        variant: "destructive",
-                        title: `Failed to create session ${sessionIndex + 1}`,
-                        description: `Retrying... (${3 - retries}/3)`,
-                    });
-                    await sleep(1000); // wait before retrying
-                }
-            }
-
-            if (newSession) {
-              createdSessions.push({ ...newSession, title });
-              sessionIds.push(newSession.id);
-            } else {
-                toast({
-                    variant: "destructive",
-                    title: `Failed to create session ${sessionIndex + 1} after multiple retries.`,
-                });
-            }
-            await sleep(500); // 500ms interval
-          }
-
-          const newJob: Job = {
+      if (backgroundJob) {
+        const newJob: Job = {
             id: crypto.randomUUID(),
             name: title,
-            sessionIds,
+            sessionIds: [],
             createdAt: new Date().toISOString(),
             repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
             branch: selectedBranch,
             autoApproval: !requirePlanApproval,
-            background: false,
-          };
+            background: true,
+            prompt: finalPrompt,
+            sessionCount: sessionCount,
+            status: 'PENDING',
+            automationMode: automationMode,
+            requirePlanApproval: requirePlanApproval
+        };
+        await addJob(newJob);
+        toast({
+            title: "Background Job Scheduled",
+            description: "The job has been scheduled to run in the background.",
+        });
 
-          await addJob(newJob);
-          newJobs.push(newJob);
-        }
-
-        if (isBatchMode && prompts.length > 1) {
-          setProgressCurrent(i + 1);
-        }
+        onJobsCreated([], newJob); // Pass empty sessions as they will be created later
+        setPrompt("");
+        setSelectedPromptId(null);
+        setJobName("");
+        setSessionCount(defaultSessionCount);
+        return;
       }
 
-      if (newJobs.length > 0) {
-        if (backgroundJob) {
-           toast({
-              title: "Background Jobs Scheduled",
-              description: `${newJobs.length} jobs have been scheduled to run in the background.`,
-          });
+      if (sessionCount > 1) {
+        setProgressTotal(sessionCount);
+        setProgressCurrent(0);
+      }
+
+      for (let i = 0; i < sessionCount; i++) {
+        const sessionIndex = i;
+        if (sessionCount > 1) {
+             setProgressCurrent(sessionIndex + 1);
         }
-        onJobsCreated(createdSessions, newJobs);
+
+        let retries = 3;
+        let newSession: Session | null = null;
+        while (retries > 0 && !newSession) {
+            newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode, settings);
+            if (!newSession) {
+                console.error(`Failed to create session ${sessionIndex + 1}. Retries remaining: ${retries - 1}`);
+                retries--;
+                toast({
+                    variant: "destructive",
+                    title: `Failed to create session ${sessionIndex + 1}`,
+                    description: `Retrying... (${3 - retries}/3)`,
+                });
+                await sleep(1000); // wait before retrying
+            }
+        }
+
+        if (newSession) {
+           createdSessions.push({ ...newSession, title });
+           sessionIds.push(newSession.id);
+        } else {
+             toast({
+                variant: "destructive",
+                title: `Failed to create session ${sessionIndex + 1} after multiple retries.`,
+             });
+        }
+        await sleep(500); // 500ms interval
+      }
+
+      const newJob: Job = {
+        id: crypto.randomUUID(),
+        name: title,
+        sessionIds,
+        createdAt: new Date().toISOString(),
+        repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
+        branch: selectedBranch,
+        autoApproval: !requirePlanApproval,
+        background: false,
+      };
+
+      await addJob(newJob);
+
+      if (createdSessions.length > 0) {
+        onJobsCreated(createdSessions, newJob);
         setPrompt("");
         setSelectedPromptId(null);
         setJobName("");
@@ -478,7 +445,7 @@ export function JobCreationForm({
         <div>
             <CardTitle>New Job</CardTitle>
             <CardDescription>
-              Create a new job by providing a prompt. You can create multiple sessions for the same job, or create multiple jobs by entering one prompt per line.
+            Create a new job by providing a prompt. You can create multiple sessions for the same job.
             </CardDescription>
         </div>
          {onReset && (
@@ -516,13 +483,8 @@ export function JobCreationForm({
                 min="1"
                 value={sessionCount}
                 onChange={(e) => setSessionCount(parseInt(e.target.value, 10))}
-                disabled={isPending || disabled || isBatchMode}
+                disabled={isPending || disabled}
               />
-               {isBatchMode && (
-                <p className="text-sm text-muted-foreground">
-                  Batch mode is active. One job will be created for each line in the prompt.
-                </p>
-              )}
             </div>
           </div>
 

@@ -20,6 +20,8 @@ import { Combobox } from "@/components/ui/combobox";
 import { groupSessionsByTopic, createDynamicJobs } from "@/lib/utils";
 import { useEnv } from "@/components/env-provider";
 import { FloatingProgressBar } from "@/components/floating-progress-bar";
+import { createJob } from "@/app/jobs/actions";
+import { NewJobDialog } from "@/components/new-job-dialog";
 
 function HomePageContent() {
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
@@ -406,6 +408,28 @@ function HomePageContent() {
     ...[...jobs].reverse().map(j => ({ value: j.id, label: j.name }))
   ], [jobs]);
 
+  const handleCreateJob = (prompts: string[], jobName: string) => {
+    startActionTransition(async () => {
+      try {
+        await createJob(prompts, jobName);
+        toast({
+          title: "Job Created",
+          description: "Your new job has been successfully created.",
+        });
+        fetchAllData();
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Failed to create job",
+          description:
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred.",
+        });
+      }
+    });
+  };
+
   const statusOptions = useMemo(() => [
     { value: 'all', label: 'All Statuses' },
     ...Array.from(new Set(sessions.map(s => s.state).filter((s): s is State => !!s))).map(s => ({ value: s, label: s }))
@@ -491,9 +515,15 @@ function HomePageContent() {
             progressTotal={progressTotal}
             pendingBackgroundWork={pendingBackgroundWork}
           >
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="filter-repo">Repository</Label>
+            <div className="flex justify-end mb-4">
+              <NewJobDialog
+                onCreateJob={handleCreateJob}
+                isCreatingJob={isActionPending}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="filter-repo">Repository</Label>
                   <Combobox 
                     options={repoOptions}
                     selectedValue={repoFilter}
