@@ -26,14 +26,6 @@ describe('Session Actions', () => {
   });
 
   describe('listSessions', () => {
-    it('should return mock sessions when MOCK_API is true', async () => {
-      process.env.MOCK_API = 'true';
-      const result = await listSessions();
-      expect(result.sessions).toBeDefined();
-      expect(result.sessions.length).toBe(2);
-      expect(result.sessions[0].id).toBe('session-1');
-    });
-
     it('should return cached sessions if available', async () => {
       const mockSessions = [{ id: '1', name: 'Session 1', title: 'Title' } as any];
       (sessionService.getCachedSessions as vi.Mock).mockResolvedValue(mockSessions);

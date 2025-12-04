@@ -18,7 +18,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'MOCK_API=true npm run dev',
+    command: 'npm run db:migrate && MOCK_API=true npm run dev',
     url: 'http://localhost:9002',
     reuseExistingServer: !process.env.CI,
     stdout: 'ignore',

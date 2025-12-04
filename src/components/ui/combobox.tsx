@@ -38,6 +38,7 @@ type ComboboxProps = {
     icon?: React.ReactNode;
     name?: string;
     renderOption?: (option: ComboboxOption) => React.ReactNode;
+    "data-testid"?: string;
 };
 
 function isGroupArray(options: ComboboxOption[] | ComboboxGroup[]): options is ComboboxGroup[] {
@@ -55,7 +56,8 @@ export function Combobox({
     disabled,
     icon,
     name,
-    renderOption
+    renderOption,
+    "data-testid": dataTestId
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
@@ -118,6 +120,7 @@ export function Combobox({
           className="w-full justify-between"
           disabled={disabled}
           name={name}
+          data-testid={dataTestId}
         >
             <div className="flex items-center gap-2 truncate">
                 {icon}

@@ -246,11 +246,12 @@ export function SessionList({
           const backPath = isUncategorized ? '' : `?jobId=${jobId || jobIdParam}`;
 
           return (
-            <TableRow 
-              key={session.id} 
+            <TableRow
+              key={session.id}
               className="cursor-pointer"
               onClick={() => router.push(`/sessions/${session.id}${backPath}`)}
               data-state={selectedSessionIds.includes(session.id) ? "selected" : undefined}
+              data-testid="session-card"
             >
                 <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
                   <Checkbox

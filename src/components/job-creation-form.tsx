@@ -469,6 +469,7 @@ export function JobCreationForm({
               <Label htmlFor="job-name">Job Name (Optional)</Label>
               <Input
                 id="job-name"
+                data-testid="job-name"
                 placeholder="e.g., My Awesome Job"
                 value={jobName}
                 onChange={(e) => setJobName(e.target.value)}
@@ -507,6 +508,7 @@ export function JobCreationForm({
             </div>
             <Textarea
               id="prompts"
+              data-testid="prompts"
               placeholder="e.g., Create a boba app!"
               rows={5}
               value={prompt}

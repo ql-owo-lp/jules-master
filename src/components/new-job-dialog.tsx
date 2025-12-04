@@ -105,13 +105,15 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
     const hasApiKey = !!(julesApiKey || apiKey);
 
     const form = (
-        <JobCreationForm
-            onJobsCreated={handleJobsCreated}
-            onCreateJob={handleCreateSession}
-            disabled={!hasApiKey}
-            onReset={isPage ? undefined : handleReset}
-            initialValues={initialValues}
-        />
+        <div data-testid="job-creation-form">
+            <JobCreationForm
+                onJobsCreated={handleJobsCreated}
+                onCreateJob={handleCreateSession}
+                disabled={!hasApiKey}
+                onReset={isPage ? undefined : handleReset}
+                initialValues={initialValues}
+            />
+        </div>
     );
 
     if (isPage) {

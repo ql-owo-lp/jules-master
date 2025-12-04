@@ -182,7 +182,7 @@ function HomePageContent() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, apiKey, sessionListPollInterval]);
+  }, [isClient, apiKey, sessionListPollInterval, jobIdParam]);
   
 
   // Countdown timer
@@ -526,6 +526,7 @@ function HomePageContent() {
                     searchPlaceholder="Search jobs..."
                     name="filter-job"
                     icon={<Briefcase className="h-4 w-4 text-muted-foreground" />}
+                    data-testid="job-filter"
                   />
                 </div>
             </div>

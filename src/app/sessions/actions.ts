@@ -20,37 +20,7 @@ export async function revalidateSessions() {
   revalidateTag('sessions');
 }
 
-// --- Mock Data ---
-const MOCK_SESSIONS: Session[] = [
-  {
-    name: 'sessions/mock-1',
-    id: 'session-1',
-    title: 'Mock Session 1',
-    state: 'COMPLETED',
-    createTime: '2024-01-01T12:00:00.000Z',
-    sourceContext: {
-      source: 'sources/github/test-owner/test-repo',
-      githubRepoContext: {
-        startingBranch: 'main',
-      },
-    },
-    prompt: "This is a mock prompt for session 1",
-  },
-  {
-    name: 'sessions/mock-2',
-    id: 'session-2',
-    title: 'Mock Session 2',
-    state: 'AWAITING_USER_FEEDBACK',
-    createTime: '2024-01-01T11:58:20.000Z',
-    sourceContext: {
-      source: 'sources/github/test-owner/test-repo',
-      githubRepoContext: {
-        startingBranch: 'develop',
-      },
-    },
-    prompt: "This is a mock prompt for session 2",
-  },
-];
+import { MOCK_SESSIONS } from '@/lib/mock-data';
 
 const MOCK_SOURCES: Source[] = [
   {
@@ -78,10 +48,6 @@ export async function listSessions(
   pageSize: number = 50,
   requestId?: string
 ): Promise<{ sessions: Session[], error?: string }> {
-  // Check for mock flag
-  if (process.env.MOCK_API === 'true') {
-     return { sessions: MOCK_SESSIONS };
-  }
 
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
@@ -147,10 +113,6 @@ export async function fetchSessionsPage(
     pageToken?: string | null,
     pageSize: number = 100
 ): Promise<{ sessions: Session[], nextPageToken?: string, error?: string }> {
-     // Check for mock flag
-     if (process.env.MOCK_API === 'true') {
-        return { sessions: MOCK_SESSIONS };
-     }
 
      const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
      if (!effectiveApiKey) {
@@ -201,10 +163,6 @@ export async function fetchSessionsPage(
 }
 
 export async function listSources(apiKey?: string | null): Promise<Source[]> {
-  // Check for mock flag
-  if (process.env.MOCK_API === 'true') {
-    return MOCK_SOURCES;
-  }
 
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
