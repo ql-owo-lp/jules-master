@@ -122,9 +122,7 @@ export function Combobox({
             <div className="flex items-center gap-2 truncate">
                 {icon}
                 <span className="truncate">
-                    {selectedValue
-                        ? flattenedOptions.find((option) => option.value === selectedValue)?.label
-                        : placeholder}
+                    {flattenedOptions.find((option) => option.value === selectedValue)?.label || placeholder}
                 </span>
             </div>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

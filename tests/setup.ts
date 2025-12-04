@@ -1,8 +1,7 @@
-
+import React from 'react';
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { db } from '../src/lib/db';
+
+global.React = React;
 
 // Mock ResizeObserver
 class ResizeObserver {
@@ -11,12 +10,7 @@ class ResizeObserver {
   disconnect() {}
 }
 
-window.HTMLElement.prototype.scrollIntoView = vi.fn();
-
 vi.stubGlobal('ResizeObserver', ResizeObserver);
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
-migrate(db, { migrationsFolder: 'src/lib/db/migrations' });
+// Mock scrollIntoView
+window.HTMLElement.prototype.scrollIntoView = vi.fn();

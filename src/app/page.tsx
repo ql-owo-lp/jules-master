@@ -366,7 +366,7 @@ function HomePageContent() {
   }
 
   const onJobFilterChange = (value: string | null) => {
-    setJobFilter(value);
+    setJobFilter(value === 'all' ? null : value);
     setJobPage(1);
     const newParams = new URLSearchParams(searchParams.toString());
     if (value) {
@@ -521,7 +521,7 @@ function HomePageContent() {
                    <Combobox 
                     options={allJobOptions}
                     selectedValue={jobFilter || 'all'}
-                    onValueChange={(val) => onJobFilterChange(val === 'all' ? null : val)}
+                    onValueChange={(val) => onJobFilterChange(val === 'all' ? 'all' : val)}
                     placeholder="Filter by job..."
                     searchPlaceholder="Search jobs..."
                     name="filter-job"

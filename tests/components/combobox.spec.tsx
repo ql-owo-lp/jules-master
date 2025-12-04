@@ -77,4 +77,28 @@ describe("Combobox", () => {
       expect(item.getAttribute("data-value")).toBe(options[index].value);
     });
   });
+
+  it('should display the placeholder when selectedValue is not found in options', () => {
+    const { getByText, rerender } = render(
+      <Combobox
+        options={options}
+        selectedValue="1"
+        onValueChange={() => {}}
+        placeholder="Select an option"
+        searchPlaceholder="Search..."
+      />
+    );
+    expect(getByText("Option 1")).toBeInTheDocument();
+
+    rerender(
+      <Combobox
+        options={options}
+        selectedValue="all"
+        onValueChange={() => {}}
+        placeholder="Select an option"
+        searchPlaceholder="Search..."
+      />
+    );
+    expect(getByText("Select an option")).toBeInTheDocument();
+  });
 });
