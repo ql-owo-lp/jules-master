@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2, PlayCircle, PauseCircle, Clock } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, PlayCircle, PauseCircle, Clock, History } from "lucide-react";
 import { CronJobDialog } from "@/components/cron-job-dialog";
+import { CronJobHistoryDialog } from "@/components/cron-job-history-dialog";
 import type { CronJob } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -122,7 +123,7 @@ export function CronJobsList() {
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon">
+                                                    <Button variant="ghost" size="icon" data-testid="cron-job-actions-trigger">
                                                         <MoreHorizontal className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
@@ -139,6 +140,9 @@ export function CronJobsList() {
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleDelete(job.id)} className="text-destructive">
                                                         <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                        <CronJobHistoryDialog cronJob={job} />
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>

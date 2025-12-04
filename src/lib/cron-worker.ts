@@ -2,7 +2,7 @@
 import { db } from './db';
 import { cronJobs, jobs } from './db/schema';
 import { eq, and, lte } from 'drizzle-orm';
-import cronParser from 'cron-parser';
+import * as cronParser from 'cron-parser';
 import type { CronJob, Job } from './types';
 
 export async function processCronJobs() {

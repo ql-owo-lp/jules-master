@@ -159,6 +159,9 @@ function HomePageContent() {
 
   useEffect(() => {
     setIsClient(true);
+    if (process.env.MOCK_API === 'true') {
+      setApiKey('mock');
+    }
   }, []);
 
   // Initial fetch and set up polling interval
