@@ -153,7 +153,13 @@ export function SessionList({
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
-    const jobSessionIds = job.sessionIds;
+    const sessionsForJob = job.sessionIds
+      .map(id => sessionMap.get(id))
+      .filter((s): s is Session => !!s)
+      .filter(s => statusFilter === 'all' || s.state === statusFilter);
+
+    const jobSessionIds = sessionsForJob.map(s => s.id);
+
     if (checked) {
       setSelectedSessionIds(ids => [...new Set([...ids, ...jobSessionIds])]);
     } else {
