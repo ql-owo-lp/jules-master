@@ -11,9 +11,11 @@ import { Terminal, X, Briefcase, GitMerge, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions, cancelSessionRequest, refreshSession } from "@/app/sessions/actions";
 import { approvePlan, sendMessage } from "@/app/sessions/[id]/actions";
+import { createJob } from "@/app/jobs/actions";
 import { getJobs, getQuickReplies, getPendingBackgroundWorkCount } from "@/app/config/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { CreateJobForm } from "@/components/ui/create-job-form";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
@@ -467,6 +469,7 @@ function HomePageContent() {
               </AlertDescription>
             </Alert>
           )}
+          <CreateJobForm createJob={createJob} predefinedPrompts={quickReplies} />
           <SessionList
             sessions={sessions}
             jobs={paginatedJobs}
