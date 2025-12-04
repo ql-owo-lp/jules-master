@@ -228,6 +228,42 @@ export async function fetchWithRetry(
 ): Promise<Response> {
   const { retries = 3, backoff = 1000, signal, requestId, ...fetchOptions } = options;
 
+  // Mock API logic
+  if (process.env.MOCK_API === 'true') {
+    if (url.toString().includes('sessions')) {
+        await sleep(500); // Simulate network delay
+        return new Response(JSON.stringify({
+            id: 'mock-session-id',
+            name: 'mock-session-name',
+            title: 'Mock Session',
+            prompt: 'Mock Prompt',
+            sourceContext: { source: 'github', githubRepoContext: { startingBranch: 'main' } },
+            createTime: new Date().toISOString(),
+            updateTime: new Date().toISOString(),
+            state: 'COMPLETED',
+            lastUpdated: Date.now()
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+     if (url.toString().includes('jobs')) {
+        await sleep(500);
+        return new Response(JSON.stringify({
+             id: 'mock-job-id',
+             name: 'Mock Job',
+             sessionIds: ['mock-session-id'],
+             createdAt: new Date().toISOString(),
+             repo: 'owner/repo',
+             branch: 'main',
+             status: 'COMPLETED'
+        }), {
+             status: 200,
+             headers: { 'Content-Type': 'application/json' }
+        });
+     }
+  }
+
   return globalQueue.enqueue(async (effectiveSignal) => {
       let attempt = 0;
       while (attempt < retries) {
