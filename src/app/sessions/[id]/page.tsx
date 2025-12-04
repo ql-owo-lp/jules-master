@@ -239,7 +239,8 @@ export default function SessionDetailPage() {
   const repoName = session?.sourceContext?.source.split("/").slice(-2).join("/");
   
   const job = jobs.find(j => session && j.sessionIds.includes(session.id));
-  const backPath = jobId ? `/?jobId=${jobId}` : (job ? `/?jobId=${job.id}` : '/');
+  const backPathFromParams = searchParams.get('backPath');
+  const backPath = backPathFromParams ? decodeURIComponent(backPathFromParams) : (jobId ? `/?jobId=${jobId}` : (job ? `/?jobId=${job.id}` : '/'));
 
   const getPullRequestUrl = (session: Session | null): string | null => {
     if (session?.outputs && session.outputs.length > 0) {

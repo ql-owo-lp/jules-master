@@ -243,13 +243,13 @@ export function SessionList({
       <TableBody>
         {sessionsToRender.map(session => {
           const prUrl = getPullRequestUrl(session);
-          const backPath = isUncategorized ? '' : `?jobId=${jobIdParam}`;
+          const backPath = isUncategorized ? '/' : `/?jobId=${jobIdParam}`;
 
           return (
             <TableRow 
               key={session.id} 
               className="cursor-pointer"
-              onClick={() => router.push(`/sessions/${session.id}${backPath}`)}
+              onClick={() => router.push(`/sessions/${session.id}?backPath=${encodeURIComponent(backPath)}`)}
               data-state={selectedSessionIds.includes(session.id) ? "selected" : undefined}
             >
                 <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
