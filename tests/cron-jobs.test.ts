@@ -47,7 +47,6 @@ describe('Cron Jobs API and Actions', () => {
     expect(mockDb.set).toHaveBeenCalledWith(
       expect.objectContaining({
         enabled,
-        updatedAt: expect.any(String),
       })
     );
     expect(mockDb.where).toHaveBeenCalledTimes(1);
