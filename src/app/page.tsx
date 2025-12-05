@@ -21,13 +21,23 @@ import { groupSessionsByTopic, createDynamicJobs } from "@/lib/utils";
 import { useEnv } from "@/components/env-provider";
 import { FloatingProgressBar } from "@/components/floating-progress-bar";
 import { NewJobDialog } from "@/components/new-job-dialog";
+import { useProfile } from "@/components/profile-provider";
 
 function HomePageContent() {
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
-  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const { currentProfile } = useProfile();
 
-  const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
+  const [localApiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [localGithubToken] = useLocalStorage<string | null>("jules-github-token", null);
+
+  // Use profile values or fallbacks
+  const apiKey = currentProfile?.julesApiKey || localApiKey || julesApiKey || null;
+  const githubToken = currentProfile?.githubToken || localGithubToken || envGithubToken || null;
+
+  const sessionListPollInterval = currentProfile?.idlePollInterval ?? 120;
+  const titleTruncateLength = currentProfile?.titleTruncateLength ?? 50;
+  const jobsPerPage = currentProfile?.jobsPerPage ?? 5;
+
   const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
   const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
   const [quickReplies, setQuickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
@@ -41,8 +51,6 @@ function HomePageContent() {
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(sessionListPollInterval);
-  const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
-  const [jobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
 
   const searchParams = useSearchParams();
   const router = useRouter();

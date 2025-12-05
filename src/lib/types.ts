@@ -21,6 +21,7 @@ export type Session = {
 
 export type Job = {
     id: string;
+    profileId?: string | null;
     name: string;
     sessionIds: string[];
     createdAt: string;
@@ -38,6 +39,7 @@ export type Job = {
 
 export type CronJob = {
     id: string;
+    profileId?: string | null;
     name: string;
     schedule: string;
     prompt: string;
@@ -108,12 +110,14 @@ export type Source = {
 
 export type PredefinedPrompt = {
   id: string;
+  profileId?: string | null;
   title: string;
   prompt: string;
 };
 
 export type HistoryPrompt = {
     id: string;
+    profileId?: string | null;
     prompt: string;
     lastUsedAt: string;
 };
@@ -236,6 +240,34 @@ export type PullRequestStatus = {
 };
 
 export type Settings = {
-  autoContinueEnabled?: boolean;
-  autoRetryEnabled?: boolean;
+  id?: string;
+  name?: string;
+  githubToken?: string | null;
+  julesApiKey?: string | null;
+  julesApiUrl?: string | null;
+  createdAt?: string;
+
+  idlePollInterval: number;
+  activePollInterval: number;
+  titleTruncateLength: number;
+  lineClamp: number;
+  sessionItemsPerPage: number;
+  jobsPerPage: number;
+  defaultSessionCount: number;
+  prStatusPollInterval: number;
+  theme: string;
+  historyPromptsCount: number;
+  autoApprovalInterval: number;
+  autoRetryEnabled: boolean;
+  autoRetryMessage: string;
+  autoContinueEnabled: boolean;
+  autoContinueMessage: string;
+
+  sessionCacheInProgressInterval: number;
+  sessionCacheCompletedNoPrInterval: number;
+  sessionCachePendingApprovalInterval: number;
+  sessionCacheMaxAgeDays: number;
+
+  autoDeleteStaleBranches: boolean;
+  autoDeleteStaleBranchesAfterDays: number;
 };

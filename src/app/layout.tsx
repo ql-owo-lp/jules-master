@@ -21,6 +21,7 @@ import { Bot, MessageSquare, PlusCircle, BookText, ExternalLink, PanelLeft } fro
 import { Header } from '@/components/header';
 import { NewJobDialog } from '@/components/new-job-dialog';
 import { EnvProvider } from '@/components/env-provider';
+import { ProfileProvider } from '@/components/profile-provider';
 
 export const metadata = {
   title: 'Jules Master',
@@ -53,6 +54,7 @@ export default function RootLayout({
           julesApiKey={process.env.JULES_API_KEY}
           githubToken={process.env.GITHUB_TOKEN}
         >
+          <ProfileProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -117,6 +119,7 @@ export default function RootLayout({
             </SidebarProvider>
             <Toaster />
           </ThemeProvider>
+          </ProfileProvider>
         </EnvProvider>
       </body>
     </html>

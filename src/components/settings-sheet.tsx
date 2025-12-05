@@ -23,92 +23,41 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfile } from "@/components/profile-provider";
 
 
 export function SettingsSheet() {
   const { theme, setTheme } = useTheme();
-  // We still need to respect if theme is in DB, but this sheet now mainly controls local runtime config
-  // or simple quick toggles.
-  // Actually, the user said "only leave the run-time config like Theme in the side-panel settings menu".
-
-  // We should still fetch settings on mount to sync theme if it was saved in DB?
-  // Or just rely on next-themes and local storage?
-  // The original code fetched settings and set theme.
+  const { currentProfile, refreshProfiles } = useProfile();
   
+  // Sync theme from profile on load or profile change
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const response = await fetch('/api/settings');
-        if (response.ok) {
-          const dbSettings = await response.json();
-           const isSetInLocalStorage = (key: string) => {
-             return window.localStorage.getItem(key) !== null;
-          }
-          if (!isSetInLocalStorage("theme") && dbSettings.theme) setTheme(dbSettings.theme);
-        }
-      } catch (error) {
-        console.error("Failed to fetch settings from DB", error);
-      }
-    };
-    fetchSettings();
-  }, [setTheme]);
-
-  // When theme changes, we might want to save it to DB so it persists across devices?
-  // The original code only saved on "Save Changes".
-  // Let's add a "Save" button or auto-save?
-  // The user interaction for theme is usually instant.
-  // We can add a save button or just leave it as run-time only (local storage).
-  // But since we support DB persistence for settings, maybe we should save it.
-  // However, `next-themes` persists to localStorage automatically.
-  // If we want to persist to DB, we need to do it explicitly.
-
-  // Given the instruction "only leave the run-time config like Theme",
-  // I will keep the Sheet simple.
-
-  // I will assume we don't need a Save button for Theme if we just rely on `next-themes`
-  // but if we want to sync with DB we might need it.
-  // The previous implementation had a Save button.
-  // I'll keep a Save button just in case the user expects it to be saved to server.
+    if (currentProfile?.theme) {
+        // Only override if not manually set in this session?
+        // Or just let user preference take precedence?
+        // For now, let's just respect profile setting if available and different.
+        // But checking `theme` from useTheme against profile theme might cause loop if we are not careful.
+        // If we want profile to drive theme:
+        setTheme(currentProfile.theme);
+    }
+  }, [currentProfile, setTheme]);
 
   const handleSave = async () => {
+      if (!currentProfile) return;
+
       try {
-        // We only update theme here, but we need to preserve other settings?
-        // The API implementation in `route.ts` reconstructs the object from body.
-        // If we send only theme, other fields will be undefined in `newSettings` object in `route.ts`.
-        // Wait, let's look at `route.ts` again.
-
-        /*
-        const newSettings = {
-            id: 1,
-            idlePollInterval: body.idlePollInterval,
-            ...
-        }
-        await db.update(settings).set(newSettings)...
-        */
-
-        // This means if we send only `theme`, `idlePollInterval` etc will be undefined, and might be set to NULL in DB or default if not nullable?
-        // Drizzle `values` or `set` with undefined might behave differently depending on config, but usually it tries to set it.
-        // If the columns are not nullable, it might fail or set default.
-        // We MUST fetch existing settings first and merge if we want to update only one field using that API endpoint,
-        // OR update the API endpoint to use `patch` semantics.
-
-        // Since I cannot easily change the API endpoint logic without risking breaking other things (though I can check schema),
-        // I will do the safe thing: Fetch first, then Save.
-
-        const response = await fetch('/api/settings');
-        if (!response.ok) throw new Error("Failed to fetch current settings");
-        const currentSettings = await response.json();
-
-        await fetch('/api/settings', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+        // Update profile with new theme
+        const response = await fetch(`/api/profiles/${currentProfile.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                ...currentSettings,
-                theme: theme,
+                theme: theme
             }),
         });
+
+        if (response.ok) {
+            await refreshProfiles();
+        }
 
       } catch (error) {
           console.error("Failed to save theme to DB", error);

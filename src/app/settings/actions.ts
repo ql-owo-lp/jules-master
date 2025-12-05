@@ -3,10 +3,21 @@ import { db } from "@/lib/db";
 import { cronJobs } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import type { CronJob } from "@/lib/types";
+import { cookies } from "next/headers";
+
+async function getProfileId() {
+    const cookieStore = await cookies();
+    return cookieStore.get('jules-current-profile-id')?.value;
+}
 
 export async function getCronJobs(): Promise<CronJob[]> {
   try {
-    const jobs = await db.select().from(cronJobs).orderBy(desc(cronJobs.createdAt));
+    const profileId = await getProfileId();
+    const query = db.select().from(cronJobs).orderBy(desc(cronJobs.createdAt));
+    if (profileId) {
+        query.where(eq(cronJobs.profileId, profileId));
+    }
+    const jobs = await query;
     return jobs as CronJob[];
   } catch (error) {
     console.error("Failed to fetch cron jobs:", error);
@@ -16,9 +27,11 @@ export async function getCronJobs(): Promise<CronJob[]> {
 
 export async function createCronJob(data: Omit<CronJob, "id" | "createdAt" | "lastRunAt">) {
   try {
+    const profileId = await getProfileId();
     const newCronJob = {
       ...data,
       id: crypto.randomUUID(),
+      profileId,
       createdAt: new Date().toISOString(),
       lastRunAt: null,
       enabled: true,

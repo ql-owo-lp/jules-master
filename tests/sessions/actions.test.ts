@@ -41,7 +41,7 @@ describe('Session Actions', () => {
       const result = await listSessions('test-key');
       expect(result.sessions).toEqual(mockSessions);
       expect(sessionService.getCachedSessions).toHaveBeenCalled();
-      expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
+      expect(sessionService.syncStaleSessions).toHaveBeenCalledWith('test-key', 'test-profile-id');
     });
 
     it('should fetch from API if cache is empty', async () => {
@@ -78,7 +78,7 @@ describe('Session Actions', () => {
       // Actually, since it's a promise floating in the void, checking if it was called might require a small delay or just relying on the fact that the function started execution.
       // But syncStaleSessions is called synchronously (the promise creation), so the mock should record the call.
 
-      expect(sessionService.syncStaleSessions).toHaveBeenCalledWith('test-key');
+      expect(sessionService.syncStaleSessions).toHaveBeenCalledWith('test-key', 'test-profile-id');
     });
 
     it('should return an error if no API key is provided', async () => {

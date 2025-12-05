@@ -18,7 +18,8 @@ test.describe('Settings Page', () => {
     await expect(page.getByRole('tab', { name: 'Messages' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Automation' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Display' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Configuration' })).toBeVisible();
+    // Configuration tab is merged into General
+    // await expect(page.getByRole('tab', { name: 'Configuration' })).toBeVisible();
 
     // Verify General Tab content (default)
     await expect(page.getByLabel('Jules API Key')).toBeVisible();
@@ -43,8 +44,8 @@ test.describe('Settings Page', () => {
     await page.getByRole('tab', { name: 'Display' }).click();
     await expect(page.getByLabel('Jobs Per Page')).toBeVisible();
 
-     // Switch to Configuration tab
-    await page.getByRole('tab', { name: 'Configuration' }).click();
+     // Switch to General tab (Configuration is here now)
+    await page.getByRole('tab', { name: 'General' }).click();
     await expect(page.getByLabel('Idle Poll Interval (seconds)')).toBeVisible();
   });
 });

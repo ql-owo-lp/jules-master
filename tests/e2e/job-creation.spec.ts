@@ -3,9 +3,14 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Job Creation', () => {
   test.beforeEach(async ({ page }) => {
-    // Mock API key to ensure form is enabled
-    await page.addInitScript(() => {
-      window.localStorage.setItem('jules-api-key', '"test-api-key"');
+    // Mock profiles API to provide API key
+    await page.route('/api/profiles', async route => {
+        await route.fulfill({ json: [{
+            id: 'test-profile-id',
+            name: 'Test Profile',
+            julesApiKey: 'test-api-key',
+            createdAt: new Date().toISOString()
+        }] });
     });
   });
 

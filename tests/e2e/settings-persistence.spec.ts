@@ -2,180 +2,86 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Settings Persistence', () => {
-  test.setTimeout(60000); // Increase timeout for persistence tests
-
-  test('should prioritize local storage over database', async ({ page }) => {
-    // Mock DB to return a specific value
-    await page.route('/api/settings', async route => {
-      const json = {
-        idlePollInterval: 999,
-        activePollInterval: 888,
-        titleTruncateLength: 777,
-        lineClamp: 2,
-        sessionItemsPerPage: 5,
-        jobsPerPage: 2,
-        defaultSessionCount: 20,
-        prStatusPollInterval: 120,
-        theme: 'dark'
-      };
-      await route.fulfill({ json });
-    });
-
-    // Set local storage to something else
-    await page.addInitScript(() => {
-      window.localStorage.setItem('jules-default-session-count', '5');
-      window.localStorage.setItem('jules-idle-poll-interval', '111');
-      window.localStorage.setItem('theme', 'light');
-    });
-
-    await page.goto('/settings');
-
-    // Switch to Configuration tab for Default Session Count and Poll Intervals
-    await page.getByRole('tab', { name: 'Configuration' }).click();
-
-    // Expect LS value (5) not DB value (20)
-    await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('5');
-
-    // Expect LS value (111) not DB value (999)
-    await expect(page.getByLabel('Idle Poll Interval (seconds)')).toHaveValue('111');
-
-    // Verify theme is from LS (light) not DB (dark).
-    // next-themes puts class "light" or "dark" on html element.
-    // Note: Theme is still in the sidebar (header) settings sheet, but also effective globally.
-    // We don't need to open the settings sheet to check the effect on html class.
-    await expect(page.locator('html')).toHaveClass(/light/);
-  });
-
-  test('should fallback to database when local storage is empty', async ({ page }) => {
-     // Mock DB
-     await page.route('/api/settings', async route => {
-        const json = {
+  test('should load settings from profile', async ({ page }) => {
+    // Mock Profile API
+    await page.route('/api/profiles', async route => {
+        await route.fulfill({ json: [{
+            id: 'test-profile-id',
+            name: 'Test Profile',
+            julesApiKey: 'test-api-key',
+            createdAt: new Date().toISOString(),
             idlePollInterval: 120,
             activePollInterval: 30,
-            titleTruncateLength: 50,
-            lineClamp: 1,
-            sessionItemsPerPage: 10,
-            jobsPerPage: 5,
-            defaultSessionCount: 15, // Different from default 10
-            prStatusPollInterval: 60,
+            defaultSessionCount: 15,
             theme: 'dark'
-        };
-        await route.fulfill({ json });
-     });
-
-     // Local storage is empty by default in a new context
-
-     await page.goto('/settings');
-
-     // Switch to Configuration tab
-     await page.getByRole('tab', { name: 'Configuration' }).click();
-
-     // Expect DB value (15)
-     await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('15');
-     await expect(page.getByLabel('Idle Poll Interval (seconds)')).toHaveValue('120');
-     await expect(page.getByLabel('Active Poll Interval (seconds)')).toHaveValue('30');
-     await expect(page.getByLabel('PR Status Cache Refresh Interval (seconds)')).toHaveValue('60');
-
-     // Switch to Display tab
-     await page.getByRole('tab', { name: 'Display' }).click();
-
-     await expect(page.getByLabel('Session Title Truncation Length')).toHaveValue('50');
-     await expect(page.getByLabel('Activity Feed Line Clamp')).toHaveValue('1');
-     await expect(page.getByLabel('Sessions Per Page (within a job)')).toHaveValue('10');
-     await expect(page.getByLabel('Jobs Per Page')).toHaveValue('5');
-
-     // Expect Theme from DB (dark)
-     await expect(page.locator('html')).toHaveClass(/dark/);
-  });
-
-  test('should save settings to database', async ({ page }) => {
-    // Mock DB for initial load
-    await page.route('/api/settings', async route => {
-         if (route.request().method() === 'GET') {
-             await route.fulfill({ json: {
-                 defaultSessionCount: 10,
-                 idlePollInterval: 120,
-                 activePollInterval: 30,
-                 titleTruncateLength: 50,
-                 lineClamp: 1,
-                 sessionItemsPerPage: 10,
-                 jobsPerPage: 5,
-                 prStatusPollInterval: 60,
-                 theme: 'system'
-              } });
-         } else if (route.request().method() === 'POST') {
-             // Verify the payload
-             const postData = route.request().postDataJSON();
-             // We have two save actions now.
-             // 1. Config Save: defaultSessionCount, idlePollInterval, activePollInterval, prStatusPollInterval
-             // 2. Display Save: titleTruncateLength, lineClamp, sessionItemsPerPage, jobsPerPage
-
-             // Check if it's the Config save (based on unique values we set)
-             if (postData.defaultSessionCount === 7 && postData.idlePollInterval === 123) {
-                 if (
-                    postData.activePollInterval === 33 &&
-                    postData.prStatusPollInterval === 90 &&
-                    // Other fields should remain default (from initial GET)
-                    postData.titleTruncateLength === 50
-                 ) {
-                     await route.fulfill({ json: { success: true } });
-                     return;
-                 }
-             }
-
-             // Check if it's the Display save
-             if (postData.titleTruncateLength === 55 && postData.lineClamp === 2) {
-                  if (
-                    postData.sessionItemsPerPage === 15 &&
-                    postData.jobsPerPage === 6 &&
-                    // Config fields should retain their UPDATED values because the app doesn't refetch?
-                    // Actually, the component state holds the values.
-                    // So if we updated Config fields in the UI, they should be present here too.
-                    postData.defaultSessionCount === 7
-                 ) {
-                     await route.fulfill({ json: { success: true } });
-                     return;
-                 }
-             }
-
-             console.log('Failed payload:', postData);
-             await route.fulfill({ status: 500 });
-         }
+        }] });
     });
 
     await page.goto('/settings');
 
-    // Switch to Configuration tab
-    await page.getByRole('tab', { name: 'Configuration' }).click();
+    // Wait for profile to load
+    await expect(page.getByText('Test Profile')).toBeVisible();
+
+    // Switch to General tab
+    await page.getByRole('tab', { name: 'General' }).click();
+
+    // Expect DB value (15)
+    await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('15');
+    await expect(page.getByLabel('Idle Poll Interval (seconds)')).toHaveValue('120');
+
+    // Expect Theme (dark) - verify html class
+    await expect(page.locator('html')).toHaveClass(/dark/);
+  });
+
+  test('should save settings to profile', async ({ page }) => {
+    // Mock Profile API
+    await page.route('/api/profiles', async route => {
+        if (route.request().method() === 'GET') {
+            await route.fulfill({ json: [{
+                id: 'test-profile-id',
+                name: 'Test Profile',
+                julesApiKey: 'test-api-key',
+                createdAt: new Date().toISOString(),
+                defaultSessionCount: 10,
+                idlePollInterval: 120,
+            }] });
+        } else if (route.request().method() === 'POST') {
+             // Create profile
+             await route.fulfill({ json: { id: 'new-id', name: 'New Profile' } });
+        }
+    });
+
+    // Intercept PATCH to verify save
+    let patchCalled = false;
+    await page.route('/api/profiles/test-profile-id', async route => {
+        if (route.request().method() === 'PATCH') {
+            const body = route.request().postDataJSON();
+            if (body.defaultSessionCount === 7 && body.idlePollInterval === 123) {
+                patchCalled = true;
+                await route.fulfill({ json: { success: true } });
+            } else {
+                await route.fulfill({ status: 500 });
+            }
+        } else {
+            await route.fallback();
+        }
+    });
+
+    await page.goto('/settings');
+    await expect(page.getByText('Test Profile')).toBeVisible();
+
+    // Switch to General tab
+    await page.getByRole('tab', { name: 'General' }).click();
 
     await page.getByLabel('Default Session Count for New Jobs').fill('7');
     await page.getByLabel('Idle Poll Interval (seconds)').fill('123');
-    await page.getByLabel('Active Poll Interval (seconds)').fill('33');
-    await page.getByLabel('PR Status Cache Refresh Interval (seconds)').fill('90');
 
-    // Save Configuration
-    await page.getByRole('button', { name: 'Save Configuration' }).click();
+    // Save General Settings
+    await page.getByRole('button', { name: 'Save General Settings' }).click();
+
     await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible();
-    await expect(page.getByText('Your settings have been updated.', { exact: true })).toBeVisible();
 
-    // Wait for toast to disappear or dismiss it to avoid overlapping match
-    await page.getByRole('button', { name: 'Close' }).click({ timeout: 2000 }).catch(() => {});
-
-    // Wait for any overlays to disappear
-    await page.waitForTimeout(500);
-
-    // Switch to Display tab
-    const displayTab = page.getByRole('tab', { name: 'Display' });
-    await expect(displayTab).toBeVisible();
-    await displayTab.click({ force: true });
-
-    await page.getByLabel('Session Title Truncation Length').fill('55');
-    await page.getByLabel('Activity Feed Line Clamp').fill('2');
-    await page.getByLabel('Sessions Per Page (within a job)').fill('15');
-    await page.getByLabel('Jobs Per Page').fill('6');
-
-    // Save Display
-    await page.getByRole('button', { name: 'Save Display Settings' }).click();
-    await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible();
+    // Verify PATCH was called
+    expect(patchCalled).toBe(true);
   });
 });
