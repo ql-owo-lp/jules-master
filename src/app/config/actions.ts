@@ -5,7 +5,7 @@ import { appDatabase, db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import type { Job, PredefinedPrompt, HistoryPrompt } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, or } from 'drizzle-orm';
 
 // --- Jobs ---
 export async function getJobs(): Promise<Job[]> {
@@ -19,7 +19,9 @@ export async function addJob(job: Job): Promise<void> {
 }
 
 export async function getPendingBackgroundWorkCount(): Promise<{ pendingJobs: number, retryingSessions: number }> {
-    const pendingJobs = await db.select().from(schema.jobs).where(eq(schema.jobs.status, 'PENDING'));
+    const pendingJobs = await db.select().from(schema.jobs).where(
+        or(eq(schema.jobs.status, 'PENDING'), eq(schema.jobs.status, 'PROCESSING'))
+    );
 
     // For retrying sessions, we want sessions that are FAILED and have retries left (retryCount < maxRetries)
     // AND probably where last error was recoverable?
