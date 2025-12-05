@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,6 +77,18 @@ export default function SettingsPage() {
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const currentTab = searchParams.get("tab") || "general";
+
+  const onTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", value);
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   // --- Settings State (from SettingsSheet) ---
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
@@ -509,7 +522,7 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto py-8 max-w-5xl">
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
-      <Tabs defaultValue="general" className="w-full">
+      <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
