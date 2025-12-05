@@ -21,6 +21,7 @@ import { Bot, MessageSquare, PlusCircle, BookText, ExternalLink, PanelLeft, Term
 import { Header } from '@/components/header';
 import { NewJobDialog } from '@/components/new-job-dialog';
 import { EnvProvider } from '@/components/env-provider';
+import { getActiveProfile } from '@/app/config/actions';
 
 export const metadata = {
   title: 'Jules Master',
@@ -29,11 +30,13 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const activeProfile = await getActiveProfile();
+
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
@@ -52,6 +55,7 @@ export default function RootLayout({
         <EnvProvider
           julesApiKey={process.env.JULES_API_KEY}
           githubToken={process.env.GITHUB_TOKEN}
+          activeProfileSettings={activeProfile?.settings}
         >
           <ThemeProvider
             attribute="class"

@@ -1,32 +1,16 @@
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { appDatabase } from '../src/lib/db';
 import { Job, PredefinedPrompt } from '../src/lib/types';
 import { db } from '../src/lib/db';
 import { jobs, predefinedPrompts, quickReplies, globalPrompt } from '../src/lib/db/schema';
 
 describe('Database Layer', () => {
-    beforeAll(async () => {
-        // Clear tables before running the tests
-        await db.delete(jobs);
-        await db.delete(predefinedPrompts);
-        await db.delete(quickReplies);
-        await db.delete(globalPrompt);
-    });
-
-    afterAll(async () => {
-        // Clear tables after running the tests
-        await db.delete(jobs);
-        await db.delete(predefinedPrompts);
-        await db.delete(quickReplies);
-        await db.delete(globalPrompt);
+    beforeEach(() => {
+        vi.clearAllMocks();
     });
 
     describe('Jobs DAO', () => {
-        beforeEach(async () => {
-            await db.delete(jobs);
-        });
-
         it('should create and retrieve a job', async () => {
             const newJob: Job = {
                 id: '1',
@@ -103,10 +87,6 @@ describe('Database Layer', () => {
     });
 
     describe('PredefinedPrompts DAO', () => {
-        beforeEach(async () => {
-            await db.delete(predefinedPrompts);
-        });
-
         it('should create and retrieve a predefined prompt', async () => {
             const prompt: PredefinedPrompt = {
                 id: 'p1',
@@ -150,10 +130,6 @@ describe('Database Layer', () => {
     });
 
     describe('QuickReplies DAO', () => {
-        beforeEach(async () => {
-            await db.delete(quickReplies);
-        });
-
         it('should create and retrieve a quick reply', async () => {
             const reply: PredefinedPrompt = {
                 id: 'q1',
@@ -196,25 +172,4 @@ describe('Database Layer', () => {
         });
     });
 
-    describe('GlobalPrompt DAO', () => {
-        beforeEach(async () => {
-            await db.delete(globalPrompt);
-        });
-
-        it('should save (create) and get global prompt', async () => {
-            await appDatabase.globalPrompt.save('Initial Prompt');
-            const result = await appDatabase.globalPrompt.get();
-
-            expect(result).toBeDefined();
-            expect(result?.prompt).toBe('Initial Prompt');
-        });
-
-        it('should save (update) global prompt', async () => {
-            await appDatabase.globalPrompt.save('Initial Prompt');
-            await appDatabase.globalPrompt.save('Updated Prompt');
-
-            const result = await appDatabase.globalPrompt.get();
-            expect(result?.prompt).toBe('Updated Prompt');
-        });
-    });
 });

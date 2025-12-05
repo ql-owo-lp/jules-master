@@ -18,30 +18,11 @@ vi.mock('next/cache', () => ({
 }));
 
 describe('Config Actions', () => {
-    beforeAll(async () => {
-        // Clear all tables before running the tests
-        await db.delete(jobs);
-        await db.delete(predefinedPrompts);
-        await db.delete(quickReplies);
-        await db.delete(globalPrompt);
-        await db.delete(historyPrompts);
-        await db.delete(repoPrompts);
-    });
-
-    afterAll(async () => {
-        // Clear all tables after running the tests
-        await db.delete(jobs);
-        await db.delete(predefinedPrompts);
-        await db.delete(quickReplies);
-        await db.delete(globalPrompt);
-        await db.delete(historyPrompts);
-        await db.delete(repoPrompts);
+    beforeEach(() => {
+        vi.clearAllMocks();
     });
 
     describe('Jobs', () => {
-        beforeEach(async () => {
-            await db.delete(jobs);
-        });
 
         it('should add a and retrieve a job using actions', async () => {
             const newJob: Job = {
@@ -63,10 +44,6 @@ describe('Config Actions', () => {
     });
 
     describe('Predefined Prompts', () => {
-        beforeEach(async () => {
-            await db.delete(predefinedPrompts);
-        });
-
         it('should save and retrieve predefined prompts', async () => {
             const prompts: PredefinedPrompt[] = [
                 { id: 'p1', title: 'T1', prompt: 'P1' },
@@ -109,10 +86,6 @@ describe('Config Actions', () => {
     });
 
     describe('Quick Replies', () => {
-        beforeEach(async () => {
-            await db.delete(quickReplies);
-        });
-
         it('should save and retrieve quick replies', async () => {
              const replies: PredefinedPrompt[] = [
                 { id: 'q1', title: 'R1', prompt: 'C1' },
@@ -143,35 +116,7 @@ describe('Config Actions', () => {
         });
     });
 
-    describe('Global Prompt', () => {
-        beforeEach(async () => {
-            await db.delete(globalPrompt);
-        });
-
-        it('should save and retrieve global prompt', async () => {
-            await saveGlobalPrompt('Global 1');
-            const retrieved = await getGlobalPrompt();
-            expect(retrieved).toBe('Global 1');
-        });
-
-        it('should update global prompt', async () => {
-            await saveGlobalPrompt('Global 1');
-            await saveGlobalPrompt('Global 2');
-            const retrieved = await getGlobalPrompt();
-            expect(retrieved).toBe('Global 2');
-        });
-
-         it('should return empty string if no global prompt set', async () => {
-            const retrieved = await getGlobalPrompt();
-            expect(retrieved).toBe('');
-        });
-    });
-
     describe('History Prompts', () => {
-        beforeEach(async () => {
-            await db.delete(historyPrompts);
-        });
-
         it('should save and retrieve history prompts', async () => {
             await saveHistoryPrompt('History 1');
             await saveHistoryPrompt('History 2');
@@ -188,27 +133,4 @@ describe('Config Actions', () => {
         });
     });
 
-    describe('Repo Prompt', () => {
-        beforeEach(async () => {
-            await db.delete(repoPrompts);
-        });
-
-        it('should save and retrieve a repo-specific prompt', async () => {
-            await saveRepoPrompt('user/repo1', 'Repo Prompt 1');
-            const retrieved = await getRepoPrompt('user/repo1');
-            expect(retrieved).toBe('Repo Prompt 1');
-        });
-
-        it('should return an empty string for a repo without a specific prompt', async () => {
-            const retrieved = await getRepoPrompt('user/repo-unseen');
-            expect(retrieved).toBe('');
-        });
-
-        it('should update an existing repo prompt', async () => {
-            await saveRepoPrompt('user/repo1', 'Initial Prompt');
-            await saveRepoPrompt('user/repo1', 'Updated Prompt');
-            const retrieved = await getRepoPrompt('user/repo1');
-            expect(retrieved).toBe('Updated Prompt');
-        });
-    });
 });

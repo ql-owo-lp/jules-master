@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runAutoContinueCheck, _resetForTest } from '@/lib/auto-continue-worker';
-import { db } from '@/lib/db';
+import * as configActions from '@/app/config/actions';
 import * as actions from '@/app/sessions/[id]/actions';
 import type { Session } from '@/lib/types';
 import * as schema from '@/lib/db/schema';
@@ -22,11 +22,8 @@ const createQueryBuilder = (resolvedValue: any) => {
     return builder;
 };
 
-vi.mock('@/lib/db', () => ({
-  db: {
-    select: vi.fn().mockReturnThis(),
-    from: vi.fn(), // We will mock implementation in tests
-  },
+vi.mock('@/app/config/actions', () => ({
+    getActiveProfile: vi.fn(),
 }));
 
 vi.mock('@/app/sessions/[id]/actions', () => ({
@@ -49,13 +46,11 @@ describe('AutoContinueWorker', () => {
   });
 
   it('should not run if auto-continue is disabled', async () => {
-    // settings query
-    (db.select as any).mockReturnValue({
-        from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([{ autoContinueEnabled: false }])
-            })
-        })
+    const getActiveProfileMock = configActions.getActiveProfile as vi.Mock;
+    getActiveProfileMock.mockResolvedValue({
+      settings: {
+        autoContinueEnabled: false,
+      },
     });
 
     await runAutoContinueCheck({ schedule: false });
@@ -66,32 +61,17 @@ describe('AutoContinueWorker', () => {
     const session: Session = { id: '1', state: 'COMPLETED', updateTime: new Date().toISOString() };
     const job = { sessionIds: '["1"]', createdAt: new Date().toISOString() };
 
-    // Mock db queries
-    (db.select as any).mockImplementation(() => ({
-      from: vi.fn().mockImplementation((table) => {
-        if (table === schema.settings) {
-             return {
-                where: vi.fn().mockReturnValue({
-                    limit: vi.fn().mockResolvedValue([{ autoContinueEnabled: true, autoContinueMessage: 'Continue?' }])
-                })
-             };
-        }
-        if (table === schema.jobs) {
-             // Return a Thenable (Promise-like) that resolves to [job]
-             return Promise.resolve([job]);
-        }
-        if (table === schema.sessions) {
-             // Return a builder that has .where()
-             return {
-                 where: vi.fn().mockResolvedValue([]) // No cached session found, or found but ignored
-             };
-        }
-        return Promise.resolve([]);
-      })
-    }));
+    const getActiveProfileMock = configActions.getActiveProfile as vi.Mock;
+    getActiveProfileMock.mockResolvedValue({
+      settings: {
+        autoContinueEnabled: true,
+        autoContinueMessage: 'Continue?',
+      },
+    });
 
     vi.mocked(actions.getSession).mockResolvedValue(session);
     vi.mocked(actions.listActivities).mockResolvedValue([]);
+    vi.spyOn(schema, 'jobs').mockReturnValue({ findMany: () => Promise.resolve([job]) });
 
     await runAutoContinueCheck({ schedule: false });
 

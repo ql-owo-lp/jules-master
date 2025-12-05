@@ -1,18 +1,12 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runAutoRetryCheck, _resetForTest } from '@/lib/auto-retry-worker';
-import { db } from '@/lib/db';
+import * as configActions from '@/app/config/actions';
 import * as actions from '@/app/sessions/[id]/actions';
 import type { Session } from '@/lib/types';
 
-vi.mock('@/lib/db', () => ({
-  db: {
-    select: vi.fn().mockReturnThis(),
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn(),
-    then: vi.fn(),
-  },
+vi.mock('@/app/config/actions', () => ({
+    getActiveProfile: vi.fn(),
 }));
 
 vi.mock('@/app/sessions/[id]/actions', () => ({
@@ -26,7 +20,13 @@ describe('AutoRetryWorker', () => {
     vi.useFakeTimers();
     process.env.JULES_API_KEY = 'test-api-key';
     vi.clearAllMocks();
-    vi.mocked(db.limit).mockResolvedValue([{ autoRetryEnabled: true, autoRetryMessage: 'Retry?' }]);
+    const getActiveProfileMock = configActions.getActiveProfile as vi.Mock;
+    getActiveProfileMock.mockResolvedValue({
+        settings: {
+            autoRetryEnabled: true,
+            autoRetryMessage: 'Retry?',
+        },
+    });
   });
 
   afterEach(() => {
@@ -36,14 +36,19 @@ describe('AutoRetryWorker', () => {
   });
 
   it('should not run if auto-retry is disabled', async () => {
-    vi.mocked(db.limit).mockResolvedValueOnce([{ autoRetryEnabled: false }]);
+    const getActiveProfileMock = configActions.getActiveProfile as vi.Mock;
+    getActiveProfileMock.mockResolvedValueOnce({
+        settings: {
+            autoRetryEnabled: false,
+        },
+    });
     await runAutoRetryCheck({ schedule: false });
     expect(actions.getSession).not.toHaveBeenCalled();
   });
 
   it('should send a retry message to a failed session', async () => {
     const session: Session = { id: '1', state: 'FAILED', updateTime: new Date().toISOString() };
-    vi.mocked(db.then).mockImplementationOnce((resolve) => resolve([{ sessionIds: '["1"]' }]));
+    vi.spyOn(require('@/lib/db').db.select().from(), 'where').mockResolvedValue([{ sessionIds: '["1"]' }]);
     vi.mocked(actions.getSession).mockResolvedValue(session);
     vi.mocked(actions.listActivities).mockResolvedValue([]);
     await runAutoRetryCheck({ schedule: false });
@@ -52,7 +57,7 @@ describe('AutoRetryWorker', () => {
 
   it('should not send a message if the session is not failed', async () => {
     const session: Session = { id: '1', state: 'COMPLETED', updateTime: new Date().toISOString() };
-    vi.mocked(db.then).mockImplementationOnce((resolve) => resolve([{ sessionIds: '["1"]' }]));
+    vi.spyOn(require('@/lib/db').db.select().from(), 'where').mockResolvedValue([{ sessionIds: '["1"]' }]);
     vi.mocked(actions.getSession).mockResolvedValue(session);
     await runAutoRetryCheck({ schedule: false });
     expect(actions.sendMessage).not.toHaveBeenCalled();
@@ -64,7 +69,7 @@ describe('AutoRetryWorker', () => {
       state: 'FAILED',
       updateTime: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
     };
-    vi.mocked(db.then).mockImplementationOnce((resolve) => resolve([{ sessionIds: '["1"]' }]));
+    vi.spyOn(require('@/lib/db').db.select().from(), 'where').mockResolvedValue([{ sessionIds: '["1"]' }]);
     vi.mocked(actions.getSession).mockResolvedValue(session);
     await runAutoRetryCheck({ schedule: false });
     expect(actions.sendMessage).not.toHaveBeenCalled();

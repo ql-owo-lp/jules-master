@@ -39,7 +39,7 @@ if (fs.existsSync(dbPath)) {
   console.log(`Initializing new database at: ${dbPath}`);
 }
 
-const sqlite = new Database(dbPath);
+const sqlite = process.env.NODE_ENV === 'test' ? new Database(':memory:') : new Database(dbPath);
 export const db = drizzle(sqlite, { schema });
 
 // Generic DAO Interface

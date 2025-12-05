@@ -169,6 +169,15 @@ export interface ProgressUpdated {
   description: string;
 }
 
+export type Profile = {
+  id: string;
+  name: string;
+  settings: {
+    [key: string]: any;
+  };
+  isActive: boolean;
+};
+
 export interface SessionCompleted {}
 
 export interface SessionFailed {

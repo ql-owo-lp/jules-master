@@ -3,7 +3,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { runAutoApprovalCheck, _resetForTest } from '@/lib/auto-approval-worker';
 import * as sessionsActions from '@/app/sessions/actions';
 import * as idActions from '@/app/sessions/[id]/actions';
-import { db } from '@/lib/db';
+import * as configActions from '@/app/config/actions';
 import type { Session } from '@/lib/types';
 
 vi.mock('@/app/sessions/actions', () => ({
@@ -14,13 +14,8 @@ vi.mock('@/app/sessions/[id]/actions', () => ({
     approvePlan: vi.fn(),
 }));
 
-vi.mock('@/lib/db', () => ({
-    db: {
-        select: vi.fn().mockReturnThis(),
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn(),
-    },
+vi.mock('@/app/config/actions', () => ({
+    getActiveProfile: vi.fn(),
 }));
 
 const mockSession: Session = {
@@ -52,8 +47,13 @@ describe('runAutoApprovalCheck', () => {
         _resetForTest();
         vi.spyOn(sessionsActions, 'fetchSessionsPage').mockResolvedValue({ sessions: [mockSession], nextPageToken: undefined });
         vi.spyOn(idActions, 'approvePlan').mockResolvedValue(true);
-        const settingsMock = db.limit as vi.Mock;
-        settingsMock.mockResolvedValue([{ autoApprovalEnabled: true, autoApprovalInterval: 60 }]);
+        const getActiveProfileMock = configActions.getActiveProfile as vi.Mock;
+        getActiveProfileMock.mockResolvedValue({
+            settings: {
+                autoApprovalEnabled: true,
+                autoApprovalInterval: 60,
+            },
+        });
     });
 
     afterEach(() => {
@@ -92,8 +92,13 @@ describe('runAutoApprovalCheck', () => {
     });
 
     it('should not approve sessions if autoApprovalEnabled is false', async () => {
-        const settingsMock = db.limit as vi.Mock;
-        settingsMock.mockResolvedValueOnce([{ autoApprovalEnabled: false, autoApprovalInterval: 60 }]);
+        const getActiveProfileMock = configActions.getActiveProfile as vi.Mock;
+        getActiveProfileMock.mockResolvedValueOnce({
+            settings: {
+                autoApprovalEnabled: false,
+                autoApprovalInterval: 60,
+            },
+        });
         await runAutoApprovalCheck({ schedule: false });
         expect(idActions.approvePlan).not.toHaveBeenCalled();
     });

@@ -1,135 +1,86 @@
 
-'use server';
+"use server";
 
-import { appDatabase, db } from '@/lib/db';
-import * as schema from '@/lib/db/schema';
-import type { Job, PredefinedPrompt, HistoryPrompt } from '@/lib/types';
-import { revalidatePath } from 'next/cache';
-import { eq, desc, or } from 'drizzle-orm';
+import { db } from "@/lib/db";
+import { profiles } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import type { Profile } from "@/lib/types";
 
-// --- Jobs ---
-export async function getJobs(): Promise<Job[]> {
-    return appDatabase.jobs.getAll();
-}
-
-export async function addJob(job: Job): Promise<void> {
-    await appDatabase.jobs.create(job);
-    revalidatePath('/jobs');
-    revalidatePath('/');
-}
-
-export async function getPendingBackgroundWorkCount(): Promise<{ pendingJobs: number, retryingSessions: number }> {
-    const pendingJobs = await db.select().from(schema.jobs).where(
-        or(eq(schema.jobs.status, 'PENDING'), eq(schema.jobs.status, 'PROCESSING'))
-    );
-
-    // For retrying sessions, we want sessions that are FAILED and have retries left (retryCount < maxRetries)
-    // AND probably where last error was recoverable?
-    // We'll simplify and count FAILED sessions that have retryCount < 50 (since max could be 50).
-    // Or we could try to be more specific.
-    // The requirement says "failed due to 'too many requests' error, we will keep retrying it for 50 times. Otherwise... 3 times."
-
-    const failedSessions = await db.select().from(schema.sessions).where(eq(schema.sessions.state, 'FAILED'));
-    let retryingSessionsCount = 0;
-
-    for (const session of failedSessions) {
-        const errorReason = session.lastError || "";
-        const isRateLimit = errorReason.toLowerCase().includes("too many requests") || errorReason.includes("429");
-        const maxRetries = isRateLimit ? 50 : 3;
-        if ((session.retryCount || 0) < maxRetries) {
-            retryingSessionsCount++;
-        }
+export async function getProfiles(): Promise<Profile[]> {
+  try {
+    let allProfiles = await db.select().from(profiles);
+    if (allProfiles.length === 0) {
+      const defaultProfile: Profile = {
+        id: crypto.randomUUID(),
+        name: "Default",
+        isActive: true,
+        settings: {
+          julesApiKey: "",
+          githubToken: "",
+          idlePollInterval: 120,
+          activePollInterval: 30,
+          titleTruncateLength: 50,
+          lineClamp: 1,
+          sessionItemsPerPage: 10,
+          jobsPerPage: 5,
+          defaultSessionCount: 10,
+          prStatusPollInterval: 60,
+          historyPromptsCount: 10,
+          autoApprovalInterval: 60,
+          autoRetryEnabled: true,
+          autoRetryMessage: "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution",
+          autoContinueEnabled: true,
+          autoContinueMessage: "Sounds good. Now go ahead finish the work",
+          debugMode: false,
+          sessionCacheInProgressInterval: 60,
+          sessionCacheCompletedNoPrInterval: 1800,
+          sessionCachePendingApprovalInterval: 300,
+          sessionCacheMaxAgeDays: 3,
+          autoDeleteStaleBranches: false,
+          autoDeleteStaleBranchesAfterDays: 3,
+        },
+      };
+      await db.insert(profiles).values(defaultProfile);
+      allProfiles = [defaultProfile];
     }
-
-    return {
-        pendingJobs: pendingJobs.length,
-        retryingSessions: retryingSessionsCount
-    };
+    return allProfiles;
+  } catch (error) {
+    console.error("Failed to fetch profiles:", error);
+    throw error;
+  }
 }
 
-// --- Predefined Prompts ---
-export async function getPredefinedPrompts(): Promise<PredefinedPrompt[]> {
-    return appDatabase.predefinedPrompts.getAll();
+export async function getActiveProfile(): Promise<Profile | null> {
+  try {
+    const activeProfile = await db.select().from(profiles).where(eq(profiles.isActive, true));
+    return activeProfile[0] || null;
+  } catch (error) {
+    console.error("Failed to fetch active profile:", error);
+    throw error;
+  }
 }
 
-export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promise<void> {
-    // This is not efficient, but for this small scale it is fine.
-    // A better implementation would be to diff the arrays.
-    db.transaction((tx) => {
-        tx.delete(schema.predefinedPrompts).run();
-        if (prompts.length > 0) {
-            tx.insert(schema.predefinedPrompts).values(prompts).run();
-        }
+export async function saveProfile(profile: Profile) {
+  try {
+    await db.insert(profiles).values(profile).onConflictDoUpdate({
+      target: profiles.id,
+      set: {
+        name: profile.name,
+        settings: profile.settings,
+        isActive: profile.isActive,
+      },
     });
-    revalidatePath('/settings');
+  } catch (error) {
+    console.error("Failed to save profile:", error);
+    throw error;
+  }
 }
 
-// --- History Prompts ---
-export async function getHistoryPrompts(): Promise<HistoryPrompt[]> {
-    const settings = await db.select().from(schema.settings).get();
-    const limit = settings?.historyPromptsCount ?? 10;
-    return appDatabase.historyPrompts.getRecent(limit);
-}
-
-export async function saveHistoryPrompt(promptText: string): Promise<void> {
-    if (!promptText.trim()) return;
-
-    // Check if prompt already exists
-    const existing = await db.select().from(schema.historyPrompts).where(eq(schema.historyPrompts.prompt, promptText)).get();
-
-    if (existing) {
-        await appDatabase.historyPrompts.update(existing.id, { lastUsedAt: new Date().toISOString() });
-    } else {
-        const newHistoryPrompt: HistoryPrompt = {
-            id: crypto.randomUUID(),
-            prompt: promptText,
-            lastUsedAt: new Date().toISOString()
-        };
-        await appDatabase.historyPrompts.create(newHistoryPrompt);
-    }
-
-    revalidatePath('/');
-}
-
-// --- Quick Replies ---
-export async function getQuickReplies(): Promise<PredefinedPrompt[]> {
-    return appDatabase.quickReplies.getAll();
-}
-
-export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<void> {
-    // This is not efficient, but for this small scale it is fine.
-    db.transaction((tx) => {
-        tx.delete(schema.quickReplies).run();
-        if (replies.length > 0) {
-            tx.insert(schema.quickReplies).values(replies).run();
-        }
-    });
-    revalidatePath('/settings');
-}
-
-// --- Global Prompt ---
-export async function getGlobalPrompt(): Promise<string> {
-    const result = await appDatabase.globalPrompt.get();
-    return result?.prompt ?? "";
-}
-
-export async function saveGlobalPrompt(prompt: string): Promise<void> {
-    await appDatabase.globalPrompt.save(prompt);
-    revalidatePath('/settings');
-}
-
-// --- Repo Prompt ---
-export async function getRepoPrompt(repo: string): Promise<string> {
-    const result = await appDatabase.repoPrompts.get(repo);
-    return result?.prompt ?? "";
-}
-
-export async function saveRepoPrompt(repo: string, prompt: string): Promise<void> {
-    await appDatabase.repoPrompts.save(repo, prompt);
-    revalidatePath('/settings');
-}
-
-// --- Settings ---
-export async function getSettings() {
-    return db.query.settings.findFirst();
+export async function deleteProfile(id: string) {
+  try {
+    await db.delete(profiles).where(eq(profiles.id, id));
+  } catch (error) {
+    console.error("Failed to delete profile:", error);
+    throw error;
+  }
 }

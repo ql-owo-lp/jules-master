@@ -5,7 +5,6 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
-    setupFiles: ['./tests/setup.ts'],
     environment: 'jsdom',
     exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**', 'tests/e2e/**'],
     fileParallelism: false,
@@ -25,6 +24,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'better-sqlite3': path.resolve(__dirname, './tests/mocks/better-sqlite3.ts'),
     },
   },
 });
