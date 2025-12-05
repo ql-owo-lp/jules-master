@@ -180,7 +180,7 @@ export async function fetchSessionsPage(
         );
 
         if (!response.ok) {
-            const errorText = `Failed to fetch sessions: ${response.status} ${response.statusText}`;
+            const errorText = `Failed to fetch sessions from ${url.toString()}: ${response.status} ${response.statusText}`;
             console.error(errorText);
             const errorBody = await response.text();
             console.error('Error body:', errorBody);

@@ -32,9 +32,13 @@ export async function getSession(
       }
     );
     if (!response.ok) {
-      console.error(
-        `Failed to fetch session: ${response.status} ${response.statusText}`
-      );
+      if (response.status === 404) {
+        console.warn(`Session not found: ${sessionId}`);
+      } else {
+        console.error(
+          `Failed to fetch session: ${response.status} ${response.statusText}`
+        );
+      }
       return null;
     }
     const session: Session = await response.json();
