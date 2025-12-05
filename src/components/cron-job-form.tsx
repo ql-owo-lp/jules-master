@@ -162,7 +162,7 @@ export function CronJobForm({
     }
 
     try {
-        cronParser.parseExpression(schedule);
+        cronParser.parse(schedule);
     } catch (err) {
         toast({
             variant: "destructive",

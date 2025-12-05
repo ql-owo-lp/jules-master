@@ -2,7 +2,13 @@
 import { NextResponse } from 'next/server';
 import { getCronJobs, createCronJob } from '@/app/settings/actions';
 
+<<<<<<< HEAD
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+=======
 export async function GET(request: Request) {
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
   try {
     const { searchParams } = new URL(request.url);
     const profileId = searchParams.get('profileId') || undefined;

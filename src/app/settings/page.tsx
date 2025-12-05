@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,11 +80,29 @@ export default function SettingsPage() {
   const { currentProfileId, setCurrentProfileId, profiles, refreshProfiles, isLoading: isProfileLoading } = useProfile();
   const [isClient, setIsClient] = useState(false);
 
+<<<<<<< HEAD
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const currentTab = searchParams.get("tab") || "general";
+
+  const onTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", value);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  // --- Settings State (from SettingsSheet) ---
+  const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
+=======
   // --- Settings State ---
   // Note: We're not using useLocalStorage for values anymore as we fetch from DB based on profile
   // But for better UX we might still want local state for the form
   const [apiKey, setApiKey] = useState("");
   const [githubToken, setGithubToken] = useState("");
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
 
   const [idlePollInterval, setIdlePollInterval] = useState(120);
   const [activePollInterval, setActivePollInterval] = useState(30);
@@ -533,6 +552,10 @@ export default function SettingsPage() {
 
   return (
     <div className="container mx-auto py-8 max-w-5xl">
+<<<<<<< HEAD
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
+=======
       <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Settings</h1>
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -542,6 +565,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="profiles">Profiles</TabsTrigger>

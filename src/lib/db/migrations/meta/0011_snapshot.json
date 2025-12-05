@@ -1,7 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
+<<<<<<< HEAD
+  "id": "3385753b-0d7b-4844-a027-54795d27b9a2",
+=======
   "id": "c1eb1b0c-2530-450a-8f55-4d847c748301",
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
   "prevId": "eab15e25-b979-489d-9474-8776cdd38b5f",
   "tables": {
     "cron_jobs": {
@@ -107,6 +111,12 @@
           "notNull": false,
           "autoincrement": false,
           "default": 1
+<<<<<<< HEAD
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+=======
         },
         "profile_id": {
           "name": "profile_id",
@@ -132,6 +142,7 @@
           "onUpdate": "no action"
         }
       },
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -152,6 +163,12 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+<<<<<<< HEAD
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+=======
         },
         "profile_id": {
           "name": "profile_id",
@@ -177,6 +194,7 @@
           "onUpdate": "no action"
         }
       },
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -204,6 +222,12 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+<<<<<<< HEAD
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+=======
         },
         "profile_id": {
           "name": "profile_id",
@@ -229,6 +253,7 @@
           "onUpdate": "no action"
         }
       },
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -335,6 +360,12 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+<<<<<<< HEAD
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+=======
         },
         "profile_id": {
           "name": "profile_id",
@@ -360,6 +391,7 @@
           "onUpdate": "no action"
         }
       },
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -387,6 +419,8 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+<<<<<<< HEAD
+=======
         },
         "profile_id": {
           "name": "profile_id",
@@ -439,6 +473,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
         }
       },
       "indexes": {},
@@ -470,6 +505,12 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+<<<<<<< HEAD
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+=======
         },
         "profile_id": {
           "name": "profile_id",
@@ -495,6 +536,7 @@
           "onUpdate": "no action"
         }
       },
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -505,7 +547,11 @@
         "repo": {
           "name": "repo",
           "type": "text",
+<<<<<<< HEAD
+          "primaryKey": true,
+=======
           "primaryKey": false,
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
           "notNull": true,
           "autoincrement": false
         },
@@ -515,6 +561,13 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+<<<<<<< HEAD
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+=======
         },
         "profile_id": {
           "name": "profile_id",
@@ -549,6 +602,7 @@
           "name": "repo_prompts_repo_profile_id_pk"
         }
       },
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
@@ -660,6 +714,12 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+<<<<<<< HEAD
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+=======
         },
         "profile_id": {
           "name": "profile_id",
@@ -685,6 +745,7 @@
           "onUpdate": "no action"
         }
       },
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -866,6 +927,12 @@
           "notNull": true,
           "autoincrement": false,
           "default": 3
+<<<<<<< HEAD
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+=======
         },
         "profile_id": {
           "name": "profile_id",
@@ -891,6 +958,7 @@
           "onUpdate": "no action"
         }
       },
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}

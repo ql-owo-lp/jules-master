@@ -170,7 +170,14 @@ async function fetchSessionFromApi(sessionId: string, apiKey: string): Promise<S
             }
         );
 
-        if (!response.ok) return null;
+        if (!response.ok) {
+            if (response.status === 404) {
+                 console.warn(`Session not found during sync: ${sessionId}`);
+            } else {
+                 console.warn(`Failed to fetch session ${sessionId}: ${response.status} ${response.statusText}`);
+            }
+            return null;
+        }
         return await response.json();
     } catch (e) {
         console.error(`Failed to fetch session ${sessionId}`, e);

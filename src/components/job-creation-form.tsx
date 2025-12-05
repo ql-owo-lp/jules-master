@@ -348,8 +348,16 @@ export function JobCreationForm({
         branch: selectedBranch,
         autoApproval: !requirePlanApproval,
         background: false,
+<<<<<<< HEAD
+        prompt: finalPrompt,
+        sessionCount: createdSessions.length,
+        status: 'COMPLETED',
+        automationMode: automationMode,
+        requirePlanApproval: requirePlanApproval,
+=======
         // @ts-ignore
         profileId: currentProfileId
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
       };
       
       await addJob(newJob);

@@ -23,7 +23,17 @@ export function CronJobsList() {
         if (!currentProfileId) return;
         setIsLoading(true);
         try {
+<<<<<<< HEAD
+            const response = await fetch('/api/cron-jobs', {
+                cache: 'no-store',
+                headers: {
+                    'Pragma': 'no-cache',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+=======
             const response = await fetch(`/api/cron-jobs?profileId=${currentProfileId}`);
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
             if (response.ok) {
                 const data = await response.json();
                 setCronJobs(data);

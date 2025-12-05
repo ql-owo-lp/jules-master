@@ -5,7 +5,11 @@ import { appDatabase, db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import type { Job, PredefinedPrompt, HistoryPrompt, Settings } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
+<<<<<<< HEAD
+import { eq, desc, or } from 'drizzle-orm';
+=======
 import { eq, desc, and } from 'drizzle-orm';
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
 
 // --- Jobs ---
 export async function getJobs(profileId?: string): Promise<Job[]> {
@@ -18,12 +22,19 @@ export async function addJob(job: Job): Promise<void> {
     revalidatePath('/');
 }
 
+<<<<<<< HEAD
+export async function getPendingBackgroundWorkCount(): Promise<{ pendingJobs: number, retryingSessions: number }> {
+    const pendingJobs = await db.select().from(schema.jobs).where(
+        or(eq(schema.jobs.status, 'PENDING'), eq(schema.jobs.status, 'PROCESSING'))
+    );
+=======
 export async function getPendingBackgroundWorkCount(profileId?: string): Promise<{ pendingJobs: number, retryingSessions: number }> {
     let pendingJobsQuery = db.select().from(schema.jobs).where(eq(schema.jobs.status, 'PENDING'));
     if (profileId) {
         pendingJobsQuery = pendingJobsQuery.where(eq(schema.jobs.profileId, profileId));
     }
     const pendingJobs = await pendingJobsQuery;
+>>>>>>> 4d52d8a (Apply patch /tmp/a95fca6f-c2d6-4225-a184-e2348dbb7295.patch)
 
     // For retrying sessions, we want sessions that are FAILED and have retries left (retryCount < maxRetries)
     // AND probably where last error was recoverable?
