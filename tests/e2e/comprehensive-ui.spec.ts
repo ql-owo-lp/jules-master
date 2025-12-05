@@ -59,7 +59,7 @@ test.describe('Comprehensive UI Tests', () => {
       }
 
       // Verify "New Job" button
-      const newJobButton = page.getByRole('button', { name: 'New Job' });
+      const newJobButton = page.getByRole('button', { name: 'New Job', exact: true });
       await expect(newJobButton).toBeVisible();
 
       // Verify "Jobs & Sessions" link
@@ -80,7 +80,7 @@ test.describe('Comprehensive UI Tests', () => {
   test.describe('New Job Page', () => {
     test('should open new job dialog and verify validation', async ({ page }) => {
       await page.goto('/');
-      await page.getByRole('button', { name: 'New Job' }).click();
+      await page.getByRole('button', { name: 'New Job', exact: true }).click();
 
       const dialog = page.getByRole('dialog', { name: 'Create a New Job' });
       await expect(dialog).toBeVisible();
@@ -109,7 +109,7 @@ test.describe('Comprehensive UI Tests', () => {
 
     test('should verify form elements presence', async ({ page }) => {
         await page.goto('/');
-        await page.getByRole('button', { name: 'New Job' }).click();
+        await page.getByRole('button', { name: 'New Job', exact: true }).click();
 
         const dialog = page.getByRole('dialog', { name: 'Create a New Job' });
 

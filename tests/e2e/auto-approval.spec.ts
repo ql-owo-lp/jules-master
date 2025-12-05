@@ -43,8 +43,9 @@ test.describe('Auto Approval Features', () => {
         // Select Repository (Mock Data)
         await expect(page.locator('#repository-skeleton')).toBeHidden({ timeout: 10000 });
 
-        // Use exact match or regex for the combobox that displays the repository
-        const repoCombobox = page.getByRole('combobox').filter({ hasText: /test-owner\/test-repo/ }).first();
+        // Use locator to find combobox with specific text/value or within the repository selection area
+        // Trying to be more specific to avoid strict mode violation if multiple comboboxes exist
+        const repoCombobox = page.locator('button[role="combobox"]').filter({ hasText: /test-owner\/test-repo/ }).first();
         await expect(repoCombobox).toBeVisible();
 
         // Ensure "Require Plan Approval" is UNCHECKED (which means Auto Approval is ON)
