@@ -64,8 +64,16 @@ export const repoPrompts = sqliteTable('repo_prompts', {
   prompt: text('prompt').notNull(),
 });
 
+export const profiles = sqliteTable('profiles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  isSelected: integer('is_selected', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at').notNull(),
+});
+
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
   idlePollInterval: integer('idle_poll_interval').notNull().default(120),
   activePollInterval: integer('active_poll_interval').notNull().default(30),
   titleTruncateLength: integer('title_truncate_length').notNull().default(50),
