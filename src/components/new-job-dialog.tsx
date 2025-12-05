@@ -12,6 +12,7 @@ import { createSession } from "@/app/sessions/new/actions";
 import { revalidateSessions } from "@/app/sessions/actions";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useEnv } from "@/components/env-provider";
+import { useProfile } from "@/components/profile-provider";
 
 type NewJobDialogProps = {
     isPage?: boolean;
@@ -26,7 +27,9 @@ type NewJobDialogProps = {
 
 export function NewJobDialog({ isPage = false, children, initialValues }: NewJobDialogProps) {
     const { julesApiKey } = useEnv();
-    const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+    const { currentProfile } = useProfile();
+    const apiKey = currentProfile?.julesApiKey || julesApiKey || null;
+
     const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
     const router = useRouter();
     const { toast } = useToast();

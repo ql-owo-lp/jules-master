@@ -8,13 +8,19 @@ import { eq } from 'drizzle-orm';
 
 describe('Settings API', () => {
   beforeAll(async () => {
-    // Clean up the settings table before each test run
-    await db.delete(settings).where(eq(settings.id, 1));
+    // Clean up the settings table before each test run.
+    await db.delete(settings);
+    // Insert the profile that the mock cookie returns
+    await db.insert(settings).values({
+        id: 'test-profile-id',
+        name: 'Test Profile',
+        createdAt: new Date().toISOString(),
+    });
   });
 
   afterAll(async () => {
     // Clean up the settings table after each test run
-    await db.delete(settings).where(eq(settings.id, 1));
+    await db.delete(settings);
   });
 
   it('should return 400 for invalid data', async () => {
@@ -63,7 +69,8 @@ describe('Settings API', () => {
     const postResponse = await POST(postReq);
     expect(postResponse.status).toBe(200);
 
-    const getResponse = await GET();
+    const req = new NextRequest('http://localhost/api/settings', { method: 'GET' });
+    const getResponse = await GET(req);
     const retrievedSettings = await getResponse.json();
 
     expect(retrievedSettings).toEqual(expect.objectContaining(newSettings));

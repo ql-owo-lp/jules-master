@@ -29,6 +29,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Combobox, ComboboxGroup } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FloatingProgressBar } from "@/components/floating-progress-bar";
+import { useProfile } from "@/components/profile-provider";
+import { useEnv } from "@/components/env-provider";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[], newJob: Job) => void;
@@ -78,7 +80,10 @@ export function JobCreationForm({
   const [selectedBranch, setSelectedBranch] = useLocalStorage<string | undefined>("jules-last-branch", undefined);
   const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
   const [lastSourcesFetch, setLastSourcesFetch] = useLocalStorage<number>("jules-sources-last-fetch", 0);
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+
+  const { currentProfile } = useProfile();
+  const { julesApiKey } = useEnv();
+  const apiKey = currentProfile?.julesApiKey || julesApiKey || null;
 
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);

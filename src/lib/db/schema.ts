@@ -1,9 +1,10 @@
 import { sql } from 'drizzle-orm';
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, sqliteTable, text, primaryKey } from 'drizzle-orm/sqlite-core';
 import type { SourceContext, SessionOutput, AutomationMode } from '@/lib/types';
 
 export const jobs = sqliteTable('jobs', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   name: text('name').notNull(),
   sessionIds: text('session_ids', { mode: 'json' }).$type<string[]>(),
   createdAt: text('created_at').notNull(),
@@ -21,6 +22,7 @@ export const jobs = sqliteTable('jobs', {
 
 export const cronJobs = sqliteTable('cron_jobs', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   name: text('name').notNull(),
   schedule: text('schedule').notNull(),
   prompt: text('prompt').notNull(),
@@ -38,34 +40,49 @@ export const cronJobs = sqliteTable('cron_jobs', {
 
 export const predefinedPrompts = sqliteTable('predefined_prompts', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   title: text('title').notNull(),
   prompt: text('prompt').notNull(),
 });
 
 export const historyPrompts = sqliteTable('history_prompts', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   prompt: text('prompt').notNull(),
   lastUsedAt: text('last_used_at').notNull(),
 });
 
 export const quickReplies = sqliteTable('quick_replies', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   title: text('title').notNull(),
   prompt: text('prompt').notNull(),
 });
 
 export const globalPrompt = sqliteTable('global_prompt', {
   id: integer('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   prompt: text('prompt').notNull(),
 });
 
 export const repoPrompts = sqliteTable('repo_prompts', {
-  repo: text('repo').primaryKey(),
+  repo: text('repo').notNull(),
+  profileId: text('profile_id').notNull().references(() => profiles.id),
   prompt: text('prompt').notNull(),
-});
+}, (t) => ({
+  pk: primaryKey({ columns: [t.repo, t.profileId] }),
+}));
 
-export const settings = sqliteTable('settings', {
-  id: integer('id').primaryKey(),
+export const profiles = sqliteTable('profiles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().default('Default'),
+  // Identity / API Keys
+  githubToken: text('github_token'),
+  julesApiKey: text('jules_api_key'),
+  julesApiUrl: text('jules_api_url'),
+  createdAt: text('created_at').notNull(),
+
+  // Settings
   idlePollInterval: integer('idle_poll_interval').notNull().default(120),
   activePollInterval: integer('active_poll_interval').notNull().default(30),
   titleTruncateLength: integer('title_truncate_length').notNull().default(50),
@@ -90,8 +107,12 @@ export const settings = sqliteTable('settings', {
   autoDeleteStaleBranchesAfterDays: integer('auto_delete_stale_branches_after_days').notNull().default(3),
 });
 
+// Alias for backward compatibility if needed, but we should refactor usages.
+export const settings = profiles;
+
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   name: text('name').notNull(),
   title: text('title').notNull(),
   prompt: text('prompt').notNull(),

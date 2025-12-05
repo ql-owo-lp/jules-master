@@ -5,6 +5,7 @@ import type { Session, Source } from '@/lib/types';
 import { revalidateTag } from 'next/cache';
 import { fetchWithRetry, cancelRequest } from '@/lib/fetch-client';
 import { getCachedSessions, syncStaleSessions, upsertSession, forceRefreshSession } from '@/lib/session-service';
+import { cookies } from 'next/headers';
 
 type ListSessionsResponse = {
   sessions: Session[];
@@ -83,6 +84,9 @@ export async function listSessions(
      return { sessions: MOCK_SESSIONS };
   }
 
+  const cookieStore = await cookies();
+  const profileId = cookieStore.get('jules-current-profile-id')?.value;
+
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     return { sessions: [], error: "Jules API key is not configured. Please set it in the settings." };
@@ -90,12 +94,12 @@ export async function listSessions(
 
   try {
     // 1. Get cached sessions from DB
-    let sessions = await getCachedSessions();
+    let sessions = await getCachedSessions(profileId);
     const isInitialFetch = sessions.length === 0;
 
     // 2. If DB is empty, perform an initial fetch from API to populate it
     if (isInitialFetch) {
-        console.log("Session cache is empty, performing initial fetch...");
+        console.log("Session cache is empty for profile, performing initial fetch...");
         // Fetch the first page or so to populate.
         // NOTE: We might want to fetch *all* pages if we want a complete cache,
         // but for now let's just fetch the first page to be responsive.
@@ -108,9 +112,9 @@ export async function listSessions(
         }
 
         for (const s of firstPage.sessions) {
-            await upsertSession(s);
+            await upsertSession(s, profileId);
         }
-        sessions = await getCachedSessions();
+        sessions = await getCachedSessions(profileId);
     }
 
     // 3. Trigger background sync for stale sessions
@@ -121,7 +125,7 @@ export async function listSessions(
     if (!isInitialFetch) {
       (async () => {
           try {
-              await syncStaleSessions(effectiveApiKey);
+              await syncStaleSessions(effectiveApiKey, profileId);
           } catch (e) {
               console.error("Background session sync failed", e);
           }
@@ -142,7 +146,9 @@ export async function refreshSession(sessionId: string, apiKey?: string | null) 
         console.error("Jules API key is not configured.");
         return;
       }
-    await forceRefreshSession(sessionId, effectiveApiKey);
+    const cookieStore = await cookies();
+    const profileId = cookieStore.get('jules-current-profile-id')?.value;
+    await forceRefreshSession(sessionId, effectiveApiKey, profileId);
 }
 
 export async function fetchSessionsPage(

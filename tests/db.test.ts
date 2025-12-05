@@ -202,18 +202,18 @@ describe('Database Layer', () => {
         });
 
         it('should save (create) and get global prompt', async () => {
-            await appDatabase.globalPrompt.save('Initial Prompt');
-            const result = await appDatabase.globalPrompt.get();
+            await appDatabase.globalPrompt.save('test-profile-id', 'Initial Prompt');
+            const result = await appDatabase.globalPrompt.get('test-profile-id');
 
             expect(result).toBeDefined();
             expect(result?.prompt).toBe('Initial Prompt');
         });
 
         it('should save (update) global prompt', async () => {
-            await appDatabase.globalPrompt.save('Initial Prompt');
-            await appDatabase.globalPrompt.save('Updated Prompt');
+            await appDatabase.globalPrompt.save('test-profile-id', 'Initial Prompt');
+            await appDatabase.globalPrompt.save('test-profile-id', 'Updated Prompt');
 
-            const result = await appDatabase.globalPrompt.get();
+            const result = await appDatabase.globalPrompt.get('test-profile-id');
             expect(result?.prompt).toBe('Updated Prompt');
         });
     });

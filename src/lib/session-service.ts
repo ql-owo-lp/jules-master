@@ -10,18 +10,24 @@ export type CachedSession = typeof sessions.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 
 /**
- * Gets the current application settings.
- * Creates default settings if they don't exist.
+ * Gets the current application settings (Profile).
  */
-export async function getSettings(): Promise<Settings> {
-  const existingSettings = await db.select().from(settings).limit(1);
+export async function getSettings(profileId?: string): Promise<Settings> {
+  if (profileId) {
+      const existing = await db.select().from(settings).where(eq(settings.id, profileId)).get();
+      if (existing) return existing;
+  }
 
+  const existingSettings = await db.select().from(settings).limit(1);
   if (existingSettings.length > 0) {
     return existingSettings[0];
   }
 
-  // Create default settings if not found
+  // If no settings/profile found, create default one
   const defaultSettings = await db.insert(settings).values({
+    id: crypto.randomUUID(),
+    name: "Default",
+    createdAt: new Date().toISOString(),
     idlePollInterval: 120,
     activePollInterval: 30,
     sessionCacheInProgressInterval: 60,
@@ -36,10 +42,19 @@ export async function getSettings(): Promise<Settings> {
 /**
  * Saves or updates a session in the local database.
  */
-export async function upsertSession(session: Session) {
+export async function upsertSession(session: Session, profileId?: string) {
   const now = Date.now();
+
+  // If profileId is not provided, try to find existing session to preserve its profileId
+  let effectiveProfileId = profileId;
+  if (!effectiveProfileId) {
+      const existing = await db.select().from(sessions).where(eq(sessions.id, session.id)).get();
+      effectiveProfileId = existing?.profileId || undefined;
+  }
+
   const sessionData = {
     id: session.id,
+    profileId: effectiveProfileId,
     name: session.name,
     title: session.title,
     prompt: session.prompt,
@@ -65,8 +80,12 @@ export async function upsertSession(session: Session) {
 /**
  * Retrieves all sessions from the local database, sorted by creation time descending.
  */
-export async function getCachedSessions(): Promise<Session[]> {
-  const cachedSessions = await db.select().from(sessions).orderBy(sql`${sessions.createTime} DESC`);
+export async function getCachedSessions(profileId?: string): Promise<Session[]> {
+  const query = db.select().from(sessions).orderBy(sql`${sessions.createTime} DESC`);
+  if (profileId) {
+      query.where(eq(sessions.profileId, profileId));
+  }
+  const cachedSessions = await query;
 
   // Map back to Session type if needed, though they should be compatible
   return cachedSessions.map(s => ({
@@ -126,9 +145,15 @@ async function fetchSessionFromApi(sessionId: string, apiKey: string): Promise<S
  * Syncs a specific list of sessions if they are stale.
  * This function is intended to be called periodically or on demand.
  */
-export async function syncStaleSessions(apiKey: string) {
-  const settings = await getSettings();
-  const cachedSessions = await db.select().from(sessions);
+export async function syncStaleSessions(apiKey: string, profileId?: string) {
+  const settings = await getSettings(profileId);
+
+  const query = db.select().from(sessions);
+  if (profileId) {
+      query.where(eq(sessions.profileId, profileId));
+  }
+  const cachedSessions = await query;
+
   const now = Date.now();
 
   const sessionsToUpdate: string[] = [];
@@ -196,7 +221,7 @@ export async function syncStaleSessions(apiKey: string) {
     await Promise.all(batch.map(async (id) => {
         const updatedSession = await fetchSessionFromApi(id, apiKey);
         if (updatedSession) {
-            await upsertSession(updatedSession);
+            await upsertSession(updatedSession, profileId);
         }
     }));
   }
@@ -205,10 +230,10 @@ export async function syncStaleSessions(apiKey: string) {
 /**
  * Force refresh a specific session.
  */
-export async function forceRefreshSession(sessionId: string, apiKey: string) {
+export async function forceRefreshSession(sessionId: string, apiKey: string, profileId?: string) {
     const updatedSession = await fetchSessionFromApi(sessionId, apiKey);
     if (updatedSession) {
-        await upsertSession(updatedSession);
+        await upsertSession(updatedSession, profileId);
     }
     return updatedSession;
 }

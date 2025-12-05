@@ -21,6 +21,13 @@ vi.mock('@/components/env-provider', () => ({
 
 vi.mock('@/hooks/use-local-storage');
 
+vi.mock('@/components/profile-provider', () => ({
+  useProfile: () => ({
+    currentProfile: { id: 'test-profile-id', name: 'Test Profile' },
+    refreshProfiles: vi.fn(),
+  }),
+}));
+
 const mockJobs = [
   { id: 'job1', name: 'Job 1', sessionIds: ['session1'], repo: 'repo1', createdAt: new Date().toISOString() },
   { id: 'job2', name: 'Job 2', sessionIds: ['session2'], repo: 'repo2', createdAt: new Date().toISOString() },

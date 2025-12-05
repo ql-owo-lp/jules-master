@@ -60,12 +60,19 @@ describe('History Prompts', () => {
      const prompt = "New Prompt";
 
      // Setup mocks
-     // Mock db.select().from().where().get() to return undefined (not found)
+     // Mock chaining where().where().get()
+     const queryObj = {
+         get: vi.fn().mockResolvedValue(undefined),
+         where: vi.fn().mockReturnThis()
+     };
+     // We need to handle the fact that .where returns queryObj, but queryObj.where also returns queryObj
+     // So define a function that returns the object
+     const whereMock = vi.fn().mockReturnValue(queryObj);
+     queryObj.where = whereMock;
+
      const dbSelectMock = {
          from: vi.fn().mockReturnValue({
-             where: vi.fn().mockReturnValue({
-                 get: vi.fn().mockResolvedValue(undefined)
-             })
+             where: whereMock
          })
      };
      // @ts-ignore
@@ -83,11 +90,16 @@ describe('History Prompts', () => {
      const existingRecord = { id: '123', prompt: prompt, lastUsedAt: 'old-date' };
 
      // Setup mocks
+     const queryObj = {
+         get: vi.fn().mockResolvedValue(existingRecord),
+         where: vi.fn()
+     };
+     const whereMock = vi.fn().mockReturnValue(queryObj);
+     queryObj.where = whereMock;
+
      const dbSelectMock = {
          from: vi.fn().mockReturnValue({
-             where: vi.fn().mockReturnValue({
-                 get: vi.fn().mockResolvedValue(existingRecord)
-             })
+             where: whereMock
          })
      };
      // @ts-ignore

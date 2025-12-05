@@ -226,14 +226,30 @@ export async function fetchWithRetry(
   url: string | URL,
   options: FetchOptions = {}
 ): Promise<Response> {
-  const { retries = 3, backoff = 1000, signal, requestId, ...fetchOptions } = options;
+  const { retries = 3, backoff = 1000, signal, requestId, headers, ...fetchOptions } = options;
+
+  // Inject Profile ID from LocalStorage if available
+  const currentProfileId = typeof window !== 'undefined' ? window.localStorage.getItem('jules-current-profile-id') : null;
+  const finalHeaders = new Headers(headers);
+
+  if (currentProfileId) {
+      // JSON.parse because use-local-storage hook stores it as JSON string
+      try {
+          // If stored via use-local-storage it might be wrapped in quotes
+          const parsed = JSON.parse(currentProfileId);
+          if (parsed) finalHeaders.set('x-profile-id', parsed);
+      } catch (e) {
+          // Fallback if not JSON encoded
+          finalHeaders.set('x-profile-id', currentProfileId);
+      }
+  }
 
   return globalQueue.enqueue(async (effectiveSignal) => {
       let attempt = 0;
       while (attempt < retries) {
         try {
           // Pass the effective signal (queue controller) to fetch
-          const response = await fetch(url, { ...fetchOptions, signal: effectiveSignal });
+          const response = await fetch(url, { ...fetchOptions, headers: finalHeaders, signal: effectiveSignal });
 
           let sleepTime = 0;
 
