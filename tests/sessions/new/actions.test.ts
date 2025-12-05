@@ -2,10 +2,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createSession } from '@/app/sessions/new/actions';
 import * as fetchClient from '@/lib/fetch-client';
+import * as sessionService from '@/lib/session-service';
 
 // Mock the fetch-client module
 vi.mock('@/lib/fetch-client', () => ({
   fetchWithRetry: vi.fn(),
+}));
+
+// Mock the session-service module
+vi.mock('@/lib/session-service', () => ({
+  upsertSession: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('Session New Actions', () => {

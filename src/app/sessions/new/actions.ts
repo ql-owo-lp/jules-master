@@ -3,6 +3,7 @@
 
 import type { Session, AutomationMode } from "@/lib/types";
 import { fetchWithRetry } from "@/lib/fetch-client";
+import { upsertSession } from "@/lib/session-service";
 
 // The partial session type for the create request body
 type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
@@ -55,6 +56,20 @@ export async function createSession(
     }
 
     const newSession: Session = await response.json();
+
+    // Normalize ID if missing (same logic as listSessions)
+    if (!newSession.id && newSession.name) {
+      const parts = newSession.name.split('/');
+      if (parts.length > 1) {
+        newSession.id = parts[parts.length - 1];
+      }
+    }
+
+    // Upsert to local DB so it appears in the list immediately
+    if (newSession.id) {
+       await upsertSession(newSession);
+    }
+
     return newSession;
   } catch (error) {
     console.error("Error creating session:", error);
