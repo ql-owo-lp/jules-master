@@ -74,6 +74,8 @@ export const profiles = sqliteTable('profiles', {
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey(),
   profileId: text('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
+  julesApiKey: text('jules_api_key'),
+  githubToken: text('github_token'),
   idlePollInterval: integer('idle_poll_interval').notNull().default(120),
   activePollInterval: integer('active_poll_interval').notNull().default(30),
   titleTruncateLength: integer('title_truncate_length').notNull().default(50),

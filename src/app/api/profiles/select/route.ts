@@ -3,25 +3,37 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq, ne } from 'drizzle-orm';
+import { z } from 'zod';
+
+const selectProfileSchema = z.object({
+  id: z.string(),
+});
 
 export async function POST(request: Request) {
   try {
-    const { id } = await request.json();
+    const body = await request.json();
+    const validation = selectProfileSchema.safeParse(body);
 
-    if (!id) {
-      return NextResponse.json({ error: 'Profile ID is required' }, { status: 400 });
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    // Use transaction to ensure atomicity
-    await db.transaction(async (tx) => {
-        // Set all profiles to isSelected = false
-        await tx.update(profiles).set({ isSelected: false });
+    const { id } = validation.data;
 
-        // Set the target profile to isSelected = true
-        await tx.update(profiles).set({ isSelected: true }).where(eq(profiles.id, id));
-    });
+    // Verify profile exists
+    const profile = await db.select().from(profiles).where(eq(profiles.id, id)).limit(1);
+    if (profile.length === 0) {
+         return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
+
+    // Unselect all others
+    await db.update(profiles).set({ isSelected: false }).where(ne(profiles.id, id));
+
+    // Select this one
+    await db.update(profiles).set({ isSelected: true }).where(eq(profiles.id, id));
 
     return NextResponse.json({ success: true });
+
   } catch (error) {
     console.error('Error selecting profile:', error);
     return NextResponse.json({ error: 'Failed to select profile' }, { status: 500 });

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "aac7a558-5d55-4f6f-a022-8dc90d76be88",
-  "prevId": "3385753b-0d7b-4844-a027-54795d27b9a2",
+  "id": "02e6c282-dded-4bac-8f31-bdd3d0e4224e",
+  "prevId": "aac7a558-5d55-4f6f-a022-8dc90d76be88",
   "tables": {
     "cron_jobs": {
       "name": "cron_jobs",
@@ -541,6 +541,20 @@
         },
         "profile_id": {
           "name": "profile_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "jules_api_key": {
+          "name": "jules_api_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "github_token": {
+          "name": "github_token",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
