@@ -239,3 +239,10 @@ export type Settings = {
   autoContinueEnabled?: boolean;
   autoRetryEnabled?: boolean;
 };
+
+export type Profile = {
+  id: string;
+  name: string;
+  isSelected: boolean;
+  createdAt: string;
+};

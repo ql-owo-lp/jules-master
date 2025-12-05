@@ -40,6 +40,7 @@ if (fs.existsSync(dbPath)) {
 }
 
 const sqlite = new Database(dbPath);
+sqlite.pragma('foreign_keys = ON');
 export const db = drizzle(sqlite, { schema });
 
 // Generic DAO Interface

@@ -65,7 +65,8 @@ import { SourceSelection } from "@/components/source-selection";
 import { CronJobsList } from "@/components/cron-jobs-list";
 import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
-import type { PredefinedPrompt, Source } from "@/lib/types";
+import type { PredefinedPrompt, Source, Profile } from "@/lib/types";
+import { getProfiles, createProfile, updateProfile, deleteProfile, selectProfile } from "./profile-actions";
 
 type DialogState = {
   isOpen: boolean;
@@ -82,7 +83,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const currentTab = searchParams.get("tab") || "general";
+  const currentTab = searchParams.get("tab") || "profiles";
 
   const onTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -153,6 +154,13 @@ export default function SettingsPage() {
   const isJulesKeyFromEnv = !!julesApiKey;
   const isGithubTokenFromEnv = !!envGithubToken;
 
+  // --- Profiles State ---
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+
   // --- Messages State (from PromptsPage) ---
   const [prompts, setPrompts] = useState<PredefinedPrompt[]>([]);
   const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
@@ -200,48 +208,77 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const fetchSettings = async () => {
-      try {
-        const response = await fetch('/api/settings');
-        if (response.ok) {
-          const dbSettings = await response.json();
-          const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
-
-          if (!isSetInLocalStorage("jules-idle-poll-interval")) setIdlePollInterval(dbSettings.idlePollInterval);
-          if (!isSetInLocalStorage("jules-active-poll-interval")) setActivePollInterval(dbSettings.activePollInterval);
-          if (!isSetInLocalStorage("jules-title-truncate-length")) setTitleTruncateLength(dbSettings.titleTruncateLength);
-          if (!isSetInLocalStorage("jules-line-clamp")) setLineClamp(dbSettings.lineClamp);
-          if (!isSetInLocalStorage("jules-session-items-per-page")) setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
-          if (!isSetInLocalStorage("jules-jobs-per-page")) setJobsPerPage(dbSettings.jobsPerPage);
-          if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
-          if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
-          if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
-          if (!isSetInLocalStorage("jules-auto-approval-interval")) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
-          if (!isSetInLocalStorage("jules-auto-retry-enabled")) setAutoRetryEnabled(dbSettings.autoRetryEnabled);
-          if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
-          if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
-          if (!isSetInLocalStorage("jules-auto-continue-message")) setAutoContinueMessage(dbSettings.autoContinueMessage);
-
-          if (!isSetInLocalStorage("jules-session-cache-in-progress-interval")) setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
-          if (!isSetInLocalStorage("jules-session-cache-completed-no-pr-interval")) setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
-          if (!isSetInLocalStorage("jules-session-cache-pending-approval-interval")) setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
-          if (!isSetInLocalStorage("jules-session-cache-max-age-days")) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
-          if (!isSetInLocalStorage("jules-auto-delete-stale-branches")) setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
-          if (!isSetInLocalStorage("jules-auto-delete-stale-branches-after-days")) setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
+    const loadProfiles = async () => {
+        setIsLoadingProfiles(true);
+        try {
+            const data = await getProfiles();
+            setProfiles(data);
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to load profiles",
+                variant: "destructive"
+            });
+        } finally {
+            setIsLoadingProfiles(false);
         }
-      } catch (error) {
-        console.error("Failed to fetch settings from DB", error);
-      }
     };
-    fetchSettings();
-  }, [
-      setIdlePollInterval, setActivePollInterval, setTitleTruncateLength, setLineClamp,
-      setSessionItemsPerPage, setJobsPerPage, setDefaultSessionCount, setPrStatusPollInterval,
-      setHistoryPromptsCount, setAutoApprovalInterval, setAutoRetryEnabled, setAutoRetryMessage,
-      setAutoContinueEnabled, setAutoContinueMessage,
-      setSessionCacheInProgressInterval, setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays,
-      setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays
-  ]);
+    loadProfiles();
+  }, [isClient, toast]);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings'); // Gets settings for selected profile
+      if (response.ok) {
+        const dbSettings = await response.json();
+        const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
+
+        // Force update state from DB settings, override local storage if we are switching profiles?
+        // If we switch profiles, we want to see the DB settings for that profile.
+        // But the previous logic was respecting local storage overrides.
+        // For profiles to work properly, we probably want to prioritize DB settings when switching.
+        // But `useLocalStorage` hook syncs with local storage.
+        // I will update the state variables, which will update local storage via the hook.
+
+        setIdlePollInterval(dbSettings.idlePollInterval);
+        setActivePollInterval(dbSettings.activePollInterval);
+        setTitleTruncateLength(dbSettings.titleTruncateLength);
+        setLineClamp(dbSettings.lineClamp);
+        setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
+        setJobsPerPage(dbSettings.jobsPerPage);
+        setDefaultSessionCount(dbSettings.defaultSessionCount);
+        setPrStatusPollInterval(dbSettings.prStatusPollInterval);
+        setHistoryPromptsCount(dbSettings.historyPromptsCount);
+        setAutoApprovalInterval(dbSettings.autoApprovalInterval);
+        setAutoRetryEnabled(dbSettings.autoRetryEnabled);
+        setAutoRetryMessage(dbSettings.autoRetryMessage);
+        setAutoContinueEnabled(dbSettings.autoContinueEnabled);
+        setAutoContinueMessage(dbSettings.autoContinueMessage);
+
+        setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
+        setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
+        setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
+        setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
+        setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
+        setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
+      }
+    } catch (error) {
+      console.error("Failed to fetch settings from DB", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isClient) {
+        fetchSettings();
+    }
+  }, [isClient]);
+
+  // Refetch settings when a profile is selected (we can detect this by checking if profiles list changed selection status)
+  // Actually, handleProfileSelect will trigger a re-fetch.
+
+  // Also we need to make sure the hook dependencies for original `fetchSettings` are correct if we keep it.
+  // I removed the original `useEffect` and replaced it with one that calls `fetchSettings` which is now defined outside or inside.
+  // I defined `fetchSettings` inside component scope so I can call it from `handleProfileSelect`.
 
   // --- Effects for Messages ---
   useEffect(() => {
@@ -273,6 +310,69 @@ export default function SettingsPage() {
   }, [selectedSource]);
 
 
+  // --- Handlers for Profiles ---
+  const handleProfileSave = async () => {
+      if (!profileName.trim()) return;
+
+      try {
+          if (editingProfileId) {
+              await updateProfile(editingProfileId, profileName);
+              setProfiles(profiles.map(p => p.id === editingProfileId ? { ...p, name: profileName } : p));
+              toast({ title: "Profile updated" });
+          } else {
+              const newProfile = await createProfile(profileName);
+              setProfiles([...profiles, newProfile]);
+              toast({ title: "Profile created" });
+          }
+          setIsProfileDialogOpen(false);
+          setProfileName("");
+          setEditingProfileId(null);
+      } catch (error: any) {
+          toast({
+              title: "Error",
+              description: error.message,
+              variant: "destructive"
+          });
+      }
+  };
+
+  const handleProfileEdit = (profile: Profile) => {
+      setEditingProfileId(profile.id);
+      setProfileName(profile.name);
+      setIsProfileDialogOpen(true);
+  };
+
+  const handleProfileDelete = async (id: string) => {
+      try {
+          await deleteProfile(id);
+          setProfiles(profiles.filter(p => p.id !== id));
+          toast({ title: "Profile deleted" });
+      } catch (error: any) {
+          toast({
+              title: "Error",
+              description: error.message,
+              variant: "destructive"
+          });
+      }
+  };
+
+  const handleProfileSelect = async (id: string) => {
+      try {
+          await selectProfile(id);
+          setProfiles(profiles.map(p => ({ ...p, isSelected: p.id === id })));
+          // Refresh settings for the new profile
+          await fetchSettings();
+          toast({ title: "Profile switched" });
+      } catch (error: any) {
+           toast({
+              title: "Error",
+              description: error.message,
+              variant: "destructive"
+          });
+      }
+  };
+
+
   // --- Handlers for Settings ---
   const handleSaveSettings = async () => {
     setApiKey(apiKeyValue);
@@ -302,14 +402,17 @@ export default function SettingsPage() {
     setAutoDeleteStaleBranchesAfterDays(autoDeleteStaleBranchesAfterDaysValue);
 
     try {
-        const response = await fetch('/api/settings');
+        const response = await fetch('/api/settings'); // Gets settings for selected profile
         let currentTheme = 'system';
         if (response.ok) {
             const data = await response.json();
             currentTheme = data.theme;
         }
 
-        await fetch('/api/settings', {
+        const selectedProfile = profiles.find(p => p.isSelected);
+        const profileIdQuery = selectedProfile ? `?profileId=${selectedProfile.id}` : '';
+
+        await fetch(`/api/settings${profileIdQuery}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -523,7 +626,8 @@ export default function SettingsPage() {
     <div className="container mx-auto py-8 max-w-5xl">
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
       <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 flex-wrap">
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
@@ -531,6 +635,85 @@ export default function SettingsPage() {
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="display">Display</TabsTrigger>
         </TabsList>
+
+        {/* Profiles Tab */}
+        <TabsContent value="profiles" className="space-y-6">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Profiles</CardTitle>
+                        <CardDescription>Manage your configuration profiles.</CardDescription>
+                    </div>
+                    <Button onClick={() => {
+                        setEditingProfileId(null);
+                        setProfileName("");
+                        setIsProfileDialogOpen(true);
+                    }}>
+                        <Plus className="mr-2 h-4 w-4" /> Create Profile
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {isLoadingProfiles ? (
+                        <Skeleton className="h-20 w-full" />
+                    ) : (
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Created At</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {profiles.map((profile) => (
+                                        <TableRow key={profile.id}>
+                                            <TableCell className="font-medium">{profile.name}</TableCell>
+                                            <TableCell>
+                                                {profile.isSelected ? (
+                                                    <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-300">
+                                                        Active
+                                                    </span>
+                                                ) : (
+                                                     <Button variant="ghost" size="sm" onClick={() => handleProfileSelect(profile.id)}>
+                                                        Select
+                                                     </Button>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground text-sm">
+                                                {new Date(profile.createdAt).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                 <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => handleProfileEdit(profile)}>
+                                                            <Edit className="mr-2 h-4 w-4" /> Rename
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleProfileDelete(profile.id)}
+                                                            className="text-destructive"
+                                                            disabled={profile.isSelected}
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </TabsContent>
 
         {/* General Tab */}
         <TabsContent value="general" className="space-y-6">
@@ -1003,6 +1186,34 @@ export default function SettingsPage() {
             <DialogClose asChild><Button variant="outline" disabled={isSavingMessage}>Cancel</Button></DialogClose>
             <Button onClick={handleSaveMessage} disabled={isSavingMessage}>Save</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for Profile Creation/Editing */}
+      <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>{editingProfileId ? "Rename Profile" : "Create Profile"}</DialogTitle>
+                <DialogDescription>
+                    {editingProfileId ? "Enter a new name for your profile." : "Enter a name for the new profile."}
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="profile-name" className="text-right">Name</Label>
+                    <Input
+                        id="profile-name"
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="col-span-3"
+                        placeholder="Profile Name"
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                <Button onClick={handleProfileSave}>Save</Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

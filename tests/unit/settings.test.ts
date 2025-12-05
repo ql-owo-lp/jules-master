@@ -3,18 +3,30 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { POST, GET } from '@/app/api/settings/route';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { settings } from '@/lib/db/schema';
+import { settings, profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('Settings API', () => {
   beforeAll(async () => {
-    // Clean up the settings table before each test run
-    await db.delete(settings).where(eq(settings.id, 1));
+    // Clean up the settings table and profiles before each test run
+    // Since we have cascade delete, deleting profiles should be enough, but let's be safe
+    // We also need to ensure a default profile exists for tests to pass given new logic
+    await db.delete(settings);
+    await db.delete(profiles);
+
+    // Create a default profile
+    await db.insert(profiles).values({
+        id: 'test-profile-id',
+        name: 'Default',
+        isSelected: true,
+        createdAt: new Date().toISOString(),
+    });
   });
 
   afterAll(async () => {
-    // Clean up the settings table after each test run
-    await db.delete(settings).where(eq(settings.id, 1));
+    // Clean up
+    await db.delete(settings);
+    await db.delete(profiles);
   });
 
   it('should return 400 for invalid data', async () => {
@@ -63,7 +75,8 @@ describe('Settings API', () => {
     const postResponse = await POST(postReq);
     expect(postResponse.status).toBe(200);
 
-    const getResponse = await GET();
+    const req = new NextRequest('http://localhost/api/settings');
+    const getResponse = await GET(req);
     const retrievedSettings = await getResponse.json();
 
     expect(retrievedSettings).toEqual(expect.objectContaining(newSettings));
