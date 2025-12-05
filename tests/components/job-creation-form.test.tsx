@@ -2,7 +2,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor, screen } from '@testing-library/react';
 import { JobCreationForm } from '@/components/job-creation-form';
-import { addJob, getPredefinedPrompts, getGlobalPrompt, getHistoryPrompts, getSettings, saveHistoryPrompt } from '@/app/config/actions';
+import { addJob, getPredefinedPrompts, getGlobalPrompt, getHistoryPrompts, getActiveProfile, saveHistoryPrompt } from '@/app/config/actions';
 import { listSources, refreshSources } from '@/app/sessions/actions';
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -44,7 +44,7 @@ describe('JobCreationForm', () => {
     (getPredefinedPrompts as vi.Mock).mockResolvedValue([]);
     (getGlobalPrompt as vi.Mock).mockResolvedValue('');
     (getHistoryPrompts as vi.Mock).mockResolvedValue([]);
-    (getSettings as vi.Mock).mockResolvedValue(null);
+    (getActiveProfile as vi.Mock).mockResolvedValue(null);
     (saveHistoryPrompt as vi.Mock).mockResolvedValue(undefined);
     (listSources as vi.Mock).mockResolvedValue([]);
     (refreshSources as vi.Mock).mockResolvedValue(undefined);

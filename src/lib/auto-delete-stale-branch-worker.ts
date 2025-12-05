@@ -1,6 +1,6 @@
 
 import { db } from './db';
-import { settings } from './db/schema';
+import { profiles } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { fetchSessionsPage } from '@/app/sessions/actions';
 import { getPullRequestStatus } from '@/app/github/actions';
@@ -27,7 +27,7 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
     try {
         console.log("AutoDeleteStaleBranchWorker: Starting check for all sessions...");
 
-        const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+        const settingsResult = await db.select().from(profiles).where(eq(profiles.isActive, true)).limit(1);
         if (settingsResult.length === 0 || !settingsResult[0].autoDeleteStaleBranches) {
             console.log("AutoDeleteStaleBranchWorker: Auto-delete stale branches is disabled in settings. Skipping check.");
             isRunning = false;
@@ -99,9 +99,9 @@ function scheduleNextRun() {
         clearTimeout(workerTimeout);
     }
 
-    db.select().from(settings).where(eq(settings.id, 1)).limit(1)
+    db.select().from(profiles).where(eq(profiles.isActive, true)).limit(1)
         .then(settingsResult => {
-            const intervalSeconds = settingsResult[0]?.autoDeleteStaleBranchesInterval ?? DEFAULT_INTERVAL_SECONDS;
+            const intervalSeconds = settingsResult[0]?.autoDeleteStaleBranchesAfterDays ?? DEFAULT_INTERVAL_SECONDS;
             workerTimeout = setTimeout(() => {
                 runAutoDeleteStaleBranchCheck();
             }, intervalSeconds * 1000);

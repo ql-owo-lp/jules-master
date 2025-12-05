@@ -1,8 +1,60 @@
 
 import { db } from "@/lib/db";
-import { cronJobs } from "@/lib/db/schema";
+import { cronJobs, profiles } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
-import type { CronJob } from "@/lib/types";
+import type { CronJob, Profile } from "@/lib/types";
+
+export async function getProfiles(): Promise<Profile[]> {
+  try {
+    const allProfiles = await db.select().from(profiles).all();
+    if (allProfiles.length === 0) {
+      const newProfile: Profile = {
+        id: crypto.randomUUID(),
+        name: "default",
+        isActive: true,
+      };
+      await db.insert(profiles).values(newProfile);
+      return [newProfile];
+    }
+    return allProfiles;
+  } catch (error) {
+    console.error("Failed to fetch profiles:", error);
+    throw error;
+  }
+}
+
+export async function createProfile(data: Omit<Profile, "id" | "isActive">) {
+  try {
+    const newProfile = {
+      ...data,
+      id: crypto.randomUUID(),
+      isActive: false,
+    };
+    await db.insert(profiles).values(newProfile);
+    return newProfile;
+  } catch (error) {
+    console.error("Failed to create profile:", error);
+    throw error;
+  }
+}
+
+export async function updateProfile(id: string, data: Partial<Profile>) {
+  try {
+    await db.update(profiles).set(data).where(eq(profiles.id, id));
+  } catch (error) {
+    console.error("Failed to update profile:", error);
+    throw error;
+  }
+}
+
+export async function deleteProfile(id: string) {
+  try {
+    await db.delete(profiles).where(eq(profiles.id, id));
+  } catch (error) {
+    console.error("Failed to delete profile:", error);
+    throw error;
+  }
+}
 
 export async function getCronJobs(): Promise<CronJob[]> {
   try {

@@ -6,6 +6,6 @@ export default defineConfig({
   schema: "./src/lib/db/schema.ts",
   out: "./src/lib/db/migrations",
   dbCredentials: {
-    url: "sqlite.db",
+    url: process.env.NODE_ENV === 'test' ? 'sqlite.test.db' : 'sqlite.db',
   },
 });

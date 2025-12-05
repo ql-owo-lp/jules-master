@@ -15,8 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { refreshSources, listSources } from "@/app/sessions/actions";
-import { getPredefinedPrompts, getGlobalPrompt, getRepoPrompt, addJob, getHistoryPrompts, saveHistoryPrompt, getSettings } from "@/app/config/actions";
-import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode, HistoryPrompt, Settings } from "@/lib/types";
+import { getPredefinedPrompts, getGlobalPrompt, getRepoPrompt, addJob, getHistoryPrompts, saveHistoryPrompt, getActiveProfile } from "@/app/config/actions";
+import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode, HistoryPrompt, Profile } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2, RefreshCw, X, Trash2, BookText } from "lucide-react";
 import { SourceSelection } from "./source-selection";
@@ -39,7 +39,7 @@ type JobCreationFormProps = {
     branch: string | undefined,
     requirePlanApproval: boolean,
     automationMode: AutomationMode,
-    settings: Settings | null
+    settings: Profile | null
   ) => Promise<Session | null>;
   disabled?: boolean;
   onReset?: () => void;
@@ -85,7 +85,7 @@ export function JobCreationForm({
   const [historyPrompts, setHistoryPrompts] = useState<HistoryPrompt[]>([]);
   const [globalPrompt, setGlobalPrompt] = useState('');
   const [repoPrompt, setRepoPrompt] = useState('');
-  const [settings, setSettings] = useState<Settings | null>(null);
+  const [settings, setSettings] = useState<Profile | null>(null);
 
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
@@ -102,7 +102,7 @@ export function JobCreationForm({
             getPredefinedPrompts(),
             getGlobalPrompt(),
             getHistoryPrompts(),
-            getSettings()
+            getActiveProfile()
         ]);
         setPredefinedPrompts(prompts);
         setGlobalPrompt(gPrompt);

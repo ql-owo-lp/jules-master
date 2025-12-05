@@ -66,7 +66,7 @@ export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promis
 
 // --- History Prompts ---
 export async function getHistoryPrompts(): Promise<HistoryPrompt[]> {
-    const settings = await db.select().from(schema.settings).get();
+    const settings = await getActiveProfile();
     const limit = settings?.historyPromptsCount ?? 10;
     return appDatabase.historyPrompts.getRecent(limit);
 }
@@ -130,6 +130,8 @@ export async function saveRepoPrompt(repo: string, prompt: string): Promise<void
 }
 
 // --- Settings ---
-export async function getSettings() {
-    return db.query.settings.findFirst();
+export async function getActiveProfile() {
+    return db.query.profiles.findFirst({
+        where: eq(schema.profiles.isActive, true),
+    });
 }

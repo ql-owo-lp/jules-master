@@ -64,8 +64,12 @@ export const repoPrompts = sqliteTable('repo_prompts', {
   prompt: text('prompt').notNull(),
 });
 
-export const settings = sqliteTable('settings', {
-  id: integer('id').primaryKey(),
+export const profiles = sqliteTable('profiles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
+  julesApiKey: text('jules_api_key'),
+  githubToken: text('github_token'),
   idlePollInterval: integer('idle_poll_interval').notNull().default(120),
   activePollInterval: integer('active_poll_interval').notNull().default(30),
   titleTruncateLength: integer('title_truncate_length').notNull().default(50),
@@ -81,10 +85,10 @@ export const settings = sqliteTable('settings', {
   autoRetryMessage: text('auto_retry_message').notNull().default("You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution"),
   autoContinueEnabled: integer('auto_continue_enabled', { mode: 'boolean' }).notNull().default(true),
   autoContinueMessage: text('auto_continue_message').notNull().default("Sounds good. Now go ahead finish the work"),
-  // Session Cache Settings
+  debugMode: integer('debug_mode', { mode: 'boolean' }).notNull().default(false),
   sessionCacheInProgressInterval: integer('session_cache_in_progress_interval').notNull().default(60),
-  sessionCacheCompletedNoPrInterval: integer('session_cache_completed_no_pr_interval').notNull().default(1800), // 30 minutes
-  sessionCachePendingApprovalInterval: integer('session_cache_pending_approval_interval').notNull().default(300), // 5 minutes
+  sessionCacheCompletedNoPrInterval: integer('session_cache_completed_no_pr_interval').notNull().default(1800),
+  sessionCachePendingApprovalInterval: integer('session_cache_pending_approval_interval').notNull().default(300),
   sessionCacheMaxAgeDays: integer('session_cache_max_age_days').notNull().default(3),
   autoDeleteStaleBranches: integer('auto_delete_stale_branches', { mode: 'boolean' }).notNull().default(false),
   autoDeleteStaleBranchesAfterDays: integer('auto_delete_stale_branches_after_days').notNull().default(3),

@@ -65,12 +65,13 @@ import { SourceSelection } from "@/components/source-selection";
 import { CronJobsList } from "@/components/cron-jobs-list";
 import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
-import type { PredefinedPrompt, Source } from "@/lib/types";
+import type { PredefinedPrompt, Source, Profile } from "@/lib/types";
+import { getProfiles, createProfile, updateProfile, deleteProfile } from "@/app/settings/actions";
 
 type DialogState = {
   isOpen: boolean;
-  type: 'prompt' | 'reply';
-  data: PredefinedPrompt | null;
+  type: 'prompt' | 'reply' | 'profile';
+  data: PredefinedPrompt | Profile | null;
 }
 
 export default function SettingsPage() {
@@ -168,6 +169,52 @@ export default function SettingsPage() {
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, type: 'prompt', data: null });
   const [title, setTitle] = useState("");
   const [promptText, setPromptText] = useState("");
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
+  const [profileName, setProfileName] = useState("");
+  const [activeProfile, setActiveProfile] = useLocalStorage<Profile | null>('active-profile', null);
+
+  const switchActiveProfile = async (profileId: string) => {
+    const newActiveProfile = profiles.find(p => p.id === profileId);
+    if (newActiveProfile) {
+      await updateProfile(newActiveProfile.id, { isActive: true });
+      if (activeProfile) {
+        await updateProfile(activeProfile.id, { isActive: false });
+      }
+      setActiveProfile(newActiveProfile);
+      toast({ title: "Profile switched" });
+      window.location.reload();
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!profileName.trim()) {
+      toast({ variant: "destructive", title: "Missing fields", description: "Profile name is required." });
+      return;
+    }
+
+    startSavingMessage(async () => {
+      const { data } = dialogState;
+      if (data?.id) {
+        await updateProfile(data.id, { name: profileName });
+        setProfiles(profiles.map((p) => p.id === data.id ? { ...p, name: profileName } : p));
+        toast({ title: "Profile updated" });
+      } else {
+        const newProfile = await createProfile({ name: profileName });
+        setProfiles([...profiles, newProfile]);
+        toast({ title: "Profile added" });
+      }
+      closeDialog();
+    });
+  };
+
+  const handleDeleteProfile = (id: string) => {
+    startSavingMessage(async () => {
+      await deleteProfile(id);
+      setProfiles(profiles.filter((p) => p.id !== id));
+      toast({ title: "Profile deleted" });
+    });
+  };
 
 
   // --- Effects for Settings ---
@@ -207,6 +254,8 @@ export default function SettingsPage() {
           const dbSettings = await response.json();
           const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
 
+          if (!isSetInLocalStorage("jules-api-key")) setApiKey(dbSettings.julesApiKey);
+          if (!isSetInLocalStorage("jules-github-token")) setGithubToken(dbSettings.githubToken);
           if (!isSetInLocalStorage("jules-idle-poll-interval")) setIdlePollInterval(dbSettings.idlePollInterval);
           if (!isSetInLocalStorage("jules-active-poll-interval")) setActivePollInterval(dbSettings.activePollInterval);
           if (!isSetInLocalStorage("jules-title-truncate-length")) setTitleTruncateLength(dbSettings.titleTruncateLength);
@@ -259,6 +308,20 @@ export default function SettingsPage() {
     };
     if (isClient) fetchMessages();
   }, [isClient]);
+
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      setIsLoadingProfiles(true);
+      const fetchedProfiles = await getProfiles();
+      setProfiles(fetchedProfiles);
+      const active = fetchedProfiles.find(p => p.isActive);
+      if (active) {
+        setActiveProfile(active);
+      }
+      setIsLoadingProfiles(false);
+    };
+    if (isClient) fetchProfiles();
+  }, [isClient, setActiveProfile]);
 
   useEffect(() => {
     if (selectedSource) {
@@ -375,10 +438,14 @@ export default function SettingsPage() {
     });
   };
 
-  const openDialog = (type: 'prompt' | 'reply', data: PredefinedPrompt | null = null) => {
+  const openDialog = (type: 'prompt' | 'reply' | 'profile', data: PredefinedPrompt | Profile | null = null) => {
     setDialogState({ isOpen: true, type, data });
-    setTitle(data?.title || "");
-    setPromptText(data?.prompt || "");
+    if (type === 'profile') {
+      setProfileName((data as Profile)?.name || "");
+    } else {
+      setTitle((data as PredefinedPrompt)?.title || "");
+      setPromptText((data as PredefinedPrompt)?.prompt || "");
+    }
   };
 
   const closeDialog = () => {
@@ -530,7 +597,7 @@ export default function SettingsPage() {
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="display">Display</TabsTrigger>
-          <TabsTrigger value="config">Configuration</TabsTrigger>
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
         </TabsList>
 
         {/* General Tab */}
@@ -538,7 +605,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>General Settings</CardTitle>
-                    <CardDescription>API keys and debug settings.</CardDescription>
+                    <CardDescription>API keys, debug settings and other internal settings.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -593,6 +660,48 @@ export default function SettingsPage() {
                          {isGithubTokenFromEnv && !githubTokenValue && (
                             <p className="text-xs text-muted-foreground">Using GITHUB_TOKEN environment variable.</p>
                         )}
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
+                        <Input
+                            id="idle-poll-interval"
+                            type="number"
+                            value={idlePollIntervalValue}
+                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
+                            min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
+                        <Input
+                            id="active-poll-interval"
+                            type="number"
+                            value={activePollIntervalValue}
+                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
+                            min="1"
+                        />
+                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
+                        <Input
+                            id="pr-status-poll-interval"
+                            type="number"
+                            value={prStatusPollIntervalValue}
+                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
+                        <Input
+                            id="default-session-count"
+                            type="number"
+                            value={defaultSessionCountValue}
+                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
+                            min="1"
+                        />
                     </div>
                 </CardContent>
                 <CardFooter>
@@ -909,103 +1018,128 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
-        {/* Configuration Tab */}
-        <TabsContent value="config" className="space-y-6">
+        <TabsContent value="profiles" className="space-y-6">
             <Card>
-                <CardHeader>
-                    <CardTitle>Advanced Configuration</CardTitle>
-                    <CardDescription>Fine-tune polling and other internal settings.</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Profiles</CardTitle>
+                        <CardDescription>Manage your settings profiles.</CardDescription>
+                    </div>
+                    <Button onClick={() => openDialog('profile')} disabled={isSavingMessage || isLoadingMessages}>
+                        <Plus className="mr-2 h-4 w-4" /> Add New
+                    </Button>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid gap-2">
-                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
-                        <Input
-                            id="idle-poll-interval"
-                            type="number"
-                            value={idlePollIntervalValue}
-                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
-                            min="0"
-                        />
-                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
-                        <Input
-                            id="active-poll-interval"
-                            type="number"
-                            value={activePollIntervalValue}
-                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
-                            min="1"
-                        />
-                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
-                        <Input
-                            id="pr-status-poll-interval"
-                            type="number"
-                            value={prStatusPollIntervalValue}
-                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
-                            min="10"
-                        />
-                    </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
-                        <Input
-                            id="default-session-count"
-                            type="number"
-                            value={defaultSessionCountValue}
-                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
-                            min="1"
-                        />
+                <CardContent>
+                    <div className="border rounded-lg">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="w-[80px] text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {profiles.map((profile) => (
+                                    <TableRow key={profile.id}>
+                                        <TableCell className="font-medium">{profile.name}</TableCell>
+                                        <TableCell>{profile.isActive ? "Active" : "Inactive"}</TableCell>
+                                        <TableCell className="text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" disabled={isSavingMessage}>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent>
+                                                    <DropdownMenuItem onClick={() => switchActiveProfile(profile.id)} disabled={profile.isActive}>
+                                                        <RefreshCw className="mr-2 h-4 w-4" /> Switch
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => openDialog('profile', profile)}>
+                                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleDeleteProfile(profile.id)} disabled={profile.name === 'default'} className="text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
                 </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Configuration</Button>
-                </CardFooter>
             </Card>
         </TabsContent>
 
       </Tabs>
 
-      {/* Dialogs for Messages */}
+      {/* Dialogs for Messages and Profiles */}
       <Dialog open={dialogState.isOpen} onOpenChange={closeDialog}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Message' : 'Quick Reply'}
-            </DialogTitle>
-            <DialogDescription>
-               Create a new reusable {dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="col-span-3"
-                placeholder="A short, descriptive title"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="prompt-text" className="text-right pt-2">Content</Label>
-              <Textarea
-                id="prompt-text"
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                className="col-span-3"
-                rows={6}
-                placeholder="Enter the full text here..."
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline" disabled={isSavingMessage}>Cancel</Button></DialogClose>
-            <Button onClick={handleSaveMessage} disabled={isSavingMessage}>Save</Button>
-          </DialogFooter>
+          {dialogState.type === 'profile' ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>{dialogState.data ? "Edit" : "Add New"} Profile</DialogTitle>
+                <DialogDescription>Create a new settings profile.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="profile-name" className="text-right">Name</Label>
+                  <Input
+                    id="profile-name"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    className="col-span-3"
+                    placeholder="A short, descriptive name"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild><Button variant="outline" disabled={isSavingMessage}>Cancel</Button></DialogClose>
+                <Button onClick={handleSaveProfile} disabled={isSavingMessage}>Save</Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Message' : 'Quick Reply'}
+                </DialogTitle>
+                <DialogDescription>
+                  Create a new reusable {dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="title" className="text-right">Title</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="col-span-3"
+                    placeholder="A short, descriptive title"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="prompt-text" className="text-right pt-2">Content</Label>
+                  <Textarea
+                    id="prompt-text"
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
+                    className="col-span-3"
+                    rows={6}
+                    placeholder="Enter the full text here..."
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild><Button variant="outline" disabled={isSavingMessage}>Cancel</Button></DialogClose>
+                <Button onClick={handleSaveMessage} disabled={isSavingMessage}>Save</Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

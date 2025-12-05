@@ -1,6 +1,6 @@
 
 import { db } from './db';
-import { jobs, settings } from './db/schema';
+import { jobs, profiles } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
 import { differenceInHours } from 'date-fns';
@@ -24,7 +24,7 @@ export async function runAutoRetryCheck(options = { schedule: true }) {
 
     try {
         // 1. Get global settings
-        const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+        const settingsResult = await db.select().from(profiles).where(eq(profiles.isActive, true)).limit(1);
         if (settingsResult.length === 0 || !settingsResult[0].autoRetryEnabled) {
              isRunning = false;
              scheduleNextRun();
@@ -130,7 +130,7 @@ function scheduleNextRun() {
         clearTimeout(workerTimeout);
     }
 
-    db.select().from(settings).where(eq(settings.id, 1)).limit(1)
+    db.select().from(profiles).where(eq(profiles.isActive, true)).limit(1)
         .then(settingsResult => {
             let intervalSeconds = 60;
              // Using autoApprovalInterval as a proxy for "worker interval" or default 60

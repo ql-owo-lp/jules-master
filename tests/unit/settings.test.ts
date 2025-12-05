@@ -3,18 +3,18 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { POST, GET } from '@/app/api/settings/route';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { settings } from '@/lib/db/schema';
+import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('Settings API', () => {
   beforeAll(async () => {
-    // Clean up the settings table before each test run
-    await db.delete(settings).where(eq(settings.id, 1));
+    // Clean up the profiles table before each test run
+    await db.delete(profiles).where(eq(profiles.name, 'default'));
   });
 
   afterAll(async () => {
-    // Clean up the settings table after each test run
-    await db.delete(settings).where(eq(settings.id, 1));
+    // Clean up the profiles table after each test run
+    await db.delete(profiles).where(eq(profiles.name, 'default'));
   });
 
   it('should return 400 for invalid data', async () => {

@@ -53,7 +53,7 @@ describe('runAutoApprovalCheck', () => {
         vi.spyOn(sessionsActions, 'fetchSessionsPage').mockResolvedValue({ sessions: [mockSession], nextPageToken: undefined });
         vi.spyOn(idActions, 'approvePlan').mockResolvedValue(true);
         const settingsMock = db.limit as vi.Mock;
-        settingsMock.mockResolvedValue([{ autoApprovalEnabled: true, autoApprovalInterval: 60 }]);
+        settingsMock.mockResolvedValue([{ autoApprovalInterval: 60 }]);
     });
 
     afterEach(() => {
@@ -93,7 +93,7 @@ describe('runAutoApprovalCheck', () => {
 
     it('should not approve sessions if autoApprovalEnabled is false', async () => {
         const settingsMock = db.limit as vi.Mock;
-        settingsMock.mockResolvedValueOnce([{ autoApprovalEnabled: false, autoApprovalInterval: 60 }]);
+        settingsMock.mockResolvedValueOnce([{ autoApprovalInterval: 0 }]);
         await runAutoApprovalCheck({ schedule: false });
         expect(idActions.approvePlan).not.toHaveBeenCalled();
     });

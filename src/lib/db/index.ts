@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Resolve database path (handle relative paths in DATABASE_URL or default)
-const dbUrl = process.env.DATABASE_URL || 'data/sqlite.db';
+const dbUrl = process.env.NODE_ENV === 'test' ? 'data/sqlite.test.db' : process.env.DATABASE_URL || 'data/sqlite.db';
 const dbPath = path.isAbsolute(dbUrl) ? dbUrl : path.join(process.cwd(), dbUrl);
 const dbDir = path.dirname(dbPath);
 

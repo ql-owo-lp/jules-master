@@ -1,6 +1,6 @@
 
 import { db } from './db';
-import { jobs, settings, sessions } from './db/schema';
+import { jobs, profiles, sessions } from './db/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
 import type { Session } from '@/lib/types';
@@ -37,7 +37,7 @@ export async function runAutoContinueCheck(options = { schedule: true }) {
 
     try {
         // 1. Get global settings
-        const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+        const settingsResult = await db.select().from(profiles).where(eq(profiles.isActive, true)).limit(1);
         if (settingsResult.length === 0 || !settingsResult[0].autoContinueEnabled) {
              isRunning = false;
              scheduleNextRun();
@@ -198,7 +198,7 @@ function scheduleNextRun() {
         clearTimeout(workerTimeout);
     }
 
-    db.select().from(settings).where(eq(settings.id, 1)).limit(1)
+    db.select().from(profiles).where(eq(profiles.isActive, true)).limit(1)
         .then(settingsResult => {
             let intervalSeconds = 60;
              if (settingsResult.length > 0) {

@@ -6,11 +6,12 @@ import {
     getQuickReplies, saveQuickReplies,
     getGlobalPrompt, saveGlobalPrompt,
     getHistoryPrompts, saveHistoryPrompt,
-    getRepoPrompt, saveRepoPrompt
+    getRepoPrompt, saveRepoPrompt,
+    getActiveProfile
 } from '../src/app/config/actions';
 import { Job, PredefinedPrompt } from '../src/lib/types';
 import { db } from '../src/lib/db';
-import { jobs, predefinedPrompts, quickReplies, globalPrompt, historyPrompts, repoPrompts } from '../src/lib/db/schema';
+import { jobs, predefinedPrompts, quickReplies, globalPrompt, historyPrompts, repoPrompts, profiles } from '../src/lib/db/schema';
 
 // Mock next/cache
 vi.mock('next/cache', () => ({
@@ -19,25 +20,14 @@ vi.mock('next/cache', () => ({
 
 describe('Config Actions', () => {
     beforeAll(async () => {
-        // Clear all tables before running the tests
         await db.delete(jobs);
         await db.delete(predefinedPrompts);
         await db.delete(quickReplies);
         await db.delete(globalPrompt);
         await db.delete(historyPrompts);
         await db.delete(repoPrompts);
+        await db.delete(profiles);
     });
-
-    afterAll(async () => {
-        // Clear all tables after running the tests
-        await db.delete(jobs);
-        await db.delete(predefinedPrompts);
-        await db.delete(quickReplies);
-        await db.delete(globalPrompt);
-        await db.delete(historyPrompts);
-        await db.delete(repoPrompts);
-    });
-
     describe('Jobs', () => {
         beforeEach(async () => {
             await db.delete(jobs);
@@ -170,9 +160,11 @@ describe('Config Actions', () => {
     describe('History Prompts', () => {
         beforeEach(async () => {
             await db.delete(historyPrompts);
+            await db.delete(profiles);
         });
 
         it('should save and retrieve history prompts', async () => {
+            await db.insert(profiles).values({ id: '1', name: 'default', isActive: true, historyPromptsCount: 5 });
             await saveHistoryPrompt('History 1');
             await saveHistoryPrompt('History 2');
             const retrieved = await getHistoryPrompts();
@@ -181,6 +173,7 @@ describe('Config Actions', () => {
         });
 
         it('should not save duplicate history prompts', async () => {
+            await db.insert(profiles).values({ id: '1', name: 'default', isActive: true, historyPromptsCount: 5 });
             await saveHistoryPrompt('History 1');
             await saveHistoryPrompt('History 1');
             const retrieved = await getHistoryPrompts();

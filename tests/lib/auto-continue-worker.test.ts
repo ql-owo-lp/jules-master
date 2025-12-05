@@ -69,7 +69,7 @@ describe('AutoContinueWorker', () => {
     // Mock db queries
     (db.select as any).mockImplementation(() => ({
       from: vi.fn().mockImplementation((table) => {
-        if (table === schema.settings) {
+        if (table === schema.profiles) {
              return {
                 where: vi.fn().mockReturnValue({
                     limit: vi.fn().mockResolvedValue([{ autoContinueEnabled: true, autoContinueMessage: 'Continue?' }])
@@ -104,7 +104,7 @@ describe('AutoContinueWorker', () => {
 
     (db.select as any).mockImplementation(() => ({
       from: vi.fn().mockImplementation((table) => {
-        if (table === schema.settings) {
+        if (table === schema.profiles) {
              return {
                 where: vi.fn().mockReturnValue({
                     limit: vi.fn().mockResolvedValue([{ autoContinueEnabled: true, autoContinueMessage: 'Continue?' }])
@@ -139,7 +139,7 @@ describe('AutoContinueWorker', () => {
 
     (db.select as any).mockImplementation(() => ({
       from: vi.fn().mockImplementation((table) => {
-        if (table === schema.settings) {
+        if (table === schema.profiles) {
              return {
                 where: vi.fn().mockReturnValue({
                     limit: vi.fn().mockResolvedValue([{ autoContinueEnabled: true, autoContinueMessage: 'Continue?' }])
@@ -173,7 +173,7 @@ describe('AutoContinueWorker', () => {
 
     (db.select as any).mockImplementation(() => ({
       from: vi.fn().mockImplementation((table) => {
-        if (table === schema.settings) {
+        if (table === schema.profiles) {
              return {
                 where: vi.fn().mockReturnValue({
                     limit: vi.fn().mockResolvedValue([{ autoContinueEnabled: true, autoContinueMessage: 'Continue?' }])

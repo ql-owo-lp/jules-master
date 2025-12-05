@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams('?status=COMPLETED'),
   useRouter: vi.fn(),
+  usePathname: vi.fn(),
 }));
 
 vi.mock('@/components/env-provider', () => ({
