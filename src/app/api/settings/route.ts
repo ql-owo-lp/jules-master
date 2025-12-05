@@ -1,17 +1,26 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { settings } from '@/lib/db/schema';
+import { settings, profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { settingsSchema } from '@/lib/validation';
 
 export async function GET() {
   try {
-    const result = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    // Get the active profile
+    const activeProfile = await db.select().from(profiles).where(eq(profiles.isActive, true)).limit(1);
+
+    if (activeProfile.length === 0) {
+        // Fallback or error? Should theoretically not happen after seeding.
+        return NextResponse.json({ error: 'No active profile found' }, { status: 500 });
+    }
+
+    const profileId = activeProfile[0].id;
+    const result = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
     if (result.length === 0) {
-      // Return default settings if none exist in DB
-      return NextResponse.json({
+      // Create default settings if not exist for this profile
+      const defaultSettings = {
         idlePollInterval: 120,
         activePollInterval: 30,
         titleTruncateLength: 50,
@@ -33,7 +42,11 @@ export async function GET() {
         autoDeleteStaleBranches: false,
         autoDeleteStaleBranchesAfterDays: 3,
         historyPromptsCount: 10,
-      });
+        profileId: profileId
+      };
+
+      await db.insert(settings).values(defaultSettings);
+      return NextResponse.json(defaultSettings);
     }
 
     return NextResponse.json(result[0]);
@@ -57,17 +70,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    const newSettings = {
-      id: 1, // Ensure we are updating the singleton row
-      ...validation.data,
-    };
+    // Get the active profile
+    const activeProfile = await db.select().from(profiles).where(eq(profiles.isActive, true)).limit(1);
+    if (activeProfile.length === 0) {
+        return NextResponse.json({ error: 'No active profile found' }, { status: 500 });
+    }
+    const profileId = activeProfile[0].id;
 
-    const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    // Check if settings exist for this profile
+    const existing = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
     if (existing.length > 0) {
-        await db.update(settings).set(newSettings).where(eq(settings.id, 1));
+        await db.update(settings).set(validation.data).where(eq(settings.id, existing[0].id));
     } else {
-        await db.insert(settings).values(newSettings);
+        await db.insert(settings).values({
+            ...validation.data,
+            profileId: profileId
+        });
     }
 
     return NextResponse.json({ success: true });
