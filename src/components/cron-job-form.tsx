@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Combobox, ComboboxGroup } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
-import cronParser from "cron-parser";
+import { parseCronExpression } from "@/lib/cron-utils";
 
 type CronJobFormProps = {
   onCronJobCreated: () => void;
@@ -150,7 +150,7 @@ export function CronJobForm({
     }
 
     try {
-        cronParser.parseExpression(schedule);
+        parseCronExpression(schedule);
     } catch (err) {
         toast({
             variant: "destructive",

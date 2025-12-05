@@ -27,7 +27,6 @@ export const cronJobs = sqliteTable('cron_jobs', {
   repo: text('repo').notNull(),
   branch: text('branch').notNull(),
   createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at'),
   lastRunAt: text('last_run_at'),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
   autoApproval: integer('auto_approval', { mode: 'boolean' }).notNull().default(false),

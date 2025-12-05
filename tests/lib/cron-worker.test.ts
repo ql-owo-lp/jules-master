@@ -31,9 +31,12 @@ vi.mock('better-sqlite3', () => {
 // Mock cron-parser
 vi.mock('cron-parser', () => ({
   default: {
-    parseExpression: vi.fn((schedule) => {
+    parse: vi.fn((schedule) => {
         if (schedule === '* * * * *') {
             return {
+                next: () => ({
+                    toString: () => new Date(Date.now() + 60000).toString()
+                }),
                 prev: () => ({
                     toDate: () => new Date(Date.now() - 60000) // 1 minute ago
                 })
@@ -41,6 +44,9 @@ vi.mock('cron-parser', () => ({
         }
         if (schedule === '0 0 1 1 *') {
             return {
+                next: () => ({
+                    toString: () => new Date(Date.now() + 31536000000).toString()
+                }),
                 prev: () => ({
                     toDate: () => new Date(Date.now() - 31536000000) // 1 year ago (approx)
                 })

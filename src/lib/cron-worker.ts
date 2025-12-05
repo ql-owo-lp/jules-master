@@ -2,7 +2,7 @@
 import { db } from './db';
 import { cronJobs, jobs } from './db/schema';
 import { eq, and, lte } from 'drizzle-orm';
-import cronParser from 'cron-parser';
+import { parseCronExpression } from './cron-utils';
 import type { CronJob, Job } from './types';
 
 export async function processCronJobs() {
@@ -14,7 +14,7 @@ export async function processCronJobs() {
       if (!job.enabled) continue;
 
       try {
-        const interval = cronParser.parseExpression(job.schedule);
+        const interval = parseCronExpression(job.schedule);
         const now = new Date();
 
         // If lastRunAt is null, it means it's a new job.
