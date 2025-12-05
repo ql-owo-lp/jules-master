@@ -30,8 +30,8 @@ test.describe('Settings Persistence', () => {
 
     await page.goto('/settings');
 
-    // Switch to Configuration tab for Default Session Count and Poll Intervals
-    await page.getByRole('tab', { name: 'Configuration' }).click();
+    // Switch to General tab (default) for Default Session Count and Poll Intervals
+    await page.getByRole('tab', { name: 'General' }).click();
 
     // Expect LS value (5) not DB value (20)
     await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('5');
@@ -40,9 +40,6 @@ test.describe('Settings Persistence', () => {
     await expect(page.getByLabel('Idle Poll Interval (seconds)')).toHaveValue('111');
 
     // Verify theme is from LS (light) not DB (dark).
-    // next-themes puts class "light" or "dark" on html element.
-    // Note: Theme is still in the sidebar (header) settings sheet, but also effective globally.
-    // We don't need to open the settings sheet to check the effect on html class.
     await expect(page.locator('html')).toHaveClass(/light/);
   });
 
@@ -67,8 +64,8 @@ test.describe('Settings Persistence', () => {
 
      await page.goto('/settings');
 
-     // Switch to Configuration tab
-     await page.getByRole('tab', { name: 'Configuration' }).click();
+     // Switch to General tab
+     await page.getByRole('tab', { name: 'General' }).click();
 
      // Expect DB value (15)
      await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('15');
@@ -106,9 +103,6 @@ test.describe('Settings Persistence', () => {
          } else if (route.request().method() === 'POST') {
              // Verify the payload
              const postData = route.request().postDataJSON();
-             // We have two save actions now.
-             // 1. Config Save: defaultSessionCount, idlePollInterval, activePollInterval, prStatusPollInterval
-             // 2. Display Save: titleTruncateLength, lineClamp, sessionItemsPerPage, jobsPerPage
 
              // Check if it's the Config save (based on unique values we set)
              if (postData.defaultSessionCount === 7 && postData.idlePollInterval === 123) {
@@ -128,9 +122,7 @@ test.describe('Settings Persistence', () => {
                   if (
                     postData.sessionItemsPerPage === 15 &&
                     postData.jobsPerPage === 6 &&
-                    // Config fields should retain their UPDATED values because the app doesn't refetch?
-                    // Actually, the component state holds the values.
-                    // So if we updated Config fields in the UI, they should be present here too.
+                    // Config fields should retain their UPDATED values
                     postData.defaultSessionCount === 7
                  ) {
                      await route.fulfill({ json: { success: true } });
@@ -145,16 +137,16 @@ test.describe('Settings Persistence', () => {
 
     await page.goto('/settings');
 
-    // Switch to Configuration tab
-    await page.getByRole('tab', { name: 'Configuration' }).click();
+    // Switch to General tab
+    await page.getByRole('tab', { name: 'General' }).click();
 
     await page.getByLabel('Default Session Count for New Jobs').fill('7');
     await page.getByLabel('Idle Poll Interval (seconds)').fill('123');
     await page.getByLabel('Active Poll Interval (seconds)').fill('33');
     await page.getByLabel('PR Status Cache Refresh Interval (seconds)').fill('90');
 
-    // Save Configuration
-    await page.getByRole('button', { name: 'Save Configuration' }).click();
+    // Save General Settings
+    await page.getByRole('button', { name: 'Save General Settings' }).click();
     await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible();
     await expect(page.getByText('Your settings have been updated.', { exact: true })).toBeVisible();
 

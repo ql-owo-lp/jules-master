@@ -31,7 +31,7 @@ vi.mock('better-sqlite3', () => {
 // Mock cron-parser
 vi.mock('cron-parser', () => ({
   default: {
-    parse: vi.fn((schedule) => {
+    parseExpression: vi.fn((schedule) => {
         if (schedule === '* * * * *') {
             return {
                 prev: () => ({

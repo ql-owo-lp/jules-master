@@ -150,7 +150,7 @@ export function CronJobForm({
     }
 
     try {
-        cronParser.parse(schedule);
+        cronParser.parseExpression(schedule);
     } catch (err) {
         toast({
             variant: "destructive",

@@ -334,11 +334,6 @@ export function JobCreationForm({
         branch: selectedBranch,
         autoApproval: !requirePlanApproval,
         background: false,
-        prompt: finalPrompt,
-        sessionCount: createdSessions.length,
-        status: 'COMPLETED',
-        automationMode: automationMode,
-        requirePlanApproval: requirePlanApproval,
       };
       
       await addJob(newJob);
