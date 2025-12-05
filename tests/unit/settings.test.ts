@@ -3,22 +3,28 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { POST, GET } from '@/app/api/settings/route';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { settings } from '@/lib/db/schema';
+import { settings, profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('Settings API', () => {
+  const profileId = 'test-profile-settings';
+
   beforeAll(async () => {
+    // Create a dummy profile
+    await db.insert(profiles).values({ id: profileId, name: 'Test Profile', createdAt: new Date().toISOString() }).onConflictDoNothing();
     // Clean up the settings table before each test run
-    await db.delete(settings).where(eq(settings.id, 1));
+    await db.delete(settings).where(eq(settings.profileId, profileId));
   });
 
   afterAll(async () => {
     // Clean up the settings table after each test run
-    await db.delete(settings).where(eq(settings.id, 1));
+    await db.delete(settings).where(eq(settings.profileId, profileId));
+    await db.delete(profiles).where(eq(profiles.id, profileId));
   });
 
   it('should return 400 for invalid data', async () => {
     const invalidData = {
+      profileId,
       idlePollInterval: 'not-a-number',
     };
     const req = new NextRequest('http://localhost/api/settings', {
@@ -32,6 +38,7 @@ describe('Settings API', () => {
 
   it('should save and retrieve settings correctly', async () => {
     const newSettings = {
+      profileId,
       idlePollInterval: 150,
       activePollInterval: 45,
       titleTruncateLength: 60,
@@ -55,7 +62,7 @@ describe('Settings API', () => {
       historyPromptsCount: 20,
     };
 
-    const postReq = new NextRequest('http://localhost/api/settings', {
+    const postReq = new NextRequest(`http://localhost/api/settings?profileId=${profileId}`, {
       method: 'POST',
       body: JSON.stringify(newSettings),
     });
@@ -63,9 +70,13 @@ describe('Settings API', () => {
     const postResponse = await POST(postReq);
     expect(postResponse.status).toBe(200);
 
-    const getResponse = await GET();
+    const getReq = new NextRequest(`http://localhost/api/settings?profileId=${profileId}`);
+    const getResponse = await GET(getReq);
     const retrievedSettings = await getResponse.json();
 
+    // remove profileId from comparison as it's not in the response body usually (or it is?)
+    // The GET endpoint returns result[0] which includes all columns.
+    // So profileId should be there.
     expect(retrievedSettings).toEqual(expect.objectContaining(newSettings));
   });
 });

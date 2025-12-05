@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Combobox, ComboboxGroup } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FloatingProgressBar } from "@/components/floating-progress-bar";
+import { useProfile } from "@/components/profile-provider";
 
 type JobCreationFormProps = {
   onJobsCreated: (sessions: Session[], newJob: Job) => void;
@@ -60,6 +61,7 @@ export function JobCreationForm({
   onReset,
   initialValues
 }: JobCreationFormProps) {
+  const { currentProfileId } = useProfile();
   const [prompt, setPrompt] = useState("");
   const [jobName, setJobName] = useState("");
   const [defaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
@@ -98,19 +100,20 @@ export function JobCreationForm({
   useEffect(() => {
     setIsClient(true);
     async function fetchData() {
+        if (!currentProfileId) return;
         const [prompts, gPrompt, hPrompts, settings] = await Promise.all([
-            getPredefinedPrompts(),
-            getGlobalPrompt(),
-            getHistoryPrompts(),
-            getSettings()
+            getPredefinedPrompts(currentProfileId),
+            getGlobalPrompt(currentProfileId),
+            getHistoryPrompts(currentProfileId),
+            getSettings(currentProfileId)
         ]);
         setPredefinedPrompts(prompts);
         setGlobalPrompt(gPrompt);
         setHistoryPrompts(hPrompts);
-        setSettings(settings);
+        setSettings(settings || null);
     }
     fetchData();
-  }, []);
+  }, [currentProfileId]);
 
   useEffect(() => {
     if (initialValues) {
@@ -245,11 +248,20 @@ export function JobCreationForm({
       return;
     }
 
+    if (!currentProfileId) {
+        toast({
+            variant: "destructive",
+            title: "Profile Error",
+            description: "No active profile selected.",
+        });
+        return;
+    }
+
     startTransition(async () => {
       // Save to history prompts
-      await saveHistoryPrompt(prompt);
+      await saveHistoryPrompt(prompt, currentProfileId);
       // Refresh history prompts in UI
-      const hPrompts = await getHistoryPrompts();
+      const hPrompts = await getHistoryPrompts(currentProfileId);
       setHistoryPrompts(hPrompts);
 
       const createdSessions: Session[] = [];
@@ -270,7 +282,9 @@ export function JobCreationForm({
             sessionCount: sessionCount,
             status: 'PENDING',
             automationMode: automationMode,
-            requirePlanApproval: requirePlanApproval
+            requirePlanApproval: requirePlanApproval,
+            // @ts-ignore
+            profileId: currentProfileId
         };
         await addJob(newJob);
         toast({
@@ -334,6 +348,8 @@ export function JobCreationForm({
         branch: selectedBranch,
         autoApproval: !requirePlanApproval,
         background: false,
+        // @ts-ignore
+        profileId: currentProfileId
       };
       
       await addJob(newJob);
@@ -393,7 +409,7 @@ export function JobCreationForm({
 
       const fetchRepoPrompt = async () => {
          const repoName = `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`;
-         const prompt = await getRepoPrompt(repoName);
+         const prompt = await getRepoPrompt(repoName, currentProfileId || undefined);
          setRepoPrompt(prompt);
       };
       fetchRepoPrompt();
@@ -401,7 +417,7 @@ export function JobCreationForm({
         setRepoPrompt("");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSource, branches, defaultBranch]);
+  }, [selectedSource, branches, defaultBranch, currentProfileId]);
 
   const truncate = (str: string, length: number) => {
     return str.length > length ? str.substring(0, length) + "..." : str;

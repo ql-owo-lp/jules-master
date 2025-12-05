@@ -21,11 +21,19 @@ import { groupSessionsByTopic, createDynamicJobs } from "@/lib/utils";
 import { useEnv } from "@/components/env-provider";
 import { FloatingProgressBar } from "@/components/floating-progress-bar";
 import { NewJobDialog } from "@/components/new-job-dialog";
+import { useProfile } from "@/components/profile-provider";
 
 function HomePageContent() {
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
-  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const { currentProfileId } = useProfile();
+  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null); // We might want to remove this or sync with profile?
+  // Ideally, useProfile should provide the apiKey if we moved it to DB or profile-specific storage.
+  // But for now, let's keep it but maybe we need to reload it when profile changes?
+  // Actually, SettingsPage saves it to `jules-api-key-${currentProfileId}`.
+  // We should read from that.
+
+  const [profileApiKey, setProfileApiKey] = useState<string | null>(null);
+  const [profileGithubToken, setProfileGithubToken] = useState<string | null>(null);
 
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -62,6 +70,24 @@ function HomePageContent() {
   const [progressLabel, setProgressLabel] = useState("");
   
   const activeRequestId = useRef<string | null>(null);
+
+  // Update keys when profile changes
+  useEffect(() => {
+    if (currentProfileId) {
+        const key = window.localStorage.getItem(`jules-api-key-${currentProfileId}`);
+        const token = window.localStorage.getItem(`jules-github-token-${currentProfileId}`);
+        setProfileApiKey(key);
+        setProfileGithubToken(token);
+
+        // Also reset data when profile changes to avoid showing old data briefly
+        // But useLocalStorage persists it globally.
+        // We should probably key useLocalStorage by profileId too for caching!
+        // But for now, let's just trigger a fresh fetch.
+        setSessions([]);
+        setJobs([]);
+        setLastUpdatedAt(null);
+    }
+  }, [currentProfileId]);
 
   // Effect to sync job filter with URL param
   useEffect(() => {
@@ -106,6 +132,8 @@ function HomePageContent() {
   }
 
   const fetchAllData = useCallback(async (options: {isRefresh: boolean} = {isRefresh: false}) => {
+    if (!currentProfileId) return;
+
     if (activeRequestId.current) {
         cancelSessionRequest(activeRequestId.current);
         activeRequestId.current = null;
@@ -123,11 +151,12 @@ function HomePageContent() {
 
     startFetching(async () => {
       try {
+        const effectiveApiKey = profileApiKey || julesApiKey; // Use profile key or env key
         const [fetchedSessionsResult, fetchedJobs, fetchedQuickReplies, fetchedPendingWork] = await Promise.all([
-          listSessions(apiKey, undefined, requestId),
-          getJobs(),
-          getQuickReplies(),
-          getPendingBackgroundWorkCount()
+          listSessions(effectiveApiKey, undefined, requestId, currentProfileId),
+          getJobs(currentProfileId),
+          getQuickReplies(currentProfileId),
+          getPendingBackgroundWorkCount(currentProfileId)
         ]);
 
         if (fetchedSessionsResult.error) {
@@ -154,7 +183,7 @@ function HomePageContent() {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast]);
+  }, [profileApiKey, julesApiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast, currentProfileId]);
 
   // Cancel any pending request on unmount
   useEffect(() => {
@@ -171,8 +200,8 @@ function HomePageContent() {
 
   // Initial fetch and set up polling interval
   useEffect(() => {
-    if (isClient) {
-      if (apiKey || julesApiKey) {
+    if (isClient && currentProfileId) {
+      if (profileApiKey || julesApiKey) {
         const now = Date.now();
         const intervalInMs = sessionListPollInterval * 1000;
 
@@ -190,66 +219,27 @@ function HomePageContent() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, apiKey, sessionListPollInterval]);
+  }, [isClient, profileApiKey, julesApiKey, sessionListPollInterval, currentProfileId]);
   
 
   // Countdown timer
   useEffect(() => {
-    if (!isClient || (!apiKey && !julesApiKey) || sessionListPollInterval <= 0) return;
+    if (!isClient || (!profileApiKey && !julesApiKey) || sessionListPollInterval <= 0) return;
 
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isClient, apiKey, sessionListPollInterval, lastUpdatedAt]);
+  }, [isClient, profileApiKey, julesApiKey, sessionListPollInterval, lastUpdatedAt]);
 
 
   const handleRefresh = async () => {
-    // If we want to force refresh all sessions shown, we could call refreshSession for each.
-    // However, the prompt says "unless user clicks on the refresh icon to manually refresh it".
-    // This implies per-session refresh or a global refresh that bypasses the cache rules?
-    // The current global refresh `fetchAllData` calls `listSessions`.
-    // `listSessions` uses the cache/sync logic.
-    // If the user wants to FORCE refresh everything, we might need a flag.
-    // For now, let's keep it as is, which will trigger the background sync logic.
-    // If we need to force update OLD sessions (older than 3 days), `syncStaleSessions` skips them.
-    // So `listSessions` won't update them.
-    // The user might expect the refresh button to update everything.
-    // But `listSessions` implementation currently skips old sessions in the background sync.
-    // So the refresh button on the main page won't update old sessions unless we change something.
-    // The requirement: "For session who was created more than 3 days ago... we no longer update... unless user clicks on the refresh icon".
-    // This implies the refresh icon SHOULD update them.
-    // So `listSessions` might need a `force` flag or we handle it differently.
-
-    // Actually, `fetchAllData` calls `listSessions`.
-    // If I pass a `force` flag to `listSessions`, I can bypass the 3-day check.
-    // But `listSessions` signature is `(apiKey, pageSize, requestId)`.
-    // I can't easily add a flag without changing the signature or using a different function.
-
-    // Alternatively, I can iterate over all sessions in the client and call `refreshSession` for each.
-    // That would be heavy.
-
-    // Let's modify `listSessions` to accept a `forceRefresh` option, or just rely on the fact that `syncStaleSessions`
-    // can be updated to handle this if I pass a flag.
-    // But `listSessions` is a server action.
-
-    // For now, I'll stick to `fetchAllData` triggering `listSessions`.
-    // If I really need to force refresh old sessions, I might need to iterate them on the server side if `isRefresh` is true.
-    // But `fetchAllData` logic is client side.
-
-    // Let's look at `SessionList` component. It probably has individual refresh buttons?
-    // The prompt says "unless user clicks on the refresh icon". This could mean a per-session icon.
-    // If it means the global refresh icon, then I should probably force update everything.
-
-    // I'll leave `fetchAllData` as is for now, but be aware of this limitation.
-    // If the user clicks the global refresh, `listSessions` is called.
-    // I'll update `listSessions` in `src/app/sessions/actions.ts` to allow forcing refresh if I can.
-
     fetchAllData({ isRefresh: true });
   };
 
   const handleApprovePlan = (sessionIds: string[]) => {
+    const effectiveApiKey = profileApiKey || julesApiKey;
     startActionTransition(async () => {
       if (sessionIds.length > 1) {
         setProgressLabel("Approving plans...");
@@ -262,10 +252,10 @@ function HomePageContent() {
 
       const approvalPromises = sessionIds.map(async (id) => {
         try {
-            const result = await approvePlan(id, apiKey);
+            const result = await approvePlan(id, effectiveApiKey);
             if (result) successfulApprovals++;
              // Force refresh this session immediately
-             await refreshSession(id, apiKey);
+             await refreshSession(id, effectiveApiKey);
         } catch (e) {
            console.error(`Failed to approve plan for session ${id}`, e);
         } finally {
@@ -300,11 +290,12 @@ function HomePageContent() {
   };
 
   const handleSendMessage = (sessionId: string, message: string) => {
+    const effectiveApiKey = profileApiKey || julesApiKey;
     startActionTransition(async () => {
-      const result = await sendMessage(sessionId, message, apiKey);
+      const result = await sendMessage(sessionId, message, effectiveApiKey);
       if (result) {
         // Force refresh this session immediately
-        await refreshSession(sessionId, apiKey);
+        await refreshSession(sessionId, effectiveApiKey);
         fetchAllData();
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
       } else {
@@ -317,6 +308,7 @@ function HomePageContent() {
   };
 
   const handleBulkSendMessage = (sessionIds: string[], message: string) => {
+    const effectiveApiKey = profileApiKey || julesApiKey;
     startActionTransition(async () => {
       if (sessionIds.length > 1) {
         setProgressLabel("Sending messages...");
@@ -329,11 +321,11 @@ function HomePageContent() {
 
       const messagePromises = sessionIds.map(async (id) => {
         try {
-            const result = await sendMessage(id, message, apiKey);
+            const result = await sendMessage(id, message, effectiveApiKey);
             if (result) {
                 successfulMessages++;
                  // Force refresh this session immediately
-                 await refreshSession(id, apiKey);
+                 await refreshSession(id, effectiveApiKey);
             }
         } catch (e) {
             console.error(`Failed to send message to session ${id}`, e);
@@ -436,8 +428,8 @@ function HomePageContent() {
     );
   }
 
-  const hasJulesApiKey = !!(julesApiKey || apiKey);
-  const hasGithubToken = !!(envGithubToken || githubToken);
+  const hasJulesApiKey = !!(julesApiKey || profileApiKey);
+  const hasGithubToken = !!(envGithubToken || profileGithubToken);
 
   return (
     <div className="flex flex-col flex-1 bg-background">
@@ -565,7 +557,3 @@ export default function Home() {
     </Suspense>
   )
 }
-
-    
-
-    

@@ -11,16 +11,19 @@ import type { CronJob } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { useProfile } from "@/components/profile-provider";
 
 export function CronJobsList() {
+    const { currentProfileId } = useProfile();
     const [cronJobs, setCronJobs] = useState<CronJob[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
 
     const fetchCronJobs = async () => {
+        if (!currentProfileId) return;
         setIsLoading(true);
         try {
-            const response = await fetch('/api/cron-jobs');
+            const response = await fetch(`/api/cron-jobs?profileId=${currentProfileId}`);
             if (response.ok) {
                 const data = await response.json();
                 setCronJobs(data);
@@ -34,7 +37,7 @@ export function CronJobsList() {
 
     useEffect(() => {
         fetchCronJobs();
-    }, []);
+    }, [currentProfileId]);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this cron job?")) return;
@@ -67,7 +70,7 @@ export function CronJobsList() {
         }
     }
 
-    if (isLoading) {
+    if (isLoading || !currentProfileId) {
         return (
             <div className="space-y-4">
                 <Skeleton className="h-10 w-full" />

@@ -21,6 +21,7 @@ import { Bot, MessageSquare, PlusCircle, BookText, ExternalLink, PanelLeft } fro
 import { Header } from '@/components/header';
 import { NewJobDialog } from '@/components/new-job-dialog';
 import { EnvProvider } from '@/components/env-provider';
+import { ProfileProvider } from '@/components/profile-provider';
 
 export const metadata = {
   title: 'Jules Master',
@@ -59,63 +60,65 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <SidebarProvider>
-              <Sidebar>
-                <SidebarContent>
-                  <SidebarHeader className='justify-between'>
-                  <Link
-                    href="/"
-                    className="flex items-center gap-2 font-bold text-xl"
-                  >
-                    <Bot className="h-7 w-7 text-primary" />
-                    <span className='group-data-[collapsible=icon]:hidden'>Jules Master</span>
-                  </Link>
-                   <SidebarTrigger>
-                      <PanelLeft className="h-5 w-5" />
-                      <span className="sr-only">Toggle Sidebar</span>
-                   </SidebarTrigger>
-                </SidebarHeader>
-                <SidebarGroup>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                       <NewJobDialog>
-                          <SidebarMenuButton>
-                              <PlusCircle />
-                              <span>New Job</span>
-                          </SidebarMenuButton>
-                       </NewJobDialog>
-                       <SidebarMenuAction asChild>
-                          <Link href="/jobs/new" target="_blank">
-                            <ExternalLink />
+            <ProfileProvider>
+              <SidebarProvider>
+                <Sidebar>
+                  <SidebarContent>
+                    <SidebarHeader className='justify-between'>
+                    <Link
+                      href="/"
+                      className="flex items-center gap-2 font-bold text-xl"
+                    >
+                      <Bot className="h-7 w-7 text-primary" />
+                      <span className='group-data-[collapsible=icon]:hidden'>Jules Master</span>
+                    </Link>
+                     <SidebarTrigger>
+                        <PanelLeft className="h-5 w-5" />
+                        <span className="sr-only">Toggle Sidebar</span>
+                     </SidebarTrigger>
+                  </SidebarHeader>
+                  <SidebarGroup>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                         <NewJobDialog>
+                            <SidebarMenuButton>
+                                <PlusCircle />
+                                <span>New Job</span>
+                            </SidebarMenuButton>
+                         </NewJobDialog>
+                         <SidebarMenuAction asChild>
+                            <Link href="/jobs/new" target="_blank">
+                              <ExternalLink />
+                            </Link>
+                         </SidebarMenuAction>
+                      </SidebarMenuItem>
+                       <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link href="/">
+                            <MessageSquare />
+                            <span>Jobs & Sessions</span>
                           </Link>
-                       </SidebarMenuAction>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <Link href="/">
-                          <MessageSquare />
-                          <span>Jobs & Sessions</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <Link href="/settings">
-                          <BookText />
-                          <span>Settings</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                </SidebarGroup>
-              </SidebarContent>
-              </Sidebar>
-              <SidebarInset className="min-w-[1024px]">
-                <Header />
-                {children}
-              </SidebarInset>
-            </SidebarProvider>
-            <Toaster />
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                       <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link href="/settings">
+                            <BookText />
+                            <span>Settings</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarGroup>
+                </SidebarContent>
+                </Sidebar>
+                <SidebarInset className="min-w-[1024px]">
+                  <Header />
+                  {children}
+                </SidebarInset>
+              </SidebarProvider>
+              <Toaster />
+            </ProfileProvider>
           </ThemeProvider>
         </EnvProvider>
       </body>

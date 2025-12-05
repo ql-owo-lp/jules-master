@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Combobox, ComboboxGroup } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import cronParser from "cron-parser";
+import { useProfile } from "@/components/profile-provider";
 
 type CronJobFormProps = {
   onCronJobCreated: () => void;
@@ -41,6 +42,7 @@ export function CronJobForm({
   onCancel,
   initialValues
 }: CronJobFormProps) {
+  const { currentProfileId } = useProfile();
   const [prompt, setPrompt] = useState(initialValues?.prompt || "");
   const [jobName, setJobName] = useState(initialValues?.name || "");
   const [schedule, setSchedule] = useState(initialValues?.schedule || "0 * * * *");
@@ -71,17 +73,18 @@ export function CronJobForm({
   useEffect(() => {
     setIsClient(true);
     async function fetchData() {
+        if (!currentProfileId) return;
         const [prompts, gPrompt, hPrompts] = await Promise.all([
-            getPredefinedPrompts(),
-            getGlobalPrompt(),
-            getHistoryPrompts()
+            getPredefinedPrompts(currentProfileId),
+            getGlobalPrompt(currentProfileId),
+            getHistoryPrompts(currentProfileId)
         ]);
         setPredefinedPrompts(prompts);
         setGlobalPrompt(gPrompt);
         setHistoryPrompts(hPrompts);
     }
     fetchData();
-  }, []);
+  }, [currentProfileId]);
 
   // Handle initial values selection once sources are loaded
   useEffect(() => {
@@ -149,6 +152,15 @@ export function CronJobForm({
         return;
     }
 
+    if (!currentProfileId) {
+         toast({
+            variant: "destructive",
+            title: "Profile Error",
+            description: "No active profile selected.",
+        });
+        return;
+    }
+
     try {
         cronParser.parseExpression(schedule);
     } catch (err) {
@@ -212,6 +224,7 @@ export function CronJobForm({
             requirePlanApproval,
             automationMode,
             autoApproval: !requirePlanApproval,
+            profileId: currentProfileId // Add profileId
         };
 
         try {
@@ -281,7 +294,7 @@ export function CronJobForm({
 
       const fetchRepoPrompt = async () => {
          const repoName = `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`;
-         const prompt = await getRepoPrompt(repoName);
+         const prompt = await getRepoPrompt(repoName, currentProfileId || undefined);
          setRepoPrompt(prompt);
       };
       fetchRepoPrompt();
@@ -289,7 +302,7 @@ export function CronJobForm({
         setRepoPrompt("");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSource, branches, defaultBranch]);
+  }, [selectedSource, branches, defaultBranch, currentProfileId]);
 
   const truncate = (str: string, length: number) => {
     return str.length > length ? str.substring(0, length) + "..." : str;

@@ -76,7 +76,8 @@ export async function cancelSessionRequest(requestId: string) {
 export async function listSessions(
   apiKey?: string | null,
   pageSize: number = 50,
-  requestId?: string
+  requestId?: string,
+  profileId?: string
 ): Promise<{ sessions: Session[], error?: string }> {
   // Check for mock flag
   if (process.env.MOCK_API === 'true') {
@@ -89,18 +90,110 @@ export async function listSessions(
   }
 
   try {
-    // 1. Get cached sessions from DB
-    let sessions = await getCachedSessions();
+    // 1. Get cached sessions from DB, filtered by profileId if provided
+    // Wait, getCachedSessions in lib/session-service.ts likely needs profileId too.
+    // I need to update session-service.ts as well.
+    let sessions = await getCachedSessions(profileId);
+
+    // Note: If we are switching profiles, the cache for that profile might be empty initially.
+    // But getCachedSessions should return what is in DB for that profile.
+
+    // 2. Initial fetch logic.
+    // The previous logic was: if sessions.length === 0, fetch from API.
+    // This logic is tricky with profiles. If I have a new profile, it has 0 sessions in DB.
+    // So it will fetch from API.
+    // BUT the API returns ALL sessions for the user (API key). It doesn't know about profiles.
+    // So if I fetch from API, I get a list of sessions.
+    // Do I assign them to the current profile?
+    // If I have 2 profiles, and I switch to profile 2 (empty), it fetches all sessions and assigns them to profile 2?
+    // Then I have duplicates in DB? (Same session ID, different profile ID? Session ID is PK).
+
+    // If Session ID is PK, a session can only belong to ONE profile.
+    // So if I fetch sessions from API, they might already exist in DB assigned to Profile 1.
+    // If I upsert them with Profile 2, I "steal" them from Profile 1.
+
+    // The requirement says: "allow user to have multiple "profiles" of settings... convert the settings / jobs/ everything to be aware of user / profile."
+    // "different user can log in with their own credential, then they can have their own settings / prompts etc."
+
+    // If different profiles use DIFFERENT API keys, then the sessions fetched will be different (or same if shared).
+    // If they use SAME API key, the sessions are the same.
+    // If sessions are shared on the backend (Jules API), but we want to segregate them in UI?
+    // Or does "profile" imply isolation?
+    // If I use the same API key in 2 profiles, do I expect to see the same sessions?
+    // Or do I expect to see only sessions created by this profile?
+
+    // If I create a session in Profile 1, it has `profileId=1`.
+    // If I switch to Profile 2 (same API key), should I see it?
+    // If I fetch from API, I see it.
+    // If I store it in DB with `profileId=2`, I overwrite `profileId=1`.
+
+    // Given the requirement "convert... everything to be aware of user / profile", it suggests strict isolation.
+    // If I use the same credentials, I might see everything on the API side.
+    // But locally, maybe we only show sessions that belong to the profile.
+
+    // However, `listSessions` fetches from API if cache is empty.
+    // If I fetch from API, I get sessions that might belong to other profiles.
+    // If I upsert them, I need to decide which profile they belong to.
+
+    // If a session already exists in DB, it has a profile ID.
+    // If I fetch it again using Profile 2's API key (which happens to be the same), and I update it,
+    // should I change the profile ID?
+
+    // Ideally, sessions created via API directly (not via this app) or via other profiles shouldn't automatically appear
+    // unless we decide they belong to the current profile.
+    // BUT, if I just started the app with a fresh DB, I want to see my existing sessions.
+    // They should probably be imported into the current profile.
+
+    // Strategy:
+    // 1. `listSessions` fetches from DB filtered by `profileId`.
+    // 2. Background sync (`syncStaleSessions` or initial fetch) fetches from API.
+    // 3. When fetching from API, for each session:
+    //    - Check if it exists in DB.
+    //    - If exists: Keep existing `profileId`? Or update to current?
+    //      - If I keep existing, and it belongs to another profile, then Profile 2 won't see it even if the API key has access.
+    //      - If I update to current, Profile 1 loses it.
+    //    - If not exists: Insert with current `profileId`.
+
+    // If the intention is multi-user, usually users don't share API keys.
+    // If they share API keys, they share access.
+    // If I want to support "Profile A sees Session A" and "Profile B sees Session B", but they share API key,
+    // then the API must return all sessions.
+    // Filtering must happen on client/DB.
+    // But how do we know which session belongs to which profile if they share API key?
+    // Only by tracking creation.
+    // But for existing sessions imported from API?
+
+    // Let's assume:
+    // - New sessions created via UI get `profileId`.
+    // - Sessions fetched from API that don't exist in DB get assigned to the CURRENT profile (import).
+    // - Sessions fetched from API that DO exist in DB keep their `profileId`.
+
+    // This means if I have Profile 1 and Profile 2.
+    // I start in Profile 1. It fetches all sessions from API. All get assigned to Profile 1.
+    // I switch to Profile 2. It shows empty list (filtered by Profile 2).
+    // It tries to fetch from API. It gets all sessions.
+    // It sees they exist in DB (Profile 1). It does NOT update profileId.
+    // So Profile 2 sees nothing.
+
+    // Is this desired?
+    // If I want Profile 2 to be a separate workspace, yes.
+    // If I want Profile 2 to just be a different "view" or "settings config" but share data, then no.
+
+    // The requirement: "allows user to have multiple "profiles" of settings... convert the settings / jobs/ everything to be aware of user / profile."
+    // This sounds like isolation.
+    // So "Profile 2 sees nothing" is probably correct behavior for shared API key scenario,
+    // UNLESS the user explicitly wants to move/share sessions.
+
+    // But if I use DIFFERENT API keys, then API returns different sessions (presumably).
+    // Then there is no conflict.
+
+    // So the strategy: "Import new/unknown sessions into current profile" seems safe.
+
     const isInitialFetch = sessions.length === 0;
 
-    // 2. If DB is empty, perform an initial fetch from API to populate it
     if (isInitialFetch) {
-        console.log("Session cache is empty, performing initial fetch...");
-        // Fetch the first page or so to populate.
-        // NOTE: We might want to fetch *all* pages if we want a complete cache,
-        // but for now let's just fetch the first page to be responsive.
-        // Ideally, we should have a background job to fetch all history.
-        // We reuse fetchSessionsPage logic but simplified here.
+        console.log("Session cache is empty for this profile (or globally?), checking API...");
+        // We fetch from API.
         const firstPage = await fetchSessionsPage(effectiveApiKey, null, 100);
 
         if (firstPage.error) {
@@ -108,20 +201,18 @@ export async function listSessions(
         }
 
         for (const s of firstPage.sessions) {
-            await upsertSession(s);
+            // upsertSession needs to know current profileId to assign if new.
+            await upsertSession(s, profileId);
         }
-        sessions = await getCachedSessions();
+
+        // Re-fetch from DB after upsert
+        sessions = await getCachedSessions(profileId);
     }
 
-    // 3. Trigger background sync for stale sessions
-    // We do not await this, so the UI is fast.
-    // However, in serverless environments, this might be cut short.
-    // In a long-running container (docker-compose), this is fine.
-    // We catch errors to prevent crashing.
     if (!isInitialFetch) {
       (async () => {
           try {
-              await syncStaleSessions(effectiveApiKey);
+              await syncStaleSessions(effectiveApiKey, profileId);
           } catch (e) {
               console.error("Background session sync failed", e);
           }

@@ -4,9 +4,14 @@ import { cronJobs } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import type { CronJob } from "@/lib/types";
 
-export async function getCronJobs(): Promise<CronJob[]> {
+export async function getCronJobs(profileId?: string): Promise<CronJob[]> {
   try {
-    const jobs = await db.select().from(cronJobs).orderBy(desc(cronJobs.createdAt));
+    let query = db.select().from(cronJobs).orderBy(desc(cronJobs.createdAt));
+    if (profileId) {
+        // @ts-ignore
+        query = query.where(eq(cronJobs.profileId, profileId));
+    }
+    const jobs = await query;
     return jobs as CronJob[];
   } catch (error) {
     console.error("Failed to fetch cron jobs:", error);
@@ -14,7 +19,7 @@ export async function getCronJobs(): Promise<CronJob[]> {
   }
 }
 
-export async function createCronJob(data: Omit<CronJob, "id" | "createdAt" | "lastRunAt">) {
+export async function createCronJob(data: Omit<CronJob, "id" | "createdAt" | "lastRunAt"> & { profileId?: string }) {
   try {
     const newCronJob = {
       ...data,

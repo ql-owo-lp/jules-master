@@ -1,16 +1,22 @@
-
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { settings } from '@/lib/db/schema';
+import { settings, profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { settingsSchema } from '@/lib/validation';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const result = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    const { searchParams } = new URL(request.url);
+    const profileId = searchParams.get('profileId');
+
+    if (!profileId) {
+      return NextResponse.json({ error: 'Profile ID is required' }, { status: 400 });
+    }
+
+    const result = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
     if (result.length === 0) {
-      // Return default settings if none exist in DB
+      // Return default settings if none exist in DB (should have been created with profile, but fail-safe)
       return NextResponse.json({
         idlePollInterval: 120,
         activePollInterval: 30,
@@ -46,26 +52,42 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const { searchParams } = new URL(request.url);
+    // Profile ID might be in query or body. Let's support body first as per previous design, but best practice is consistent.
+    // The previous code used body for settings.
+    // I'll look for profileId in body, or query param.
 
-    if (Object.keys(body).length === 0) {
+    let profileId = searchParams.get('profileId');
+    if (!profileId && body.profileId) {
+        profileId = body.profileId;
+    }
+
+    if (!profileId) {
+        return NextResponse.json({ error: 'Profile ID is required' }, { status: 400 });
+    }
+
+    // Remove profileId from body to avoid validation error if schema doesn't have it
+    const { profileId: _, ...settingsData } = body;
+
+    if (Object.keys(settingsData).length === 0) {
       return NextResponse.json({ error: 'At least one setting must be provided.' }, { status: 400 });
     }
 
-    const validation = settingsSchema.safeParse(body);
+    const validation = settingsSchema.safeParse(settingsData);
 
     if (!validation.success) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
     const newSettings = {
-      id: 1, // Ensure we are updating the singleton row
+      profileId,
       ...validation.data,
     };
 
-    const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    const existing = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
     if (existing.length > 0) {
-        await db.update(settings).set(newSettings).where(eq(settings.id, 1));
+        await db.update(settings).set(newSettings).where(eq(settings.profileId, profileId));
     } else {
         await db.insert(settings).values(newSettings);
     }

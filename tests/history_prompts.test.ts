@@ -7,31 +7,19 @@ import * as schema from '@/lib/db/schema';
 // Mock the dependencies
 vi.mock('@/lib/db', () => {
   const mockHistoryPrompts: any[] = [];
+
+  // Create chainable mock for db.select()...
+  const mockChain = {
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      get: vi.fn(),
+  };
+
   return {
     db: {
-      select: vi.fn(() => ({
-        from: vi.fn((table) => {
-             if (table === schema.settings) {
-                 return {
-                     get: vi.fn().mockResolvedValue({ historyPromptsCount: 5 })
-                 }
-             }
-             return {
-                where: vi.fn((condition) => ({
-                    get: vi.fn().mockImplementation(() => {
-                        // This is a very rough mock.
-                        // In a real scenario, we'd need to parse the condition.
-                        // For this test, we'll control the return via `vi.spyOn` in the test if needed,
-                        // or just return undefined by default (simulate not found).
-                        return undefined;
-                    })
-                })),
-                orderBy: vi.fn(() => ({
-                     limit: vi.fn().mockResolvedValue([])
-                }))
-             }
-        }),
-      })),
+      select: vi.fn(() => mockChain),
       transaction: vi.fn(),
       insert: vi.fn(() => ({ values: vi.fn(() => ({ run: vi.fn() })) })),
       update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
@@ -55,45 +43,38 @@ vi.mock('next/cache', () => ({
 }));
 
 describe('History Prompts', () => {
+  const profileId = 'test-profile-history';
+
+  beforeEach(() => {
+      vi.clearAllMocks();
+  });
 
   it('should save a new history prompt', async () => {
      const prompt = "New Prompt";
 
      // Setup mocks
-     // Mock db.select().from().where().get() to return undefined (not found)
-     const dbSelectMock = {
-         from: vi.fn().mockReturnValue({
-             where: vi.fn().mockReturnValue({
-                 get: vi.fn().mockResolvedValue(undefined)
-             })
-         })
-     };
-     // @ts-ignore
-     db.select.mockReturnValue(dbSelectMock);
+     // Mock db.select().from().where().where().get() to return undefined (not found)
+     // We need to access the mock object returned by the factory above
+     const mockDb = (db.select() as any);
+     mockDb.get.mockResolvedValue(undefined);
 
-     await saveHistoryPrompt(prompt);
+     await saveHistoryPrompt(prompt, profileId);
 
      expect(appDatabase.historyPrompts.create).toHaveBeenCalled();
      const createCall = (appDatabase.historyPrompts.create as any).mock.calls[0][0];
      expect(createCall.prompt).toBe(prompt);
+     expect(createCall.profileId).toBe(profileId);
   });
 
   it('should update an existing history prompt', async () => {
      const prompt = "Existing Prompt";
-     const existingRecord = { id: '123', prompt: prompt, lastUsedAt: 'old-date' };
+     const existingRecord = { id: '123', prompt: prompt, lastUsedAt: 'old-date', profileId: profileId };
 
      // Setup mocks
-     const dbSelectMock = {
-         from: vi.fn().mockReturnValue({
-             where: vi.fn().mockReturnValue({
-                 get: vi.fn().mockResolvedValue(existingRecord)
-             })
-         })
-     };
-     // @ts-ignore
-     db.select.mockReturnValue(dbSelectMock);
+     const mockDb = (db.select() as any);
+     mockDb.get.mockResolvedValue(existingRecord);
 
-     await saveHistoryPrompt(prompt);
+     await saveHistoryPrompt(prompt, profileId);
 
      expect(appDatabase.historyPrompts.update).toHaveBeenCalledWith(existingRecord.id, expect.objectContaining({
          lastUsedAt: expect.any(String)

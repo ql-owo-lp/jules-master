@@ -17,10 +17,23 @@ vi.mock('@/lib/db', () => ({
 }));
 
 describe('Settings API', () => {
-  it('should return a 400 error if the request body is empty', async () => {
+  it('should return a 400 error if profileId is missing', async () => {
     const request = new NextRequest('http://localhost/api/settings', {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify({ idlePollInterval: 120 }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe('Profile ID is required');
+  });
+
+  it('should return a 400 error if the request body is empty (except profileId)', async () => {
+    const request = new NextRequest('http://localhost/api/settings?profileId=test-profile', {
+      method: 'POST',
+      body: JSON.stringify({ profileId: 'test-profile' }),
     });
 
     const response = await POST(request);
@@ -31,9 +44,9 @@ describe('Settings API', () => {
   });
 
   it('should return a 400 error if the request body is invalid', async () => {
-    const request = new NextRequest('http://localhost/api/settings', {
+    const request = new NextRequest('http://localhost/api/settings?profileId=test-profile', {
       method: 'POST',
-      body: JSON.stringify({ idlePollInterval: 'not-a-number' }),
+      body: JSON.stringify({ profileId: 'test-profile', idlePollInterval: 'not-a-number' }),
     });
 
     const response = await POST(request);

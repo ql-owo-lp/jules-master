@@ -40,7 +40,8 @@ describe('Session Actions', () => {
 
       const result = await listSessions('test-key');
       expect(result.sessions).toEqual(mockSessions);
-      expect(sessionService.getCachedSessions).toHaveBeenCalled();
+      // It should be called with profileId (undefined in this case)
+      expect(sessionService.getCachedSessions).toHaveBeenCalledWith(undefined);
       expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
     });
 
@@ -64,7 +65,8 @@ describe('Session Actions', () => {
         expect.any(Object)
       );
 
-      expect(sessionService.upsertSession).toHaveBeenCalled();
+      // Upsert should be called with session AND profileId (undefined)
+      expect(sessionService.upsertSession).toHaveBeenCalledWith(expect.anything(), undefined);
       expect(result.sessions.length).toBe(1);
     });
 
@@ -78,7 +80,8 @@ describe('Session Actions', () => {
       // Actually, since it's a promise floating in the void, checking if it was called might require a small delay or just relying on the fact that the function started execution.
       // But syncStaleSessions is called synchronously (the promise creation), so the mock should record the call.
 
-      expect(sessionService.syncStaleSessions).toHaveBeenCalledWith('test-key');
+      // Expected to be called with apiKey and profileId (undefined)
+      expect(sessionService.syncStaleSessions).toHaveBeenCalledWith('test-key', undefined);
     });
 
     it('should return an error if no API key is provided', async () => {

@@ -3,13 +3,13 @@
 
 import { appDatabase, db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
-import type { Job, PredefinedPrompt, HistoryPrompt } from '@/lib/types';
+import type { Job, PredefinedPrompt, HistoryPrompt, Settings } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 
 // --- Jobs ---
-export async function getJobs(): Promise<Job[]> {
-    return appDatabase.jobs.getAll();
+export async function getJobs(profileId?: string): Promise<Job[]> {
+    return appDatabase.jobs.getAll(profileId);
 }
 
 export async function addJob(job: Job): Promise<void> {
@@ -18,8 +18,12 @@ export async function addJob(job: Job): Promise<void> {
     revalidatePath('/');
 }
 
-export async function getPendingBackgroundWorkCount(): Promise<{ pendingJobs: number, retryingSessions: number }> {
-    const pendingJobs = await db.select().from(schema.jobs).where(eq(schema.jobs.status, 'PENDING'));
+export async function getPendingBackgroundWorkCount(profileId?: string): Promise<{ pendingJobs: number, retryingSessions: number }> {
+    let pendingJobsQuery = db.select().from(schema.jobs).where(eq(schema.jobs.status, 'PENDING'));
+    if (profileId) {
+        pendingJobsQuery = pendingJobsQuery.where(eq(schema.jobs.profileId, profileId));
+    }
+    const pendingJobs = await pendingJobsQuery;
 
     // For retrying sessions, we want sessions that are FAILED and have retries left (retryCount < maxRetries)
     // AND probably where last error was recoverable?
@@ -27,7 +31,11 @@ export async function getPendingBackgroundWorkCount(): Promise<{ pendingJobs: nu
     // Or we could try to be more specific.
     // The requirement says "failed due to 'too many requests' error, we will keep retrying it for 50 times. Otherwise... 3 times."
 
-    const failedSessions = await db.select().from(schema.sessions).where(eq(schema.sessions.state, 'FAILED'));
+    let failedSessionsQuery = db.select().from(schema.sessions).where(eq(schema.sessions.state, 'FAILED'));
+    if (profileId) {
+        failedSessionsQuery = failedSessionsQuery.where(eq(schema.sessions.profileId, profileId));
+    }
+    const failedSessions = await failedSessionsQuery;
     let retryingSessionsCount = 0;
 
     for (const session of failedSessions) {
@@ -46,34 +54,51 @@ export async function getPendingBackgroundWorkCount(): Promise<{ pendingJobs: nu
 }
 
 // --- Predefined Prompts ---
-export async function getPredefinedPrompts(): Promise<PredefinedPrompt[]> {
-    return appDatabase.predefinedPrompts.getAll();
+export async function getPredefinedPrompts(profileId?: string): Promise<PredefinedPrompt[]> {
+    return appDatabase.predefinedPrompts.getAll(profileId);
 }
 
-export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promise<void> {
+export async function savePredefinedPrompts(prompts: PredefinedPrompt[], profileId: string): Promise<void> {
     // This is not efficient, but for this small scale it is fine.
     // A better implementation would be to diff the arrays.
+
+    // We need to ensure we only delete prompts for the specific profile
     db.transaction((tx) => {
-        tx.delete(schema.predefinedPrompts).run();
+        tx.delete(schema.predefinedPrompts).where(eq(schema.predefinedPrompts.profileId, profileId)).run();
         if (prompts.length > 0) {
-            tx.insert(schema.predefinedPrompts).values(prompts).run();
+            const promptsWithProfile = prompts.map(p => ({ ...p, profileId }));
+            tx.insert(schema.predefinedPrompts).values(promptsWithProfile).run();
         }
     });
     revalidatePath('/settings');
 }
 
 // --- History Prompts ---
-export async function getHistoryPrompts(): Promise<HistoryPrompt[]> {
-    const settings = await db.select().from(schema.settings).get();
+export async function getHistoryPrompts(profileId?: string): Promise<HistoryPrompt[]> {
+    let settings: Settings | undefined;
+    if (profileId) {
+         settings = await db.select().from(schema.settings).where(eq(schema.settings.profileId, profileId)).get();
+    } else {
+         // Fallback to getting a random setting or 'default' if we assume global
+         // For now let's just use default limit
+         settings = await db.select().from(schema.settings).limit(1).get();
+    }
     const limit = settings?.historyPromptsCount ?? 10;
-    return appDatabase.historyPrompts.getRecent(limit);
+    return appDatabase.historyPrompts.getRecent(limit, profileId);
 }
 
-export async function saveHistoryPrompt(promptText: string): Promise<void> {
+export async function saveHistoryPrompt(promptText: string, profileId: string): Promise<void> {
     if (!promptText.trim()) return;
 
-    // Check if prompt already exists
-    const existing = await db.select().from(schema.historyPrompts).where(eq(schema.historyPrompts.prompt, promptText)).get();
+    // Check if prompt already exists for this profile
+    const existing = await db.select().from(schema.historyPrompts)
+        .where(
+            and(
+                eq(schema.historyPrompts.prompt, promptText),
+                eq(schema.historyPrompts.profileId, profileId)
+            )
+        )
+        .get();
 
     if (existing) {
         await appDatabase.historyPrompts.update(existing.id, { lastUsedAt: new Date().toISOString() });
@@ -81,7 +106,9 @@ export async function saveHistoryPrompt(promptText: string): Promise<void> {
         const newHistoryPrompt: HistoryPrompt = {
             id: crypto.randomUUID(),
             prompt: promptText,
-            lastUsedAt: new Date().toISOString()
+            lastUsedAt: new Date().toISOString(),
+            // @ts-ignore
+            profileId: profileId
         };
         await appDatabase.historyPrompts.create(newHistoryPrompt);
     }
@@ -90,44 +117,49 @@ export async function saveHistoryPrompt(promptText: string): Promise<void> {
 }
 
 // --- Quick Replies ---
-export async function getQuickReplies(): Promise<PredefinedPrompt[]> {
-    return appDatabase.quickReplies.getAll();
+export async function getQuickReplies(profileId?: string): Promise<PredefinedPrompt[]> {
+    return appDatabase.quickReplies.getAll(profileId);
 }
 
-export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<void> {
+export async function saveQuickReplies(replies: PredefinedPrompt[], profileId: string): Promise<void> {
     // This is not efficient, but for this small scale it is fine.
     db.transaction((tx) => {
-        tx.delete(schema.quickReplies).run();
+        tx.delete(schema.quickReplies).where(eq(schema.quickReplies.profileId, profileId)).run();
         if (replies.length > 0) {
-            tx.insert(schema.quickReplies).values(replies).run();
+            const repliesWithProfile = replies.map(r => ({ ...r, profileId }));
+            tx.insert(schema.quickReplies).values(repliesWithProfile).run();
         }
     });
     revalidatePath('/settings');
 }
 
 // --- Global Prompt ---
-export async function getGlobalPrompt(): Promise<string> {
-    const result = await appDatabase.globalPrompt.get();
+export async function getGlobalPrompt(profileId?: string): Promise<string> {
+    const result = await appDatabase.globalPrompt.get(profileId);
     return result?.prompt ?? "";
 }
 
-export async function saveGlobalPrompt(prompt: string): Promise<void> {
-    await appDatabase.globalPrompt.save(prompt);
+export async function saveGlobalPrompt(prompt: string, profileId: string): Promise<void> {
+    await appDatabase.globalPrompt.save(prompt, profileId);
     revalidatePath('/settings');
 }
 
 // --- Repo Prompt ---
-export async function getRepoPrompt(repo: string): Promise<string> {
-    const result = await appDatabase.repoPrompts.get(repo);
+export async function getRepoPrompt(repo: string, profileId?: string): Promise<string> {
+    if (!profileId) return ""; // Cannot get repo prompt without profile context
+    const result = await appDatabase.repoPrompts.get(repo, profileId);
     return result?.prompt ?? "";
 }
 
-export async function saveRepoPrompt(repo: string, prompt: string): Promise<void> {
-    await appDatabase.repoPrompts.save(repo, prompt);
+export async function saveRepoPrompt(repo: string, prompt: string, profileId: string): Promise<void> {
+    await appDatabase.repoPrompts.save(repo, prompt, profileId);
     revalidatePath('/settings');
 }
 
 // --- Settings ---
-export async function getSettings() {
+export async function getSettings(profileId?: string) {
+    if (profileId) {
+        return db.select().from(schema.settings).where(eq(schema.settings.profileId, profileId)).get();
+    }
     return db.query.settings.findFirst();
 }
