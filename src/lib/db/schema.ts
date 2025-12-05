@@ -2,6 +2,13 @@ import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { SourceContext, SessionOutput, AutomationMode } from '@/lib/types';
 
+export const profiles = sqliteTable('profiles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  isSelected: integer('is_selected', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at').notNull(),
+});
+
 export const jobs = sqliteTable('jobs', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -66,6 +73,7 @@ export const repoPrompts = sqliteTable('repo_prompts', {
 
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
   idlePollInterval: integer('idle_poll_interval').notNull().default(120),
   activePollInterval: integer('active_poll_interval').notNull().default(30),
   titleTruncateLength: integer('title_truncate_length').notNull().default(50),

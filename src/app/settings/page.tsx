@@ -63,6 +63,7 @@ import {
 } from "@/app/config/actions";
 import { SourceSelection } from "@/components/source-selection";
 import { CronJobsList } from "@/components/cron-jobs-list";
+import { ProfilesList } from "@/components/profiles-list";
 import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
 import type { PredefinedPrompt, Source } from "@/lib/types";
@@ -109,6 +110,8 @@ export default function SettingsPage() {
   const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
   const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
   const [debugMode, setDebugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
+
+  const [profiles, setProfiles] = useState([]);
 
   // New Settings for Session Cache
   const [sessionCacheInProgressInterval, setSessionCacheInProgressInterval] = useLocalStorage<number>("jules-session-cache-in-progress-interval", 60);
@@ -198,42 +201,65 @@ export default function SettingsPage() {
   useEffect(() => { setAutoDeleteStaleBranchesAfterDaysValue(autoDeleteStaleBranchesAfterDays); }, [autoDeleteStaleBranchesAfterDays]);
 
 
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings');
+      if (response.ok) {
+        const dbSettings = await response.json();
+        const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
+
+        // Force update state from DB to reflect active profile, regardless of local storage if we want to support profiles correctly
+        // The previous logic favored local storage, which means if I switch profile, I still see old local settings!
+        // We must override local storage when switching profiles or loading the page,
+        // OR we just update the state values and let the useEffects below sync back to local storage.
+
+        // Actually, `useLocalStorage` hook initializes state from local storage.
+        // If we want to switch profiles, we need to update the state, which will update local storage.
+        // So we should blindly set the state from DB settings.
+
+        setIdlePollInterval(dbSettings.idlePollInterval);
+        setActivePollInterval(dbSettings.activePollInterval);
+        setTitleTruncateLength(dbSettings.titleTruncateLength);
+        setLineClamp(dbSettings.lineClamp);
+        setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
+        setJobsPerPage(dbSettings.jobsPerPage);
+        setDefaultSessionCount(dbSettings.defaultSessionCount);
+        setPrStatusPollInterval(dbSettings.prStatusPollInterval);
+        setHistoryPromptsCount(dbSettings.historyPromptsCount);
+        setAutoApprovalInterval(dbSettings.autoApprovalInterval);
+        setAutoRetryEnabled(dbSettings.autoRetryEnabled);
+        setAutoRetryMessage(dbSettings.autoRetryMessage);
+        setAutoContinueEnabled(dbSettings.autoContinueEnabled);
+        setAutoContinueMessage(dbSettings.autoContinueMessage);
+
+        setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
+        setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
+        setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
+        setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
+        setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
+        setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
+      }
+    } catch (error) {
+      console.error("Failed to fetch settings from DB", error);
+    }
+  };
+
+  const fetchProfiles = async () => {
+      try {
+          const res = await fetch('/api/profiles');
+          if (res.ok) {
+              const data = await res.json();
+              setProfiles(data);
+          }
+      } catch (error) {
+          console.error("Failed to fetch profiles", error);
+      }
+  }
+
   useEffect(() => {
     setIsClient(true);
-    const fetchSettings = async () => {
-      try {
-        const response = await fetch('/api/settings');
-        if (response.ok) {
-          const dbSettings = await response.json();
-          const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
-
-          if (!isSetInLocalStorage("jules-idle-poll-interval")) setIdlePollInterval(dbSettings.idlePollInterval);
-          if (!isSetInLocalStorage("jules-active-poll-interval")) setActivePollInterval(dbSettings.activePollInterval);
-          if (!isSetInLocalStorage("jules-title-truncate-length")) setTitleTruncateLength(dbSettings.titleTruncateLength);
-          if (!isSetInLocalStorage("jules-line-clamp")) setLineClamp(dbSettings.lineClamp);
-          if (!isSetInLocalStorage("jules-session-items-per-page")) setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
-          if (!isSetInLocalStorage("jules-jobs-per-page")) setJobsPerPage(dbSettings.jobsPerPage);
-          if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
-          if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
-          if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
-          if (!isSetInLocalStorage("jules-auto-approval-interval")) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
-          if (!isSetInLocalStorage("jules-auto-retry-enabled")) setAutoRetryEnabled(dbSettings.autoRetryEnabled);
-          if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
-          if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
-          if (!isSetInLocalStorage("jules-auto-continue-message")) setAutoContinueMessage(dbSettings.autoContinueMessage);
-
-          if (!isSetInLocalStorage("jules-session-cache-in-progress-interval")) setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
-          if (!isSetInLocalStorage("jules-session-cache-completed-no-pr-interval")) setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
-          if (!isSetInLocalStorage("jules-session-cache-pending-approval-interval")) setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
-          if (!isSetInLocalStorage("jules-session-cache-max-age-days")) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
-          if (!isSetInLocalStorage("jules-auto-delete-stale-branches")) setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
-          if (!isSetInLocalStorage("jules-auto-delete-stale-branches-after-days")) setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
-        }
-      } catch (error) {
-        console.error("Failed to fetch settings from DB", error);
-      }
-    };
     fetchSettings();
+    fetchProfiles();
   }, [
       setIdlePollInterval, setActivePollInterval, setTitleTruncateLength, setLineClamp,
       setSessionItemsPerPage, setJobsPerPage, setDefaultSessionCount, setPrStatusPollInterval,
@@ -524,6 +550,7 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
       <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
@@ -531,6 +558,11 @@ export default function SettingsPage() {
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="display">Display</TabsTrigger>
         </TabsList>
+
+        {/* Profiles Tab */}
+        <TabsContent value="profiles" className="space-y-6">
+            <ProfilesList profiles={profiles} onRefresh={fetchProfiles} />
+        </TabsContent>
 
         {/* General Tab */}
         <TabsContent value="general" className="space-y-6">
