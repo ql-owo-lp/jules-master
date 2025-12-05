@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { listSessions, fetchSessionsPage, listSources, cancelSessionRequest } from '@/app/sessions/actions';
 import * as fetchClient from '@/lib/fetch-client';
 import * as sessionService from '@/lib/session-service';
+import * as profiles from '@/app/settings/profiles';
 
 // Mock the fetch-client module
 vi.mock('@/lib/fetch-client', () => ({
@@ -18,11 +19,21 @@ vi.mock('@/lib/session-service', () => ({
   forceRefreshSession: vi.fn(),
 }));
 
+vi.mock('@/app/settings/profiles', () => ({
+  getSelectedProfile: vi.fn(),
+}));
+
 describe('Session Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.MOCK_API = 'false';
     process.env.JULES_API_KEY = 'test-api-key';
+    (profiles.getSelectedProfile as vi.Mock).mockResolvedValue({
+      id: '1',
+      name: 'Default',
+      julesApiKey: 'test-key',
+      githubToken: 'test-token',
+    });
   });
 
   describe('listSessions', () => {
@@ -38,7 +49,7 @@ describe('Session Actions', () => {
       const mockSessions = [{ id: '1', name: 'Session 1', title: 'Title' } as any];
       (sessionService.getCachedSessions as vi.Mock).mockResolvedValue(mockSessions);
 
-      const result = await listSessions('test-key');
+      const result = await listSessions();
       expect(result.sessions).toEqual(mockSessions);
       expect(sessionService.getCachedSessions).toHaveBeenCalled();
       expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
@@ -54,7 +65,7 @@ describe('Session Actions', () => {
         json: async () => ({ sessions: [{ id: '1', name: 'Session 1', title: 'Title' }] }),
       });
 
-      const result = await listSessions('test-key');
+      const result = await listSessions();
 
       // Should have called fetchSessionsPage (via logic inside listSessions)
       // fetchSessionsPage uses fetchWithRetry.
@@ -72,7 +83,7 @@ describe('Session Actions', () => {
        const mockSessions = [{ id: '1', name: 'Session 1', title: 'Title' } as any];
       (sessionService.getCachedSessions as vi.Mock).mockResolvedValue(mockSessions);
 
-      await listSessions('test-key');
+      await listSessions();
       // We can't easily await the background sync as it is not awaited in the action.
       // But we can check if it was called.
       // Actually, since it's a promise floating in the void, checking if it was called might require a small delay or just relying on the fact that the function started execution.
@@ -83,6 +94,7 @@ describe('Session Actions', () => {
 
     it('should return an error if no API key is provided', async () => {
       process.env.JULES_API_KEY = '';
+      (profiles.getSelectedProfile as vi.Mock).mockResolvedValue(null);
       const result = await listSessions();
       expect(result.error).toBeDefined();
       expect(result.error).toContain('Jules API key is not configured');
@@ -99,7 +111,7 @@ describe('Session Actions', () => {
         json: async () => ({ sessions: [{ id: '1', name: 'Session 1', title: 'Title' }] }),
       });
 
-      await listSessions('test-key');
+      await listSessions();
 
       expect(sessionService.syncStaleSessions).not.toHaveBeenCalled();
     });
@@ -114,7 +126,7 @@ describe('Session Actions', () => {
         json: async () => ({ sessions: mockSessions, nextPageToken }),
       });
 
-      const result = await fetchSessionsPage('test-key', 'prev-page', 50);
+      const result = await fetchSessionsPage('prev-page', 50);
       expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
         'https://jules.googleapis.com/v1alpha/sessions?pageSize=50&pageToken=prev-page',
         expect.any(Object)
@@ -138,7 +150,7 @@ describe('Session Actions', () => {
           json: async () => ({ sources: mockSourcesPage2, nextPageToken: null }),
         });
 
-      const sources = await listSources('test-key');
+      const sources = await listSources();
       expect(fetchClient.fetchWithRetry).toHaveBeenCalledTimes(2);
       expect(sources).toEqual([...mockSourcesPage1, ...mockSourcesPage2]);
     });

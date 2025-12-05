@@ -6,14 +6,16 @@ import * as schema from '@/lib/db/schema';
 import type { Job, PredefinedPrompt, HistoryPrompt } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { eq, desc, or } from 'drizzle-orm';
+import { getSelectedProfile } from '@/app/settings/profiles';
 
 // --- Jobs ---
 export async function getJobs(): Promise<Job[]> {
     return appDatabase.jobs.getAll();
 }
 
-export async function addJob(job: Job): Promise<void> {
-    await appDatabase.jobs.create(job);
+export async function addJob(job: Omit<Job, 'profileId'>, appDatabase_ = appDatabase): Promise<void> {
+    const profile = await getSelectedProfile();
+    await appDatabase_.jobs.create({ ...job, profileId: profile.id });
     revalidatePath('/jobs');
     revalidatePath('/');
 }

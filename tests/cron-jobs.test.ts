@@ -52,4 +52,32 @@ describe('Cron Jobs API and Actions', () => {
     );
     expect(mockDb.where).toHaveBeenCalledTimes(1);
   });
+
+  it('should create a cron job with a profileId', async () => {
+    const mockDb = {
+        insert: vi.fn().mockReturnThis(),
+        values: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.mock('@/app/settings/profiles', () => ({
+        getSelectedProfile: vi.fn().mockResolvedValue({ id: 'profile-123' }),
+    }));
+    const { createCronJob } = await import('@/app/settings/actions');
+    const cronJobData = {
+      name: 'Test Cron Job',
+      schedule: '0 0 * * *',
+      prompt: 'Test prompt',
+      repo: 'test/repo',
+      branch: 'main',
+    };
+
+    await createCronJob(cronJobData as any, mockDb as any);
+
+    expect(mockDb.insert).toHaveBeenCalledTimes(1);
+    expect(mockDb.values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...cronJobData,
+        profileId: 'profile-123',
+      })
+    );
+  });
 });

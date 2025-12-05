@@ -2,15 +2,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getSettings } from '@/app/config/actions';
 import * as db from '@/lib/db';
+import { revalidatePath } from 'next/cache';
 
-vi.mock('@/lib/db', () => ({
-  db: {
-    query: {
-      settings: {
-        findFirst: vi.fn(),
-      },
-    },
-  },
+vi.mock('next/cache', () => ({
+    revalidatePath: vi.fn(),
+}));
+
+vi.mock('@/lib/db', async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        db: {
+            query: {
+                settings: {
+                    findFirst: vi.fn(),
+                },
+            },
+        },
+        appDatabase: {
+            jobs: {
+                create: vi.fn(),
+            },
+        },
+    };
+});
+vi.mock('@/app/settings/profiles', () => ({
+    getSelectedProfile: vi.fn().mockResolvedValue({ id: 'profile-123' }),
 }));
 
 describe('Config Actions', () => {
@@ -36,4 +53,27 @@ describe('Config Actions', () => {
       expect(settings).toBeNull();
     });
   });
+
+    describe('addJob', () => {
+        it('should add a job with a profileId', async () => {
+            const { addJob } = await import('@/app/config/actions');
+            const jobData = {
+                id: 'job-1',
+                name: 'Test Job',
+                sessionIds: [],
+                createdAt: new Date().toISOString(),
+                repo: 'test/repo',
+                branch: 'main',
+            };
+
+            await addJob(jobData);
+
+            expect(db.appDatabase.jobs.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    ...jobData,
+                    profileId: 'profile-123',
+                })
+            );
+        });
+    });
 });

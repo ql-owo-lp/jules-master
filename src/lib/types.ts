@@ -1,4 +1,14 @@
 
+export type Profile = {
+    id: string;
+    name: string;
+    julesApiKey: string | null;
+    githubToken: string | null;
+    createdAt: string;
+    updatedAt: string | null;
+    isSelected: boolean;
+};
+
 export type JobStatus = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Unknown';
 
 // Based on the Jules API documentation for a Session
@@ -22,6 +32,7 @@ export type Session = {
 export type Job = {
     id: string;
     name: string;
+    profileId?: string | null;
     sessionIds: string[];
     createdAt: string;
     repo: string;
@@ -39,6 +50,7 @@ export type Job = {
 export type CronJob = {
     id: string;
     name: string;
+    profileId?: string | null;
     schedule: string;
     prompt: string;
     repo: string;

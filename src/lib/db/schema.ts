@@ -2,9 +2,20 @@ import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { SourceContext, SessionOutput, AutomationMode } from '@/lib/types';
 
+export const profiles = sqliteTable('profiles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  julesApiKey: text('jules_api_key'),
+  githubToken: text('github_token'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at'),
+  isSelected: integer('is_selected', { mode: 'boolean' }).notNull().default(false),
+});
+
 export const jobs = sqliteTable('jobs', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  profileId: text('profile_id').references(() => profiles.id),
   sessionIds: text('session_ids', { mode: 'json' }).$type<string[]>(),
   createdAt: text('created_at').notNull(),
   repo: text('repo').notNull(),
@@ -22,6 +33,7 @@ export const jobs = sqliteTable('jobs', {
 export const cronJobs = sqliteTable('cron_jobs', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  profileId: text('profile_id').references(() => profiles.id),
   schedule: text('schedule').notNull(),
   prompt: text('prompt').notNull(),
   repo: text('repo').notNull(),

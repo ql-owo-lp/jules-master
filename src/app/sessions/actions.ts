@@ -73,8 +73,9 @@ export async function cancelSessionRequest(requestId: string) {
   cancelRequest(requestId);
 }
 
+import { getSelectedProfile } from '@/app/settings/profiles';
+
 export async function listSessions(
-  apiKey?: string | null,
   pageSize: number = 50,
   requestId?: string
 ): Promise<{ sessions: Session[], error?: string }> {
@@ -83,7 +84,8 @@ export async function listSessions(
      return { sessions: MOCK_SESSIONS };
   }
 
-  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+  const profile = await getSelectedProfile();
+  const effectiveApiKey = profile?.julesApiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     return { sessions: [], error: "Jules API key is not configured. Please set it in the settings." };
   }
@@ -101,7 +103,7 @@ export async function listSessions(
         // but for now let's just fetch the first page to be responsive.
         // Ideally, we should have a background job to fetch all history.
         // We reuse fetchSessionsPage logic but simplified here.
-        const firstPage = await fetchSessionsPage(effectiveApiKey, null, 100);
+        const firstPage = await fetchSessionsPage(null, 100);
 
         if (firstPage.error) {
             return { sessions: [], error: firstPage.error };
@@ -136,8 +138,9 @@ export async function listSessions(
   }
 }
 
-export async function refreshSession(sessionId: string, apiKey?: string | null) {
-     const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+export async function refreshSession(sessionId: string) {
+     const profile = await getSelectedProfile();
+     const effectiveApiKey = profile?.julesApiKey || process.env.JULES_API_KEY;
       if (!effectiveApiKey) {
         console.error("Jules API key is not configured.");
         return;
@@ -146,7 +149,6 @@ export async function refreshSession(sessionId: string, apiKey?: string | null) 
 }
 
 export async function fetchSessionsPage(
-    apiKey?: string | null,
     pageToken?: string | null,
     pageSize: number = 100
 ): Promise<{ sessions: Session[], nextPageToken?: string, error?: string }> {
@@ -155,7 +157,8 @@ export async function fetchSessionsPage(
         return { sessions: MOCK_SESSIONS };
      }
 
-     const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+     const profile = await getSelectedProfile();
+     const effectiveApiKey = profile?.julesApiKey || process.env.JULES_API_KEY;
      if (!effectiveApiKey) {
        console.error("Jules API key is not configured.");
        return { sessions: [] };
@@ -213,13 +216,14 @@ export async function fetchSessionsPage(
      }
 }
 
-export async function listSources(apiKey?: string | null): Promise<Source[]> {
+export async function listSources(): Promise<Source[]> {
   // Check for mock flag
   if (process.env.MOCK_API === 'true') {
     return MOCK_SOURCES;
   }
 
-  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
+  const profile = await getSelectedProfile();
+  const effectiveApiKey = profile?.julesApiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
     return [];

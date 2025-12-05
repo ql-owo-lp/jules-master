@@ -85,6 +85,13 @@
       "when": 1764937972788,
       "tag": "0011_many_sage",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1764941830479,
+      "tag": "0012_secret_queen_noir",
+      "breakpoints": true
     }
   ]
 }

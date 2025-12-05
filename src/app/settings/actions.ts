@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { cronJobs } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import type { CronJob } from "@/lib/types";
+import { getSelectedProfile } from "@/app/settings/profiles";
 
 export async function getCronJobs(): Promise<CronJob[]> {
   try {
@@ -14,16 +15,18 @@ export async function getCronJobs(): Promise<CronJob[]> {
   }
 }
 
-export async function createCronJob(data: Omit<CronJob, "id" | "createdAt" | "lastRunAt">) {
+export async function createCronJob(data: Omit<CronJob, "id" | "createdAt" | "lastRunAt" | "profileId">, db_ = db) {
   try {
+    const profile = await getSelectedProfile();
     const newCronJob = {
       ...data,
+      profileId: profile.id,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       lastRunAt: null,
       enabled: true,
     };
-    await db.insert(cronJobs).values(newCronJob);
+    await db_.insert(cronJobs).values(newCronJob);
     return newCronJob;
   } catch (error) {
     console.error("Failed to create cron job:", error);
