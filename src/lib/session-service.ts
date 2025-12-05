@@ -1,9 +1,10 @@
 
 import { db } from './db';
-import { sessions, settings } from './db/schema';
+import { sessions, settings, jobs } from './db/schema';
 import { eq, inArray, sql, lt, and, not } from 'drizzle-orm';
 import type { Session, State, SessionOutput } from '@/lib/types';
 import { fetchWithRetry } from './fetch-client';
+import { appDatabase } from './db';
 
 // Type definitions for easier usage
 export type CachedSession = typeof sessions.$inferSelect;
@@ -60,6 +61,20 @@ export async function upsertSession(session: Session) {
       target: sessions.id,
       set: sessionData,
     });
+  // After inserting the session, update the corresponding job
+  const firstLine = session.prompt?.split('\n')[0] || '';
+  const match = firstLine.match(/^\[TOPIC\]: # \((.+)\)\s*$/);
+  if (match) {
+    const jobName = match[1].trim();
+    const existingJobs = await db.select().from(jobs).where(eq(jobs.name, jobName));
+
+    if (existingJobs.length > 0) {
+      const job = existingJobs[0];
+      const sessionIds = new Set(job.sessionIds || []);
+      sessionIds.add(session.id);
+      await appDatabase.jobs.update(job.id, { sessionIds: Array.from(sessionIds) });
+    }
+  }
 }
 
 /**

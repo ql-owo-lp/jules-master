@@ -467,6 +467,16 @@ export function SessionList({
                             <div className="flex-1 text-left">
                                 <div className="flex items-center gap-2">
                                   <p className="font-semibold truncate" title={job.name}>{job.name}</p>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-xs text-muted-foreground whitespace-nowrap cursor-default">
+                                        ({formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })})
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{new Date(job.createdAt).toLocaleString()}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                   {job.cronJobId && (
                                      <Tooltip>
                                         <TooltipTrigger asChild>

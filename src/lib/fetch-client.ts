@@ -296,7 +296,14 @@ export async function fetchWithRetry(
               // Cap sleep time to avoid excessive waits if needed?
               // For now, assume Retry-After is authoritative, but if it's crazy high, maybe log it.
 
-              console.warn(`Request failed (${response.status}). Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`);
+              const logDetails = {
+                timestamp: new Date().toISOString(),
+                url: url.toString(),
+                status: response.status,
+                attempt: `${attempt}/${retries}`,
+                retryIn: `${Math.round(sleepTime)}ms`,
+              };
+              console.warn(`Request failed. Retrying...`, logDetails);
 
               if (effectiveSignal.aborted) throw new DOMException('Aborted', 'AbortError');
               await sleep(sleepTime);
@@ -312,7 +319,15 @@ export async function fetchWithRetry(
           attempt++;
           if (attempt < retries) {
             const sleepTime = backoff * Math.pow(2, attempt - 1);
-            console.warn(`Fetch error: ${error}. Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`);
+            const logDetails = {
+                timestamp: new Date().toISOString(),
+                url: url.toString(),
+                error: error.message,
+                attempt: `${attempt}/${retries}`,
+                retryIn: `${Math.round(sleepTime)}ms`,
+                 ...(fetchOptions.body && { body: fetchOptions.body }),
+              };
+            console.warn(`Fetch error. Retrying...`, logDetails);
 
             if (effectiveSignal.aborted) throw new DOMException('Aborted', 'AbortError');
             await sleep(sleepTime);
