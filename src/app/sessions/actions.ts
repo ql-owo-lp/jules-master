@@ -78,10 +78,6 @@ export async function listSessions(
   pageSize: number = 50,
   requestId?: string
 ): Promise<{ sessions: Session[], error?: string }> {
-  // Check for mock flag
-  if (process.env.MOCK_API === 'true') {
-     return { sessions: MOCK_SESSIONS };
-  }
 
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
@@ -150,11 +146,6 @@ export async function fetchSessionsPage(
     pageToken?: string | null,
     pageSize: number = 100
 ): Promise<{ sessions: Session[], nextPageToken?: string, error?: string }> {
-     // Check for mock flag
-     if (process.env.MOCK_API === 'true') {
-        return { sessions: MOCK_SESSIONS };
-     }
-
      const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
      if (!effectiveApiKey) {
        console.error("Jules API key is not configured.");
@@ -214,11 +205,6 @@ export async function fetchSessionsPage(
 }
 
 export async function listSources(apiKey?: string | null): Promise<Source[]> {
-  // Check for mock flag
-  if (process.env.MOCK_API === 'true') {
-    return MOCK_SOURCES;
-  }
-
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
