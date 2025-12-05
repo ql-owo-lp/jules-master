@@ -96,18 +96,20 @@ export async function listSessions(
     // 2. If DB is empty, perform an initial fetch from API to populate it
     if (isInitialFetch) {
         console.log("Session cache is empty, performing initial fetch...");
-        // Fetch the first page or so to populate.
-        // NOTE: We might want to fetch *all* pages if we want a complete cache,
-        // but for now let's just fetch the first page to be responsive.
-        // Ideally, we should have a background job to fetch all history.
-        // We reuse fetchSessionsPage logic but simplified here.
-        const firstPage = await fetchSessionsPage(effectiveApiKey, null, 100);
+        // Fetch all pages to get a complete cache.
+        let allSessions: Session[] = [];
+        let pageToken: string | undefined | null = null;
+        do {
+            const page = await fetchSessionsPage(effectiveApiKey, pageToken, 100);
+            if (page.error) {
+                return { sessions: [], error: page.error };
+            }
+            allSessions.push(...page.sessions);
+            pageToken = page.nextPageToken;
+        } while (pageToken);
 
-        if (firstPage.error) {
-            return { sessions: [], error: firstPage.error };
-        }
 
-        for (const s of firstPage.sessions) {
+        for (const s of allSessions) {
             await upsertSession(s);
         }
         sessions = await getCachedSessions();
@@ -181,7 +183,7 @@ export async function fetchSessionsPage(
 
         if (!response.ok) {
             const errorText = `Failed to fetch sessions from ${url.toString()}: ${response.status} ${response.statusText}`;
-            console.error(errorText);
+            console.error(`[${new Date().toISOString()}] ${errorText}`);
             const errorBody = await response.text();
             console.error('Error body:', errorBody);
             // Include status code in error message for easier identification
