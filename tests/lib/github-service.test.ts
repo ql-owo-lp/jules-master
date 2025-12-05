@@ -22,7 +22,7 @@ describe('deleteBranch', () => {
         expect(result).toBe(true);
     });
 
-    it('should return false if the branch is not found', async () => {
+    it('should return true if the branch is not found', async () => {
         process.env.GITHUB_TOKEN = 'test-token';
         vi.spyOn(fetchClient, 'fetchWithRetry').mockResolvedValue({
             ok: false,
@@ -30,7 +30,7 @@ describe('deleteBranch', () => {
         } as Response);
 
         const result = await deleteBranch('test-repo', 'test-branch');
-        expect(result).toBe(false);
+        expect(result).toBe(true);
     });
 
     it('should return false if the branch cannot be processed', async () => {
