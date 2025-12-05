@@ -79,7 +79,7 @@ describe('JobCreationForm', () => {
       const jobPayload = (addJob as vi.Mock).mock.calls[0][0] as Job;
       expect(jobPayload).toMatchObject({
         name: 'Test BG Job',
-        prompt: 'Test background job prompt',
+        prompt: '[TOPIC]: # (Test BG Job)\n\nTest background job prompt',
         status: 'PENDING',
         background: true,
       });
@@ -111,7 +111,7 @@ describe('JobCreationForm', () => {
       const jobPayload = (addJob as vi.Mock).mock.calls[0][0] as Job;
       expect(jobPayload).toMatchObject({
         name: 'Test FG Job',
-        prompt: 'Test foreground job prompt',
+        prompt: '[TOPIC]: # (Test FG Job)\n\nTest foreground job prompt',
         status: 'COMPLETED',
         background: false,
         sessionCount: 2,

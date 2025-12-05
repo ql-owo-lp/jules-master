@@ -8,7 +8,29 @@ import { revalidatePath } from 'next/cache';
 import { eq, desc, or } from 'drizzle-orm';
 
 // --- Jobs ---
+const MOCK_JOBS: Job[] = [
+    {
+        id: 'job-1',
+        name: 'Mock Job 1',
+        sessionIds: ['session-1'],
+        createdAt: '2024-01-01T12:00:00.000Z',
+        repo: 'test-owner/test-repo',
+        branch: 'main',
+    },
+    {
+        id: 'job-2',
+        name: 'Mock Job 2',
+        sessionIds: ['session-2'],
+        createdAt: '2024-01-01T11:58:20.000Z',
+        repo: 'test-owner/test-repo',
+        branch: 'develop',
+    },
+];
+
 export async function getJobs(): Promise<Job[]> {
+    if (process.env.MOCK_API === 'true') {
+        return MOCK_JOBS;
+    }
     return appDatabase.jobs.getAll();
 }
 

@@ -44,10 +44,10 @@ describe('HomePageContent', () => {
     });
   });
 
-  it('should filter jobs by status', () => {
+  it('should filter jobs by status', async () => {
     render(<HomePageContent />);
 
-    const job1Card = screen.getByText('Job 1');
+    const job1Card = await screen.findByText('Job 1');
     expect(job1Card).toBeInTheDocument();
 
     const job2Card = screen.queryByText('Job 2');
@@ -58,7 +58,7 @@ describe('HomePageContent', () => {
     render(<HomePageContent />);
     const user = userEvent.setup();
 
-    const selectAllCheckbox = screen.getByLabelText('Select all sessions for job Job 1');
+    const selectAllCheckbox = await screen.findByLabelText('Select all sessions for job Job 1');
     expect(selectAllCheckbox).not.toBeChecked();
 
     await user.click(selectAllCheckbox);
@@ -66,7 +66,7 @@ describe('HomePageContent', () => {
     expect(selectAllCheckbox).toBeChecked();
   });
   
-  it('should navigate to the correct page when onJobPageChange is called', () => {
+  it('should navigate to the correct page when onJobPageChange is called', async () => {
     const push = vi.fn();
     (useRouter as jest.Mock).mockReturnValue({ push });
 
@@ -95,7 +95,7 @@ describe('HomePageContent', () => {
     render(<HomePageContent />);
 
     // Simulate clicking the next page button
-    const nextPageButton = screen.getByRole('button', { name: /next/i });
+    const nextPageButton = await screen.findByRole('button', { name: /next/i });
     nextPageButton.click();
 
     expect(push).toHaveBeenCalledWith('?status=COMPLETED&jobPage=2');

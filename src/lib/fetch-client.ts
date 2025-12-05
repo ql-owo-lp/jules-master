@@ -312,6 +312,15 @@ export async function fetchWithRetry(
           attempt++;
           if (attempt < retries) {
             const sleepTime = backoff * Math.pow(2, attempt - 1);
+            const logEntry = {
+              timestamp: new Date().toISOString(),
+              url: url.toString(),
+              options: fetchOptions,
+              error: error.toString(),
+              attempt: `${attempt}/${retries}`,
+              retryIn: `${Math.round(sleepTime)}ms`,
+            };
+            console.error('Jules API request failed', logEntry);
             console.warn(`Fetch error: ${error}. Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`);
 
             if (effectiveSignal.aborted) throw new DOMException('Aborted', 'AbortError');

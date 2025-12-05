@@ -11,7 +11,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/lib/db/migrate.ts",
+    "db:migrate": "tsx src/lib/db/migrate.ts && tsx src/lib/db/seed.ts",
     "test": "vitest",
     "test:e2e": "playwright test",
     "postinstall": "patch-package"

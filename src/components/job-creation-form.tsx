@@ -215,7 +215,9 @@ export function JobCreationForm({
   }
 
   const finalPrompt = useMemo(() => {
-    let result = "";
+    const title = jobName.trim() || 'Untitled Job';
+    // The [TOPIC] tag is used to group sessions by job.
+    let result = `[TOPIC]: # (${title})\n\n`;
     if (applyGlobalPrompt && globalPrompt) {
       result += `${globalPrompt}\n\n`;
     }
@@ -224,7 +226,7 @@ export function JobCreationForm({
     }
     result += prompt;
     return result;
-  }, [prompt, applyGlobalPrompt, globalPrompt, repoPrompt]);
+  }, [prompt, jobName, applyGlobalPrompt, globalPrompt, repoPrompt]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
