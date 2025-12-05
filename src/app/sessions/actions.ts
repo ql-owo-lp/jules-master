@@ -190,7 +190,7 @@ export async function fetchSessionsPage(
         );
 
         if (!response.ok) {
-            const errorText = `Failed to fetch sessions: ${response.status} ${response.statusText}`;
+            const errorText = `Failed to fetch sessions from ${url.toString()}: ${response.status} ${response.statusText}`;
             console.error(errorText);
             const errorBody = await response.text();
             console.error('Error body:', errorBody);
@@ -200,10 +200,20 @@ export async function fetchSessionsPage(
 
         const data: ListSessionsResponse = await response.json();
 
-        const sessions = (data.sessions || []).map(session => ({
-            ...session,
-            createTime: session.createTime || '',
-        }));
+        const sessions = (data.sessions || []).map(session => {
+            let id = session.id;
+            if (!id && session.name) {
+                const parts = session.name.split('/');
+                if (parts.length > 1) {
+                    id = parts[parts.length - 1];
+                }
+            }
+            return {
+                ...session,
+                id,
+                createTime: session.createTime || '',
+            };
+        });
 
         return { sessions, nextPageToken: data.nextPageToken };
 

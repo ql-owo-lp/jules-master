@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,6 +83,18 @@ function SettingsContent() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const { activeProfile, profiles, createProfile, updateProfile, deleteProfile, setActiveProfile, isLoading: isProfilesLoading } = useProfile();
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const currentTab = searchParams.get("tab") || "general";
+
+  const onTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", value);
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   // --- Settings State (from SettingsSheet) ---
   // API Keys are now scoped to the active profile ID
@@ -553,6 +566,11 @@ function SettingsContent() {
 
   return (
     <div className="container mx-auto py-8 max-w-5xl">
+<<<<<<< HEAD
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
+        <TabsList className="mb-4">
+=======
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Settings</h1>
 
@@ -596,6 +614,7 @@ function SettingsContent() {
       <Tabs defaultValue="profiles" className="w-full">
         <TabsList className="mb-4 flex-wrap h-auto">
           <TabsTrigger value="profiles">Profiles</TabsTrigger>
+>>>>>>> f236468 (Apply patch /tmp/acb6fdbb-b81e-4636-b514-de9bc8bff208.patch)
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>

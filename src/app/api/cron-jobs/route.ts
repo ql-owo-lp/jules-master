@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import { getCronJobs, createCronJob } from '@/app/settings/actions';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const cronJobs = await getCronJobs();

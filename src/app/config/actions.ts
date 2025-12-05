@@ -6,7 +6,7 @@ import * as schema from '@/lib/db/schema';
 import { profileService } from '@/lib/db/profile-service';
 import type { Job, PredefinedPrompt, HistoryPrompt } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, or } from 'drizzle-orm';
 
 // --- Jobs ---
 export async function getJobs(): Promise<Job[]> {
@@ -25,9 +25,10 @@ export async function addJob(job: Job): Promise<void> {
 export async function getPendingBackgroundWorkCount(): Promise<{ pendingJobs: number, retryingSessions: number }> {
     const activeProfile = await profileService.getActiveProfile();
     // Filter pending jobs by status and profileId using SQL
+    // Merging upstream logic (PENDING or PROCESSING) with profile scoping
     const pendingJobs = await db.select().from(schema.jobs).where(
         and(
-            eq(schema.jobs.status, 'PENDING'),
+            or(eq(schema.jobs.status, 'PENDING'), eq(schema.jobs.status, 'PROCESSING')),
             eq(schema.jobs.profileId, activeProfile.id)
         )
     );
