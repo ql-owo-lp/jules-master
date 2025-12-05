@@ -78,7 +78,7 @@ describe('Session New Actions', () => {
       expect(session).toBeNull();
     });
 
-    it('should not include autoRetryEnabled and autoContinueEnabled even if they are true', async () => {
+    it('should include autoRetryEnabled and autoContinueEnabled when they are true', async () => {
         const sessionDataWithFlags = { ...sessionData, autoRetryEnabled: true, autoContinueEnabled: true };
         const mockSession = { id: 'new-session', ...sessionDataWithFlags };
         (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
@@ -87,14 +87,11 @@ describe('Session New Actions', () => {
         });
 
         await createSession(sessionDataWithFlags);
-        const expectedBody = { ...sessionDataWithFlags };
-        delete expectedBody.autoRetryEnabled;
-        delete expectedBody.autoContinueEnabled;
 
         expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
             'https://jules.googleapis.com/v1alpha/sessions',
             expect.objectContaining({
-                body: JSON.stringify(expectedBody),
+                body: JSON.stringify(sessionDataWithFlags),
             })
         );
     });
@@ -108,12 +105,11 @@ describe('Session New Actions', () => {
         });
 
         await createSession(sessionDataWithoutFlags);
-        const expectedBody = { ...sessionData };
 
         expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
             'https://jules.googleapis.com/v1alpha/sessions',
             expect.objectContaining({
-                body: JSON.stringify(expectedBody),
+                body: JSON.stringify(sessionDataWithoutFlags),
             })
         );
     });

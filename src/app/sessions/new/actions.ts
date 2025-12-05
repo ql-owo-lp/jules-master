@@ -27,9 +27,6 @@ export async function createSession(
   if (!sessionData.requirePlanApproval) {
     delete body.requirePlanApproval;
   }
-  // Delete these fields as they are not supported by the Jules API
-  delete body.autoContinueEnabled;
-  delete body.autoRetryEnabled;
 
 
   try {
