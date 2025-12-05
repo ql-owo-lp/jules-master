@@ -25,8 +25,9 @@ export async function deleteBranch(repo: string, branch: string): Promise<boolea
             console.log(`Successfully deleted branch ${branch} from ${repo}`);
             return true;
         } else if (response.status === 404 || response.status === 422) {
-            console.warn(`Branch ${branch} not found in ${repo}, assuming it was already deleted.`);
-            return true;
+            // It is a failure case if the branch is not found or cannot be processed.
+            console.warn(`Branch ${branch} not found in ${repo}.`);
+            return false;
         } else {
             console.error(`Failed to delete branch ${branch} from ${repo}: ${response.status} ${response.statusText}`);
             return false;
