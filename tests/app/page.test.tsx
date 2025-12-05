@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import HomePageContent from '@/app/page';
 import { vi } from 'vitest';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -53,6 +54,18 @@ describe('HomePageContent', () => {
     expect(job2Card).not.toBeInTheDocument();
   });
 
+  it('should select all filtered sessions when the "select all" checkbox is clicked', async () => {
+    render(<HomePageContent />);
+    const user = userEvent.setup();
+
+    const selectAllCheckbox = screen.getByLabelText('Select all sessions for job Job 1');
+    expect(selectAllCheckbox).not.toBeChecked();
+
+    await user.click(selectAllCheckbox);
+
+    expect(selectAllCheckbox).toBeChecked();
+  });
+  
   it('should navigate to the correct page when onJobPageChange is called', () => {
     const push = vi.fn();
     (useRouter as jest.Mock).mockReturnValue({ push });
