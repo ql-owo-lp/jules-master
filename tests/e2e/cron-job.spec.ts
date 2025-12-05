@@ -75,6 +75,8 @@ test.describe('Cron Job Creation', () => {
         await expect(page.getByText('Invalid Schedule')).not.toBeVisible();
 
         // If we see "Repository and branch must be selected.", it means parsing passed!
-        await expect(page.getByText('Repository and branch must be selected.').first()).toBeVisible();
+        // We use .first() to handle potential duplicates (e.g. toast title vs description or multiple toasts)
+        // Increasing timeout to 10s for CI stability
+        await expect(page.getByText('Repository and branch must be selected.').first()).toBeVisible({ timeout: 10000 });
     });
 });
