@@ -78,10 +78,6 @@ export async function listSessions(
   pageSize: number = 50,
   requestId?: string
 ): Promise<{ sessions: Session[], error?: string }> {
-  // Check for mock flag
-  if (process.env.MOCK_API === 'true') {
-     return { sessions: MOCK_SESSIONS };
-  }
 
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
@@ -91,6 +87,27 @@ export async function listSessions(
   try {
     // 1. Get cached sessions from DB
     let sessions = await getCachedSessions();
+
+    // In Mock API mode, ensure MOCK_SESSIONS are present if DB is not empty but missing them
+    if (process.env.MOCK_API === 'true') {
+        const dbMap = new Map(sessions.map(s => [s.id, s]));
+        let mockMissing = false;
+        for (const mock of MOCK_SESSIONS) {
+            if (!dbMap.has(mock.id)) {
+                mockMissing = true;
+                break;
+            }
+        }
+        if (mockMissing) {
+            console.log("MOCK_API is true and MOCK_SESSIONS are missing from DB. Injecting them.");
+            for (const s of MOCK_SESSIONS) {
+                await upsertSession(s);
+            }
+            // Refresh from DB
+            sessions = await getCachedSessions();
+        }
+    }
+
     const isInitialFetch = sessions.length === 0;
 
     // 2. If DB is empty, perform an initial fetch from API to populate it
@@ -150,11 +167,6 @@ export async function fetchSessionsPage(
     pageToken?: string | null,
     pageSize: number = 100
 ): Promise<{ sessions: Session[], nextPageToken?: string, error?: string }> {
-     // Check for mock flag
-     if (process.env.MOCK_API === 'true') {
-        return { sessions: MOCK_SESSIONS };
-     }
-
      const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
      if (!effectiveApiKey) {
        console.error("Jules API key is not configured.");
@@ -214,11 +226,6 @@ export async function fetchSessionsPage(
 }
 
 export async function listSources(apiKey?: string | null): Promise<Source[]> {
-  // Check for mock flag
-  if (process.env.MOCK_API === 'true') {
-    return MOCK_SOURCES;
-  }
-
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");

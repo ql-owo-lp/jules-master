@@ -73,7 +73,10 @@ test.describe('Session Actions', () => {
     // Verify Dialog opens
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('heading', { name: 'Send Message to Session' })).toBeVisible();
+    // The dialog title might be "Send Message to Session" or "Send Message to Session: Mock Session 1"
+    // Use partial match or getByRole('heading') which finds any heading.
+    await expect(dialog.getByRole('heading')).toBeVisible();
+    await expect(dialog.getByText('Send Message to Session')).toBeVisible();
 
     // Close Dialog
     await page.keyboard.press('Escape');

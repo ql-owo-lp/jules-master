@@ -27,8 +27,9 @@ test.describe('Home Page', () => {
     await expect(page.getByText('Mock Session 2', { exact: false })).toBeVisible();
 
     // Check for status badges (UI labels)
-    await expect(page.getByText('Completed', { exact: true })).toBeVisible();
-    await expect(page.getByText('Awaiting User Feedback', { exact: true })).toBeVisible();
+    // Use first() because multiple sessions (from other tests running in parallel) might be completed
+    await expect(page.getByText('Completed', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Awaiting User Feedback', { exact: true }).first()).toBeVisible();
   });
 
   test('should allow setting API key', async ({ page }) => {

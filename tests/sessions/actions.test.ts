@@ -28,6 +28,25 @@ describe('Session Actions', () => {
   describe('listSessions', () => {
     it('should return mock sessions when MOCK_API is true', async () => {
       process.env.MOCK_API = 'true';
+      // Mock cache miss
+      (sessionService.getCachedSessions as vi.Mock)
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce([
+                { id: 'session-1', name: 'sessions/mock-1', title: 'Mock Session 1' },
+                { id: 'session-2', name: 'sessions/mock-2', title: 'Mock Session 2' }
+            ]);
+
+      // Mock fetchWithRetry response since we removed the MOCK_API short-circuit in actions.ts
+      (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+            sessions: [
+                { id: 'session-1', name: 'sessions/mock-1', title: 'Mock Session 1' },
+                { id: 'session-2', name: 'sessions/mock-2', title: 'Mock Session 2' }
+            ]
+        }),
+      });
+
       const result = await listSessions();
       expect(result.sessions).toBeDefined();
       expect(result.sessions.length).toBe(2);

@@ -229,15 +229,63 @@ export async function fetchWithRetry(
   const { retries = 3, backoff = 1000, signal, requestId, ...fetchOptions } = options;
 
   // Mock API logic
+  console.error(`[FetchClient] MOCK_API=${process.env.MOCK_API}, URL=${url}`);
   if (process.env.MOCK_API === 'true') {
+    // Determine if it is a list or create request
+    // Crude check: if url has pageSize or pageToken query params, it's likely a list
+    const isList = url.toString().includes('pageSize') || url.toString().includes('pageToken');
+    console.error(`[MOCK_API] ${url.toString()} isList=${isList}`);
+
     if (url.toString().includes('sessions')) {
         await sleep(500); // Simulate network delay
+
+        // If listing, return the mock list response similar to what actions.ts MOCK_SESSIONS was
+        if (isList) {
+             console.error('[MOCK_API] Returning list of mock sessions');
+             const mockSessions = [
+              {
+                name: 'sessions/mock-1',
+                id: 'session-1',
+                title: 'Mock Session 1',
+                state: 'COMPLETED',
+                createTime: '2024-01-01T12:00:00.000Z',
+                sourceContext: {
+                  source: 'sources/github/test-owner/test-repo',
+                  githubRepoContext: {
+                    startingBranch: 'main',
+                  },
+                },
+                prompt: "This is a mock prompt for session 1",
+              },
+              {
+                name: 'sessions/mock-2',
+                id: 'session-2',
+                title: 'Mock Session 2',
+                state: 'AWAITING_USER_FEEDBACK',
+                createTime: '2024-01-01T11:58:20.000Z',
+                sourceContext: {
+                  source: 'sources/github/test-owner/test-repo',
+                  githubRepoContext: {
+                    startingBranch: 'develop',
+                  },
+                },
+                prompt: "This is a mock prompt for session 2",
+              },
+            ];
+             return new Response(JSON.stringify({
+                sessions: mockSessions
+             }), {
+                 status: 200,
+                 headers: { 'Content-Type': 'application/json' }
+             });
+        }
+
         return new Response(JSON.stringify({
-            id: 'mock-session-id',
+            id: `mock-session-id-${Date.now()}-${Math.random()}`,
             name: 'mock-session-name',
             title: 'Mock Session',
             prompt: 'Mock Prompt',
-            sourceContext: { source: 'github', githubRepoContext: { startingBranch: 'main' } },
+            sourceContext: { source: 'sources/github/test-owner/test-repo', githubRepoContext: { startingBranch: 'main' } },
             createTime: new Date().toISOString(),
             updateTime: new Date().toISOString(),
             state: 'COMPLETED',
@@ -262,6 +310,27 @@ export async function fetchWithRetry(
              headers: { 'Content-Type': 'application/json' }
         });
      }
+     if (url.toString().includes('sources')) {
+      await sleep(500);
+      return new Response(JSON.stringify({
+        sources: [
+          {
+            name: 'sources/github/test-owner/test-repo',
+            id: 'mock-source-id',
+            githubRepo: {
+              owner: 'test-owner',
+              repo: 'test-repo',
+              isPrivate: false,
+              defaultBranch: { displayName: 'main' },
+              branches: [{ displayName: 'main' }, { displayName: 'develop' }]
+            }
+          }
+        ]
+      }), {
+           status: 200,
+           headers: { 'Content-Type': 'application/json' }
+      });
+   }
   }
 
   return globalQueue.enqueue(async (effectiveSignal) => {
