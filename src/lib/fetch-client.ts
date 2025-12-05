@@ -303,16 +303,22 @@ export async function fetchWithRetry(
               if (effectiveSignal.aborted) throw new DOMException('Aborted', 'AbortError');
 
               continue;
+            } else {
+              break;
             }
           }
           return response;
         } catch (error: any) {
-          if (error.name === 'AbortError') throw error;
+          if (error.name === 'AbortError') {
+            throw error;
+          }
 
           attempt++;
           if (attempt < retries) {
             const sleepTime = backoff * Math.pow(2, attempt - 1);
-            console.warn(`Fetch error: ${error}. Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`);
+            const logTime = new Date().toISOString();
+            const requestDetails = `URL: ${url.toString()}, Body: ${JSON.stringify(fetchOptions.body)}`;
+            console.warn(`[${logTime}] Fetch error: ${error}. Request details: ${requestDetails}. Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`);
 
             if (effectiveSignal.aborted) throw new DOMException('Aborted', 'AbortError');
             await sleep(sleepTime);
