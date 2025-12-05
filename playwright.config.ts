@@ -18,7 +18,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `MOCK_API=true JULES_API_KEY=${process.env.JULES_API_KEY || 'mock-api-key'} npm run dev`,
+    command: `npx tsx src/lib/db/init.ts && MOCK_API=true JULES_API_KEY=${process.env.JULES_API_KEY || 'mock-api-key'} npm run dev`,
     url: 'http://localhost:9002',
     reuseExistingServer: !process.env.CI,
     stdout: 'ignore',

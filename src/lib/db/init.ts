@@ -1,22 +1,24 @@
 
-import '@testing-library/jest-dom';
-import { vi, beforeAll, afterAll } from 'vitest';
-import { db } from '../src/lib/db';
+import { db } from './index';
+import { jobs, cronJobs, predefinedPrompts, historyPrompts, quickReplies, globalPrompt, repoPrompts, profiles, settings, sessions } from './schema';
 import { sql } from 'drizzle-orm';
 
-// Mock ResizeObserver
-class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+async function main() {
+  console.log('Initializing database...');
 
-window.HTMLElement.prototype.scrollIntoView = vi.fn();
+  // Drop all tables
+  await db.run(sql`DROP TABLE IF EXISTS "sessions";`);
+  await db.run(sql`DROP TABLE IF EXISTS "settings";`);
+  await db.run(sql`DROP TABLE IF EXISTS "profiles";`);
+  await db.run(sql`DROP TABLE IF EXISTS "repo_prompts";`);
+  await db.run(sql`DROP TABLE IF EXISTS "global_prompt";`);
+  await db.run(sql`DROP TABLE IF EXISTS "quick_replies";`);
+  await db.run(sql`DROP TABLE IF EXISTS "history_prompts";`);
+  await db.run(sql`DROP TABLE IF EXISTS "predefined_prompts";`);
+  await db.run(sql`DROP TABLE IF EXISTS "cron_jobs";`);
+  await db.run(sql`DROP TABLE IF EXISTS "jobs";`);
 
-vi.stubGlobal('ResizeObserver', ResizeObserver);
-
-beforeAll(async () => {
-  // Initialize the database schema
+  // Create all tables
   await db.run(sql`
     CREATE TABLE "jobs" (
         "id" text PRIMARY KEY NOT NULL,
@@ -143,22 +145,12 @@ beforeAll(async () => {
         "last_error" text
     );
     `);
-});
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+  console.log('Database initialized successfully!');
+}
 
-afterAll(async () => {
-    // Drop all tables after tests are done
-    await db.run(sql`DROP TABLE IF EXISTS "sessions";`);
-    await db.run(sql`DROP TABLE IF EXISTS "settings";`);
-    await db.run(sql`DROP TABLE IF EXISTS "profiles";`);
-    await db.run(sql`DROP TABLE IF EXISTS "repo_prompts";`);
-    await db.run(sql`DROP TABLE IF EXISTS "global_prompt";`);
-    await db.run(sql`DROP TABLE IF EXISTS "quick_replies";`);
-    await db.run(sql`DROP TABLE IF EXISTS "history_prompts";`);
-    await db.run(sql`DROP TABLE IF EXISTS "predefined_prompts";`);
-    await db.run(sql`DROP TABLE IF EXISTS "cron_jobs";`);
-    await db.run(sql`DROP TABLE IF EXISTS "jobs";`);
+main().catch((e) => {
+  console.error('Failed to initialize database');
+  console.error(e);
+  process.exit(1);
 });

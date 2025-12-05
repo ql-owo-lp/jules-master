@@ -67,10 +67,16 @@ import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
 import type { PredefinedPrompt, Source } from "@/lib/types";
 
+interface Profile {
+  id: number;
+  name: string;
+  isActive: boolean;
+}
+
 type DialogState = {
   isOpen: boolean;
-  type: 'prompt' | 'reply';
-  data: PredefinedPrompt | null;
+  type: 'prompt' | 'reply' | 'profile';
+  data: PredefinedPrompt | Profile | null;
 }
 
 export default function SettingsPage() {
@@ -169,6 +175,11 @@ export default function SettingsPage() {
   const [title, setTitle] = useState("");
   const [promptText, setPromptText] = useState("");
 
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
+  const [profileName, setProfileName] = useState("");
+  const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
+
 
   // --- Effects for Settings ---
   useEffect(() => { setApiKeyValue(apiKey); }, [apiKey]);
@@ -198,43 +209,64 @@ export default function SettingsPage() {
   useEffect(() => { setAutoDeleteStaleBranchesAfterDaysValue(autoDeleteStaleBranchesAfterDays); }, [autoDeleteStaleBranchesAfterDays]);
 
 
+  const fetchProfiles = async () => {
+    try {
+        const response = await fetch('/api/profiles');
+        if (response.ok) {
+            const data = await response.json();
+            setProfiles(data);
+            setActiveProfile(data.find((p: Profile) => p.isActive) || data[0]);
+        }
+    } catch (error) {
+        console.error("Failed to fetch profiles", error);
+    }
+    setIsLoadingProfiles(false);
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings');
+      if (response.ok) {
+        const dbSettings = await response.json();
+        const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
+
+        if (!isSetInLocalStorage("jules-idle-poll-interval")) setIdlePollInterval(dbSettings.idlePollInterval);
+        if (!isSetInLocalStorage("jules-active-poll-interval")) setActivePollInterval(dbSettings.activePollInterval);
+        if (!isSetInLocalStorage("jules-title-truncate-length")) setTitleTruncateLength(dbSettings.titleTruncateLength);
+        if (!isSetInLocalStorage("jules-line-clamp")) setLineClamp(dbSettings.lineClamp);
+        if (!isSetInLocalStorage("jules-session-items-per-page")) setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
+        if (!isSetInLocalStorage("jules-jobs-per-page")) setJobsPerPage(dbSettings.jobsPerPage);
+        if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
+        if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
+        if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
+        if (!isSetInLocalStorage("jules-auto-approval-interval")) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
+        if (!isSetInLocalStorage("jules-auto-retry-enabled")) setAutoRetryEnabled(dbSettings.autoRetryEnabled);
+        if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
+        if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
+        if (!isSetInLocalStorage("jules-auto-continue-message")) setAutoContinueMessage(dbSettings.autoContinueMessage);
+
+        if (!isSetInLocalStorage("jules-session-cache-in-progress-interval")) setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
+        if (!isSetInLocalStorage("jules-session-cache-completed-no-pr-interval")) setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
+        if (!isSetInLocalStorage("jules-session-cache-pending-approval-interval")) setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
+        if (!isSetInLocalStorage("jules-session-cache-max-age-days")) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
+        if (!isSetInLocalStorage("jules-auto-delete-stale-branches")) setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
+        if (!isSetInLocalStorage("jules-auto-delete-stale-branches-after-days")) setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
+      }
+    } catch (error) {
+      console.error("Failed to fetch settings from DB", error);
+    }
+  };
+
   useEffect(() => {
     setIsClient(true);
-    const fetchSettings = async () => {
-      try {
-        const response = await fetch('/api/settings');
-        if (response.ok) {
-          const dbSettings = await response.json();
-          const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
-
-          if (!isSetInLocalStorage("jules-idle-poll-interval")) setIdlePollInterval(dbSettings.idlePollInterval);
-          if (!isSetInLocalStorage("jules-active-poll-interval")) setActivePollInterval(dbSettings.activePollInterval);
-          if (!isSetInLocalStorage("jules-title-truncate-length")) setTitleTruncateLength(dbSettings.titleTruncateLength);
-          if (!isSetInLocalStorage("jules-line-clamp")) setLineClamp(dbSettings.lineClamp);
-          if (!isSetInLocalStorage("jules-session-items-per-page")) setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
-          if (!isSetInLocalStorage("jules-jobs-per-page")) setJobsPerPage(dbSettings.jobsPerPage);
-          if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
-          if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
-          if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
-          if (!isSetInLocalStorage("jules-auto-approval-interval")) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
-          if (!isSetInLocalStorage("jules-auto-retry-enabled")) setAutoRetryEnabled(dbSettings.autoRetryEnabled);
-          if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
-          if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
-          if (!isSetInLocalStorage("jules-auto-continue-message")) setAutoContinueMessage(dbSettings.autoContinueMessage);
-
-          if (!isSetInLocalStorage("jules-session-cache-in-progress-interval")) setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
-          if (!isSetInLocalStorage("jules-session-cache-completed-no-pr-interval")) setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
-          if (!isSetInLocalStorage("jules-session-cache-pending-approval-interval")) setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
-          if (!isSetInLocalStorage("jules-session-cache-max-age-days")) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
-          if (!isSetInLocalStorage("jules-auto-delete-stale-branches")) setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
-          if (!isSetInLocalStorage("jules-auto-delete-stale-branches-after-days")) setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
-        }
-      } catch (error) {
-        console.error("Failed to fetch settings from DB", error);
-      }
-    };
-    fetchSettings();
-  }, [
+    const fetchData = async () => {
+        await fetchProfiles();
+        await fetchSettings();
+    }
+    if(isClient){
+        fetchData();
+    }
+  }, [isClient,
       setIdlePollInterval, setActivePollInterval, setTitleTruncateLength, setLineClamp,
       setSessionItemsPerPage, setJobsPerPage, setDefaultSessionCount, setPrStatusPollInterval,
       setHistoryPromptsCount, setAutoApprovalInterval, setAutoRetryEnabled, setAutoRetryMessage,
@@ -375,33 +407,86 @@ export default function SettingsPage() {
     });
   };
 
-  const openDialog = (type: 'prompt' | 'reply', data: PredefinedPrompt | null = null) => {
+  const openDialog = (type: 'prompt' | 'reply' | 'profile', data: PredefinedPrompt | Profile | null = null) => {
     setDialogState({ isOpen: true, type, data });
-    setTitle(data?.title || "");
-    setPromptText(data?.prompt || "");
+    if (type === 'profile') {
+        setProfileName((data as Profile)?.name || "");
+    } else {
+        setTitle((data as PredefinedPrompt)?.title || "");
+        setPromptText((data as PredefinedPrompt)?.prompt || "");
+    }
   };
 
   const closeDialog = () => {
     setDialogState({ isOpen: false, type: 'prompt', data: null });
   }
 
-  const handleDelete = (type: 'prompt' | 'reply', id: string) => {
+  const handleDelete = (type: 'prompt' | 'reply' | 'profile', id: string | number) => {
      startSavingMessage(async () => {
         if (type === 'prompt') {
             const updatedPrompts = prompts.filter((p) => p.id !== id);
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
             toast({ title: "Message deleted" });
-        } else {
+        } else if (type === 'reply') {
             const updatedReplies = quickReplies.filter((r) => r.id !== id);
             await saveQuickReplies(updatedReplies);
             setQuickReplies(updatedReplies);
             toast({ title: "Quick Reply deleted" });
+        } else if (type === 'profile') {
+            try {
+                await fetch(`/api/profiles/${id}`, { method: 'DELETE' });
+                const updatedProfiles = profiles.filter((p) => p.id !== id);
+                setProfiles(updatedProfiles);
+                toast({ title: "Profile deleted" });
+            } catch (error) {
+                toast({ variant: "destructive", title: "Error", description: "Failed to delete profile." });
+            }
         }
      });
   };
 
   const handleSaveMessage = () => {
+    if (dialogState.type === 'profile') {
+        if (!profileName.trim()) {
+            toast({ variant: "destructive", title: "Missing fields", description: "Profile name is required." });
+            return;
+        }
+
+        startSavingMessage(async () => {
+            const { data } = dialogState;
+            const profile = data as Profile;
+
+            try {
+                let updatedProfile;
+                if (profile?.id) {
+                    const response = await fetch(`/api/profiles/${profile.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: profileName }),
+                    });
+                    updatedProfile = await response.json();
+                    setProfiles(profiles.map((p) => p.id === profile.id ? updatedProfile : p));
+                    toast({ title: "Profile updated" });
+                } else {
+                    const response = await fetch('/api/profiles', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: profileName }),
+                    });
+                    updatedProfile = await response.json();
+                    setProfiles([...profiles, updatedProfile]);
+                    toast({ title: "Profile added" });
+                }
+            } catch (error) {
+                 toast({ variant: "destructive", title: "Error", description: "Failed to save profile." });
+            }
+            closeDialog();
+        });
+        return;
+    }
+
+
     if (!title.trim() || !promptText.trim()) {
       toast({ variant: "destructive", title: "Missing fields", description: "Both title and content are required." });
       return;
@@ -420,10 +505,10 @@ export default function SettingsPage() {
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
             toast({ title: data?.id ? "Message updated" : "Message added" });
-        } else {
+        } else if (type === 'reply') {
             let updatedReplies: PredefinedPrompt[];
             if (data?.id) {
-                updatedReplies = quickReplies.map((r) => r.id === data.id ? { ...r, title, prompt: promptText } : r);
+                updatedReplies = quickReplies.map((r) => r.id === (data as PredefinedPrompt).id ? { ...r, title, prompt: promptText } : r);
             } else {
                 updatedReplies = [...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText }];
             }
@@ -450,6 +535,30 @@ export default function SettingsPage() {
          toast({ title: "Repository Prompt Saved" });
     });
   }
+
+  const handleSetActive = async (id: number) => {
+    try {
+        await fetch(`/api/profiles/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: true }),
+        });
+
+        // Clear local storage to force re-fetch of settings
+        Object.keys(window.localStorage).forEach(key => {
+            if (key.startsWith('jules-')) {
+                window.localStorage.removeItem(key);
+            }
+        });
+
+        setProfiles(profiles.map(p => ({ ...p, isActive: p.id === id })));
+        toast({ title: "Profile activated" });
+        // Force a reload to fetch new settings for the new profile
+        window.location.reload();
+    } catch (error) {
+        toast({ variant: "destructive", title: "Error", description: "Failed to set active profile." });
+    }
+  };
 
   const renderTable = (type: 'prompt' | 'reply') => {
     const items = type === 'prompt' ? prompts : quickReplies;
@@ -525,12 +634,12 @@ export default function SettingsPage() {
       <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="profiles" data-testid="profiles-tab">Profiles</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="display">Display</TabsTrigger>
-          <TabsTrigger value="config">Configuration</TabsTrigger>
         </TabsList>
 
         {/* General Tab */}
@@ -595,8 +704,61 @@ export default function SettingsPage() {
                         )}
                     </div>
                 </CardContent>
-                <CardFooter>
+                 <CardFooter>
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
+                </CardFooter>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Advanced Configuration</CardTitle>
+                    <CardDescription>Fine-tune polling and other internal settings.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="grid gap-2">
+                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
+                        <Input
+                            id="idle-poll-interval"
+                            type="number"
+                            value={idlePollIntervalValue}
+                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
+                            min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
+                        <Input
+                            id="active-poll-interval"
+                            type="number"
+                            value={activePollIntervalValue}
+                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
+                            min="1"
+                        />
+                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
+                        <Input
+                            id="pr-status-poll-interval"
+                            type="number"
+                            value={prStatusPollIntervalValue}
+                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
+                        <Input
+                            id="default-session-count"
+                            type="number"
+                            value={defaultSessionCountValue}
+                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
+                            min="1"
+                        />
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Configuration</Button>
                 </CardFooter>
             </Card>
         </TabsContent>
@@ -909,60 +1071,68 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
-        {/* Configuration Tab */}
-        <TabsContent value="config" className="space-y-6">
+        {/* Profiles Tab */}
+        <TabsContent value="profiles" className="space-y-6">
             <Card>
-                <CardHeader>
-                    <CardTitle>Advanced Configuration</CardTitle>
-                    <CardDescription>Fine-tune polling and other internal settings.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid gap-2">
-                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
-                        <Input
-                            id="idle-poll-interval"
-                            type="number"
-                            value={idlePollIntervalValue}
-                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
-                            min="0"
-                        />
-                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Profiles</CardTitle>
+                  <CardDescription>Manage your settings profiles.</CardDescription>
+                </div>
+                <Button onClick={() => openDialog('profile')} disabled={isSavingMessage || isLoadingProfiles}>
+                  <Plus className="mr-2 h-4 w-4" /> Add New
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {isLoadingProfiles ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
-                        <Input
-                            id="active-poll-interval"
-                            type="number"
-                            value={activePollIntervalValue}
-                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
-                            min="1"
-                        />
-                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
+                ) : (
+                    <div className="border rounded-lg">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="w-[80px] text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {profiles.map((profile) => (
+                              <TableRow key={profile.id}>
+                                <TableCell className="font-medium">{profile.name}</TableCell>
+                                <TableCell>
+                                    {profile.isActive ?
+                                        <span className="text-green-600 font-semibold">Active</span> :
+                                        <Button variant="link" size="sm" onClick={() => handleSetActive(profile.id)}>Set Active</Button>
+                                    }
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" disabled={isSavingMessage}>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                      <DropdownMenuItem onClick={() => openDialog('profile', profile)}>
+                                        <Edit className="mr-2 h-4 w-4" /> Rename
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleDelete('profile', profile.id)} className="text-destructive" disabled={profiles.length <= 1}>
+                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
-                        <Input
-                            id="pr-status-poll-interval"
-                            type="number"
-                            value={prStatusPollIntervalValue}
-                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
-                            min="10"
-                        />
-                    </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
-                        <Input
-                            id="default-session-count"
-                            type="number"
-                            value={defaultSessionCountValue}
-                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
-                            min="1"
-                        />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Configuration</Button>
-                </CardFooter>
+                )}
+              </CardContent>
             </Card>
         </TabsContent>
 
@@ -971,37 +1141,64 @@ export default function SettingsPage() {
       {/* Dialogs for Messages */}
       <Dialog open={dialogState.isOpen} onOpenChange={closeDialog}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Message' : 'Quick Reply'}
-            </DialogTitle>
-            <DialogDescription>
-               Create a new reusable {dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="col-span-3"
-                placeholder="A short, descriptive title"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="prompt-text" className="text-right pt-2">Content</Label>
-              <Textarea
-                id="prompt-text"
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                className="col-span-3"
-                rows={6}
-                placeholder="Enter the full text here..."
-              />
-            </div>
-          </div>
+            {dialogState.type === 'profile' ? (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {(dialogState.data as Profile)?.id ? "Rename Profile" : "Add New Profile"}
+                    </DialogTitle>
+                    <DialogDescription>
+                       Create a new profile to save a different set of settings.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="profile-name" className="text-right">Name</Label>
+                      <Input
+                        id="profile-name"
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="col-span-3"
+                        placeholder="A short, descriptive name"
+                      />
+                    </div>
+                  </div>
+                </>
+            ) : (
+                 <>
+                    <DialogHeader>
+                      <DialogTitle>
+                        {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Message' : 'Quick Reply'}
+                      </DialogTitle>
+                      <DialogDescription>
+                         Create a new reusable {dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="title" className="text-right">Title</Label>
+                        <Input
+                          id="title"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          className="col-span-3"
+                          placeholder="A short, descriptive title"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-start gap-4">
+                        <Label htmlFor="prompt-text" className="text-right pt-2">Content</Label>
+                        <Textarea
+                          id="prompt-text"
+                          value={promptText}
+                          onChange={(e) => setPromptText(e.target.value)}
+                          className="col-span-3"
+                          rows={6}
+                          placeholder="Enter the full text here..."
+                        />
+                      </div>
+                    </div>
+                 </>
+            )}
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" disabled={isSavingMessage}>Cancel</Button></DialogClose>
             <Button onClick={handleSaveMessage} disabled={isSavingMessage}>Save</Button>

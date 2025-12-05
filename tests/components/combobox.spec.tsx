@@ -1,6 +1,7 @@
 
 import React from "react";
-import { render, fireEvent, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Combobox } from "@/components/ui/combobox";
 import { vi } from "vitest";
 
@@ -25,7 +26,8 @@ describe("Combobox", () => {
     expect(screen.getByText("Option 1")).toBeInTheDocument();
   });
 
-  it("should open the popover when the button is clicked", () => {
+  it("should open the popover when the button is clicked", async () => {
+    const user = userEvent.setup();
     render(
       <Combobox
         options={options}
@@ -36,12 +38,13 @@ describe("Combobox", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("combobox"));
+    await user.click(screen.getByRole("combobox"));
 
     expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument();
   });
 
-  it("should call onValueChange with the correct value when an option is selected", () => {
+  it("should call onValueChange with the correct value when an option is selected", async () => {
+    const user = userEvent.setup();
     const onValueChange = vi.fn();
     render(
       <Combobox
@@ -53,13 +56,14 @@ describe("Combobox", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("combobox"));
-    fireEvent.click(screen.getByText("Option 2"));
+    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getByText("Option 2"));
 
     expect(onValueChange).toHaveBeenCalledWith("2");
   });
 
-  it("should set the correct value for CommandItem", () => {
+  it("should set the correct value for CommandItem", async () => {
+    const user = userEvent.setup();
     render(
       <Combobox
         options={options}
@@ -70,7 +74,7 @@ describe("Combobox", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("combobox"));
+    await user.click(screen.getByRole("combobox"));
 
     const commandItems = screen.getAllByRole("option");
     commandItems.forEach((item, index) => {
