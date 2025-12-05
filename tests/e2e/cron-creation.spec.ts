@@ -16,34 +16,78 @@ test.describe('Cron Job Creation', () => {
         await page.getByLabel('Schedule (Cron Expression)').fill('0 0 * * *'); // Daily
         await page.getByLabel('Session Prompts').fill('Test prompt');
 
-        // Ensure there is at least one repo/branch selected or available
-        // We might need to mock this or ensure the environment has sources.
-        // Assuming the UI handles empty state or we can just try to submit if it pre-selects.
-        // But usually we need to select a repo.
-
-        // Wait for repository selector to be loaded if needed.
-        // This part is tricky without mocking the backend or having seeded data.
-        // However, the user asked to "implement a integration test where we create a new cron job using ui".
-        // In a real env, we'd mock the API responses for repositories.
-
-        // Let's assume there are sources or we mock them.
-        // If I cannot mock easily in E2E without more setup, I will try to rely on what's available.
-        // But "Invalid Schedule" happens on client side validation before submission.
-        // So filling the form and seeing if we get the error or not is valuable.
-
-        // If the validation logic is fixed, we shouldn't see the toast "Invalid Schedule" when we try to submit.
-
-        // Let's try to simulate clicking "Create Cron Job" and expect NOT to see the invalid schedule toast.
-        // Note: Actual submission might fail if no repo is selected, but that's a different error.
-
         await page.getByRole('button', { name: 'Create Cron Job' }).click();
 
         // Check for "Invalid Schedule" toast
         const invalidToast = page.getByText('Invalid Schedule');
         await expect(invalidToast).not.toBeVisible();
+    });
 
-        // Ideally we want to see success, but without full environment setup (repos), we might get other errors.
-        // But the primary goal is to verify the parsing fix.
+    test('should show created cron job in the list', async ({ page }) => {
+        const jobName = `Test Job ${Date.now()}`;
+
+        // Mock the API to allow creation and listing
+        const jobs: any[] = [];
+        await page.route('/api/cron-jobs', async route => {
+            if (route.request().method() === 'POST') {
+                const data = route.request().postDataJSON();
+                const newJob = { ...data, id: 'test-id', createdAt: new Date().toISOString(), enabled: true };
+                jobs.push(newJob);
+                await route.fulfill({
+                    json: newJob
+                });
+            } else if (route.request().method() === 'GET') {
+                 await route.fulfill({
+                    json: jobs
+                });
+            } else {
+                await route.continue();
+            }
+        });
+
+        await page.goto('/settings');
+        await page.evaluate(() => {
+            const mockSources = [{
+                name: "sources/github/owner/repo",
+                id: "source-1",
+                githubRepo: {
+                    owner: "owner",
+                    repo: "repo",
+                    isPrivate: false,
+                    defaultBranch: { displayName: "main" },
+                    branches: [{ displayName: "main" }]
+                }
+            }];
+            localStorage.setItem('jules-sources-cache', JSON.stringify(mockSources));
+            localStorage.setItem('jules-sources-last-fetch', Date.now().toString());
+        });
+
+        await page.reload();
+
+        await page.getByRole('tab', { name: 'Cron Jobs' }).click();
+
+        // Verify list is initially empty
+        await expect(page.getByText('No cron jobs yet')).toBeVisible();
+
+        await page.getByRole('button', { name: 'New Cron Job' }).click();
+
+        await page.getByLabel('Job Name').fill(jobName);
+        await page.getByLabel('Schedule (Cron Expression)').fill('0 0 * * *');
+        await page.getByLabel('Session Prompts').fill('Test prompt');
+
+        // Select repo
+        try {
+            await page.getByRole('combobox', { name: 'Select a repository' }).click({ timeout: 2000 });
+        } catch {
+             await page.getByText('Select a repository').click();
+        }
+        await page.getByRole('option').first().click();
+
+        await page.getByRole('button', { name: 'Create Cron Job' }).click();
+
+        // Verify that the new cron job appears in the list
+        await expect(page.getByText(jobName)).toBeVisible();
+        await expect(page.getByText('0 0 * * *')).toBeVisible();
     });
 
     test('should show error for invalid schedule', async ({ page }) => {
