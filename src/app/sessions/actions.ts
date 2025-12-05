@@ -190,10 +190,20 @@ export async function fetchSessionsPage(
 
         const data: ListSessionsResponse = await response.json();
 
-        const sessions = (data.sessions || []).map(session => ({
-            ...session,
-            createTime: session.createTime || '',
-        }));
+        const sessions = (data.sessions || []).map(session => {
+            let id = session.id;
+            if (!id && session.name) {
+                const parts = session.name.split('/');
+                if (parts.length > 1) {
+                    id = parts[parts.length - 1];
+                }
+            }
+            return {
+                ...session,
+                id,
+                createTime: session.createTime || '',
+            };
+        });
 
         return { sessions, nextPageToken: data.nextPageToken };
 
