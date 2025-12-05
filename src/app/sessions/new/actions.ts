@@ -27,7 +27,8 @@ export async function createSession(
   if (!sessionData.requirePlanApproval) {
     delete body.requirePlanApproval;
   }
-  // Delete these fields as they are not supported by the Jules API
+  // The Jules API does not support autoContinueEnabled and autoRetryEnabled.
+  // These fields are removed from the request body to prevent errors.
   delete body.autoContinueEnabled;
   delete body.autoRetryEnabled;
 
