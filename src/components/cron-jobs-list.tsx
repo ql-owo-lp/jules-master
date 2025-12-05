@@ -20,7 +20,13 @@ export function CronJobsList() {
     const fetchCronJobs = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/cron-jobs');
+            const response = await fetch('/api/cron-jobs', {
+                cache: 'no-store',
+                headers: {
+                    'Pragma': 'no-cache',
+                    'Cache-Control': 'no-cache'
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 setCronJobs(data);
