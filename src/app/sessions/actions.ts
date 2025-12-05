@@ -192,7 +192,7 @@ export async function fetchSessionsPage(
 
         const sessions = (data.sessions || []).map(session => ({
             ...session,
-            createTime: session.createTime || '',
+            createTime: session.createTime,
         }));
 
         return { sessions, nextPageToken: data.nextPageToken };

@@ -119,8 +119,19 @@ describe('Session Actions', () => {
         'https://jules.googleapis.com/v1alpha/sessions?pageSize=50&pageToken=prev-page',
         expect.any(Object)
       );
-      expect(result.sessions).toEqual(mockSessions.map(s => ({ ...s, createTime: '' })));
+      expect(result.sessions).toEqual(mockSessions.map(s => ({ ...s, createTime: undefined })));
       expect(result.nextPageToken).toBe(nextPageToken);
+    });
+
+    it('should preserve createTime from the API response', async () => {
+      const mockSessions = [{ id: '1', name: 'Session 1', createTime: '2024-01-01T12:00:00Z' }];
+      (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ sessions: mockSessions }),
+      });
+
+      const result = await fetchSessionsPage('test-key');
+      expect(result.sessions[0].createTime).toBe('2024-01-01T12:00:00Z');
     });
   });
 
