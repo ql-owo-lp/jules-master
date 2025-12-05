@@ -389,7 +389,7 @@ export function SessionList({
                     <div className="mt-2 text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>
-                            Pending Execution: {pendingBackgroundWork.pendingJobs} Jobs, {pendingBackgroundWork.retryingSessions} Retrying Sessions
+                            Pending / Running: {pendingBackgroundWork.pendingJobs} Jobs, {pendingBackgroundWork.retryingSessions} Retrying Sessions
                         </span>
                     </div>
                   )}
