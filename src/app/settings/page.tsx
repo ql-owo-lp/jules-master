@@ -530,7 +530,6 @@ export default function SettingsPage() {
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="display">Display</TabsTrigger>
-          <TabsTrigger value="config">Configuration</TabsTrigger>
         </TabsList>
 
         {/* General Tab */}
@@ -597,6 +596,60 @@ export default function SettingsPage() {
                 </CardContent>
                 <CardFooter>
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
+                </CardFooter>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Advanced</CardTitle>
+                    <CardDescription>Fine-tune polling and other internal settings.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="grid gap-2">
+                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
+                        <Input
+                            id="idle-poll-interval"
+                            type="number"
+                            value={idlePollIntervalValue}
+                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
+                            min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
+                        <Input
+                            id="active-poll-interval"
+                            type="number"
+                            value={activePollIntervalValue}
+                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
+                            min="1"
+                        />
+                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
+                        <Input
+                            id="pr-status-poll-interval"
+                            type="number"
+                            value={prStatusPollIntervalValue}
+                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
+                        <Input
+                            id="default-session-count"
+                            type="number"
+                            value={defaultSessionCountValue}
+                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
+                            min="1"
+                        />
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Advanced Settings</Button>
                 </CardFooter>
             </Card>
         </TabsContent>
@@ -909,62 +962,6 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
-        {/* Configuration Tab */}
-        <TabsContent value="config" className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Advanced Configuration</CardTitle>
-                    <CardDescription>Fine-tune polling and other internal settings.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid gap-2">
-                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
-                        <Input
-                            id="idle-poll-interval"
-                            type="number"
-                            value={idlePollIntervalValue}
-                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
-                            min="0"
-                        />
-                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
-                        <Input
-                            id="active-poll-interval"
-                            type="number"
-                            value={activePollIntervalValue}
-                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
-                            min="1"
-                        />
-                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
-                        <Input
-                            id="pr-status-poll-interval"
-                            type="number"
-                            value={prStatusPollIntervalValue}
-                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
-                            min="10"
-                        />
-                    </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
-                        <Input
-                            id="default-session-count"
-                            type="number"
-                            value={defaultSessionCountValue}
-                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
-                            min="1"
-                        />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Configuration</Button>
-                </CardFooter>
-            </Card>
-        </TabsContent>
 
       </Tabs>
 
