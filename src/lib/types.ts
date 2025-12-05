@@ -17,6 +17,7 @@ export type Session = {
   automationMode?: AutomationMode;
   retryCount?: number;
   lastError?: string;
+  profileId?: string | null;
 };
 
 export type Job = {
@@ -34,6 +35,7 @@ export type Job = {
     automationMode?: AutomationMode;
     requirePlanApproval?: boolean;
     cronJobId?: string | null;
+    profileId?: string | null;
 }
 
 export type CronJob = {
@@ -50,6 +52,7 @@ export type CronJob = {
     automationMode?: AutomationMode;
     requirePlanApproval?: boolean;
     sessionCount?: number;
+    profileId?: string | null;
 };
 
 export type SourceContext = {
@@ -110,12 +113,14 @@ export type PredefinedPrompt = {
   id: string;
   title: string;
   prompt: string;
+  profileId?: string | null;
 };
 
 export type HistoryPrompt = {
     id: string;
     prompt: string;
     lastUsedAt: string;
+    profileId?: string | null;
 };
 
 // Activity and related types

@@ -4,36 +4,20 @@ import { db } from '@/lib/db';
 import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { settingsSchema } from '@/lib/validation';
+import { profileService } from '@/lib/db/profile-service';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const result = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    const activeProfile = await profileService.getActiveProfile();
+    const result = await db.select().from(settings).where(eq(settings.profileId, activeProfile.id)).limit(1);
 
     if (result.length === 0) {
-      // Return default settings if none exist in DB
-      return NextResponse.json({
-        idlePollInterval: 120,
-        activePollInterval: 30,
-        titleTruncateLength: 50,
-        lineClamp: 1,
-        sessionItemsPerPage: 10,
-        jobsPerPage: 5,
-        defaultSessionCount: 10,
-        prStatusPollInterval: 60,
-        theme: 'system',
-        autoApprovalInterval: 60,
-        autoRetryEnabled: true,
-        autoRetryMessage: "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution",
-        autoContinueEnabled: true,
-        autoContinueMessage: "Sounds good. Now go ahead finish the work",
-        sessionCacheInProgressInterval: 60,
-        sessionCacheCompletedNoPrInterval: 1800,
-        sessionCachePendingApprovalInterval: 300,
-        sessionCacheMaxAgeDays: 3,
-        autoDeleteStaleBranches: false,
-        autoDeleteStaleBranchesAfterDays: 3,
-        historyPromptsCount: 10,
+      // Create default settings if none exist
+      await db.insert(settings).values({
+        profileId: activeProfile.id
       });
+      const newSettings = await db.select().from(settings).where(eq(settings.profileId, activeProfile.id)).limit(1);
+      return NextResponse.json(newSettings[0]);
     }
 
     return NextResponse.json(result[0]);
@@ -57,17 +41,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    const newSettings = {
-      id: 1, // Ensure we are updating the singleton row
-      ...validation.data,
-    };
-
-    const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    const activeProfile = await profileService.getActiveProfile();
+    const existing = await db.select().from(settings).where(eq(settings.profileId, activeProfile.id)).limit(1);
 
     if (existing.length > 0) {
-        await db.update(settings).set(newSettings).where(eq(settings.id, 1));
+        await db.update(settings).set(validation.data).where(eq(settings.id, existing[0].id));
     } else {
-        await db.insert(settings).values(newSettings);
+        await db.insert(settings).values({
+            ...validation.data,
+            profileId: activeProfile.id
+        });
     }
 
     return NextResponse.json({ success: true });

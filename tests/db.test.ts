@@ -3,23 +3,39 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { appDatabase } from '../src/lib/db';
 import { Job, PredefinedPrompt } from '../src/lib/types';
 import { db } from '../src/lib/db';
-import { jobs, predefinedPrompts, quickReplies, globalPrompt } from '../src/lib/db/schema';
+import { jobs, predefinedPrompts, quickReplies, globalPrompt, profiles, settings, sessions, cronJobs, historyPrompts, repoPrompts } from '../src/lib/db/schema';
+import { profileService } from '../src/lib/db/profile-service';
 
 describe('Database Layer', () => {
-    beforeAll(async () => {
-        // Clear tables before running the tests
+    let testProfileId: string;
+
+    const clearDb = async () => {
+        // Delete in order of dependency (child first)
+        await db.delete(settings);
         await db.delete(jobs);
+        await db.delete(sessions);
+        await db.delete(cronJobs);
         await db.delete(predefinedPrompts);
         await db.delete(quickReplies);
         await db.delete(globalPrompt);
+        await db.delete(historyPrompts);
+        await db.delete(repoPrompts);
+
+        await db.delete(profiles);
+    }
+
+    beforeAll(async () => {
+        // Clear tables before running the tests
+        await clearDb();
+
+        // Create a test profile
+        const profile = await profileService.createProfile("Test Profile");
+        testProfileId = profile.id;
     });
 
     afterAll(async () => {
         // Clear tables after running the tests
-        await db.delete(jobs);
-        await db.delete(predefinedPrompts);
-        await db.delete(quickReplies);
-        await db.delete(globalPrompt);
+        await clearDb();
     });
 
     describe('Jobs DAO', () => {
@@ -35,6 +51,7 @@ describe('Database Layer', () => {
                 createdAt: new Date().toISOString(),
                 repo: 'test/repo',
                 branch: 'main',
+                profileId: testProfileId,
             };
 
             await appDatabase.jobs.create(newJob);
@@ -53,6 +70,7 @@ describe('Database Layer', () => {
                     createdAt: new Date().toISOString(),
                     repo: 'test/repo',
                     branch: 'main',
+                    profileId: testProfileId,
                 },
                 {
                     id: '3',
@@ -61,6 +79,7 @@ describe('Database Layer', () => {
                     createdAt: new Date().toISOString(),
                     repo: 'test/repo',
                     branch: 'main',
+                    profileId: testProfileId,
                 }
             ];
 
@@ -77,6 +96,7 @@ describe('Database Layer', () => {
                 createdAt: new Date().toISOString(),
                 repo: 'test/repo',
                 branch: 'main',
+                profileId: testProfileId,
             };
             await appDatabase.jobs.create(job);
             await appDatabase.jobs.update('4', { name: 'New Name' });
@@ -93,6 +113,7 @@ describe('Database Layer', () => {
                 createdAt: new Date().toISOString(),
                 repo: 'test/repo',
                 branch: 'main',
+                profileId: testProfileId,
             };
             await appDatabase.jobs.create(job);
             await appDatabase.jobs.delete('5');
@@ -111,7 +132,8 @@ describe('Database Layer', () => {
             const prompt: PredefinedPrompt = {
                 id: 'p1',
                 title: 'Prompt 1',
-                prompt: 'Content 1'
+                prompt: 'Content 1',
+                profileId: testProfileId,
             };
             await appDatabase.predefinedPrompts.create(prompt);
             const retrieved = await appDatabase.predefinedPrompts.getById('p1');
@@ -122,8 +144,8 @@ describe('Database Layer', () => {
 
         it('should create many predefined prompts', async () => {
             const prompts: PredefinedPrompt[] = [
-                { id: 'p2', title: 'P2', prompt: 'C2' },
-                { id: 'p3', title: 'P3', prompt: 'C3' }
+                { id: 'p2', title: 'P2', prompt: 'C2', profileId: testProfileId },
+                { id: 'p3', title: 'P3', prompt: 'C3', profileId: testProfileId }
             ];
             await appDatabase.predefinedPrompts.createMany(prompts);
             const all = await appDatabase.predefinedPrompts.getAll();
@@ -131,7 +153,7 @@ describe('Database Layer', () => {
         });
 
         it('should update a predefined prompt', async () => {
-            const prompt: PredefinedPrompt = { id: 'p4', title: 'Old', prompt: 'Content' };
+            const prompt: PredefinedPrompt = { id: 'p4', title: 'Old', prompt: 'Content', profileId: testProfileId };
             await appDatabase.predefinedPrompts.create(prompt);
             await appDatabase.predefinedPrompts.update('p4', { title: 'New' });
 
@@ -140,7 +162,7 @@ describe('Database Layer', () => {
         });
 
         it('should delete a predefined prompt', async () => {
-            const prompt: PredefinedPrompt = { id: 'p5', title: 'Del', prompt: 'Content' };
+            const prompt: PredefinedPrompt = { id: 'p5', title: 'Del', prompt: 'Content', profileId: testProfileId };
             await appDatabase.predefinedPrompts.create(prompt);
             await appDatabase.predefinedPrompts.delete('p5');
 
@@ -158,7 +180,8 @@ describe('Database Layer', () => {
             const reply: PredefinedPrompt = {
                 id: 'q1',
                 title: 'Reply 1',
-                prompt: 'Content 1'
+                prompt: 'Content 1',
+                profileId: testProfileId,
             };
             await appDatabase.quickReplies.create(reply);
             const retrieved = await appDatabase.quickReplies.getById('q1');
@@ -169,8 +192,8 @@ describe('Database Layer', () => {
 
         it('should create many quick replies', async () => {
             const replies: PredefinedPrompt[] = [
-                { id: 'q2', title: 'R2', prompt: 'C2' },
-                { id: 'q3', title: 'R3', prompt: 'C3' }
+                { id: 'q2', title: 'R2', prompt: 'C2', profileId: testProfileId },
+                { id: 'q3', title: 'R3', prompt: 'C3', profileId: testProfileId }
             ];
             await appDatabase.quickReplies.createMany(replies);
             const all = await appDatabase.quickReplies.getAll();
@@ -178,7 +201,7 @@ describe('Database Layer', () => {
         });
 
         it('should update a quick reply', async () => {
-            const reply: PredefinedPrompt = { id: 'q4', title: 'Old', prompt: 'Content' };
+            const reply: PredefinedPrompt = { id: 'q4', title: 'Old', prompt: 'Content', profileId: testProfileId };
             await appDatabase.quickReplies.create(reply);
             await appDatabase.quickReplies.update('q4', { title: 'New' });
 
@@ -187,7 +210,7 @@ describe('Database Layer', () => {
         });
 
         it('should delete a quick reply', async () => {
-            const reply: PredefinedPrompt = { id: 'q5', title: 'Del', prompt: 'Content' };
+            const reply: PredefinedPrompt = { id: 'q5', title: 'Del', prompt: 'Content', profileId: testProfileId };
             await appDatabase.quickReplies.create(reply);
             await appDatabase.quickReplies.delete('q5');
 
@@ -202,18 +225,18 @@ describe('Database Layer', () => {
         });
 
         it('should save (create) and get global prompt', async () => {
-            await appDatabase.globalPrompt.save('Initial Prompt');
-            const result = await appDatabase.globalPrompt.get();
+            await appDatabase.globalPrompt.save('Initial Prompt', testProfileId);
+            const result = await appDatabase.globalPrompt.get(testProfileId);
 
             expect(result).toBeDefined();
             expect(result?.prompt).toBe('Initial Prompt');
         });
 
         it('should save (update) global prompt', async () => {
-            await appDatabase.globalPrompt.save('Initial Prompt');
-            await appDatabase.globalPrompt.save('Updated Prompt');
+            await appDatabase.globalPrompt.save('Initial Prompt', testProfileId);
+            await appDatabase.globalPrompt.save('Updated Prompt', testProfileId);
 
-            const result = await appDatabase.globalPrompt.get();
+            const result = await appDatabase.globalPrompt.get(testProfileId);
             expect(result?.prompt).toBe('Updated Prompt');
         });
     });
