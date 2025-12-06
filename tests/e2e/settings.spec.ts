@@ -16,7 +16,7 @@ test('should display PR Status Cache Refresh Interval setting', async ({ page })
   await input.fill('120');
 
   // Save changes
-  await page.getByRole('button', { name: 'Save Advanced Settings' }).click();
+  await page.getByRole('button', { name: 'Save General Settings' }).click();
 
   // Verify toast
   // Use exact match to differentiate from screen reader text which might contain more content
