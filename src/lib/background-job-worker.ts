@@ -1,7 +1,7 @@
 
 import { db } from './db';
-import { jobs, sessions, settings } from './db/schema';
-import { eq, and, isNotNull, sql } from 'drizzle-orm';
+import { jobs, sessions, settings, locks } from './db/schema';
+import { eq, and, isNotNull, sql, lt } from 'drizzle-orm';
 import { listActivities, sendMessage } from '@/app/sessions/[id]/actions';
 import { createSession } from '@/app/sessions/new/actions';
 import { differenceInHours } from 'date-fns';
@@ -12,6 +12,8 @@ import { listSources } from '@/app/sessions/actions';
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
 let hasStarted = false;
+
+const WORKER_LOCK_ID = 'background_job_worker';
 
 // Sleep helper
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -33,8 +35,25 @@ export async function runBackgroundJobCheck(options = { schedule: true }) {
     }
 
     try {
-        await processPendingJobs(apiKey);
-        await processFailedSessions(apiKey);
+        // Attempt to acquire lock
+        const hasLock = await acquireLock();
+        if (!hasLock) {
+            console.log("BackgroundJobWorker: Could not acquire lock, another worker is running.");
+            // We do NOT schedule next run here if we failed to acquire lock?
+            // Actually we should, because we want to retry acquiring it later.
+            // But if another instance is scheduling, do we want to double schedule?
+            // If the other instance crashes, we need to take over.
+            // So yes, we should keep scheduling, but maybe with a jitter to avoid lock contention step-lock.
+            // However, the `startBackgroundJobWorker` is called once per instance.
+            // If instance A holds the lock, instance B checks, fails, and sleeps.
+            // Instance A finishes, releases (or lets expire), and sleeps.
+            // Instance B wakes up, tries to acquire.
+            // So we definitely need to reschedule.
+        } else {
+             await processPendingJobs(apiKey);
+             await processFailedSessions(apiKey);
+        }
+
     } catch (error: any) {
         console.error("BackgroundJobWorker: Error during check cycle:", error);
 
@@ -51,6 +70,32 @@ export async function runBackgroundJobCheck(options = { schedule: true }) {
         if (options.schedule) {
             scheduleNextRun(nextIntervalSeconds);
         }
+    }
+}
+
+async function acquireLock(): Promise<boolean> {
+    const now = Date.now();
+    const LOCK_DURATION_MS = 60 * 1000 * 2; // 2 minutes lock duration
+
+    try {
+        // 1. Delete expired locks
+        await db.delete(locks).where(
+            and(
+                eq(locks.id, WORKER_LOCK_ID),
+                lt(locks.expiresAt, now)
+            )
+        );
+
+        // 2. Try to insert new lock
+        await db.insert(locks).values({
+            id: WORKER_LOCK_ID,
+            expiresAt: now + LOCK_DURATION_MS
+        });
+
+        return true;
+    } catch (e) {
+        // If insert fails (likely UNIQUE constraint), we didn't get the lock
+        return false;
     }
 }
 
