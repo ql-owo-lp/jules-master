@@ -3,7 +3,7 @@ import { db } from './db';
 import { settings } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { fetchSessionsPage } from '@/app/sessions/actions';
-import { getPullRequestStatus } from '@/app/github/actions';
+import { fetchPullRequestStatus } from '@/app/github/actions';
 import { deleteBranch } from './github-service';
 import type { Session } from '@/lib/types';
 
@@ -58,7 +58,7 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
             for (const session of completedSessions) {
                 if (session.outputs && session.outputs.length > 0 && session.outputs[0].pullRequest) {
                     const prUrl = session.outputs[0].pullRequest.url;
-                    const prStatus = await getPullRequestStatus(prUrl);
+                    const prStatus = await fetchPullRequestStatus(prUrl);
 
                     if (prStatus && prStatus.state === 'MERGED' && prStatus.merged_at) {
                         const mergedAt = new Date(prStatus.merged_at);
