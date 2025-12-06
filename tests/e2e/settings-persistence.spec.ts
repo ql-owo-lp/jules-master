@@ -30,9 +30,6 @@ test.describe('Settings Persistence', () => {
 
     await page.goto('/settings');
 
-    // Switch to Configuration tab for Default Session Count and Poll Intervals
-    await page.getByRole('tab', { name: 'Configuration' }).click();
-
     // Expect LS value (5) not DB value (20)
     await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('5');
 
@@ -66,9 +63,6 @@ test.describe('Settings Persistence', () => {
      // Local storage is empty by default in a new context
 
      await page.goto('/settings');
-
-     // Switch to Configuration tab
-     await page.getByRole('tab', { name: 'Configuration' }).click();
 
      // Expect DB value (15)
      await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('15');
@@ -145,16 +139,13 @@ test.describe('Settings Persistence', () => {
 
     await page.goto('/settings');
 
-    // Switch to Configuration tab
-    await page.getByRole('tab', { name: 'Configuration' }).click();
-
     await page.getByLabel('Default Session Count for New Jobs').fill('7');
     await page.getByLabel('Idle Poll Interval (seconds)').fill('123');
     await page.getByLabel('Active Poll Interval (seconds)').fill('33');
     await page.getByLabel('PR Status Cache Refresh Interval (seconds)').fill('90');
 
-    // Save Configuration
-    await page.getByRole('button', { name: 'Save Configuration' }).click();
+    // Save Advanced Settings (General tab)
+    await page.getByRole('button', { name: 'Save Advanced Settings' }).click();
     await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible();
     await expect(page.getByText('Your settings have been updated.', { exact: true })).toBeVisible();
 
