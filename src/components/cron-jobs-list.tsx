@@ -73,6 +73,22 @@ export function CronJobsList() {
         }
     }
 
+    const handleExecuteNow = async (id: string) => {
+        try {
+            const response = await fetch(`/api/cron-jobs/${id}/execute`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                toast({ title: "Cron Job Executed" });
+            } else {
+                toast({ variant: "destructive", title: "Failed to execute cron job" });
+            }
+        } catch (error) {
+            console.error("Failed to execute cron job", error);
+            toast({ variant: "destructive", title: "Failed to execute cron job" });
+        }
+    }
+
     if (isLoading) {
         return (
             <div className="space-y-4">
@@ -133,6 +149,9 @@ export function CronJobsList() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
+                                                    <DropdownMenuItem onClick={() => handleExecuteNow(job.id)}>
+                                                        <PlayCircle className="mr-2 h-4 w-4" /> Execute Now
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                                         <CronJobDialog mode="edit" initialValues={job} onSuccess={fetchCronJobs}>
                                                              <div className="flex items-center w-full cursor-pointer">
