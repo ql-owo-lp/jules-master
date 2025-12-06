@@ -1,16 +1,20 @@
 
 import { db } from './db';
-import { jobs, sessions, settings } from './db/schema';
-import { eq, and, isNotNull, sql } from 'drizzle-orm';
+import { jobs, sessions, settings, locks } from './db/schema';
+import { eq, and, isNotNull, sql, lt } from 'drizzle-orm';
 import { listActivities, sendMessage } from '@/app/sessions/[id]/actions';
 import { createSession } from '@/app/sessions/new/actions';
 import { differenceInHours } from 'date-fns';
 import { Job, AutomationMode, Session } from './types';
 import { getSettings, upsertSession } from './session-service';
 import { listSources } from '@/app/sessions/actions';
+import { getAllProfiles } from './profile-service';
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
+let hasStarted = false;
+
+const WORKER_LOCK_ID = 'background_job_worker';
 
 // Sleep helper
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -19,45 +23,93 @@ export async function runBackgroundJobCheck(options = { schedule: true }) {
     if (isRunning) return;
     isRunning = true;
 
-    const apiKey = process.env.JULES_API_KEY;
-    if (!apiKey) {
-        console.warn("BackgroundJobWorker: JULES_API_KEY not set. Skipping check.");
-        isRunning = false;
-        if (options.schedule) {
-            scheduleNextRun();
-        }
-        return;
-    }
+    let nextIntervalSeconds = 60; // Default interval
 
     try {
-        await processPendingJobs(apiKey);
-        await processFailedSessions(apiKey);
-    } catch (error) {
+        const profiles = await getAllProfiles();
+        for (const profile of profiles) {
+            const apiKey = profile.julesApiKey || process.env.JULES_API_KEY;
+
+            if (!apiKey) {
+                console.warn(`BackgroundJobWorker: API Key not found for profile ${profile.name}. Skipping.`);
+                continue;
+            }
+
+            // Attempt to acquire lock per profile?
+            // The lock should probably be global for the worker, but we iterate profiles inside.
+            // Or we could have per-profile locks. Given the scale, global lock for the worker is safer to prevent overlapping runs.
+            const hasLock = await acquireLock();
+            if (!hasLock) {
+                console.log("BackgroundJobWorker: Could not acquire lock, another worker is running.");
+                // If we can't get lock, we probably shouldn't continue iterating profiles in this run?
+                // Yes, because another worker is doing the job.
+                break;
+            } else {
+                 await processPendingJobs(apiKey, profile.id);
+                 await processFailedSessions(apiKey, profile.id);
+            }
+        }
+
+    } catch (error: any) {
         console.error("BackgroundJobWorker: Error during check cycle:", error);
+
+        // If we hit a rate limit, back off for a longer period
+        // Check if error message contains 429 or "Too Many Requests"
+        const errorMessage = error?.message || "";
+        if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("too many requests")) {
+             console.log("BackgroundJobWorker: Rate limit detected. Backing off next run for 5 minutes.");
+             nextIntervalSeconds = 300;
+        }
+
     } finally {
         isRunning = false;
         if (options.schedule) {
-            scheduleNextRun();
+            scheduleNextRun(nextIntervalSeconds);
         }
     }
 }
 
-async function processPendingJobs(apiKey: string) {
-    console.log("BackgroundJobWorker: Checking for pending jobs...");
+async function acquireLock(): Promise<boolean> {
+    const now = Date.now();
+    const LOCK_DURATION_MS = 60 * 1000 * 2; // 2 minutes lock duration
+
+    try {
+        // 1. Delete expired locks
+        await db.delete(locks).where(
+            and(
+                eq(locks.id, WORKER_LOCK_ID),
+                lt(locks.expiresAt, now)
+            )
+        );
+
+        // 2. Try to insert new lock
+        await db.insert(locks).values({
+            id: WORKER_LOCK_ID,
+            expiresAt: now + LOCK_DURATION_MS
+        });
+
+        return true;
+    } catch (e) {
+        // If insert fails (likely UNIQUE constraint), we didn't get the lock
+        return false;
+    }
+}
+
+async function processPendingJobs(apiKey: string, profileId: string) {
+    console.log(`BackgroundJobWorker: Checking for pending jobs for profile ${profileId}...`);
     const pendingJobs = await db.select().from(jobs).where(
-        sql`${jobs.status} = 'PENDING' OR ${jobs.status} = 'PROCESSING'`
+        and(
+            eq(jobs.profileId, profileId),
+            sql`${jobs.status} = 'PENDING' OR ${jobs.status} = 'PROCESSING'`
+        )
     );
 
     if (pendingJobs.length === 0) {
         return;
     }
 
-    console.log(`BackgroundJobWorker: Found ${pendingJobs.length} pending/processing jobs.`);
+    console.log(`BackgroundJobWorker: Found ${pendingJobs.length} pending/processing jobs for profile ${profileId}.`);
 
-    // We need to fetch sources to resolve repo/branch to Source object if needed.
-    // However, createSession needs 'Source' object which contains ID and name.
-    // The Job record stores 'repo' (owner/repo) and 'branch'.
-    // We can list sources and find the matching one.
     let sourcesList = null;
     try {
         sourcesList = await listSources(apiKey);
@@ -90,10 +142,6 @@ async function processPendingJobs(apiKey: string) {
                 await db.update(jobs).set({ status: 'PROCESSING' }).where(eq(jobs.id, job.id));
             }
 
-            // Get existing session IDs (might be partially filled if resumed)
-            // The job object from `db.select` parses JSON automatically for sessionIds because of the schema definition?
-            // Actually, in `drizzle-orm/sqlite-core`, `mode: 'json'` handles parsing.
-            // Let's ensure we have an array.
             const existingSessionIds: string[] = job.sessionIds || [];
             const createdSessionIds: string[] = [...existingSessionIds];
             const sessionCount = job.sessionCount;
@@ -131,10 +179,21 @@ async function processPendingJobs(apiKey: string) {
                 }
 
                 if (newSession) {
+                    // Manually inject profileId since createSession doesn't support it yet (it uses active profile but here we are in background worker)
+                    // We must ensure the session belongs to the correct profile.
+                    // The `createSession` calls `upsertSession` which saves to DB.
+                    // If `createSession` infers profile from context (which we are not providing here as a request context),
+                    // we need to explicitly set it.
+                    // However, `createSession` is an action that calls `jules.googleapis.com`. It returns a session object.
+                    // Then `upsertSession` saves it.
+                    // `upsertSession` needs to know the profile ID.
+                    // We should update `createSession` or `upsertSession` to accept profileId.
+                    // For now, let's update it manually after creation.
+                    newSession.profileId = profileId;
+                    await upsertSession(newSession);
+
                     createdSessionIds.push(newSession.id);
                     successCount++;
-                    // Upsert session to DB immediately so it's tracked
-                    await upsertSession(newSession);
 
                     // Persist progress immediately
                     await db.update(jobs).set({
@@ -146,7 +205,7 @@ async function processPendingJobs(apiKey: string) {
                 }
 
                 // Avoid rate limits
-                await sleep(500);
+                await sleep(2000); // Increased sleep to 2s
             }
 
             // Update Job final status
@@ -161,45 +220,29 @@ async function processPendingJobs(apiKey: string) {
 
         } catch (e) {
             console.error(`BackgroundJobWorker: Error processing job ${job.id}`, e);
-             // If we fail here, we leave it as PROCESSING or whatever it was, so it can be picked up again?
-             // Or we mark it as failed if it's a fatal error?
-             // For now, let's mark as FAILED to avoid infinite loops on bad data.
              await db.update(jobs).set({ status: 'FAILED' }).where(eq(jobs.id, job.id));
         }
     }
 }
 
-async function processFailedSessions(apiKey: string) {
-    console.log("BackgroundJobWorker: Checking for failed sessions to retry...");
+async function processFailedSessions(apiKey: string, profileId: string) {
+    console.log(`BackgroundJobWorker: Checking for failed sessions to retry for profile ${profileId}...`);
 
-    // Find sessions that are FAILED and have retries left (or no retry count yet)
-    // We don't have a direct "failed" query easily unless we check local state.
-    // We should rely on local DB `sessions` table.
-
-    const failedSessions = await db.select().from(sessions).where(eq(sessions.state, 'FAILED'));
+    const failedSessions = await db.select().from(sessions)
+        .where(and(
+            eq(sessions.state, 'FAILED'),
+            eq(sessions.profileId, profileId)
+        ))
+        .limit(5);
 
     for (const session of failedSessions) {
-        // Check if we should retry
-        // We need to determine if the failure was due to rate limit or other.
-        // Currently we don't store the error reason in `sessions` table (I added `lastError` but it might be empty if we didn't populate it).
-        // If `lastError` is empty, we might have to check activities or assume standard retry.
-
-        // However, the requirement says: "when we are retrying the 'failed job', if the session operation failed due to 'too many requests' error, we will keep retrying it for 50 times. Otherwise... 3 times."
-        // This implies we know the error.
-        // If we don't have the error, we can't distinguish.
-        // Let's look at `createSession` or `sendMessage`. If they fail, they throw or return null.
-        // If the session IS ALREADY created but failed later (e.g. during execution), its state becomes FAILED.
-        // The error reason is usually in `SessionFailed` activity.
-
         let errorReason = session.lastError || "";
         if (!errorReason) {
-            // Try to find reason from activities
             try {
                 const activities = await listActivities(session.id, apiKey);
                 const failActivity = activities.find(a => a.sessionFailed);
                 if (failActivity?.sessionFailed?.reason) {
                     errorReason = failActivity.sessionFailed.reason;
-                    // Update local DB for future ref
                     await db.update(sessions).set({ lastError: errorReason }).where(eq(sessions.id, session.id));
                 }
             } catch (e) {
@@ -213,30 +256,25 @@ async function processFailedSessions(apiKey: string) {
         const currentRetries = session.retryCount || 0;
 
         if (currentRetries >= maxRetries) {
-            // No more retries
             continue;
         }
 
         console.log(`BackgroundJobWorker: Retrying session ${session.id} (Attempt ${currentRetries + 1}/${maxRetries}). Reason: ${errorReason}`);
 
         try {
-            // Perform retry action.
-            // "Retrying the failed job" usually means sending a "retry" message or "continue".
-            // The requirement says "The retry and the whole stacked job queue should be continously running...".
-            // It also says "when we are retrying... if session operation failed...".
-            // Usually we retry by sending a message like "Please try again" or similar, which `auto-retry-worker.ts` does.
-            // But `auto-retry-worker` only retries ONCE per failure type (checks if last message was retry message).
-            // Here we need to force it up to N times.
+            // Need to pass profileId to getSettings if we want profile-specific settings.
+            // But `getSettings` currently infers from active profile which might be wrong in background worker.
+            // We should read settings directly for this profile.
 
-            const settingsResult = await getSettings();
-            const retryMessage = settingsResult.autoRetryMessage;
+            const profileSettings = await db.select().from(settings).where(eq(settings.profileId, profileId)).get();
+            // Fallback to defaults if no settings
+            const retryMessage = profileSettings?.autoRetryMessage || "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution";
 
             await sendMessage(session.id, retryMessage, apiKey);
 
-            // Increment retry count
             await db.update(sessions).set({
                 retryCount: currentRetries + 1,
-                lastUpdated: Date.now() // Update timestamp so we don't pick it up immediately if we rely on age
+                lastUpdated: Date.now()
             }).where(eq(sessions.id, session.id));
 
             console.log(`BackgroundJobWorker: Retry sent for session ${session.id}`);
@@ -245,19 +283,18 @@ async function processFailedSessions(apiKey: string) {
             console.error(`BackgroundJobWorker: Failed to retry session ${session.id}`, e);
         }
 
-        await sleep(1000);
+        await sleep(2000);
     }
 }
 
 
-function scheduleNextRun() {
+function scheduleNextRun(overrideIntervalSeconds?: number) {
     if (workerTimeout) {
         clearTimeout(workerTimeout);
     }
 
-    // Run every 10 seconds? Or configurable?
-    // "continuously running"
-    const intervalSeconds = 10;
+    // Increased to 60 seconds to avoid rate limits
+    const intervalSeconds = overrideIntervalSeconds || 60;
 
     workerTimeout = setTimeout(() => {
         runBackgroundJobCheck();
@@ -265,6 +302,11 @@ function scheduleNextRun() {
 }
 
 export async function startBackgroundJobWorker() {
+    if (hasStarted) {
+        console.log("BackgroundJobWorker: Already started, skipping.");
+        return;
+    }
+    hasStarted = true;
     console.log(`BackgroundJobWorker: Starting...`);
     runBackgroundJobCheck();
 }

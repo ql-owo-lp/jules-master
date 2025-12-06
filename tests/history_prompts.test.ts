@@ -6,36 +6,47 @@ import * as schema from '@/lib/db/schema';
 
 // Mock the dependencies
 vi.mock('@/lib/db', () => {
-  const mockHistoryPrompts: any[] = [];
   return {
     db: {
       select: vi.fn(() => ({
         from: vi.fn((table) => {
              if (table === schema.settings) {
                  return {
+                     where: vi.fn(() => ({
+                         get: vi.fn().mockResolvedValue({ historyPromptsCount: 5 })
+                     })),
                      get: vi.fn().mockResolvedValue({ historyPromptsCount: 5 })
                  }
              }
              return {
-                where: vi.fn((condition) => ({
-                    get: vi.fn().mockImplementation(() => {
-                        // This is a very rough mock.
-                        // In a real scenario, we'd need to parse the condition.
-                        // For this test, we'll control the return via `vi.spyOn` in the test if needed,
-                        // or just return undefined by default (simulate not found).
-                        return undefined;
-                    })
-                })),
+                where: vi.fn((condition) => {
+                    // Return a Thenable that resolves to an array (for await db.select...)
+                    // And also has .get() for legacy calls if any
+                    const result = [];
+                    return {
+                        then: (resolve: any) => resolve(result),
+                        get: vi.fn().mockResolvedValue(undefined),
+                        all: vi.fn().mockReturnValue(result)
+                    };
+                }),
                 orderBy: vi.fn(() => ({
                      limit: vi.fn().mockResolvedValue([])
                 }))
              }
         }),
       })),
-      transaction: vi.fn(),
+      transaction: vi.fn((cb) => cb({
+          insert: vi.fn(() => ({ values: vi.fn(() => ({ run: vi.fn() })) })),
+          delete: vi.fn(() => ({ where: vi.fn(() => ({ run: vi.fn() })) })),
+      })),
       insert: vi.fn(() => ({ values: vi.fn(() => ({ run: vi.fn() })) })),
       update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
       delete: vi.fn(() => ({ where: vi.fn() })),
+      query: {
+          settings: {
+              findFirst: vi.fn()
+          }
+      }
     },
     appDatabase: {
       historyPrompts: {
@@ -54,17 +65,23 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
+// Mock profile service
+vi.mock('@/lib/profile-service', () => ({
+    getOrInitActiveProfileId: vi.fn().mockResolvedValue('test-profile-id')
+}));
+
 describe('History Prompts', () => {
 
   it('should save a new history prompt', async () => {
      const prompt = "New Prompt";
 
-     // Setup mocks
-     // Mock db.select().from().where().get() to return undefined (not found)
+     // Setup mocks to return empty array for existing prompts
      const dbSelectMock = {
          from: vi.fn().mockReturnValue({
              where: vi.fn().mockReturnValue({
-                 get: vi.fn().mockResolvedValue(undefined)
+                 then: (resolve: any) => resolve([]), // Empty array found
+                 get: vi.fn(),
+                 all: vi.fn()
              })
          })
      };
@@ -76,17 +93,20 @@ describe('History Prompts', () => {
      expect(appDatabase.historyPrompts.create).toHaveBeenCalled();
      const createCall = (appDatabase.historyPrompts.create as any).mock.calls[0][0];
      expect(createCall.prompt).toBe(prompt);
+     expect(createCall.profileId).toBe('test-profile-id');
   });
 
   it('should update an existing history prompt', async () => {
      const prompt = "Existing Prompt";
-     const existingRecord = { id: '123', prompt: prompt, lastUsedAt: 'old-date' };
+     const existingRecord = { id: '123', prompt: prompt, lastUsedAt: 'old-date', profileId: 'test-profile-id' };
 
-     // Setup mocks
+     // Setup mocks to return the existing record in the array
      const dbSelectMock = {
          from: vi.fn().mockReturnValue({
              where: vi.fn().mockReturnValue({
-                 get: vi.fn().mockResolvedValue(existingRecord)
+                 then: (resolve: any) => resolve([existingRecord]),
+                 get: vi.fn(),
+                 all: vi.fn()
              })
          })
      };

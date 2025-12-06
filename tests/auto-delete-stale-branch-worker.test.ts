@@ -12,6 +12,7 @@ vi.mock('@/app/sessions/actions', () => ({
 
 vi.mock('@/app/github/actions', () => ({
     getPullRequestStatus: vi.fn(),
+    fetchPullRequestStatus: vi.fn(),
 }));
 
 vi.mock('@/lib/github-service', () => ({
@@ -89,7 +90,7 @@ describe('runAutoDeleteStaleBranchCheck', () => {
         };
 
         vi.spyOn(actions, 'fetchSessionsPage').mockResolvedValueOnce({ sessions: [session], nextPageToken: undefined });
-        vi.spyOn(githubActions, 'getPullRequestStatus').mockResolvedValue({ state: 'MERGED', merged_at: new Date(0).toISOString() });
+        vi.spyOn(githubActions, 'fetchPullRequestStatus').mockResolvedValue({ state: 'MERGED', merged_at: new Date(0).toISOString() });
 
         await runAutoDeleteStaleBranchCheck({ schedule: false });
 

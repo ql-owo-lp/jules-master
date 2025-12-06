@@ -1,32 +1,17 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { settings, profiles } from '@/lib/db/schema';
+import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { settingsSchema } from '@/lib/validation';
+import { getOrInitActiveProfileId } from '@/lib/profile-service';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const profileId = searchParams.get('profileId');
+    const profileId = await getOrInitActiveProfileId();
+    const result = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
-    let result;
-
-    if (profileId) {
-        result = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
-    } else {
-        // If no profileId provided, get settings for the selected profile
-        const selectedProfile = await db.select().from(profiles).where(eq(profiles.isSelected, true)).limit(1);
-
-        if (selectedProfile.length > 0) {
-             result = await db.select().from(settings).where(eq(settings.profileId, selectedProfile[0].id)).limit(1);
-        } else {
-            // Fallback: try to find any profile or settings
-             result = await db.select().from(settings).limit(1);
-        }
-    }
-
-    if (!result || result.length === 0) {
+    if (result.length === 0) {
       // Return default settings if none exist in DB
       return NextResponse.json({
         idlePollInterval: 120,
@@ -63,8 +48,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { searchParams } = new URL(request.url);
-    const queryProfileId = searchParams.get('profileId');
 
     if (Object.keys(body).length === 0) {
       return NextResponse.json({ error: 'At least one setting must be provided.' }, { status: 400 });
@@ -76,32 +59,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    let targetProfileId = queryProfileId;
-
-    if (!targetProfileId) {
-        // Find selected profile
-         const selectedProfile = await db.select().from(profiles).where(eq(profiles.isSelected, true)).limit(1);
-         if (selectedProfile.length > 0) {
-             targetProfileId = selectedProfile[0].id;
-         } else {
-             // If no profile selected, maybe we should create one or fail?
-             // For now let's assume there is always one due to migration.
-             return NextResponse.json({ error: 'No active profile found' }, { status: 400 });
-         }
-    }
+    const profileId = await getOrInitActiveProfileId();
 
     const newSettings = {
       ...validation.data,
-      profileId: targetProfileId,
+      profileId,
     };
 
-    // Remove id from newSettings if it exists, as we don't want to update ID
-    // actually validation.data only contains fields from schema, which doesn't have ID or profileId.
-
-    const existing = await db.select().from(settings).where(eq(settings.profileId, targetProfileId!)).limit(1);
+    const existing = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
     if (existing.length > 0) {
-        await db.update(settings).set(newSettings).where(eq(settings.profileId, targetProfileId!));
+        await db.update(settings).set(newSettings).where(eq(settings.id, existing[0].id));
     } else {
         await db.insert(settings).values(newSettings);
     }

@@ -2,6 +2,15 @@ import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { SourceContext, SessionOutput, AutomationMode } from '@/lib/types';
 
+export const profiles = sqliteTable('profiles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  githubToken: text('github_token'),
+  julesApiKey: text('jules_api_key'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at').notNull(),
+});
+
 export const jobs = sqliteTable('jobs', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -17,6 +26,7 @@ export const jobs = sqliteTable('jobs', {
   automationMode: text('automation_mode').$type<AutomationMode>(),
   requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
   cronJobId: text('cron_job_id'),
+  profileId: text('profile_id').references(() => profiles.id),
 });
 
 export const cronJobs = sqliteTable('cron_jobs', {
@@ -34,46 +44,44 @@ export const cronJobs = sqliteTable('cron_jobs', {
   automationMode: text('automation_mode').$type<AutomationMode>(),
   requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
   sessionCount: integer('session_count').default(1),
+  profileId: text('profile_id').references(() => profiles.id),
 });
 
 export const predefinedPrompts = sqliteTable('predefined_prompts', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   prompt: text('prompt').notNull(),
+  profileId: text('profile_id').references(() => profiles.id),
 });
 
 export const historyPrompts = sqliteTable('history_prompts', {
   id: text('id').primaryKey(),
   prompt: text('prompt').notNull(),
   lastUsedAt: text('last_used_at').notNull(),
+  profileId: text('profile_id').references(() => profiles.id),
 });
 
 export const quickReplies = sqliteTable('quick_replies', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   prompt: text('prompt').notNull(),
+  profileId: text('profile_id').references(() => profiles.id),
 });
 
 export const globalPrompt = sqliteTable('global_prompt', {
   id: integer('id').primaryKey(),
   prompt: text('prompt').notNull(),
+  profileId: text('profile_id').references(() => profiles.id),
 });
 
 export const repoPrompts = sqliteTable('repo_prompts', {
   repo: text('repo').primaryKey(),
   prompt: text('prompt').notNull(),
-});
-
-export const profiles = sqliteTable('profiles', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull().unique(),
-  isSelected: integer('is_selected', { mode: 'boolean' }).notNull().default(false),
-  createdAt: text('created_at').notNull(),
+  profileId: text('profile_id').references(() => profiles.id),
 });
 
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey(),
-  profileId: text('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
   idlePollInterval: integer('idle_poll_interval').notNull().default(120),
   activePollInterval: integer('active_poll_interval').notNull().default(30),
   titleTruncateLength: integer('title_truncate_length').notNull().default(50),
@@ -96,6 +104,7 @@ export const settings = sqliteTable('settings', {
   sessionCacheMaxAgeDays: integer('session_cache_max_age_days').notNull().default(3),
   autoDeleteStaleBranches: integer('auto_delete_stale_branches', { mode: 'boolean' }).notNull().default(false),
   autoDeleteStaleBranchesAfterDays: integer('auto_delete_stale_branches_after_days').notNull().default(3),
+  profileId: text('profile_id').references(() => profiles.id),
 });
 
 export const sessions = sqliteTable('sessions', {
@@ -114,4 +123,10 @@ export const sessions = sqliteTable('sessions', {
   lastUpdated: integer('last_updated').notNull(), // Timestamp in ms
   retryCount: integer('retry_count').notNull().default(0),
   lastError: text('last_error'),
+  profileId: text('profile_id').references(() => profiles.id),
+});
+
+export const locks = sqliteTable('locks', {
+  id: text('id').primaryKey(),
+  expiresAt: integer('expires_at').notNull(),
 });

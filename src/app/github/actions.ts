@@ -32,11 +32,7 @@ const parsePrUrl = (url: string) => {
 
 const unknownChecks = { status: 'unknown' as const, total: 0, passed: 0, runs: [] as SimpleCheckRun[] };
 
-// This function is cached to avoid hitting the GitHub API too frequently for the same PR.
-// The cache is invalidated based on a revalidation time or when the underlying data changes.
-const getPullRequestStatusFromApi = unstable_cache(
-  async (prUrl: string, token?: string | null): Promise<PullRequestStatus | null> => {
-    
+export async function fetchPullRequestStatus(prUrl: string, token?: string | null): Promise<PullRequestStatus | null> {
     const effectiveToken = token || process.env.GITHUB_TOKEN;
 
     if (!effectiveToken) {
@@ -131,7 +127,12 @@ const getPullRequestStatusFromApi = unstable_cache(
       console.error('Error fetching pull request status:', error);
       return { state: 'ERROR', checks: unknownChecks };
     }
-  },
+}
+
+// This function is cached to avoid hitting the GitHub API too frequently for the same PR.
+// The cache is invalidated based on a revalidation time or when the underlying data changes.
+const getPullRequestStatusFromApi = unstable_cache(
+  fetchPullRequestStatus,
   ['pull-request-status'], // Cache key prefix
   {
     revalidate: 60, // Revalidate every 60 seconds

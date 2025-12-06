@@ -4,6 +4,10 @@ export async function register() {
         const { initLogger } = await import('./lib/logger');
         initLogger();
 
+        // Ensure default profile exists on startup
+        const { ensureDefaultProfile } = await import('./lib/profile-service');
+        await ensureDefaultProfile();
+
         const { startAutoApprovalWorker } = await import('./lib/auto-approval-worker');
         const { startAutoRetryWorker } = await import('./lib/auto-retry-worker');
         const { startAutoContinueWorker } = await import('./lib/auto-continue-worker');
