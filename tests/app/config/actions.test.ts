@@ -11,6 +11,7 @@ vi.mock('@/lib/db', () => ({
       },
     },
   },
+  getActiveProfileId: vi.fn().mockResolvedValue('test-profile-id'),
 }));
 
 describe('Config Actions', () => {

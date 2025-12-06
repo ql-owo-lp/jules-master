@@ -32,6 +32,11 @@ vi.mock('@/lib/db', () => {
              }
         }),
       })),
+      query: {
+         settings: {
+             findFirst: vi.fn().mockResolvedValue({ historyPromptsCount: 5 })
+         }
+      },
       transaction: vi.fn(),
       insert: vi.fn(() => ({ values: vi.fn(() => ({ run: vi.fn() })) })),
       update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
@@ -47,6 +52,7 @@ vi.mock('@/lib/db', () => {
       predefinedPrompts: { getAll: vi.fn() },
       globalPrompt: { get: vi.fn(), save: vi.fn() },
     },
+    getActiveProfileId: vi.fn().mockResolvedValue('test-profile-id'),
   };
 });
 

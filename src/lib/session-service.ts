@@ -1,5 +1,5 @@
 
-import { db } from './db';
+import { db, getActiveProfileId } from './db';
 import { sessions, settings } from './db/schema';
 import { eq, inArray, sql, lt, and, not } from 'drizzle-orm';
 import type { Session, State, SessionOutput } from '@/lib/types';
@@ -14,10 +14,13 @@ export type Settings = typeof settings.$inferSelect;
  * Creates default settings if they don't exist.
  */
 export async function getSettings(): Promise<Settings> {
-  const existingSettings = await db.select().from(settings).limit(1);
+  const profileId = await getActiveProfileId();
+  const existingSettings = await db.query.settings.findFirst({
+    where: eq(settings.profileId, profileId)
+  });
 
-  if (existingSettings.length > 0) {
-    return existingSettings[0];
+  if (existingSettings) {
+    return existingSettings;
   }
 
   // Create default settings if not found
@@ -28,6 +31,7 @@ export async function getSettings(): Promise<Settings> {
     sessionCacheCompletedNoPrInterval: 1800,
     sessionCachePendingApprovalInterval: 300,
     sessionCacheMaxAgeDays: 3,
+    profileId: profileId,
   }).returning();
 
   return defaultSettings[0];
@@ -37,6 +41,7 @@ export async function getSettings(): Promise<Settings> {
  * Saves or updates a session in the local database.
  */
 export async function upsertSession(session: Session) {
+  const profileId = await getActiveProfileId();
   const now = Date.now();
   const sessionData = {
     id: session.id,
@@ -52,6 +57,7 @@ export async function upsertSession(session: Session) {
     requirePlanApproval: session.requirePlanApproval,
     automationMode: session.automationMode,
     lastUpdated: now,
+    profileId: profileId,
   };
 
   await db.insert(sessions)
@@ -66,7 +72,10 @@ export async function upsertSession(session: Session) {
  * Retrieves all sessions from the local database, sorted by creation time descending.
  */
 export async function getCachedSessions(): Promise<Session[]> {
-  const cachedSessions = await db.select().from(sessions).orderBy(sql`${sessions.createTime} DESC`);
+  const profileId = await getActiveProfileId();
+  const cachedSessions = await db.select().from(sessions)
+      .where(eq(sessions.profileId, profileId))
+      .orderBy(sql`${sessions.createTime} DESC`);
 
   // Map back to Session type if needed, though they should be compatible
   return cachedSessions.map(s => ({
@@ -135,7 +144,10 @@ async function fetchSessionFromApi(sessionId: string, apiKey: string): Promise<S
  */
 export async function syncStaleSessions(apiKey: string) {
   const settings = await getSettings();
-  const cachedSessions = await db.select().from(sessions);
+  const profileId = await getActiveProfileId();
+
+  // Only get sessions for current profile
+  const cachedSessions = await db.select().from(sessions).where(eq(sessions.profileId, profileId));
   const now = Date.now();
 
   const sessionsToUpdate: string[] = [];

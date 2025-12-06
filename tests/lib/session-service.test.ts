@@ -7,7 +7,18 @@ import * as fetchClient from '@/lib/fetch-client';
 import type { Session } from '@/lib/types';
 
 // Mock the db module
-vi.mock('@/lib/db');
+vi.mock('@/lib/db', () => ({
+    db: {
+        select: vi.fn(),
+        insert: vi.fn(),
+        query: {
+            settings: {
+                findFirst: vi.fn()
+            }
+        }
+    },
+    getActiveProfileId: vi.fn().mockResolvedValue('test-profile-id')
+}));
 
 // Mock fetchWithRetry from fetch-client
 vi.mock('@/lib/fetch-client');
@@ -117,6 +128,10 @@ describe('Session Service', () => {
       };
 
       const mockedDb = vi.mocked(db);
+
+      // Mock db.query.settings.findFirst
+      (mockedDb.query.settings.findFirst as vi.Mock).mockResolvedValue(mockSettings);
+
       const fromMock = vi.fn();
       mockedDb.select.mockReturnValue({ from: fromMock } as any);
 
@@ -127,11 +142,11 @@ describe('Session Service', () => {
       } as any);
 
       fromMock.mockImplementation((table: any) => {
-        if (table === settings) {
-          return { limit: vi.fn().mockResolvedValue([mockSettings]) };
-        }
+         // db.select().from(sessions).where()
         if (table === sessions) {
-          return Promise.resolve([mergedSession]);
+           return {
+               where: vi.fn().mockResolvedValue([mergedSession])
+           };
         }
         return Promise.resolve([]);
       });

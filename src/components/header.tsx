@@ -2,15 +2,18 @@
 "use client";
 
 import { SettingsSheet } from "./settings-sheet";
-import { Bot, PanelLeft } from "lucide-react";
+import { Bot, PanelLeft, User } from "lucide-react";
 import Link from "next/link";
 import { SidebarTrigger, useSidebar } from "./ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { useEnv } from "@/components/env-provider";
+import { Badge } from "@/components/ui/badge";
 
 export function Header() {
   const { open } = useSidebar();
   const [isClient, setIsClient] = useState(false);
+  const { activeProfile } = useEnv();
 
   useEffect(() => {
     setIsClient(true);
@@ -37,7 +40,15 @@ export function Header() {
                 </Link>
              </div>
           </div>
-          <SettingsSheet />
+          <div className="flex items-center gap-4">
+             {activeProfile && (
+                <Badge variant="outline" className="gap-2 px-3 py-1">
+                    <User className="h-3.5 w-3.5" />
+                    {activeProfile.name}
+                </Badge>
+             )}
+             <SettingsSheet />
+          </div>
         </div>
       </div>
     </header>
