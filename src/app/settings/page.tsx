@@ -594,9 +594,6 @@ export default function SettingsPage() {
                         )}
                     </div>
                 </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
-                </CardFooter>
             </Card>
 
             <Card>
@@ -648,10 +645,11 @@ export default function SettingsPage() {
                         />
                     </div>
                 </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Advanced Settings</Button>
-                </CardFooter>
             </Card>
+
+            <div className="flex justify-end">
+                <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
+            </div>
         </TabsContent>
 
         {/* Cron Jobs Tab */}
