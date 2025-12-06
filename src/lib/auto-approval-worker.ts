@@ -4,7 +4,6 @@ import { settings } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { fetchSessionsPage } from '@/app/sessions/actions';
 import { approvePlan } from '@/app/sessions/[id]/actions';
-import type { Session } from '@/lib/types';
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;

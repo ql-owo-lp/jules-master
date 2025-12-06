@@ -5,7 +5,7 @@ import { appDatabase, db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import type { Job, PredefinedPrompt, HistoryPrompt } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { eq, desc, or } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 
 // --- Jobs ---
 export async function getJobs(): Promise<Job[]> {

@@ -1,11 +1,10 @@
 
 import { db } from './db';
-import { jobs, sessions, settings } from './db/schema';
-import { eq, and, isNotNull, sql } from 'drizzle-orm';
+import { jobs, sessions } from './db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { listActivities, sendMessage } from '@/app/sessions/[id]/actions';
 import { createSession } from '@/app/sessions/new/actions';
-import { differenceInHours } from 'date-fns';
-import { Job, AutomationMode, Session } from './types';
+import { AutomationMode, Session } from './types';
 import { getSettings, upsertSession } from './session-service';
 import { listSources } from '@/app/sessions/actions';
 

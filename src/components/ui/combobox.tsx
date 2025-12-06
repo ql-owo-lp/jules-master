@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/popover"
 import { ScrollArea } from "./scroll-area"
 
-type ComboboxOption = { value: string; label: string; [key: string]: any };
+type ComboboxOption = { value: string; label: string; [key: string]: string };
 
 export type ComboboxGroup = {
   label?: string;

@@ -74,9 +74,7 @@ export async function cancelSessionRequest(requestId: string) {
 }
 
 export async function listSessions(
-  apiKey?: string | null,
-  pageSize: number = 50,
-  requestId?: string
+  apiKey?: string | null
 ): Promise<{ sessions: Session[], error?: string }> {
   // Check for mock flag
   if (process.env.MOCK_API === 'true') {
@@ -130,9 +128,10 @@ export async function listSessions(
 
     return { sessions };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred in listSessions';
     console.error('Error in listSessions:', error);
-    return { sessions: [], error: error.message || 'Unknown error occurred in listSessions' };
+    return { sessions: [], error: errorMessage };
   }
 }
 
@@ -207,9 +206,10 @@ export async function fetchSessionsPage(
 
         return { sessions, nextPageToken: data.nextPageToken };
 
-     } catch (error: any) {
+     } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching sessions';
         console.error('Error fetching sessions page:', error);
-        return { sessions: [], error: error.message || 'Unknown error fetching sessions' };
+        return { sessions: [], error: errorMessage };
      }
 }
 

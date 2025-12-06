@@ -5,7 +5,6 @@ import { eq } from 'drizzle-orm';
 import { fetchSessionsPage } from '@/app/sessions/actions';
 import { getPullRequestStatus } from '@/app/github/actions';
 import { deleteBranch } from './github-service';
-import type { Session } from '@/lib/types';
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;

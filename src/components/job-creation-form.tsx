@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { refreshSources, listSources } from "@/app/sessions/actions";
 import { getPredefinedPrompts, getGlobalPrompt, getRepoPrompt, addJob, getHistoryPrompts, saveHistoryPrompt, getSettings } from "@/app/config/actions";
-import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode, HistoryPrompt, Settings } from "@/lib/types";
+import type { Session, Source, PredefinedPrompt, Job, AutomationMode, HistoryPrompt, Settings } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2, RefreshCw, X, Trash2, BookText } from "lucide-react";
 import { SourceSelection } from "./source-selection";
@@ -80,7 +80,6 @@ export function JobCreationForm({
   const [lastSourcesFetch, setLastSourcesFetch] = useLocalStorage<number>("jules-sources-last-fetch", 0);
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
 
-  const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
   const [historyPrompts, setHistoryPrompts] = useState<HistoryPrompt[]>([]);
   const [globalPrompt, setGlobalPrompt] = useState('');

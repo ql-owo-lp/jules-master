@@ -34,14 +34,14 @@ export function initLogger() {
   const originalWarn = console.warn;
   const originalInfo = console.info;
 
-  function emitLog(type: LogType, ...args: any[]) {
+  function emitLog(type: LogType, ...args: unknown[]) {
     try {
       const message = args
         .map((arg) => {
           if (typeof arg === 'object') {
             try {
               return JSON.stringify(arg);
-            } catch (e) {
+            } catch {
               return String(arg);
             }
           }
@@ -62,22 +62,22 @@ export function initLogger() {
     }
   }
 
-  console.log = (...args: any[]) => {
+  console.log = (...args: unknown[]) => {
     emitLog('log', ...args);
     originalLog.apply(console, args);
   };
 
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     emitLog('error', ...args);
     originalError.apply(console, args);
   };
 
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     emitLog('warn', ...args);
     originalWarn.apply(console, args);
   };
 
-  console.info = (...args: any[]) => {
+  console.info = (...args: unknown[]) => {
     emitLog('info', ...args);
     originalInfo.apply(console, args);
   };

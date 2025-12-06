@@ -43,7 +43,7 @@ export function CronJobsList() {
     }, []);
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this cron job?")) return;
+        if (!confirm('Are you sure you want to delete this cron job?')) return;
         try {
             const response = await fetch(`/api/cron-jobs/${id}`, { method: 'DELETE' });
             if (response.ok) {
@@ -98,7 +98,7 @@ export function CronJobsList() {
                 {cronJobs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
                         <p className="font-semibold text-lg">No cron jobs yet</p>
-                        <p className="text-sm">Click "Add New Cron Job" to create your first scheduled job.</p>
+                        <p className="text-sm">Click &quot;Add New Cron Job&quot; to create your first scheduled job.</p>
                     </div>
                 ) : (
                     <div className="border rounded-lg">

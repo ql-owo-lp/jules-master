@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw } from "lucide-react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
 import { useEnv } from "@/components/env-provider";
+import { useProfiles } from "@/hooks/use-profiles";
 import {
   Tabs,
   TabsContent,
@@ -41,7 +41,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
     DialogClose,
 } from "@/components/ui/dialog";
 import {
@@ -67,23 +66,23 @@ import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
 import type { PredefinedPrompt, Source } from "@/lib/types";
 
-interface Profile {
-  id: number;
-  name: string;
-  isActive: boolean;
-}
-
 type DialogState = {
   isOpen: boolean;
-  type: 'prompt' | 'reply' | 'profile';
-  data: PredefinedPrompt | Profile | null;
+  type: 'prompt' | 'reply';
+  data: PredefinedPrompt | null;
 }
 
-export default function SettingsPage() {
-  const { julesApiKey, githubToken: envGithubToken } = useEnv();
-  const { toast } = useToast();
-  const [isClient, setIsClient] = useState(false);
+type RenameDialogState = {
+  isOpen: boolean;
+  profile: { id: string; name: string } | null;
+};
 
+type DeleteDialogState = {
+  isOpen: boolean;
+  profile: { id: string; name: string } | null;
+};
+
+export default function SettingsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -96,62 +95,65 @@ export default function SettingsPage() {
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  // --- Settings State (from SettingsSheet) ---
-  const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
+    // --- Profiles State ---
+  const { profiles, activeProfile, createProfile, updateProfile, deleteProfile, switchProfile, isInitialized } = useProfiles();
+  const [currentSettings, setCurrentSettings] = useState(activeProfile?.settings);
 
-  const [idlePollInterval, setIdlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
-  const [activePollInterval, setActivePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
-  const [titleTruncateLength, setTitleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
-  const [lineClamp, setLineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
-  const [sessionItemsPerPage, setSessionItemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
-  const [jobsPerPage, setJobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
-  const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
-  const [prStatusPollInterval, setPrStatusPollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
-  const [historyPromptsCount, setHistoryPromptsCount] = useLocalStorage<number>("jules-history-prompts-count", 10);
-  const [autoApprovalInterval, setAutoApprovalInterval] = useLocalStorage<number>("jules-auto-approval-interval", 60);
-  const [autoRetryEnabled, setAutoRetryEnabled] = useLocalStorage<boolean>("jules-auto-retry-enabled", true);
-  const [autoRetryMessage, setAutoRetryMessage] = useLocalStorage<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
-  const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
-  const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
-  const [debugMode, setDebugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
+  const { julesApiKey, githubToken: envGithubToken } = useEnv();
+  const { toast } = useToast();
 
-  // New Settings for Session Cache
-  const [sessionCacheInProgressInterval, setSessionCacheInProgressInterval] = useLocalStorage<number>("jules-session-cache-in-progress-interval", 60);
-  const [sessionCacheCompletedNoPrInterval, setSessionCacheCompletedNoPrInterval] = useLocalStorage<number>("jules-session-cache-completed-no-pr-interval", 1800);
-  const [sessionCachePendingApprovalInterval, setSessionCachePendingApprovalInterval] = useLocalStorage<number>("jules-session-cache-pending-approval-interval", 300);
-  const [sessionCacheMaxAgeDays, setSessionCacheMaxAgeDays] = useLocalStorage<number>("jules-session-cache-max-age-days", 3);
+  useEffect(() => {
+    if (activeProfile) {
+      setCurrentSettings(activeProfile.settings);
+    }
+  }, [activeProfile]);
 
-  const [autoDeleteStaleBranches, setAutoDeleteStaleBranches] = useLocalStorage<boolean>("jules-auto-delete-stale-branches", false);
-  const [autoDeleteStaleBranchesAfterDays, setAutoDeleteStaleBranchesAfterDays] = useLocalStorage<number>("jules-auto-delete-stale-branches-after-days", 3);
 
-  const [apiKeyValue, setApiKeyValue] = useState(apiKey);
-  const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
-  const [idlePollIntervalValue, setIdlePollIntervalValue] = useState(idlePollInterval);
-  const [activePollIntervalValue, setActivePollIntervalValue] = useState(activePollInterval);
-  const [titleTruncateLengthValue, setTitleTruncateLengthValue] = useState(titleTruncateLength);
-  const [lineClampValue, setLineClampValue] = useState(lineClamp);
-  const [sessionItemsPerPageValue, setSessionItemsPerPageValue] = useState(sessionItemsPerPage);
-  const [jobsPerPageValue, setJobsPerPageValue] = useState(jobsPerPage);
-  const [defaultSessionCountValue, setDefaultSessionCountValue] = useState(defaultSessionCount);
-  const [prStatusPollIntervalValue, setPrStatusPollIntervalValue] = useState(prStatusPollInterval);
-  const [historyPromptsCountValue, setHistoryPromptsCountValue] = useState(historyPromptsCount);
-  const [autoApprovalIntervalValue, setAutoApprovalIntervalValue] = useState(autoApprovalInterval);
-  const [autoRetryEnabledValue, setAutoRetryEnabledValue] = useState(autoRetryEnabled);
-  const [autoRetryMessageValue, setAutoRetryMessageValue] = useState(autoRetryMessage);
-  const [autoContinueEnabledValue, setAutoContinueEnabledValue] = useState(autoContinueEnabled);
-  const [autoContinueMessageValue, setAutoContinueMessageValue] = useState(autoContinueMessage);
-  const [debugModeValue, setDebugModeValue] = useState(debugMode);
+  // --- Handlers for Settings ---
+  const handleSaveSettings = async () => {
+    if (!activeProfile || !currentSettings) return;
 
-  // New Settings State
-  const [sessionCacheInProgressIntervalValue, setSessionCacheInProgressIntervalValue] = useState(sessionCacheInProgressInterval);
-  const [sessionCacheCompletedNoPrIntervalValue, setSessionCacheCompletedNoPrIntervalValue] = useState(sessionCacheCompletedNoPrInterval);
-  const [sessionCachePendingApprovalIntervalValue, setSessionCachePendingApprovalIntervalValue] = useState(sessionCachePendingApprovalInterval);
-  const [sessionCacheMaxAgeDaysValue, setSessionCacheMaxAgeDaysValue] = useState(sessionCacheMaxAgeDays);
+    updateProfile(activeProfile.id, { settings: currentSettings });
 
-  const [autoDeleteStaleBranchesValue, setAutoDeleteStaleBranchesValue] = useState(autoDeleteStaleBranches);
-  const [autoDeleteStaleBranchesAfterDaysValue, setAutoDeleteStaleBranchesAfterDaysValue] = useState(autoDeleteStaleBranchesAfterDays);
+    try {
+        const response = await fetch('/api/settings');
+        let currentTheme = 'system';
+        if (response.ok) {
+            const data = await response.json();
+            currentTheme = data.theme;
+        }
 
+        await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...currentSettings,
+                theme: currentTheme,
+            }),
+        });
+
+        toast({
+            title: "Settings Saved",
+            description: "Your settings have been updated.",
+        });
+    } catch (e) {
+        console.error("Failed to save settings to DB", e);
+         toast({
+            title: "Error",
+            description: "Failed to save settings to database. Local storage updated.",
+            variant: "destructive"
+        });
+    }
+  };
+
+    const handleSettingChange = <K extends keyof NonNullable<typeof currentSettings>>(
+        key: K,
+        value: NonNullable<typeof currentSettings>[K]
+    ) => {
+        if (currentSettings) {
+            setCurrentSettings({ ...currentSettings, [key]: value });
+        }
+    };
 
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -165,115 +167,18 @@ export default function SettingsPage() {
   const [globalPrompt, setGlobalPrompt] = useState<string>("");
   const [repoPrompt, setRepoPrompt] = useState<string>("");
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
-  const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
+  const [sources, setSources] = useState<Source[]>([]);
 
   const [isRefreshingSources, startRefreshSources] = useTransition();
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [isSavingMessage, startSavingMessage] = useTransition();
   const [isFetchingRepoPrompt, startFetchingRepoPrompt] = useTransition();
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, type: 'prompt', data: null });
+  const [renameDialogState, setRenameDialogState] = useState<RenameDialogState>({ isOpen: false, profile: null });
+  const [deleteDialogState, setDeleteDialogState] = useState<DeleteDialogState>({ isOpen: false, profile: null });
+  const [newProfileName, setNewProfileName] = useState("");
   const [title, setTitle] = useState("");
   const [promptText, setPromptText] = useState("");
-
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
-  const [profileName, setProfileName] = useState("");
-  const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
-
-
-  // --- Effects for Settings ---
-  useEffect(() => { setApiKeyValue(apiKey); }, [apiKey]);
-  useEffect(() => { setGithubTokenValue(githubToken); }, [githubToken]);
-  useEffect(() => { setIdlePollIntervalValue(idlePollInterval); }, [idlePollInterval]);
-  useEffect(() => { setActivePollIntervalValue(activePollInterval); }, [activePollInterval]);
-  useEffect(() => { setTitleTruncateLengthValue(titleTruncateLength); }, [titleTruncateLength]);
-  useEffect(() => { setLineClampValue(lineClamp); }, [lineClamp]);
-  useEffect(() => { setSessionItemsPerPageValue(sessionItemsPerPage); }, [sessionItemsPerPage]);
-  useEffect(() => { setJobsPerPageValue(jobsPerPage); }, [jobsPerPage]);
-  useEffect(() => { setDefaultSessionCountValue(defaultSessionCount); }, [defaultSessionCount]);
-  useEffect(() => { setPrStatusPollIntervalValue(prStatusPollInterval); }, [prStatusPollInterval]);
-  useEffect(() => { setHistoryPromptsCountValue(historyPromptsCount); }, [historyPromptsCount]);
-  useEffect(() => { setAutoApprovalIntervalValue(autoApprovalInterval); }, [autoApprovalInterval]);
-  useEffect(() => { setAutoRetryEnabledValue(autoRetryEnabled); }, [autoRetryEnabled]);
-  useEffect(() => { setAutoRetryMessageValue(autoRetryMessage); }, [autoRetryMessage]);
-  useEffect(() => { setAutoContinueEnabledValue(autoContinueEnabled); }, [autoContinueEnabled]);
-  useEffect(() => { setAutoContinueMessageValue(autoContinueMessage); }, [autoContinueMessage]);
-  useEffect(() => { setDebugModeValue(debugMode); }, [debugMode]);
-
-  useEffect(() => { setSessionCacheInProgressIntervalValue(sessionCacheInProgressInterval); }, [sessionCacheInProgressInterval]);
-  useEffect(() => { setSessionCacheCompletedNoPrIntervalValue(sessionCacheCompletedNoPrInterval); }, [sessionCacheCompletedNoPrInterval]);
-  useEffect(() => { setSessionCachePendingApprovalIntervalValue(sessionCachePendingApprovalInterval); }, [sessionCachePendingApprovalInterval]);
-  useEffect(() => { setSessionCacheMaxAgeDaysValue(sessionCacheMaxAgeDays); }, [sessionCacheMaxAgeDays]);
-
-  useEffect(() => { setAutoDeleteStaleBranchesValue(autoDeleteStaleBranches); }, [autoDeleteStaleBranches]);
-  useEffect(() => { setAutoDeleteStaleBranchesAfterDaysValue(autoDeleteStaleBranchesAfterDays); }, [autoDeleteStaleBranchesAfterDays]);
-
-
-  const fetchProfiles = async () => {
-    try {
-        const response = await fetch('/api/profiles');
-        if (response.ok) {
-            const data = await response.json();
-            setProfiles(data);
-            setActiveProfile(data.find((p: Profile) => p.isActive) || data[0]);
-        }
-    } catch (error) {
-        console.error("Failed to fetch profiles", error);
-    }
-    setIsLoadingProfiles(false);
-  };
-
-  const fetchSettings = async () => {
-    try {
-      const response = await fetch('/api/settings');
-      if (response.ok) {
-        const dbSettings = await response.json();
-        const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
-
-        if (!isSetInLocalStorage("jules-idle-poll-interval")) setIdlePollInterval(dbSettings.idlePollInterval);
-        if (!isSetInLocalStorage("jules-active-poll-interval")) setActivePollInterval(dbSettings.activePollInterval);
-        if (!isSetInLocalStorage("jules-title-truncate-length")) setTitleTruncateLength(dbSettings.titleTruncateLength);
-        if (!isSetInLocalStorage("jules-line-clamp")) setLineClamp(dbSettings.lineClamp);
-        if (!isSetInLocalStorage("jules-session-items-per-page")) setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
-        if (!isSetInLocalStorage("jules-jobs-per-page")) setJobsPerPage(dbSettings.jobsPerPage);
-        if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
-        if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
-        if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
-        if (!isSetInLocalStorage("jules-auto-approval-interval")) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
-        if (!isSetInLocalStorage("jules-auto-retry-enabled")) setAutoRetryEnabled(dbSettings.autoRetryEnabled);
-        if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
-        if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
-        if (!isSetInLocalStorage("jules-auto-continue-message")) setAutoContinueMessage(dbSettings.autoContinueMessage);
-
-        if (!isSetInLocalStorage("jules-session-cache-in-progress-interval")) setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
-        if (!isSetInLocalStorage("jules-session-cache-completed-no-pr-interval")) setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
-        if (!isSetInLocalStorage("jules-session-cache-pending-approval-interval")) setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
-        if (!isSetInLocalStorage("jules-session-cache-max-age-days")) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
-        if (!isSetInLocalStorage("jules-auto-delete-stale-branches")) setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
-        if (!isSetInLocalStorage("jules-auto-delete-stale-branches-after-days")) setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
-      }
-    } catch (error) {
-      console.error("Failed to fetch settings from DB", error);
-    }
-  };
-
-  useEffect(() => {
-    setIsClient(true);
-    const fetchData = async () => {
-        await fetchProfiles();
-        await fetchSettings();
-    }
-    if(isClient){
-        fetchData();
-    }
-  }, [isClient,
-      setIdlePollInterval, setActivePollInterval, setTitleTruncateLength, setLineClamp,
-      setSessionItemsPerPage, setJobsPerPage, setDefaultSessionCount, setPrStatusPollInterval,
-      setHistoryPromptsCount, setAutoApprovalInterval, setAutoRetryEnabled, setAutoRetryMessage,
-      setAutoContinueEnabled, setAutoContinueMessage,
-      setSessionCacheInProgressInterval, setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays,
-      setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays
-  ]);
 
   // --- Effects for Messages ---
   useEffect(() => {
@@ -289,8 +194,8 @@ export default function SettingsPage() {
         setGlobalPrompt(fetchedGlobalPrompt);
         setIsLoadingMessages(false);
     };
-    if (isClient) fetchMessages();
-  }, [isClient]);
+    fetchMessages();
+  }, []);
 
   useEffect(() => {
     if (selectedSource) {
@@ -305,99 +210,18 @@ export default function SettingsPage() {
   }, [selectedSource]);
 
 
-  // --- Handlers for Settings ---
-  const handleSaveSettings = async () => {
-    setApiKey(apiKeyValue);
-    setGithubToken(githubTokenValue);
-    setIdlePollInterval(idlePollIntervalValue);
-    setActivePollInterval(activePollIntervalValue);
-    setTitleTruncateLength(titleTruncateLengthValue);
-    setLineClamp(lineClampValue);
-    setSessionItemsPerPage(sessionItemsPerPageValue);
-    setJobsPerPage(jobsPerPageValue);
-    setDefaultSessionCount(defaultSessionCountValue);
-    setPrStatusPollInterval(prStatusPollIntervalValue);
-    setHistoryPromptsCount(historyPromptsCountValue);
-    setAutoApprovalInterval(autoApprovalIntervalValue);
-    setAutoRetryEnabled(autoRetryEnabledValue);
-    setAutoRetryMessage(autoRetryMessageValue);
-    setAutoContinueEnabled(autoContinueEnabledValue);
-    setAutoContinueMessage(autoContinueMessageValue);
-    setDebugMode(debugModeValue);
-
-    setSessionCacheInProgressInterval(sessionCacheInProgressIntervalValue);
-    setSessionCacheCompletedNoPrInterval(sessionCacheCompletedNoPrIntervalValue);
-    setSessionCachePendingApprovalInterval(sessionCachePendingApprovalIntervalValue);
-    setSessionCacheMaxAgeDays(sessionCacheMaxAgeDaysValue);
-
-    setAutoDeleteStaleBranches(autoDeleteStaleBranchesValue);
-    setAutoDeleteStaleBranchesAfterDays(autoDeleteStaleBranchesAfterDaysValue);
-
-    try {
-        const response = await fetch('/api/settings');
-        let currentTheme = 'system';
-        if (response.ok) {
-            const data = await response.json();
-            currentTheme = data.theme;
-        }
-
-        await fetch('/api/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                idlePollInterval: idlePollIntervalValue,
-                activePollInterval: activePollIntervalValue,
-                titleTruncateLength: titleTruncateLengthValue,
-                lineClamp: lineClampValue,
-                sessionItemsPerPage: sessionItemsPerPageValue,
-                jobsPerPage: jobsPerPageValue,
-                defaultSessionCount: defaultSessionCountValue,
-                prStatusPollInterval: prStatusPollIntervalValue,
-                historyPromptsCount: historyPromptsCountValue,
-                autoApprovalInterval: autoApprovalIntervalValue,
-                autoRetryEnabled: autoRetryEnabledValue,
-                autoRetryMessage: autoRetryMessageValue,
-                autoContinueEnabled: autoContinueEnabledValue,
-                autoContinueMessage: autoContinueMessageValue,
-                theme: currentTheme,
-
-                // New Settings
-                sessionCacheInProgressInterval: sessionCacheInProgressIntervalValue,
-                sessionCacheCompletedNoPrInterval: sessionCacheCompletedNoPrIntervalValue,
-                sessionCachePendingApprovalInterval: sessionCachePendingApprovalIntervalValue,
-                sessionCacheMaxAgeDays: sessionCacheMaxAgeDaysValue,
-
-                autoDeleteStaleBranches: autoDeleteStaleBranchesValue,
-                autoDeleteStaleBranchesAfterDays: autoDeleteStaleBranchesAfterDaysValue,
-            }),
-        });
-
-        toast({
-            title: "Settings Saved",
-            description: "Your settings have been updated.",
-        });
-    } catch (error) {
-        console.error("Failed to save settings to DB", error);
-         toast({
-            title: "Error",
-            description: "Failed to save settings to database. Local storage updated.",
-            variant: "destructive"
-        });
-    }
-  };
-
   // --- Handlers for Messages ---
   const handleRefreshSources = () => {
     startRefreshSources(async () => {
         try {
             await refreshSources();
-            const fetchedSources = await listSources(apiKey);
+            const fetchedSources = await listSources(julesApiKey || "");
             setSources(fetchedSources);
              toast({
                 title: "Refreshed",
                 description: "The list of repositories has been updated.",
             });
-        } catch (error) {
+        } catch {
             toast({
                 variant: "destructive",
                 title: "Error",
@@ -407,86 +231,56 @@ export default function SettingsPage() {
     });
   };
 
-  const openDialog = (type: 'prompt' | 'reply' | 'profile', data: PredefinedPrompt | Profile | null = null) => {
+  const openDialog = (type: 'prompt' | 'reply', data: PredefinedPrompt | null = null) => {
     setDialogState({ isOpen: true, type, data });
-    if (type === 'profile') {
-        setProfileName((data as Profile)?.name || "");
-    } else {
-        setTitle((data as PredefinedPrompt)?.title || "");
-        setPromptText((data as PredefinedPrompt)?.prompt || "");
-    }
+    setTitle(data?.title || "");
+    setPromptText(data?.prompt || "");
   };
 
   const closeDialog = () => {
     setDialogState({ isOpen: false, type: 'prompt', data: null });
   }
 
-  const handleDelete = (type: 'prompt' | 'reply' | 'profile', id: string | number) => {
+  const openRenameDialog = (profile: { id: string; name: string }) => {
+    setRenameDialogState({ isOpen: true, profile });
+    setNewProfileName(profile.name);
+  };
+
+  const handleRenameProfile = () => {
+    if (renameDialogState.profile && newProfileName) {
+      updateProfile(renameDialogState.profile.id, { name: newProfileName });
+      setRenameDialogState({ isOpen: false, profile: null });
+    }
+  };
+
+  const openDeleteDialog = (profile: { id: string; name: string }) => {
+    setDeleteDialogState({ isOpen: true, profile });
+  };
+
+  const handleDeleteProfile = () => {
+    if (deleteDialogState.profile) {
+      deleteProfile(deleteDialogState.profile.id);
+      setDeleteDialogState({ isOpen: false, profile: null });
+    }
+  };
+
+  const handleDelete = (type: 'prompt' | 'reply', id: string) => {
      startSavingMessage(async () => {
         if (type === 'prompt') {
             const updatedPrompts = prompts.filter((p) => p.id !== id);
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
             toast({ title: "Message deleted" });
-        } else if (type === 'reply') {
+        } else {
             const updatedReplies = quickReplies.filter((r) => r.id !== id);
             await saveQuickReplies(updatedReplies);
             setQuickReplies(updatedReplies);
             toast({ title: "Quick Reply deleted" });
-        } else if (type === 'profile') {
-            try {
-                await fetch(`/api/profiles/${id}`, { method: 'DELETE' });
-                const updatedProfiles = profiles.filter((p) => p.id !== id);
-                setProfiles(updatedProfiles);
-                toast({ title: "Profile deleted" });
-            } catch (error) {
-                toast({ variant: "destructive", title: "Error", description: "Failed to delete profile." });
-            }
         }
      });
   };
 
   const handleSaveMessage = () => {
-    if (dialogState.type === 'profile') {
-        if (!profileName.trim()) {
-            toast({ variant: "destructive", title: "Missing fields", description: "Profile name is required." });
-            return;
-        }
-
-        startSavingMessage(async () => {
-            const { data } = dialogState;
-            const profile = data as Profile;
-
-            try {
-                let updatedProfile;
-                if (profile?.id) {
-                    const response = await fetch(`/api/profiles/${profile.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: profileName }),
-                    });
-                    updatedProfile = await response.json();
-                    setProfiles(profiles.map((p) => p.id === profile.id ? updatedProfile : p));
-                    toast({ title: "Profile updated" });
-                } else {
-                    const response = await fetch('/api/profiles', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: profileName }),
-                    });
-                    updatedProfile = await response.json();
-                    setProfiles([...profiles, updatedProfile]);
-                    toast({ title: "Profile added" });
-                }
-            } catch (error) {
-                 toast({ variant: "destructive", title: "Error", description: "Failed to save profile." });
-            }
-            closeDialog();
-        });
-        return;
-    }
-
-
     if (!title.trim() || !promptText.trim()) {
       toast({ variant: "destructive", title: "Missing fields", description: "Both title and content are required." });
       return;
@@ -505,10 +299,10 @@ export default function SettingsPage() {
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
             toast({ title: data?.id ? "Message updated" : "Message added" });
-        } else if (type === 'reply') {
+        } else {
             let updatedReplies: PredefinedPrompt[];
             if (data?.id) {
-                updatedReplies = quickReplies.map((r) => r.id === (data as PredefinedPrompt).id ? { ...r, title, prompt: promptText } : r);
+                updatedReplies = quickReplies.map((r) => r.id === data.id ? { ...r, title, prompt: promptText } : r);
             } else {
                 updatedReplies = [...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText }];
             }
@@ -536,30 +330,6 @@ export default function SettingsPage() {
     });
   }
 
-  const handleSetActive = async (id: number) => {
-    try {
-        await fetch(`/api/profiles/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isActive: true }),
-        });
-
-        // Clear local storage to force re-fetch of settings
-        Object.keys(window.localStorage).forEach(key => {
-            if (key.startsWith('jules-')) {
-                window.localStorage.removeItem(key);
-            }
-        });
-
-        setProfiles(profiles.map(p => ({ ...p, isActive: p.id === id })));
-        toast({ title: "Profile activated" });
-        // Force a reload to fetch new settings for the new profile
-        window.location.reload();
-    } catch (error) {
-        toast({ variant: "destructive", title: "Error", description: "Failed to set active profile." });
-    }
-  };
-
   const renderTable = (type: 'prompt' | 'reply') => {
     const items = type === 'prompt' ? prompts : quickReplies;
     const singular = type === 'prompt' ? 'message' : 'reply';
@@ -575,7 +345,7 @@ export default function SettingsPage() {
     if (items.length === 0) return (
         <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
           <p className="font-semibold text-lg">No {plural} yet</p>
-          <p className="text-sm">Click "Add New" to create your first {singular}.</p>
+          <p className="text-sm">Click &quot;Add New&quot; to create your first {singular}.</p>
         </div>
     );
 
@@ -619,7 +389,7 @@ export default function SettingsPage() {
     )
   }
 
-  if (!isClient) {
+  if (!isInitialized || !currentSettings) {
       return (
         <div className="p-8 space-y-4">
              <Skeleton className="h-10 w-48" />
@@ -634,7 +404,7 @@ export default function SettingsPage() {
       <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="profiles" data-testid="profiles-tab">Profiles</TabsTrigger>
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
@@ -647,7 +417,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>General Settings</CardTitle>
-                    <CardDescription>API keys and debug settings.</CardDescription>
+                    <CardDescription>API keys, polling intervals, and other general settings.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -655,7 +425,7 @@ export default function SettingsPage() {
                             <Label htmlFor="debug-mode">Debug Mode</Label>
                             <p className="text-xs text-muted-foreground">Enable detailed logging.</p>
                         </div>
-                        <Switch id="debug-mode" checked={debugModeValue} onCheckedChange={setDebugModeValue} />
+                        <Switch id="debug-mode" checked={currentSettings.debugMode} onCheckedChange={(value) => handleSettingChange('debugMode', value)} />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="api-key">Jules API Key</Label>
@@ -663,8 +433,8 @@ export default function SettingsPage() {
                             <Input
                                 id="api-key"
                                 type={showApiKey ? "text" : "password"}
-                                value={apiKeyValue}
-                                onChange={(e) => setApiKeyValue(e.target.value)}
+                                value={currentSettings.apiKey}
+                                onChange={(e) => handleSettingChange('apiKey', e.target.value)}
                                 placeholder="Enter your API key"
                                 className="pr-10"
                             />
@@ -676,7 +446,7 @@ export default function SettingsPage() {
                                 {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </Button>
                         </div>
-                        {isJulesKeyFromEnv && !apiKeyValue && (
+                        {isJulesKeyFromEnv && !currentSettings.apiKey && (
                             <p className="text-xs text-muted-foreground">Using JULES_API_KEY environment variable.</p>
                         )}
                     </div>
@@ -686,8 +456,8 @@ export default function SettingsPage() {
                             <Input
                                 id="github-token"
                                 type={showGithubToken ? "text" : "password"}
-                                value={githubTokenValue}
-                                onChange={(e) => setGithubTokenValue(e.target.value)}
+                                value={currentSettings.githubToken}
+                                onChange={(e) => handleSettingChange('githubToken', e.target.value)}
                                 placeholder="Enter your GitHub PAT"
                                 className="pr-10"
                             />
@@ -699,28 +469,17 @@ export default function SettingsPage() {
                                 {showGithubToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </Button>
                         </div>
-                         {isGithubTokenFromEnv && !githubTokenValue && (
+                         {isGithubTokenFromEnv && !currentSettings.githubToken && (
                             <p className="text-xs text-muted-foreground">Using GITHUB_TOKEN environment variable.</p>
                         )}
                     </div>
-                </CardContent>
-                 <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
-                </CardFooter>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Advanced Configuration</CardTitle>
-                    <CardDescription>Fine-tune polling and other internal settings.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
                      <div className="grid gap-2">
                         <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
                         <Input
                             id="idle-poll-interval"
                             type="number"
-                            value={idlePollIntervalValue}
-                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
+                            value={currentSettings.idlePollInterval}
+                            onChange={(e) => handleSettingChange('idlePollInterval', Number(e.target.value))}
                             min="0"
                         />
                         <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
@@ -730,8 +489,8 @@ export default function SettingsPage() {
                         <Input
                             id="active-poll-interval"
                             type="number"
-                            value={activePollIntervalValue}
-                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
+                            value={currentSettings.activePollInterval}
+                            onChange={(e) => handleSettingChange('activePollInterval', Number(e.target.value))}
                             min="1"
                         />
                          <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
@@ -741,8 +500,8 @@ export default function SettingsPage() {
                         <Input
                             id="pr-status-poll-interval"
                             type="number"
-                            value={prStatusPollIntervalValue}
-                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
+                            value={currentSettings.prStatusPollInterval}
+                            onChange={(e) => handleSettingChange('prStatusPollInterval', Number(e.target.value))}
                             min="10"
                         />
                     </div>
@@ -751,16 +510,87 @@ export default function SettingsPage() {
                         <Input
                             id="default-session-count"
                             type="number"
-                            value={defaultSessionCountValue}
-                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
+                            value={currentSettings.defaultSessionCount}
+                            onChange={(e) => handleSettingChange('defaultSessionCount', Number(e.target.value))}
                             min="1"
                         />
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Configuration</Button>
+                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
                 </CardFooter>
             </Card>
+        </TabsContent>
+
+        {/* Profiles Tab */}
+        <TabsContent value="profiles" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Profiles</CardTitle>
+                    <CardDescription>Manage your settings profiles.</CardDescription>
+                </div>
+                <Button onClick={() => createProfile('New Profile')}>
+                    <Plus className="mr-2 h-4 w-4" /> Add New Profile
+                </Button>
+            </CardHeader>
+            <CardContent>
+                <div className="border rounded-lg">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead className="w-[120px] text-center">Status</TableHead>
+                                <TableHead className="w-[180px] text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {profiles.map((profile) => (
+                                <TableRow key={profile.id}>
+                                    <TableCell className="font-medium">{profile.name}</TableCell>
+                                    <TableCell className="text-center">
+                                        {activeProfile?.id === profile.id ? (
+                                            <span className="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">Active</span>
+                                        ) : null}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => switchProfile(profile.id)}
+                                            disabled={activeProfile?.id === profile.id}
+                                            className="mr-2"
+                                        >
+                                            Switch to
+                                        </Button>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem onClick={() => openRenameDialog(profile)}>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    <span>Rename</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => openDeleteDialog(profile)}
+                                                    disabled={profiles.length <= 1 || activeProfile?.id === profile.id}
+                                                    className="text-destructive"
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Cron Jobs Tab */}
@@ -883,15 +713,15 @@ export default function SettingsPage() {
                             <Label htmlFor="auto-retry-enabled">Auto Retry Failed Sessions</Label>
                             <p className="text-xs text-muted-foreground">Automatically send a retry message when a session fails.</p>
                         </div>
-                        <Switch id="auto-retry-enabled" checked={autoRetryEnabledValue} onCheckedChange={setAutoRetryEnabledValue} />
+                        <Switch id="auto-retry-enabled" checked={currentSettings.autoRetryEnabled} onCheckedChange={(value) => handleSettingChange('autoRetryEnabled', value)} />
                     </div>
-                    {autoRetryEnabledValue && (
+                    {currentSettings.autoRetryEnabled && (
                         <div className="grid gap-2">
                             <Label htmlFor="auto-retry-message">Auto Retry Message</Label>
                             <Textarea
                                 id="auto-retry-message"
-                                value={autoRetryMessageValue}
-                                onChange={(e) => setAutoRetryMessageValue(e.target.value)}
+                                value={currentSettings.autoRetryMessage}
+                                onChange={(e) => handleSettingChange('autoRetryMessage', e.target.value)}
                             />
                         </div>
                     )}
@@ -900,15 +730,15 @@ export default function SettingsPage() {
                             <Label htmlFor="auto-continue-enabled">Auto Continue Completed Sessions</Label>
                             <p className="text-xs text-muted-foreground">Automatically send a continue message when a session completes without a PR.</p>
                         </div>
-                        <Switch id="auto-continue-enabled" checked={autoContinueEnabledValue} onCheckedChange={setAutoContinueEnabledValue} />
+                        <Switch id="auto-continue-enabled" checked={currentSettings.autoContinueEnabled} onCheckedChange={(value) => handleSettingChange('autoContinueEnabled', value)} />
                     </div>
-                    {autoContinueEnabledValue && (
+                    {currentSettings.autoContinueEnabled && (
                         <div className="grid gap-2">
                             <Label htmlFor="auto-continue-message">Auto Continue Message</Label>
                             <Textarea
                                 id="auto-continue-message"
-                                value={autoContinueMessageValue}
-                                onChange={(e) => setAutoContinueMessageValue(e.target.value)}
+                                value={currentSettings.autoContinueMessage}
+                                onChange={(e) => handleSettingChange('autoContinueMessage', e.target.value)}
                             />
                         </div>
                     )}
@@ -917,8 +747,8 @@ export default function SettingsPage() {
                         <Input
                             id="auto-approval-interval"
                             type="number"
-                            value={autoApprovalIntervalValue}
-                            onChange={(e) => setAutoApprovalIntervalValue(Number(e.target.value))}
+                            value={currentSettings.autoApprovalInterval}
+                            onChange={(e) => handleSettingChange('autoApprovalInterval', Number(e.target.value))}
                             min="10"
                         />
                     </div>
@@ -927,16 +757,16 @@ export default function SettingsPage() {
                             <Label htmlFor="auto-delete-stale-branches">Auto Delete Stale Branches</Label>
                             <p className="text-xs text-muted-foreground">Automatically delete branches after their PRs are merged.</p>
                         </div>
-                        <Switch id="auto-delete-stale-branches" checked={autoDeleteStaleBranchesValue} onCheckedChange={setAutoDeleteStaleBranchesValue} />
+                        <Switch id="auto-delete-stale-branches" checked={currentSettings.autoDeleteStaleBranches} onCheckedChange={(value) => handleSettingChange('autoDeleteStaleBranches', value)} />
                     </div>
-                    {autoDeleteStaleBranchesValue && (
+                    {currentSettings.autoDeleteStaleBranches && (
                         <div className="grid gap-2">
                             <Label htmlFor="auto-delete-stale-branches-after-days">Auto Delete Stale Branches After (days)</Label>
                             <Input
                                 id="auto-delete-stale-branches-after-days"
                                 type="number"
-                                value={autoDeleteStaleBranchesAfterDaysValue}
-                                onChange={(e) => setAutoDeleteStaleBranchesAfterDaysValue(Number(e.target.value))}
+                                value={currentSettings.autoDeleteStaleBranchesAfterDays}
+                                onChange={(e) => handleSettingChange('autoDeleteStaleBranchesAfterDays', Number(e.target.value))}
                                 min="1"
                             />
                         </div>
@@ -961,8 +791,8 @@ export default function SettingsPage() {
                         <Input
                             id="cache-in-progress"
                             type="number"
-                            value={sessionCacheInProgressIntervalValue}
-                            onChange={(e) => setSessionCacheInProgressIntervalValue(Number(e.target.value))}
+                            value={currentSettings.sessionCacheInProgressInterval}
+                            onChange={(e) => handleSettingChange('sessionCacheInProgressInterval', Number(e.target.value))}
                             min="10"
                         />
                     </div>
@@ -971,8 +801,8 @@ export default function SettingsPage() {
                         <Input
                             id="cache-pending"
                             type="number"
-                            value={sessionCachePendingApprovalIntervalValue}
-                            onChange={(e) => setSessionCachePendingApprovalIntervalValue(Number(e.target.value))}
+                            value={currentSettings.sessionCachePendingApprovalInterval}
+                            onChange={(e) => handleSettingChange('sessionCachePendingApprovalInterval', Number(e.target.value))}
                             min="10"
                         />
                     </div>
@@ -981,8 +811,8 @@ export default function SettingsPage() {
                         <Input
                             id="cache-completed-nopr"
                             type="number"
-                            value={sessionCacheCompletedNoPrIntervalValue}
-                            onChange={(e) => setSessionCacheCompletedNoPrIntervalValue(Number(e.target.value))}
+                            value={currentSettings.sessionCacheCompletedNoPrInterval}
+                            onChange={(e) => handleSettingChange('sessionCacheCompletedNoPrInterval', Number(e.target.value))}
                             min="60"
                         />
                     </div>
@@ -991,8 +821,8 @@ export default function SettingsPage() {
                         <Input
                             id="cache-max-age"
                             type="number"
-                            value={sessionCacheMaxAgeDaysValue}
-                            onChange={(e) => setSessionCacheMaxAgeDaysValue(Number(e.target.value))}
+                            value={currentSettings.sessionCacheMaxAgeDays}
+                            onChange={(e) => handleSettingChange('sessionCacheMaxAgeDays', Number(e.target.value))}
                             min="1"
                         />
                          <p className="text-xs text-muted-foreground">Sessions older than this will only update manually.</p>
@@ -1018,8 +848,8 @@ export default function SettingsPage() {
                         <Input
                             id="jobs-per-page"
                             type="number"
-                            value={jobsPerPageValue}
-                            onChange={(e) => setJobsPerPageValue(Number(e.target.value))}
+                            value={currentSettings.jobsPerPage}
+                            onChange={(e) => handleSettingChange('jobsPerPage', Number(e.target.value))}
                             min="1"
                         />
                     </div>
@@ -1028,8 +858,8 @@ export default function SettingsPage() {
                         <Input
                             id="session-items-per-page"
                             type="number"
-                            value={sessionItemsPerPageValue}
-                            onChange={(e) => setSessionItemsPerPageValue(Number(e.target.value))}
+                            value={currentSettings.sessionItemsPerPage}
+                            onChange={(e) => handleSettingChange('sessionItemsPerPage', Number(e.target.value))}
                             min="1"
                         />
                     </div>
@@ -1038,8 +868,8 @@ export default function SettingsPage() {
                         <Input
                             id="title-truncate-length"
                             type="number"
-                            value={titleTruncateLengthValue}
-                            onChange={(e) => setTitleTruncateLengthValue(Number(e.target.value))}
+                            value={currentSettings.titleTruncateLength}
+                            onChange={(e) => handleSettingChange('titleTruncateLength', Number(e.target.value))}
                             min="10"
                         />
                     </div>
@@ -1048,8 +878,8 @@ export default function SettingsPage() {
                         <Input
                             id="line-clamp"
                             type="number"
-                            value={lineClampValue}
-                            onChange={(e) => setLineClampValue(Number(e.target.value))}
+                            value={currentSettings.lineClamp}
+                            onChange={(e) => handleSettingChange('lineClamp', Number(e.target.value))}
                             min="1"
                             max="10"
                         />
@@ -1059,8 +889,8 @@ export default function SettingsPage() {
                         <Input
                             id="history-prompts-count"
                             type="number"
-                            value={historyPromptsCountValue}
-                            onChange={(e) => setHistoryPromptsCountValue(Number(e.target.value))}
+                            value={currentSettings.historyPromptsCount}
+                            onChange={(e) => handleSettingChange('historyPromptsCount', Number(e.target.value))}
                             min="0"
                         />
                     </div>
@@ -1071,140 +901,91 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
-        {/* Profiles Tab */}
-        <TabsContent value="profiles" className="space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Profiles</CardTitle>
-                  <CardDescription>Manage your settings profiles.</CardDescription>
-                </div>
-                <Button onClick={() => openDialog('profile')} disabled={isSavingMessage || isLoadingProfiles}>
-                  <Plus className="mr-2 h-4 w-4" /> Add New
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {isLoadingProfiles ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-10 w-full" />
-                    </div>
-                ) : (
-                    <div className="border rounded-lg">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Name</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead className="w-[80px] text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {profiles.map((profile) => (
-                              <TableRow key={profile.id}>
-                                <TableCell className="font-medium">{profile.name}</TableCell>
-                                <TableCell>
-                                    {profile.isActive ?
-                                        <span className="text-green-600 font-semibold">Active</span> :
-                                        <Button variant="link" size="sm" onClick={() => handleSetActive(profile.id)}>Set Active</Button>
-                                    }
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" disabled={isSavingMessage}>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                      <DropdownMenuItem onClick={() => openDialog('profile', profile)}>
-                                        <Edit className="mr-2 h-4 w-4" /> Rename
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleDelete('profile', profile.id)} className="text-destructive" disabled={profiles.length <= 1}>
-                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                    </div>
-                )}
-              </CardContent>
-            </Card>
-        </TabsContent>
 
       </Tabs>
 
       {/* Dialogs for Messages */}
       <Dialog open={dialogState.isOpen} onOpenChange={closeDialog}>
         <DialogContent className="sm:max-w-[425px]">
-            {dialogState.type === 'profile' ? (
-                <>
-                  <DialogHeader>
-                    <DialogTitle>
-                      {(dialogState.data as Profile)?.id ? "Rename Profile" : "Add New Profile"}
-                    </DialogTitle>
-                    <DialogDescription>
-                       Create a new profile to save a different set of settings.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="profile-name" className="text-right">Name</Label>
-                      <Input
-                        id="profile-name"
-                        value={profileName}
-                        onChange={(e) => setProfileName(e.target.value)}
-                        className="col-span-3"
-                        placeholder="A short, descriptive name"
-                      />
-                    </div>
-                  </div>
-                </>
-            ) : (
-                 <>
-                    <DialogHeader>
-                      <DialogTitle>
-                        {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Message' : 'Quick Reply'}
-                      </DialogTitle>
-                      <DialogDescription>
-                         Create a new reusable {dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="title" className="text-right">Title</Label>
-                        <Input
-                          id="title"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          className="col-span-3"
-                          placeholder="A short, descriptive title"
-                        />
-                      </div>
-                      <div className="grid grid-cols-4 items-start gap-4">
-                        <Label htmlFor="prompt-text" className="text-right pt-2">Content</Label>
-                        <Textarea
-                          id="prompt-text"
-                          value={promptText}
-                          onChange={(e) => setPromptText(e.target.value)}
-                          className="col-span-3"
-                          rows={6}
-                          placeholder="Enter the full text here..."
-                        />
-                      </div>
-                    </div>
-                 </>
-            )}
+          <DialogHeader>
+            <DialogTitle>
+              {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Message' : 'Quick Reply'}
+            </DialogTitle>
+            <DialogDescription>
+               Create a new reusable {dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="title" className="text-right">Title</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="col-span-3"
+                placeholder="A short, descriptive title"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="prompt-text" className="text-right pt-2">Content</Label>
+              <Textarea
+                id="prompt-text"
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                className="col-span-3"
+                rows={6}
+                placeholder="Enter the full text here..."
+              />
+            </div>
+          </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" disabled={isSavingMessage}>Cancel</Button></DialogClose>
             <Button onClick={handleSaveMessage} disabled={isSavingMessage}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Dialog for Renaming Profile */}
+    <Dialog open={renameDialogState.isOpen} onOpenChange={() => setRenameDialogState({ isOpen: false, profile: null })}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>Rename Profile</DialogTitle>
+                <DialogDescription>
+                    Enter a new name for the profile &quot;{renameDialogState.profile?.name}&quot;.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="new-profile-name" className="text-right">Name</Label>
+                    <Input
+                        id="new-profile-name"
+                        value={newProfileName}
+                        onChange={(e) => setNewProfileName(e.target.value)}
+                        className="col-span-3"
+                        placeholder="Enter new profile name"
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                <Button onClick={handleRenameProfile}>Save</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    {/* Dialog for Deleting Profile */}
+    <Dialog open={deleteDialogState.isOpen} onOpenChange={() => setDeleteDialogState({ isOpen: false, profile: null })}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>Delete Profile</DialogTitle>
+                <DialogDescription>
+                    Are you sure you want to delete the profile &quot;{deleteDialogState.profile?.name}&quot;? This action cannot be undone.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                <Button onClick={handleDeleteProfile} variant="destructive">Delete</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
     </div>
   );
 }

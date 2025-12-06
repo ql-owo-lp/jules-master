@@ -23,7 +23,7 @@ export function useLocalStorage<T>(
     try {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
+    } catch {
       return initialValue;
     }
   });
@@ -55,7 +55,7 @@ export function useLocalStorage<T>(
   
   // Effect to listen for storage change events from other instances of the hook
   useEffect(() => {
-    const handleStorageChange = (event: { key: string, value: any }) => {
+    const handleStorageChange = (event: { key: string, value: T }) => {
         if (event.key === key && JSON.stringify(event.value) !== JSON.stringify(storedValueRef.current)) {
             setStoredValue(event.value);
         }

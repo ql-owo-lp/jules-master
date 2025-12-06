@@ -12,7 +12,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
     await updateCronJob(id, data);
     return NextResponse.json({ success: true });
-  } catch (error) {
+    } catch {
     return NextResponse.json({ error: 'Failed to update cron job' }, { status: 500 });
   }
 }
@@ -22,7 +22,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     const { id } = await params;
     await deleteCronJob(id);
     return NextResponse.json({ success: true });
-  } catch (error) {
+    } catch {
     return NextResponse.json({ error: 'Failed to delete cron job' }, { status: 500 });
   }
 }

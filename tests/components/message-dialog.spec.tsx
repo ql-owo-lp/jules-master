@@ -1,9 +1,9 @@
 
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MessageDialog } from '@/components/message-dialog';
 import { Button } from '@/components/ui/button';
 import React from 'react';
+
 import { vi } from 'vitest';
 
 // Mock useLocalStorage to behave like useState for this test
@@ -18,8 +18,7 @@ vi.mock('@/hooks/use-local-storage', () => ({
 describe('MessageDialog', () => {
   const trigger = <Button>Open Dialog</Button>;
 
-  it('clears the message when the dialog is closed and reopened', async () => {
-    const user = userEvent.setup();
+  it('clears the message when the dialog is closed and reopened', () => {
     const handleSendMessage = vi.fn();
     render(
       <MessageDialog
@@ -30,23 +29,23 @@ describe('MessageDialog', () => {
     );
 
     // Open the dialog
-    await user.click(screen.getByText('Open Dialog'));
+    fireEvent.click(screen.getByText('Open Dialog'));
 
     // Check if the dialog is open
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     // Type a message
     const textarea = screen.getByPlaceholderText('Type your message here...');
-    await user.type(textarea, 'Hello, World!');
-    expect(textarea).toHaveValue('Hello, World!');
+    fireEvent.change(textarea, { target: { value: 'Hello, World!' } });
+    expect(textarea.value).toBe('Hello, World!');
 
     // Close the dialog
-    await user.click(screen.getByText('Cancel'));
+    fireEvent.click(screen.getByText('Cancel'));
 
     // Reopen the dialog
-    await user.click(screen.getByText('Open Dialog'));
+    fireEvent.click(screen.getByText('Open Dialog'));
 
     // Check if the message is cleared
-    expect(textarea).toHaveValue('');
+    expect(textarea.value).toBe('');
   });
 });

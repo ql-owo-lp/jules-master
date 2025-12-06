@@ -10,7 +10,7 @@ export interface FetchOptions extends RequestInit {
 type QueueItem = {
   fn: (signal: AbortSignal) => Promise<Response>;
   resolve: (value: Response | PromiseLike<Response>) => void;
-  reject: (reason?: any) => void;
+  reject: (reason?: unknown) => void;
   controller?: AbortController; // Controlled by the queue for cancellation by ID
   externalSignal?: AbortSignal | null; // Passed from caller
   requestId?: string;
@@ -206,15 +206,15 @@ class RequestQueue {
 const globalQueue = new RequestQueue();
 
 export function resetQueue() {
-  // @ts-ignore - Accessing private members for testing
+  // @ts-expect-error -- Resetting private members for testing
   globalQueue.queue = [];
-  // @ts-ignore
+  // @ts-expect-error -- Resetting private members for testing
   globalQueue.activeCount = 0;
-  // @ts-ignore
+  // @ts-expect-error -- Resetting private members for testing
   globalQueue.activeRequests.clear();
-  // @ts-ignore
+  // @ts-expect-error -- Resetting private members for testing
   globalQueue.lastRequestTime = 0;
-  // @ts-ignore
+  // @ts-expect-error -- Resetting private members for testing
   globalQueue.backoffUntil = 0;
 }
 
@@ -306,8 +306,8 @@ export async function fetchWithRetry(
             }
           }
           return response;
-        } catch (error: any) {
-          if (error.name === 'AbortError') throw error;
+        } catch (error: unknown) {
+          if (error instanceof Error && error.name === 'AbortError') throw error;
 
           attempt++;
           if (attempt < retries) {

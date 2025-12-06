@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Session, Job, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
+import type { Session, Job, PredefinedPrompt } from "@/lib/types";
 import { JobStatusBadge } from "./job-status-badge";
 import { formatDistanceToNow } from "date-fns";
 import { RefreshCw, Hand, Loader2, MessageSquare, Briefcase, X, CheckCircle2, Bot, MessageSquareReply, Clock } from "lucide-react";

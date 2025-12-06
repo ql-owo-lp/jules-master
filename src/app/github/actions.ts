@@ -24,7 +24,7 @@ const parsePrUrl = (url: string) => {
         pull_number: parseInt(parts[4], 10),
       };
     }
-  } catch (e) {
+  } catch {
     console.error('Invalid PR URL', url);
   }
   return null;
@@ -76,15 +76,10 @@ const getPullRequestStatusFromApi = unstable_cache(
       const prData: GitHubPullRequest = await prResponse.json();
 
       // Determine PR state
-      let state: 'OPEN' | 'MERGED' | 'CLOSED' = 'CLOSED';
-      if (prData.merged) {
-        state = 'MERGED';
-      } else if (prData.state === 'open') {
-        state = 'OPEN';
-      }
+      const state: 'OPEN' | 'MERGED' | 'CLOSED' = prData.merged ? 'MERGED' : prData.state === 'open' ? 'OPEN' : 'CLOSED';
 
       // If not merged, get the CI check status for the head SHA
-      let checks: {
+      const checks: {
         status: 'unknown' | 'success' | 'failure' | 'pending';
         total: number;
         passed: number;

@@ -85,20 +85,6 @@
       "when": 1764937972788,
       "tag": "0011_many_sage",
       "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "6",
-      "when": 1764942040345,
-      "tag": "0012_faulty_scarecrow",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "6",
-      "when": 1764942070879,
-      "tag": "0013_yellow_lady_mastermind",
-      "breakpoints": true
     }
   ]
 }

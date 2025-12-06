@@ -5,33 +5,37 @@ import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { settingsSchema } from '@/lib/validation';
 
-import { profiles } from '@/lib/db/schema';
-
-async function getActiveProfile() {
-  let activeProfile = await db.select().from(profiles).where(eq(profiles.isActive, true)).limit(1);
-  if (activeProfile.length === 0) {
-    const allProfiles = await db.select().from(profiles).all();
-    if (allProfiles.length === 0) {
-        // First run, create default profile
-        const newProfile = await db.insert(profiles).values({ name: 'Default', isActive: true }).returning();
-        const newSettings = { profileId: newProfile[0].id };
-        await db.insert(settings).values(newSettings);
-        return newProfile[0];
-    }
-    // No active profile, make the first one active
-    await db.update(profiles).set({ isActive: true }).where(eq(profiles.id, allProfiles[0].id));
-    return allProfiles[0];
-  }
-  return activeProfile[0];
-}
-
-
 export async function GET() {
   try {
-    const activeProfile = await getActiveProfile();
-    const result = await db.select().from(settings).where(eq(settings.profileId, activeProfile.id)).limit(1);
+    const result = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
 
-    // There will always be settings for a profile, so no need to check for empty result
+    if (result.length === 0) {
+      // Return default settings if none exist in DB
+      return NextResponse.json({
+        idlePollInterval: 120,
+        activePollInterval: 30,
+        titleTruncateLength: 50,
+        lineClamp: 1,
+        sessionItemsPerPage: 10,
+        jobsPerPage: 5,
+        defaultSessionCount: 10,
+        prStatusPollInterval: 60,
+        theme: 'system',
+        autoApprovalInterval: 60,
+        autoRetryEnabled: true,
+        autoRetryMessage: "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution",
+        autoContinueEnabled: true,
+        autoContinueMessage: "Sounds good. Now go ahead finish the work",
+        sessionCacheInProgressInterval: 60,
+        sessionCacheCompletedNoPrInterval: 1800,
+        sessionCachePendingApprovalInterval: 300,
+        sessionCacheMaxAgeDays: 3,
+        autoDeleteStaleBranches: false,
+        autoDeleteStaleBranchesAfterDays: 3,
+        historyPromptsCount: 10,
+      });
+    }
+
     return NextResponse.json(result[0]);
   } catch (error) {
     console.error('Error fetching settings:', error);
@@ -53,9 +57,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    const activeProfile = await getActiveProfile();
+    const newSettings = {
+      id: 1, // Ensure we are updating the singleton row
+      ...validation.data,
+    };
 
-    await db.update(settings).set(validation.data).where(eq(settings.profileId, activeProfile.id));
+    const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+
+    if (existing.length > 0) {
+        await db.update(settings).set(newSettings).where(eq(settings.id, 1));
+    } else {
+        await db.insert(settings).values(newSettings);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

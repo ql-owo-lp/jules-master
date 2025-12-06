@@ -5,7 +5,7 @@ import React, { useState, useEffect, useTransition, useCallback, Suspense, useMe
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
+import type { Session, Job, State, PredefinedPrompt } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, X, Briefcase, GitMerge, Activity, Wand2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,7 +70,7 @@ function HomePageContent() {
 
   const { filteredJobs, unknownSessions } = useMemo(() => {
     const allJobSessionIds = new Set(jobs.flatMap(j => j.sessionIds));
-    let unknown = sessions.filter(s => !allJobSessionIds.has(s.id));
+    const unknown = sessions.filter(s => !allJobSessionIds.has(s.id));
 
     // Logic to extract job name from prompt and group unknown sessions
     const { groupedSessions, remainingUnknown } = groupSessionsByTopic(unknown);
@@ -145,7 +145,7 @@ function HomePageContent() {
         setPendingBackgroundWork(fetchedPendingWork);
         setLastUpdatedAt(Date.now());
         setCountdown(sessionListPollInterval);
-      } catch (e) {
+      } catch {
           // Ignore abort errors
       } finally {
         if (activeRequestId.current === requestId) {
@@ -153,8 +153,30 @@ function HomePageContent() {
         }
       }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast]);
+  }, [apiKey, sessionListPollInterval, toast, setSessions, setJobs, setQuickReplies, setLastUpdatedAt]);
+
+  // Initial fetch and set up polling interval
+  useEffect(() => {
+    if (isClient) {
+      if (apiKey || julesApiKey) {
+        const now = Date.now();
+        const intervalInMs = sessionListPollInterval * 1000;
+
+        // Check if cache is fresh
+        const isCacheFresh = lastUpdatedAt && (now - lastUpdatedAt < intervalInMs);
+
+        if (!isCacheFresh) {
+          fetchAllData();
+        }
+
+        if (intervalInMs > 0) {
+          const intervalId = setInterval(() => fetchAllData(), intervalInMs);
+          return () => clearInterval(intervalId);
+        }
+      }
+    }
+  }, [isClient, apiKey, julesApiKey, sessionListPollInterval, fetchAllData, lastUpdatedAt]);
+
 
   // Cancel any pending request on unmount
   useEffect(() => {
@@ -189,8 +211,7 @@ function HomePageContent() {
         }
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, apiKey, sessionListPollInterval]);
+  }, [isClient, apiKey, julesApiKey, sessionListPollInterval, fetchAllData, lastUpdatedAt]);
   
 
   // Countdown timer
@@ -202,7 +223,7 @@ function HomePageContent() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isClient, apiKey, sessionListPollInterval, lastUpdatedAt]);
+  }, [isClient, apiKey, julesApiKey, sessionListPollInterval, lastUpdatedAt]);
 
 
   const handleRefresh = async () => {
@@ -286,7 +307,7 @@ function HomePageContent() {
 
         // Refresh data to reflect new states
         fetchAllData();
-      } catch (error) {
+      } catch {
           toast({
               variant: "destructive",
               title: "Bulk Approval Failed",
@@ -353,7 +374,7 @@ function HomePageContent() {
                 description: `Successfully sent message to ${successfulMessages} of ${sessionIds.length} sessions.`,
             });
             fetchAllData();
-        } catch (error) {
+        } catch {
             toast({
                 variant: "destructive",
                 title: "Bulk Message Failed",

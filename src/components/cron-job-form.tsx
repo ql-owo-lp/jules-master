@@ -5,10 +5,7 @@ import { useState, useTransition, useCallback, useEffect, useMemo } from "react"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -56,7 +53,7 @@ export function CronJobForm({
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string | undefined>(undefined);
   const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
-  const [lastSourcesFetch, setLastSourcesFetch] = useLocalStorage<number>("jules-sources-last-fetch", 0);
+  const [, setLastSourcesFetch] = useLocalStorage<number>("jules-sources-last-fetch", 0);
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
 
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
@@ -151,7 +148,7 @@ export function CronJobForm({
 
     try {
         cronParser.parse(schedule);
-    } catch (err) {
+    } catch {
         toast({
             variant: "destructive",
             title: "Invalid Schedule",

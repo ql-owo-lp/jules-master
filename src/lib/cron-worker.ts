@@ -1,9 +1,9 @@
 
 import { db } from './db';
 import { cronJobs, jobs } from './db/schema';
-import { eq, and, lte } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import cronParser from 'cron-parser';
-import type { CronJob, Job } from './types';
+import type { Job } from './types';
 
 export async function processCronJobs() {
   console.log("Checking cron jobs...");

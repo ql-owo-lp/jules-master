@@ -1,1 +1,0 @@
-DROP TABLE `force_migration`;

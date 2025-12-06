@@ -1,8 +1,8 @@
 
 import { db } from './db';
 import { sessions, settings } from './db/schema';
-import { eq, inArray, sql, lt, and, not } from 'drizzle-orm';
-import type { Session, State, SessionOutput } from '@/lib/types';
+import { sql } from 'drizzle-orm';
+import type { Session, State } from '@/lib/types';
 import { fetchWithRetry } from './fetch-client';
 
 // Type definitions for easier usage

@@ -1,8 +1,8 @@
 
 import '@testing-library/jest-dom';
-import { vi, beforeAll, afterAll } from 'vitest';
+import { vi } from 'vitest';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { db } from '../src/lib/db';
-import { sql } from 'drizzle-orm';
 
 // Mock ResizeObserver
 class ResizeObserver {
@@ -15,150 +15,8 @@ window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
 vi.stubGlobal('ResizeObserver', ResizeObserver);
 
-beforeAll(async () => {
-  // Initialize the database schema
-  await db.run(sql`
-    CREATE TABLE "jobs" (
-        "id" text PRIMARY KEY NOT NULL,
-        "name" text NOT NULL,
-        "session_ids" text,
-        "created_at" text NOT NULL,
-        "repo" text NOT NULL,
-        "branch" text NOT NULL,
-        "auto_approval" integer DEFAULT false NOT NULL,
-        "background" integer DEFAULT false NOT NULL,
-        "prompt" text,
-        "session_count" integer,
-        "status" text,
-        "automation_mode" text,
-        "require_plan_approval" integer,
-        "cron_job_id" text
-    );
-  `);
-  await db.run(sql`
-    CREATE TABLE "cron_jobs" (
-        "id" text PRIMARY KEY NOT NULL,
-        "name" text NOT NULL,
-        "schedule" text NOT NULL,
-        "prompt" text NOT NULL,
-        "repo" text NOT NULL,
-        "branch" text NOT NULL,
-        "created_at" text NOT NULL,
-        "updated_at" text,
-        "last_run_at" text,
-        "enabled" integer DEFAULT true NOT NULL,
-        "auto_approval" integer DEFAULT false NOT NULL,
-        "automation_mode" text,
-        "require_plan_approval" integer,
-        "session_count" integer DEFAULT 1
-    );
-  `);
-    await db.run(sql`
-    CREATE TABLE "predefined_prompts" (
-        "id" text PRIMARY KEY NOT NULL,
-        "title" text NOT NULL,
-        "prompt" text NOT NULL
-    );
-    `);
-    await db.run(sql`
-    CREATE TABLE "history_prompts" (
-        "id" text PRIMARY KEY NOT NULL,
-        "prompt" text NOT NULL,
-        "last_used_at" text NOT NULL
-    );
-    `);
-    await db.run(sql`
-    CREATE TABLE "quick_replies" (
-        "id" text PRIMARY KEY NOT NULL,
-        "title" text NOT NULL,
-        "prompt" text NOT NULL
-    );
-    `);
-    await db.run(sql`
-    CREATE TABLE "global_prompt" (
-        "id" integer PRIMARY KEY NOT NULL,
-        "prompt" text NOT NULL
-    );
-    `);
-    await db.run(sql`
-    CREATE TABLE "repo_prompts" (
-        "repo" text PRIMARY KEY NOT NULL,
-        "prompt" text NOT NULL
-    );
-    `);
-    await db.run(sql`
-    CREATE TABLE "profiles" (
-        "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "name" text NOT NULL,
-        "is_active" integer DEFAULT false NOT NULL
-    );
-    `);
-    await db.run(sql`
-    CREATE UNIQUE INDEX "profiles_name_unique" ON "profiles" ("name");
-    `);
-    await db.run(sql`
-    CREATE TABLE "settings" (
-        "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "profile_id" integer NOT NULL,
-        "idle_poll_interval" integer DEFAULT 120 NOT NULL,
-        "active_poll_interval" integer DEFAULT 30 NOT NULL,
-        "title_truncate_length" integer DEFAULT 50 NOT NULL,
-        "line_clamp" integer DEFAULT 1 NOT NULL,
-        "session_items_per_page" integer DEFAULT 10 NOT NULL,
-        "jobs_per_page" integer DEFAULT 5 NOT NULL,
-        "default_session_count" integer DEFAULT 10 NOT NULL,
-        "pr_status_poll_interval" integer DEFAULT 60 NOT NULL,
-        "theme" text DEFAULT 'system' NOT NULL,
-        "history_prompts_count" integer DEFAULT 10 NOT NULL,
-        "auto_approval_interval" integer DEFAULT 60 NOT NULL,
-        "auto_retry_enabled" integer DEFAULT true NOT NULL,
-        "auto_retry_message" text DEFAULT 'You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution' NOT NULL,
-        "auto_continue_enabled" integer DEFAULT true NOT NULL,
-        "auto_continue_message" text DEFAULT 'Sounds good. Now go ahead finish the work' NOT NULL,
-        "session_cache_in_progress_interval" integer DEFAULT 60 NOT NULL,
-        "session_cache_completed_no_pr_interval" integer DEFAULT 1800 NOT NULL,
-        "session_cache_pending_approval_interval" integer DEFAULT 300 NOT NULL,
-        "session_cache_max_age_days" integer DEFAULT 3 NOT NULL,
-        "auto_delete_stale_branches" integer DEFAULT false NOT NULL,
-        "auto_delete_stale_branches_after_days" integer DEFAULT 3 NOT NULL,
-        FOREIGN KEY ("profile_id") REFERENCES "profiles"("id") ON UPDATE no action ON DELETE cascade
-    );
-    `);
-    await db.run(sql`
-    CREATE TABLE "sessions" (
-        "id" text PRIMARY KEY NOT NULL,
-        "name" text NOT NULL,
-        "title" text NOT NULL,
-        "prompt" text NOT NULL,
-        "source_context" text,
-        "create_time" text,
-        "update_time" text,
-        "state" text NOT NULL,
-        "url" text,
-        "outputs" text,
-        "require_plan_approval" integer,
-        "automation_mode" text,
-        "last_updated" integer NOT NULL,
-        "retry_count" integer DEFAULT 0 NOT NULL,
-        "last_error" text
-    );
-    `);
-});
-
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
-afterAll(async () => {
-    // Drop all tables after tests are done
-    await db.run(sql`DROP TABLE IF EXISTS "sessions";`);
-    await db.run(sql`DROP TABLE IF EXISTS "settings";`);
-    await db.run(sql`DROP TABLE IF EXISTS "profiles";`);
-    await db.run(sql`DROP TABLE IF EXISTS "repo_prompts";`);
-    await db.run(sql`DROP TABLE IF EXISTS "global_prompt";`);
-    await db.run(sql`DROP TABLE IF EXISTS "quick_replies";`);
-    await db.run(sql`DROP TABLE IF EXISTS "history_prompts";`);
-    await db.run(sql`DROP TABLE IF EXISTS "predefined_prompts";`);
-    await db.run(sql`DROP TABLE IF EXISTS "cron_jobs";`);
-    await db.run(sql`DROP TABLE IF EXISTS "jobs";`);
-});
+migrate(db, { migrationsFolder: 'src/lib/db/migrations' });
