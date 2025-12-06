@@ -37,6 +37,25 @@ describe('Session Service', () => {
       expect(isPrMerged(sessionWithMergedPr)).toBe(true);
     });
 
+    it('should return true if a session has a merged pull request (case insensitive)', () => {
+      const sessionWithMergedPr: Session = {
+        id: 'session-1-lower',
+        name: 'sessions/session-1-lower',
+        state: 'COMPLETED',
+        outputs: [
+          {
+            pullRequest: {
+              status: 'merged' as any,
+              url: 'https://github.com/example/repo/pull/1',
+              title: 'Test PR',
+              description: 'This is a test pull request.',
+            },
+          },
+        ],
+      };
+      expect(isPrMerged(sessionWithMergedPr)).toBe(true);
+    });
+
     it('should return false if a session has no outputs', () => {
       const sessionWithoutOutputs: Session = {
         id: 'session-2',
