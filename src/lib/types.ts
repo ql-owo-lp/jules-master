@@ -112,6 +112,12 @@ export type PredefinedPrompt = {
   prompt: string;
 };
 
+export type Profile = {
+  id: string;
+  name: string;
+  isEnabled: boolean;
+};
+
 export type HistoryPrompt = {
     id: string;
     prompt: string;

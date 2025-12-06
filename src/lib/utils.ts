@@ -59,7 +59,10 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
         hash |= 0; // Convert to 32bit integer
       }
 
-      const slug = jobName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      let slug = jobName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      if (!slug) {
+        slug = Buffer.from(jobName).toString('hex');
+      }
       return {
         id: `dynamic-${slug}-${Math.abs(hash).toString(36)}`,
         name: jobName,

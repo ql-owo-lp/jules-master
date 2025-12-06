@@ -10,9 +10,7 @@ import {
 } from '../src/app/config/actions';
 import { Job, PredefinedPrompt } from '../src/lib/types';
 import { db } from '../src/lib/db';
-import { jobs, predefinedPrompts, quickReplies, globalPrompt, historyPrompts, repoPrompts, profiles } from '../src/lib/db/schema';
-import { eq } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
+import { jobs, predefinedPrompts, quickReplies, globalPrompt, historyPrompts, repoPrompts } from '../src/lib/db/schema';
 
 // Mock next/cache
 vi.mock('next/cache', () => ({
@@ -20,8 +18,6 @@ vi.mock('next/cache', () => ({
 }));
 
 describe('Config Actions', () => {
-    let profileId: string;
-
     beforeAll(async () => {
         // Clear all tables before running the tests
         await db.delete(jobs);
@@ -30,16 +26,6 @@ describe('Config Actions', () => {
         await db.delete(globalPrompt);
         await db.delete(historyPrompts);
         await db.delete(repoPrompts);
-        await db.delete(profiles);
-
-        // Create a test profile
-        profileId = uuidv4();
-        await db.insert(profiles).values({
-            id: profileId,
-            name: 'Test Profile',
-            isActive: true,
-            createdAt: new Date().toISOString()
-        });
     });
 
     afterAll(async () => {
@@ -50,7 +36,6 @@ describe('Config Actions', () => {
         await db.delete(globalPrompt);
         await db.delete(historyPrompts);
         await db.delete(repoPrompts);
-        await db.delete(profiles);
     });
 
     describe('Jobs', () => {
@@ -74,7 +59,6 @@ describe('Config Actions', () => {
             expect(retrievedJobs).toBeDefined();
             expect(retrievedJobs.length).toBe(1);
             expect(retrievedJobs[0].name).toBe('Test Action Job');
-            expect(retrievedJobs[0].profileId).toBe(profileId);
         });
     });
 
@@ -94,7 +78,6 @@ describe('Config Actions', () => {
 
             expect(retrieved).toHaveLength(2);
             expect(retrieved.find(p => p.id === 'p1')).toBeDefined();
-            expect(retrieved[0].profileId).toBe(profileId);
         });
 
         it('should replace existing predefined prompts', async () => {
@@ -141,7 +124,6 @@ describe('Config Actions', () => {
 
             expect(retrieved).toHaveLength(2);
             expect(retrieved.find(r => r.id === 'q1')).toBeDefined();
-            expect(retrieved[0].profileId).toBe(profileId);
         });
 
         it('should replace existing quick replies', async () => {
@@ -170,10 +152,6 @@ describe('Config Actions', () => {
             await saveGlobalPrompt('Global 1');
             const retrieved = await getGlobalPrompt();
             expect(retrieved).toBe('Global 1');
-
-            // Verification of profileId directly in DB
-            const gp = await db.select().from(globalPrompt).limit(1);
-            expect(gp[0].profileId).toBe(profileId);
         });
 
         it('should update global prompt', async () => {
@@ -200,7 +178,6 @@ describe('Config Actions', () => {
             const retrieved = await getHistoryPrompts();
             expect(retrieved).toHaveLength(2);
             expect(retrieved.find(p => p.prompt === 'History 1')).toBeDefined();
-            expect(retrieved[0].profileId).toBe(profileId);
         });
 
         it('should not save duplicate history prompts', async () => {
@@ -220,10 +197,6 @@ describe('Config Actions', () => {
             await saveRepoPrompt('user/repo1', 'Repo Prompt 1');
             const retrieved = await getRepoPrompt('user/repo1');
             expect(retrieved).toBe('Repo Prompt 1');
-
-             // Verification of profileId directly in DB
-            const rp = await db.select().from(repoPrompts).where(eq(repoPrompts.repo, 'user/repo1')).limit(1);
-            expect(rp[0].profileId).toBe(profileId);
         });
 
         it('should return an empty string for a repo without a specific prompt', async () => {

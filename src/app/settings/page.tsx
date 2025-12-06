@@ -2,13 +2,14 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw } from "lucide-react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw, User, Settings, Check } from "lucide-react";
+import { useLocalStorage, useProfileAwareLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
 import { useEnv } from "@/components/env-provider";
 import {
@@ -64,12 +65,12 @@ import { SourceSelection } from "@/components/source-selection";
 import { CronJobsList } from "@/components/cron-jobs-list";
 import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
-import type { PredefinedPrompt, Source } from "@/lib/types";
+import type { PredefinedPrompt, Source, Profile } from "@/lib/types";
 
 type DialogState = {
   isOpen: boolean;
-  type: 'prompt' | 'reply';
-  data: PredefinedPrompt | null;
+  type: 'prompt' | 'reply' | 'profile';
+  data: PredefinedPrompt | Profile | null;
 }
 
 export default function SettingsPage() {
@@ -77,34 +78,46 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
-  // --- Settings State (from SettingsSheet) ---
-  const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const [idlePollInterval, setIdlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
-  const [activePollInterval, setActivePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
-  const [titleTruncateLength, setTitleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
-  const [lineClamp, setLineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
-  const [sessionItemsPerPage, setSessionItemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
-  const [jobsPerPage, setJobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
-  const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
-  const [prStatusPollInterval, setPrStatusPollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
-  const [historyPromptsCount, setHistoryPromptsCount] = useLocalStorage<number>("jules-history-prompts-count", 10);
-  const [autoApprovalInterval, setAutoApprovalInterval] = useLocalStorage<number>("jules-auto-approval-interval", 60);
-  const [autoRetryEnabled, setAutoRetryEnabled] = useLocalStorage<boolean>("jules-auto-retry-enabled", true);
-  const [autoRetryMessage, setAutoRetryMessage] = useLocalStorage<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
-  const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
-  const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
-  const [debugMode, setDebugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
+  const currentTab = searchParams.get("tab") || "general";
+
+  const onTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", value);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  // --- Settings State (from SettingsSheet) ---
+  const [apiKey, setApiKey] = useProfileAwareLocalStorage<string>("jules-api-key", "");
+  const [githubToken, setGithubToken] = useProfileAwareLocalStorage<string>("jules-github-token", "");
+
+  const [idlePollInterval, setIdlePollInterval] = useProfileAwareLocalStorage<number>("jules-idle-poll-interval", 120);
+  const [activePollInterval, setActivePollInterval] = useProfileAwareLocalStorage<number>("jules-active-poll-interval", 30);
+  const [titleTruncateLength, setTitleTruncateLength] = useProfileAwareLocalStorage<number>("jules-title-truncate-length", 50);
+  const [lineClamp, setLineClamp] = useProfileAwareLocalStorage<number>("jules-line-clamp", 1);
+  const [sessionItemsPerPage, setSessionItemsPerPage] = useProfileAwareLocalStorage<number>("jules-session-items-per-page", 10);
+  const [jobsPerPage, setJobsPerPage] = useProfileAwareLocalStorage<number>("jules-jobs-per-page", 5);
+  const [defaultSessionCount, setDefaultSessionCount] = useProfileAwareLocalStorage<number>("jules-default-session-count", 10);
+  const [prStatusPollInterval, setPrStatusPollInterval] = useProfileAwareLocalStorage<number>("jules-pr-status-poll-interval", 60);
+  const [historyPromptsCount, setHistoryPromptsCount] = useProfileAwareLocalStorage<number>("jules-history-prompts-count", 10);
+  const [autoApprovalInterval, setAutoApprovalInterval] = useProfileAwareLocalStorage<number>("jules-auto-approval-interval", 60);
+  const [autoRetryEnabled, setAutoRetryEnabled] = useProfileAwareLocalStorage<boolean>("jules-auto-retry-enabled", true);
+  const [autoRetryMessage, setAutoRetryMessage] = useProfileAwareLocalStorage<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
+  const [autoContinueEnabled, setAutoContinueEnabled] = useProfileAwareLocalStorage<boolean>("jules-auto-continue-enabled", true);
+  const [autoContinueMessage, setAutoContinueMessage] = useProfileAwareLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
+  const [debugMode, setDebugMode] = useProfileAwareLocalStorage<boolean>("jules-debug-mode", false);
 
   // New Settings for Session Cache
-  const [sessionCacheInProgressInterval, setSessionCacheInProgressInterval] = useLocalStorage<number>("jules-session-cache-in-progress-interval", 60);
-  const [sessionCacheCompletedNoPrInterval, setSessionCacheCompletedNoPrInterval] = useLocalStorage<number>("jules-session-cache-completed-no-pr-interval", 1800);
-  const [sessionCachePendingApprovalInterval, setSessionCachePendingApprovalInterval] = useLocalStorage<number>("jules-session-cache-pending-approval-interval", 300);
-  const [sessionCacheMaxAgeDays, setSessionCacheMaxAgeDays] = useLocalStorage<number>("jules-session-cache-max-age-days", 3);
+  const [sessionCacheInProgressInterval, setSessionCacheInProgressInterval] = useProfileAwareLocalStorage<number>("jules-session-cache-in-progress-interval", 60);
+  const [sessionCacheCompletedNoPrInterval, setSessionCacheCompletedNoPrInterval] = useProfileAwareLocalStorage<number>("jules-session-cache-completed-no-pr-interval", 1800);
+  const [sessionCachePendingApprovalInterval, setSessionCachePendingApprovalInterval] = useProfileAwareLocalStorage<number>("jules-session-cache-pending-approval-interval", 300);
+  const [sessionCacheMaxAgeDays, setSessionCacheMaxAgeDays] = useProfileAwareLocalStorage<number>("jules-session-cache-max-age-days", 3);
 
-  const [autoDeleteStaleBranches, setAutoDeleteStaleBranches] = useLocalStorage<boolean>("jules-auto-delete-stale-branches", false);
-  const [autoDeleteStaleBranchesAfterDays, setAutoDeleteStaleBranchesAfterDays] = useLocalStorage<number>("jules-auto-delete-stale-branches-after-days", 3);
+  const [autoDeleteStaleBranches, setAutoDeleteStaleBranches] = useProfileAwareLocalStorage<boolean>("jules-auto-delete-stale-branches", false);
+  const [autoDeleteStaleBranchesAfterDays, setAutoDeleteStaleBranchesAfterDays] = useProfileAwareLocalStorage<number>("jules-auto-delete-stale-branches-after-days", 3);
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
@@ -155,6 +168,8 @@ export default function SettingsPage() {
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, type: 'prompt', data: null });
   const [title, setTitle] = useState("");
   const [promptText, setPromptText] = useState("");
+  const [profiles, setProfiles] = useLocalStorage<Profile[]>("jules-profiles", [{ id: "default", name: "Default", isEnabled: true }]);
+  const [profileName, setProfileName] = useState("");
 
 
   // --- Effects for Settings ---
@@ -362,31 +377,48 @@ export default function SettingsPage() {
     });
   };
 
-  const openDialog = (type: 'prompt' | 'reply', data: PredefinedPrompt | null = null) => {
+  const openDialog = (type: 'prompt' | 'reply' | 'profile', data: PredefinedPrompt | Profile | null = null) => {
     setDialogState({ isOpen: true, type, data });
-    setTitle(data?.title || "");
-    setPromptText(data?.prompt || "");
+    if (type === 'profile') {
+        setProfileName((data as Profile)?.name || "");
+    } else {
+        setTitle((data as PredefinedPrompt)?.title || "");
+        setPromptText((data as PredefinedPrompt)?.prompt || "");
+    }
   };
 
   const closeDialog = () => {
     setDialogState({ isOpen: false, type: 'prompt', data: null });
   }
 
-  const handleDelete = (type: 'prompt' | 'reply', id: string) => {
+  const handleDelete = (type: 'prompt' | 'reply' | 'profile', id: string) => {
      startSavingMessage(async () => {
         if (type === 'prompt') {
             const updatedPrompts = prompts.filter((p) => p.id !== id);
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
             toast({ title: "Message deleted" });
-        } else {
+        } else if (type === 'reply') {
             const updatedReplies = quickReplies.filter((r) => r.id !== id);
             await saveQuickReplies(updatedReplies);
             setQuickReplies(updatedReplies);
             toast({ title: "Quick Reply deleted" });
+        } else if (type === 'profile') {
+            const updatedProfiles = profiles.filter((p) => p.id !== id);
+            setProfiles(updatedProfiles);
+            toast({ title: "Profile deleted" });
         }
      });
   };
+
+  const handleSave = () => {
+    const { type } = dialogState;
+    if (type === 'prompt' || type === 'reply') {
+        handleSaveMessage();
+    } else if (type === 'profile') {
+        handleSaveProfile();
+    }
+  }
 
   const handleSaveMessage = () => {
     if (!title.trim() || !promptText.trim()) {
@@ -396,30 +428,67 @@ export default function SettingsPage() {
 
     startSavingMessage(async () => {
         const { type, data } = dialogState;
+        const currentData = data as PredefinedPrompt;
 
         if (type === 'prompt') {
             let updatedPrompts: PredefinedPrompt[];
-            if (data?.id) {
-                updatedPrompts = prompts.map((p) => p.id === data.id ? { ...p, title, prompt: promptText } : p);
+            if (currentData?.id) {
+                updatedPrompts = prompts.map((p) => p.id === currentData.id ? { ...p, title, prompt: promptText } : p);
             } else {
                 updatedPrompts = [...prompts, { id: crypto.randomUUID(), title, prompt: promptText }];
             }
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
-            toast({ title: data?.id ? "Message updated" : "Message added" });
+            toast({ title: currentData?.id ? "Message updated" : "Message added" });
         } else {
             let updatedReplies: PredefinedPrompt[];
-            if (data?.id) {
-                updatedReplies = quickReplies.map((r) => r.id === data.id ? { ...r, title, prompt: promptText } : r);
+            if (currentData?.id) {
+                updatedReplies = quickReplies.map((r) => r.id === currentData.id ? { ...r, title, prompt: promptText } : r);
             } else {
                 updatedReplies = [...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText }];
             }
             await saveQuickReplies(updatedReplies);
             setQuickReplies(updatedReplies);
-            toast({ title: data?.id ? "Quick Reply updated" : "Quick Reply added" });
+            toast({ title: currentData?.id ? "Quick Reply updated" : "Quick Reply added" });
         }
         closeDialog();
     });
+  };
+
+  const handleSaveProfile = () => {
+    if (!profileName.trim()) {
+      toast({ variant: "destructive", title: "Missing field", description: "Profile name is required." });
+      return;
+    }
+
+    const { data } = dialogState;
+    const currentProfile = data as Profile;
+    let updatedProfiles: Profile[];
+
+    if (currentProfile?.id) {
+        // Rename
+        updatedProfiles = profiles.map((p) => p.id === currentProfile.id ? { ...p, name: profileName } : p);
+    } else {
+        // Add new
+        const newProfile: Profile = {
+            id: crypto.randomUUID(),
+            name: profileName,
+            isEnabled: false
+        };
+        updatedProfiles = [...profiles, newProfile];
+    }
+    setProfiles(updatedProfiles);
+    toast({ title: currentProfile?.id ? "Profile renamed" : "Profile added" });
+    closeDialog();
+  };
+
+  const handleEnableProfile = (profileId: string) => {
+    const updatedProfiles = profiles.map(p => ({
+        ...p,
+        isEnabled: p.id === profileId
+    }));
+    setProfiles(updatedProfiles);
+    toast({ title: "Profile enabled" });
   };
 
   const handleSaveGlobalPrompt = () => {
@@ -509,15 +578,12 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto py-8 max-w-5xl">
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
-      <Tabs defaultValue="general" className="w-full">
+      <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="automation">Automation</TabsTrigger>
-          <TabsTrigger value="cache">Cache</TabsTrigger>
-          <TabsTrigger value="display">Display</TabsTrigger>
-          <TabsTrigger value="config">Configuration</TabsTrigger>
         </TabsList>
 
         {/* General Tab */}
@@ -525,7 +591,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>General Settings</CardTitle>
-                    <CardDescription>API keys and debug settings.</CardDescription>
+                    <CardDescription>API keys, polling intervals, and other general settings.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -581,9 +647,239 @@ export default function SettingsPage() {
                             <p className="text-xs text-muted-foreground">Using GITHUB_TOKEN environment variable.</p>
                         )}
                     </div>
+                                         <div className="grid gap-2">
+                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
+                        <Input
+                            id="idle-poll-interval"
+                            type="number"
+                            value={idlePollIntervalValue}
+                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
+                            min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
+                        <Input
+                            id="active-poll-interval"
+                            type="number"
+                            value={activePollIntervalValue}
+                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
+                            min="1"
+                        />
+                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
+                        <Input
+                            id="pr-status-poll-interval"
+                            type="number"
+                            value={prStatusPollIntervalValue}
+                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
+                        <Input
+                            id="default-session-count"
+                            type="number"
+                            value={defaultSessionCountValue}
+                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
+                            min="1"
+                        />
+                    </div>
                 </CardContent>
                 <CardFooter>
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
+                </CardFooter>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Automation Settings</CardTitle>
+                    <CardDescription>Configure automated behaviors.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="auto-retry-enabled">Auto Retry Failed Sessions</Label>
+                            <p className="text-xs text-muted-foreground">Automatically send a retry message when a session fails.</p>
+                        </div>
+                        <Switch id="auto-retry-enabled" checked={autoRetryEnabledValue} onCheckedChange={setAutoRetryEnabledValue} />
+                    </div>
+                    {autoRetryEnabledValue && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="auto-retry-message">Auto Retry Message</Label>
+                            <Textarea
+                                id="auto-retry-message"
+                                value={autoRetryMessageValue}
+                                onChange={(e) => setAutoRetryMessageValue(e.target.value)}
+                            />
+                        </div>
+                    )}
+                     <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="auto-continue-enabled">Auto Continue Completed Sessions</Label>
+                            <p className="text-xs text-muted-foreground">Automatically send a continue message when a session completes without a PR.</p>
+                        </div>
+                        <Switch id="auto-continue-enabled" checked={autoContinueEnabledValue} onCheckedChange={setAutoContinueEnabledValue} />
+                    </div>
+                    {autoContinueEnabledValue && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="auto-continue-message">Auto Continue Message</Label>
+                            <Textarea
+                                id="auto-continue-message"
+                                value={autoContinueMessageValue}
+                                onChange={(e) => setAutoContinueMessageValue(e.target.value)}
+                            />
+                        </div>
+                    )}
+                    <div className="grid gap-2">
+                        <Label htmlFor="auto-approval-interval">Auto Approval Check Interval (seconds)</Label>
+                        <Input
+                            id="auto-approval-interval"
+                            type="number"
+                            value={autoApprovalIntervalValue}
+                            onChange={(e) => setAutoApprovalIntervalValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="auto-delete-stale-branches">Auto Delete Stale Branches</Label>
+                            <p className="text-xs text-muted-foreground">Automatically delete branches after their PRs are merged.</p>
+                        </div>
+                        <Switch id="auto-delete-stale-branches" checked={autoDeleteStaleBranchesValue} onCheckedChange={setAutoDeleteStaleBranchesValue} />
+                    </div>
+                    {autoDeleteStaleBranchesValue && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="auto-delete-stale-branches-after-days">Auto Delete Stale Branches After (days)</Label>
+                            <Input
+                                id="auto-delete-stale-branches-after-days"
+                                type="number"
+                                value={autoDeleteStaleBranchesAfterDaysValue}
+                                onChange={(e) => setAutoDeleteStaleBranchesAfterDaysValue(Number(e.target.value))}
+                                min="1"
+                            />
+                        </div>
+                    )}
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Automation Settings</Button>
+                </CardFooter>
+             </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Cache & Polling Settings</CardTitle>
+                    <CardDescription>Configure how session status is updated.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="grid gap-2">
+                        <Label htmlFor="cache-in-progress">In Progress Update Interval (seconds)</Label>
+                        <Input
+                            id="cache-in-progress"
+                            type="number"
+                            value={sessionCacheInProgressIntervalValue}
+                            onChange={(e) => setSessionCacheInProgressIntervalValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="cache-pending">Pending Approval Update Interval (seconds)</Label>
+                        <Input
+                            id="cache-pending"
+                            type="number"
+                            value={sessionCachePendingApprovalIntervalValue}
+                            onChange={(e) => setSessionCachePendingApprovalIntervalValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="cache-completed-nopr">Completed (No PR) Update Interval (seconds)</Label>
+                        <Input
+                            id="cache-completed-nopr"
+                            type="number"
+                            value={sessionCacheCompletedNoPrIntervalValue}
+                            onChange={(e) => setSessionCacheCompletedNoPrIntervalValue(Number(e.target.value))}
+                            min="60"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="cache-max-age">Max Session Age to Update (days)</Label>
+                        <Input
+                            id="cache-max-age"
+                            type="number"
+                            value={sessionCacheMaxAgeDaysValue}
+                            onChange={(e) => setSessionCacheMaxAgeDaysValue(Number(e.target.value))}
+                            min="1"
+                        />
+                         <p className="text-xs text-muted-foreground">Sessions older than this will only update manually.</p>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Cache Settings</Button>
+                </CardFooter>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Display Settings</CardTitle>
+                    <CardDescription>Customize the interface appearance.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="grid gap-2">
+                        <Label htmlFor="jobs-per-page">Jobs Per Page</Label>
+                        <Input
+                            id="jobs-per-page"
+                            type="number"
+                            value={jobsPerPageValue}
+                            onChange={(e) => setJobsPerPageValue(Number(e.target.value))}
+                            min="1"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="session-items-per-page">Sessions Per Page (within a job)</Label>
+                        <Input
+                            id="session-items-per-page"
+                            type="number"
+                            value={sessionItemsPerPageValue}
+                            onChange={(e) => setSessionItemsPerPageValue(Number(e.target.value))}
+                            min="1"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="title-truncate-length">Session Title Truncation Length</Label>
+                        <Input
+                            id="title-truncate-length"
+                            type="number"
+                            value={titleTruncateLengthValue}
+                            onChange={(e) => setTitleTruncateLengthValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="line-clamp">Activity Feed Line Clamp</Label>
+                        <Input
+                            id="line-clamp"
+                            type="number"
+                            value={lineClampValue}
+                            onChange={(e) => setLineClampValue(Number(e.target.value))}
+                            min="1"
+                            max="10"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="history-prompts-count">History Prompts Count</Label>
+                        <Input
+                            id="history-prompts-count"
+                            type="number"
+                            value={historyPromptsCountValue}
+                            onChange={(e) => setHistoryPromptsCountValue(Number(e.target.value))}
+                            min="0"
+                        />
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Display Settings</Button>
                 </CardFooter>
             </Card>
         </TabsContent>
@@ -594,6 +890,67 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* Messages Tab */}
+        {/* Profiles Tab */}
+        <TabsContent value="profiles" className="space-y-6">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <User className="h-6 w-6" />
+                            <CardTitle>Profiles</CardTitle>
+                        </div>
+                        <CardDescription>Manage your settings profiles.</CardDescription>
+                    </div>
+                    <Button onClick={() => openDialog('profile', null)}><Plus className="mr-2 h-4 w-4" /> Add New Profile</Button>
+                </CardHeader>
+                <CardContent>
+                     <div className="border rounded-lg">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="w-[80px] text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {profiles.map(profile => (
+                                <TableRow key={profile.id}>
+                                    <TableCell className="font-medium">{profile.name}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2">
+                                            <div className={cn("h-2 w-2 rounded-full", profile.isEnabled ? "bg-green-500" : "bg-gray-400")}></div>
+                                            <span>{profile.isEnabled ? 'Enabled' : 'Disabled'}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="icon" title="Open menu">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                           <DropdownMenuItem onClick={() => handleEnableProfile(profile.id)} disabled={profile.isEnabled}>
+                                                <Check className="mr-2 h-4 w-4" /> Enable
+                                            </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => openDialog('profile', profile)}>
+                                            <Edit className="mr-2 h-4 w-4" /> Rename
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem className="text-destructive" disabled={profiles.length <= 1} onClick={() => handleDelete('profile', profile.id)}>
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
         <TabsContent value="messages" className="space-y-6">
             <Card>
               <CardHeader>
@@ -695,263 +1052,7 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
-        {/* Automation Tab */}
-        <TabsContent value="automation" className="space-y-6">
-             <Card>
-                <CardHeader>
-                    <CardTitle>Automation Settings</CardTitle>
-                    <CardDescription>Configure automated behaviors.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-retry-enabled">Auto Retry Failed Sessions</Label>
-                            <p className="text-xs text-muted-foreground">Automatically send a retry message when a session fails.</p>
-                        </div>
-                        <Switch id="auto-retry-enabled" checked={autoRetryEnabledValue} onCheckedChange={setAutoRetryEnabledValue} />
-                    </div>
-                    {autoRetryEnabledValue && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="auto-retry-message">Auto Retry Message</Label>
-                            <Textarea
-                                id="auto-retry-message"
-                                value={autoRetryMessageValue}
-                                onChange={(e) => setAutoRetryMessageValue(e.target.value)}
-                            />
-                        </div>
-                    )}
-                     <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-continue-enabled">Auto Continue Completed Sessions</Label>
-                            <p className="text-xs text-muted-foreground">Automatically send a continue message when a session completes without a PR.</p>
-                        </div>
-                        <Switch id="auto-continue-enabled" checked={autoContinueEnabledValue} onCheckedChange={setAutoContinueEnabledValue} />
-                    </div>
-                    {autoContinueEnabledValue && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="auto-continue-message">Auto Continue Message</Label>
-                            <Textarea
-                                id="auto-continue-message"
-                                value={autoContinueMessageValue}
-                                onChange={(e) => setAutoContinueMessageValue(e.target.value)}
-                            />
-                        </div>
-                    )}
-                    <div className="grid gap-2">
-                        <Label htmlFor="auto-approval-interval">Auto Approval Check Interval (seconds)</Label>
-                        <Input
-                            id="auto-approval-interval"
-                            type="number"
-                            value={autoApprovalIntervalValue}
-                            onChange={(e) => setAutoApprovalIntervalValue(Number(e.target.value))}
-                            min="10"
-                        />
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-delete-stale-branches">Auto Delete Stale Branches</Label>
-                            <p className="text-xs text-muted-foreground">Automatically delete branches after their PRs are merged.</p>
-                        </div>
-                        <Switch id="auto-delete-stale-branches" checked={autoDeleteStaleBranchesValue} onCheckedChange={setAutoDeleteStaleBranchesValue} />
-                    </div>
-                    {autoDeleteStaleBranchesValue && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="auto-delete-stale-branches-after-days">Auto Delete Stale Branches After (days)</Label>
-                            <Input
-                                id="auto-delete-stale-branches-after-days"
-                                type="number"
-                                value={autoDeleteStaleBranchesAfterDaysValue}
-                                onChange={(e) => setAutoDeleteStaleBranchesAfterDaysValue(Number(e.target.value))}
-                                min="1"
-                            />
-                        </div>
-                    )}
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Automation Settings</Button>
-                </CardFooter>
-             </Card>
-        </TabsContent>
 
-        {/* Cache Tab (New) */}
-        <TabsContent value="cache" className="space-y-6">
-             <Card>
-                <CardHeader>
-                    <CardTitle>Cache & Polling Settings</CardTitle>
-                    <CardDescription>Configure how session status is updated.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid gap-2">
-                        <Label htmlFor="cache-in-progress">In Progress Update Interval (seconds)</Label>
-                        <Input
-                            id="cache-in-progress"
-                            type="number"
-                            value={sessionCacheInProgressIntervalValue}
-                            onChange={(e) => setSessionCacheInProgressIntervalValue(Number(e.target.value))}
-                            min="10"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="cache-pending">Pending Approval Update Interval (seconds)</Label>
-                        <Input
-                            id="cache-pending"
-                            type="number"
-                            value={sessionCachePendingApprovalIntervalValue}
-                            onChange={(e) => setSessionCachePendingApprovalIntervalValue(Number(e.target.value))}
-                            min="10"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="cache-completed-nopr">Completed (No PR) Update Interval (seconds)</Label>
-                        <Input
-                            id="cache-completed-nopr"
-                            type="number"
-                            value={sessionCacheCompletedNoPrIntervalValue}
-                            onChange={(e) => setSessionCacheCompletedNoPrIntervalValue(Number(e.target.value))}
-                            min="60"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="cache-max-age">Max Session Age to Update (days)</Label>
-                        <Input
-                            id="cache-max-age"
-                            type="number"
-                            value={sessionCacheMaxAgeDaysValue}
-                            onChange={(e) => setSessionCacheMaxAgeDaysValue(Number(e.target.value))}
-                            min="1"
-                        />
-                         <p className="text-xs text-muted-foreground">Sessions older than this will only update manually.</p>
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Cache Settings</Button>
-                </CardFooter>
-            </Card>
-        </TabsContent>
-
-
-        {/* Display Tab */}
-        <TabsContent value="display" className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Display Settings</CardTitle>
-                    <CardDescription>Customize the interface appearance.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid gap-2">
-                        <Label htmlFor="jobs-per-page">Jobs Per Page</Label>
-                        <Input
-                            id="jobs-per-page"
-                            type="number"
-                            value={jobsPerPageValue}
-                            onChange={(e) => setJobsPerPageValue(Number(e.target.value))}
-                            min="1"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="session-items-per-page">Sessions Per Page (within a job)</Label>
-                        <Input
-                            id="session-items-per-page"
-                            type="number"
-                            value={sessionItemsPerPageValue}
-                            onChange={(e) => setSessionItemsPerPageValue(Number(e.target.value))}
-                            min="1"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="title-truncate-length">Session Title Truncation Length</Label>
-                        <Input
-                            id="title-truncate-length"
-                            type="number"
-                            value={titleTruncateLengthValue}
-                            onChange={(e) => setTitleTruncateLengthValue(Number(e.target.value))}
-                            min="10"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="line-clamp">Activity Feed Line Clamp</Label>
-                        <Input
-                            id="line-clamp"
-                            type="number"
-                            value={lineClampValue}
-                            onChange={(e) => setLineClampValue(Number(e.target.value))}
-                            min="1"
-                            max="10"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="history-prompts-count">History Prompts Count</Label>
-                        <Input
-                            id="history-prompts-count"
-                            type="number"
-                            value={historyPromptsCountValue}
-                            onChange={(e) => setHistoryPromptsCountValue(Number(e.target.value))}
-                            min="0"
-                        />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Display Settings</Button>
-                </CardFooter>
-            </Card>
-        </TabsContent>
-
-        {/* Configuration Tab */}
-        <TabsContent value="config" className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Advanced Configuration</CardTitle>
-                    <CardDescription>Fine-tune polling and other internal settings.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid gap-2">
-                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
-                        <Input
-                            id="idle-poll-interval"
-                            type="number"
-                            value={idlePollIntervalValue}
-                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
-                            min="0"
-                        />
-                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
-                        <Input
-                            id="active-poll-interval"
-                            type="number"
-                            value={activePollIntervalValue}
-                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
-                            min="1"
-                        />
-                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
-                        <Input
-                            id="pr-status-poll-interval"
-                            type="number"
-                            value={prStatusPollIntervalValue}
-                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
-                            min="10"
-                        />
-                    </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
-                        <Input
-                            id="default-session-count"
-                            type="number"
-                            value={defaultSessionCountValue}
-                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
-                            min="1"
-                        />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Configuration</Button>
-                </CardFooter>
-            </Card>
-        </TabsContent>
 
       </Tabs>
 
@@ -960,38 +1061,56 @@ export default function SettingsPage() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Message' : 'Quick Reply'}
+              {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Message' : dialogState.type === 'reply' ? 'Quick Reply' : 'Profile'}
             </DialogTitle>
             <DialogDescription>
-               Create a new reusable {dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}
+               {dialogState.type === 'profile'
+                    ? (dialogState.data ? "Rename the profile." : "Create a new profile.")
+                    : `Create a new reusable ${dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}`
+               }
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="col-span-3"
-                placeholder="A short, descriptive title"
-              />
+          {dialogState.type === 'profile' ? (
+             <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="profile-name" className="text-right">Name</Label>
+                  <Input
+                    id="profile-name"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    className="col-span-3"
+                    placeholder="A descriptive name"
+                  />
+                </div>
             </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="prompt-text" className="text-right pt-2">Content</Label>
-              <Textarea
-                id="prompt-text"
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                className="col-span-3"
-                rows={6}
-                placeholder="Enter the full text here..."
-              />
+          ) : (
+            <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="title" className="text-right">Title</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="col-span-3"
+                    placeholder="A short, descriptive title"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="prompt-text" className="text-right pt-2">Content</Label>
+                  <Textarea
+                    id="prompt-text"
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
+                    className="col-span-3"
+                    rows={6}
+                    placeholder="Enter the full text here..."
+                  />
+                </div>
             </div>
-          </div>
+          )}
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" disabled={isSavingMessage}>Cancel</Button></DialogClose>
-            <Button onClick={handleSaveMessage} disabled={isSavingMessage}>Save</Button>
+            <Button onClick={handleSave} disabled={isSavingMessage}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

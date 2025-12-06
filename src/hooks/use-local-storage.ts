@@ -89,3 +89,13 @@ export function useLocalStorage<T>(
 
   return [storedValue, setValue];
 }
+
+export function useProfileAwareLocalStorage<T>(key: string, defaultValue: T): [T, (value: T) => void] {
+    const [profiles] = useLocalStorage<any[]>("jules-profiles", [{ id: "default", name: "Default", isEnabled: true }]);
+    const activeProfile = profiles.find(p => p.isEnabled) || profiles[0];
+    const profileKey = `${activeProfile.id}-${key}`;
+
+    const [value, setValue] = useLocalStorage<T>(profileKey, defaultValue);
+
+    return [value, setValue];
+}

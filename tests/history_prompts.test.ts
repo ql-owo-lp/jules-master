@@ -19,6 +19,10 @@ vi.mock('@/lib/db', () => {
              return {
                 where: vi.fn((condition) => ({
                     get: vi.fn().mockImplementation(() => {
+                        // This is a very rough mock.
+                        // In a real scenario, we'd need to parse the condition.
+                        // For this test, we'll control the return via `vi.spyOn` in the test if needed,
+                        // or just return undefined by default (simulate not found).
                         return undefined;
                     })
                 })),
@@ -35,7 +39,6 @@ vi.mock('@/lib/db', () => {
     },
     appDatabase: {
       historyPrompts: {
-        getAll: vi.fn().mockResolvedValue([]), // Added getAll mock
         getRecent: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
@@ -57,7 +60,16 @@ describe('History Prompts', () => {
      const prompt = "New Prompt";
 
      // Setup mocks
-     (appDatabase.historyPrompts.getAll as any).mockResolvedValue([]);
+     // Mock db.select().from().where().get() to return undefined (not found)
+     const dbSelectMock = {
+         from: vi.fn().mockReturnValue({
+             where: vi.fn().mockReturnValue({
+                 get: vi.fn().mockResolvedValue(undefined)
+             })
+         })
+     };
+     // @ts-ignore
+     db.select.mockReturnValue(dbSelectMock);
 
      await saveHistoryPrompt(prompt);
 
@@ -71,7 +83,15 @@ describe('History Prompts', () => {
      const existingRecord = { id: '123', prompt: prompt, lastUsedAt: 'old-date' };
 
      // Setup mocks
-     (appDatabase.historyPrompts.getAll as any).mockResolvedValue([existingRecord]);
+     const dbSelectMock = {
+         from: vi.fn().mockReturnValue({
+             where: vi.fn().mockReturnValue({
+                 get: vi.fn().mockResolvedValue(existingRecord)
+             })
+         })
+     };
+     // @ts-ignore
+     db.select.mockReturnValue(dbSelectMock);
 
      await saveHistoryPrompt(prompt);
 

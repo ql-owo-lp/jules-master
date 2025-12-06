@@ -158,12 +158,12 @@ export function SessionList({
       .filter((s): s is Session => !!s)
       .filter(s => statusFilter === 'all' || s.state === statusFilter);
 
-    const jobSessionIds = sessionsForJob.map(s => s.id);
+    const filteredSessionIds = sessionsForJob.map(s => s.id);
 
     if (checked) {
-      setSelectedSessionIds(ids => [...new Set([...ids, ...jobSessionIds])]);
+      setSelectedSessionIds(ids => [...new Set([...ids, ...filteredSessionIds])]);
     } else {
-      setSelectedSessionIds(ids => ids.filter(id => !jobSessionIds.includes(id)));
+      setSelectedSessionIds(ids => ids.filter(id => !filteredSessionIds.includes(id)));
     }
   };
 
@@ -389,7 +389,7 @@ export function SessionList({
                     <div className="mt-2 text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>
-                            Pending Execution: {pendingBackgroundWork.pendingJobs} Jobs, {pendingBackgroundWork.retryingSessions} Retrying Sessions
+                            Pending / Running: {pendingBackgroundWork.pendingJobs} Jobs, {pendingBackgroundWork.retryingSessions} Retrying Sessions
                         </span>
                     </div>
                   )}
@@ -438,8 +438,9 @@ export function SessionList({
                     .filter(s => statusFilter === 'all' || s.state === statusFilter);
 
                   const jobSessionIds = job.sessionIds;
-                  const isAllSelected = jobSessionIds.length > 0 && jobSessionIds.every(id => selectedSessionIds.includes(id));
-                  const isSomeSelected = jobSessionIds.some(id => selectedSessionIds.includes(id));
+                  const filteredSessionIds = sessionsForJob.map(s => s.id);
+                  const isAllSelected = filteredSessionIds.length > 0 && filteredSessionIds.every(id => selectedSessionIds.includes(id));
+                  const isSomeSelected = filteredSessionIds.some(id => selectedSessionIds.includes(id));
                   const selectAllState = isAllSelected ? true : (isSomeSelected ? 'indeterminate' : false);
                   
                   const currentPage = sessionPages[job.id] || 1;

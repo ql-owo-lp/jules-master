@@ -5,7 +5,7 @@ import { appDatabase, db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import type { Job, PredefinedPrompt, HistoryPrompt } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, or } from 'drizzle-orm';
 
 // --- Jobs ---
 export async function getJobs(): Promise<Job[]> {
@@ -19,7 +19,32 @@ export async function addJob(job: Job): Promise<void> {
 }
 
 export async function getPendingBackgroundWorkCount(): Promise<{ pendingJobs: number, retryingSessions: number }> {
-    return appDatabase.jobs.getPendingWorkCount();
+    const pendingJobs = await db.select().from(schema.jobs).where(
+        or(eq(schema.jobs.status, 'PENDING'), eq(schema.jobs.status, 'PROCESSING'))
+    );
+
+    // For retrying sessions, we want sessions that are FAILED and have retries left (retryCount < maxRetries)
+    // AND probably where last error was recoverable?
+    // We'll simplify and count FAILED sessions that have retryCount < 50 (since max could be 50).
+    // Or we could try to be more specific.
+    // The requirement says "failed due to 'too many requests' error, we will keep retrying it for 50 times. Otherwise... 3 times."
+
+    const failedSessions = await db.select().from(schema.sessions).where(eq(schema.sessions.state, 'FAILED'));
+    let retryingSessionsCount = 0;
+
+    for (const session of failedSessions) {
+        const errorReason = session.lastError || "";
+        const isRateLimit = errorReason.toLowerCase().includes("too many requests") || errorReason.includes("429");
+        const maxRetries = isRateLimit ? 50 : 3;
+        if ((session.retryCount || 0) < maxRetries) {
+            retryingSessionsCount++;
+        }
+    }
+
+    return {
+        pendingJobs: pendingJobs.length,
+        retryingSessions: retryingSessionsCount
+    };
 }
 
 // --- Predefined Prompts ---
@@ -28,19 +53,14 @@ export async function getPredefinedPrompts(): Promise<PredefinedPrompt[]> {
 }
 
 export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promise<void> {
-    const existing = await appDatabase.predefinedPrompts.getAll();
-    const existingIds = existing.map(p => p.id);
-
-    // Delete existing ones
-    for (const id of existingIds) {
-        await appDatabase.predefinedPrompts.delete(id);
-    }
-
-    // Insert new ones
-    if (prompts.length > 0) {
-        await appDatabase.predefinedPrompts.createMany(prompts);
-    }
-
+    // This is not efficient, but for this small scale it is fine.
+    // A better implementation would be to diff the arrays.
+    db.transaction((tx) => {
+        tx.delete(schema.predefinedPrompts).run();
+        if (prompts.length > 0) {
+            tx.insert(schema.predefinedPrompts).values(prompts).run();
+        }
+    });
     revalidatePath('/settings');
 }
 
@@ -54,8 +74,8 @@ export async function getHistoryPrompts(): Promise<HistoryPrompt[]> {
 export async function saveHistoryPrompt(promptText: string): Promise<void> {
     if (!promptText.trim()) return;
 
-    const allHistory = await appDatabase.historyPrompts.getAll();
-    const existing = allHistory.find(p => p.prompt === promptText);
+    // Check if prompt already exists
+    const existing = await db.select().from(schema.historyPrompts).where(eq(schema.historyPrompts.prompt, promptText)).get();
 
     if (existing) {
         await appDatabase.historyPrompts.update(existing.id, { lastUsedAt: new Date().toISOString() });
@@ -77,16 +97,13 @@ export async function getQuickReplies(): Promise<PredefinedPrompt[]> {
 }
 
 export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<void> {
-    const existing = await appDatabase.quickReplies.getAll();
-    const existingIds = existing.map(p => p.id);
-
-    for (const id of existingIds) {
-        await appDatabase.quickReplies.delete(id);
-    }
-
-    if (replies.length > 0) {
-        await appDatabase.quickReplies.createMany(replies);
-    }
+    // This is not efficient, but for this small scale it is fine.
+    db.transaction((tx) => {
+        tx.delete(schema.quickReplies).run();
+        if (replies.length > 0) {
+            tx.insert(schema.quickReplies).values(replies).run();
+        }
+    });
     revalidatePath('/settings');
 }
 
