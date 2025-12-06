@@ -4,18 +4,17 @@ import { sessions, settings } from './db/schema';
 import { eq, inArray, sql, lt, and, not } from 'drizzle-orm';
 import type { Session, State, SessionOutput } from '@/lib/types';
 import { fetchWithRetry } from './fetch-client';
-import { profileService } from './db/profile-service';
 
 // Type definitions for easier usage
 export type CachedSession = typeof sessions.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 
 /**
- * Gets the current application settings for a specific profile.
+ * Gets the current application settings.
  * Creates default settings if they don't exist.
  */
-export async function getSettings(profileId: string): Promise<Settings> {
-  const existingSettings = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
+export async function getSettings(): Promise<Settings> {
+  const existingSettings = await db.select().from(settings).limit(1);
 
   if (existingSettings.length > 0) {
     return existingSettings[0];
@@ -23,7 +22,6 @@ export async function getSettings(profileId: string): Promise<Settings> {
 
   // Create default settings if not found
   const defaultSettings = await db.insert(settings).values({
-    profileId,
     idlePollInterval: 120,
     activePollInterval: 30,
     sessionCacheInProgressInterval: 60,
@@ -38,7 +36,7 @@ export async function getSettings(profileId: string): Promise<Settings> {
 /**
  * Saves or updates a session in the local database.
  */
-export async function upsertSession(session: Session, profileId: string) {
+export async function upsertSession(session: Session) {
   const now = Date.now();
   const sessionData = {
     id: session.id,
@@ -54,20 +52,7 @@ export async function upsertSession(session: Session, profileId: string) {
     requirePlanApproval: session.requirePlanApproval,
     automationMode: session.automationMode,
     lastUpdated: now,
-    profileId,
   };
-
-  // We need to check if session exists with same ID but different profile?
-  // Session IDs are likely globally unique in Jules API, so one session should probably belong to one profile context in our app?
-  // Or if multiple users share the same Jules API session, they might want to see it.
-  // But given the schema change, `profileId` is a column in `sessions` table.
-  // This implies a session belongs to a profile.
-  // If we want to support sharing, we'd need a join table.
-  // For now, let's assume one-to-one.
-
-  // Note: onConflictDoUpdate needs to handle the conflict target.
-  // SQLite `sessions.id` is PK.
-  // So we just update profileId as well if it changed (maybe?)
 
   await db.insert(sessions)
     .values(sessionData)
@@ -78,17 +63,10 @@ export async function upsertSession(session: Session, profileId: string) {
 }
 
 /**
- * Retrieves all sessions from the local database for a profile, sorted by creation time descending.
+ * Retrieves all sessions from the local database, sorted by creation time descending.
  */
-export async function getCachedSessions(profileId?: string): Promise<Session[]> {
-  let query = db.select().from(sessions);
-
-  if (profileId) {
-      // @ts-ignore
-      query = query.where(eq(sessions.profileId, profileId));
-  }
-
-  const cachedSessions = await query.orderBy(sql`${sessions.createTime} DESC`);
+export async function getCachedSessions(): Promise<Session[]> {
+  const cachedSessions = await db.select().from(sessions).orderBy(sql`${sessions.createTime} DESC`);
 
   // Map back to Session type if needed, though they should be compatible
   return cachedSessions.map(s => ({
@@ -155,10 +133,9 @@ async function fetchSessionFromApi(sessionId: string, apiKey: string): Promise<S
  * Syncs a specific list of sessions if they are stale.
  * This function is intended to be called periodically or on demand.
  */
-export async function syncStaleSessions(apiKey: string, profileId: string) {
-  const settings = await getSettings(profileId);
-  // Only sync sessions for this profile
-  const cachedSessions = await db.select().from(sessions).where(eq(sessions.profileId, profileId));
+export async function syncStaleSessions(apiKey: string) {
+  const settings = await getSettings();
+  const cachedSessions = await db.select().from(sessions);
   const now = Date.now();
 
   const sessionsToUpdate: string[] = [];
@@ -194,7 +171,7 @@ export async function syncStaleSessions(apiKey: string, profileId: string) {
         break;
 
       case 'COMPLETED':
-        if (isPrMerged(session as Session)) {
+        if (isPrMerged(session)) {
           break;
         }
         // If completed and PR is not merged, update every 30 mins.
@@ -217,13 +194,16 @@ export async function syncStaleSessions(apiKey: string, profileId: string) {
   }
 
   // Update sessions in batches/concurrency control
+  // For simplicity, we'll do promise.all with a concurrency limit if needed, or just iterate.
+  // Given "don't hit jules api rate limit", we should be careful.
+  // Let's process 5 at a time.
   const BATCH_SIZE = 5;
   for (let i = 0; i < sessionsToUpdate.length; i += BATCH_SIZE) {
     const batch = sessionsToUpdate.slice(i, i + BATCH_SIZE);
     await Promise.all(batch.map(async (id) => {
         const updatedSession = await fetchSessionFromApi(id, apiKey);
         if (updatedSession) {
-            await upsertSession(updatedSession, profileId);
+            await upsertSession(updatedSession);
         }
     }));
   }
@@ -232,10 +212,10 @@ export async function syncStaleSessions(apiKey: string, profileId: string) {
 /**
  * Force refresh a specific session.
  */
-export async function forceRefreshSession(sessionId: string, apiKey: string, profileId: string) {
+export async function forceRefreshSession(sessionId: string, apiKey: string) {
     const updatedSession = await fetchSessionFromApi(sessionId, apiKey);
     if (updatedSession) {
-        await upsertSession(updatedSession, profileId);
+        await upsertSession(updatedSession);
     }
     return updatedSession;
 }

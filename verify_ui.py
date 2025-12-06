@@ -1,40 +1,29 @@
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import Page, expect, sync_playwright
 
-def verify_settings_page():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+def verify_settings_page(page: Page):
+  """
+  This test verifies that the new auto-delete settings are visible on the
+  settings page.
+  """
+  # 1. Arrange: Go to the settings page.
+  page.goto("http://localhost:9002/settings")
 
-        try:
-            print("Navigating to settings...")
-            # Navigate to the settings page
-            page.goto("http://localhost:9002/settings", timeout=60000)
+  # 2. Act: Find the "Automation" tab and click it.
+  automation_tab = page.get_by_role("tab", name="Automation")
+  automation_tab.click()
 
-            print("Waiting for Profiles tab...")
-            # Wait for the profiles tab to be visible
-            page.wait_for_selector("text=Profiles", timeout=60000)
+  # 3. Assert: Confirm the new settings are visible.
+  expect(page.get_by_label("Auto Delete Stale Branches")).to_be_visible()
 
-            # Take a screenshot of the initial state (Profiles tab)
-            page.screenshot(path="verify_screenshots/settings_profiles.png")
-            print("Screenshot of Profiles tab saved.")
-
-            # Click on General tab to verify merged configuration
-            print("Clicking General tab...")
-            page.click("text=General")
-            page.wait_for_selector("text=General Settings")
-            page.wait_for_selector("text=Advanced Polling & Limits") # Verify merged config section
-
-            # Take a screenshot of the General tab
-            page.screenshot(path="verify_screenshots/settings_general.png")
-            print("Screenshot of General tab saved.")
-
-        except Exception as e:
-            print(f"Error: {e}")
-            page.screenshot(path="verify_screenshots/error.png")
-            print("Error screenshot saved.")
-        finally:
-            browser.close()
+  # 4. Screenshot: Capture the final result for visual verification.
+  page.screenshot(path="/app/verification_screenshot.png")
 
 if __name__ == "__main__":
-    verify_settings_page()
+  with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    page = browser.new_page()
+    try:
+      verify_settings_page(page)
+    finally:
+      browser.close()

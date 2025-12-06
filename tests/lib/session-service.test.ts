@@ -70,7 +70,6 @@ describe('Session Service', () => {
     it('should not update a completed session with a merged pull request', async () => {
       // Arrange
       const apiKey = 'test-api-key';
-      const profileId = 'test-profile-id';
       const now = Date.now();
       const mergedSession = {
         id: 'session-merged',
@@ -79,7 +78,6 @@ describe('Session Service', () => {
         state: 'COMPLETED',
         createTime: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day old
         lastUpdated: now - (1801 * 1000), // older than sessionCacheCompletedNoPrInterval
-        profileId,
         outputs: [
           {
             pullRequest: {
@@ -97,7 +95,6 @@ describe('Session Service', () => {
         sessionCacheInProgressInterval: 60,
         sessionCachePendingApprovalInterval: 300,
         sessionCacheCompletedNoPrInterval: 1800,
-        profileId,
       };
 
       const mockedDb = vi.mocked(db);
@@ -112,18 +109,10 @@ describe('Session Service', () => {
 
       fromMock.mockImplementation((table: any) => {
         if (table === settings) {
-          // Mock the chain: .where().limit()
-          return {
-              where: vi.fn().mockReturnValue({
-                  limit: vi.fn().mockResolvedValue([mockSettings])
-              })
-          };
+          return { limit: vi.fn().mockResolvedValue([mockSettings]) };
         }
         if (table === sessions) {
-           // Mock the chain: .where()
-          return {
-             where: vi.fn().mockResolvedValue([mergedSession])
-          };
+          return Promise.resolve([mergedSession]);
         }
         return Promise.resolve([]);
       });
@@ -135,9 +124,11 @@ describe('Session Service', () => {
       } as Response);
 
       // Act
-      await syncStaleSessions(apiKey, profileId);
+      await syncStaleSessions(apiKey);
 
       // Assert
+      // Due to the bug, this session WILL be fetched for an update.
+      // The test will fail here until the bug is fixed.
       expect(mockedFetch).not.toHaveBeenCalledWith(
         `https://jules.googleapis.com/v1alpha/sessions/${mergedSession.id}`,
         expect.any(Object)

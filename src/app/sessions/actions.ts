@@ -5,7 +5,6 @@ import type { Session, Source } from '@/lib/types';
 import { revalidateTag } from 'next/cache';
 import { fetchWithRetry, cancelRequest } from '@/lib/fetch-client';
 import { getCachedSessions, syncStaleSessions, upsertSession, forceRefreshSession } from '@/lib/session-service';
-import { profileService } from '@/lib/db/profile-service';
 
 type ListSessionsResponse = {
   sessions: Session[];
@@ -89,17 +88,14 @@ export async function listSessions(
     return { sessions: [], error: "Jules API key is not configured. Please set it in the settings." };
   }
 
-  const activeProfile = await profileService.getActiveProfile();
-
   try {
     // 1. Get cached sessions from DB
-    // Pass profileId to filter by profile
-    let sessions = await getCachedSessions(activeProfile.id);
+    let sessions = await getCachedSessions();
     const isInitialFetch = sessions.length === 0;
 
     // 2. If DB is empty, perform an initial fetch from API to populate it
     if (isInitialFetch) {
-        console.log("Session cache is empty for this profile, performing initial fetch...");
+        console.log("Session cache is empty, performing initial fetch...");
         // Fetch the first page or so to populate.
         // NOTE: We might want to fetch *all* pages if we want a complete cache,
         // but for now let's just fetch the first page to be responsive.
@@ -112,9 +108,9 @@ export async function listSessions(
         }
 
         for (const s of firstPage.sessions) {
-            await upsertSession(s, activeProfile.id);
+            await upsertSession(s);
         }
-        sessions = await getCachedSessions(activeProfile.id);
+        sessions = await getCachedSessions();
     }
 
     // 3. Trigger background sync for stale sessions
@@ -125,12 +121,7 @@ export async function listSessions(
     if (!isInitialFetch) {
       (async () => {
           try {
-              // We pass profileId so syncStaleSessions can fetch settings for that profile if needed,
-              // or at least know which profile we are syncing.
-              // Wait, syncStaleSessions iterates over *all* sessions in DB or just for this user?
-              // The original implementation of syncStaleSessions iterates over stale sessions in DB.
-              // If we want to sync only for this profile, we should pass profileId.
-              await syncStaleSessions(effectiveApiKey, activeProfile.id);
+              await syncStaleSessions(effectiveApiKey);
           } catch (e) {
               console.error("Background session sync failed", e);
           }
@@ -151,8 +142,7 @@ export async function refreshSession(sessionId: string, apiKey?: string | null) 
         console.error("Jules API key is not configured.");
         return;
       }
-    const activeProfile = await profileService.getActiveProfile();
-    await forceRefreshSession(sessionId, effectiveApiKey, activeProfile.id);
+    await forceRefreshSession(sessionId, effectiveApiKey);
 }
 
 export async function fetchSessionsPage(

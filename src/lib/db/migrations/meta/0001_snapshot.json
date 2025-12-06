@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "89a9ebc5-fe4c-439b-a5c2-7d24b7941581",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "7abc6b76-7e07-466d-982e-eaaf31448c01",
+  "prevId": "89a9ebc5-fe4c-439b-a5c2-7d24b7941581",
   "tables": {
     "global_prompt": {
       "name": "global_prompt",
@@ -134,6 +134,87 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "settings": {
+      "name": "settings",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "idle_poll_interval": {
+          "name": "idle_poll_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 120
+        },
+        "active_poll_interval": {
+          "name": "active_poll_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 30
+        },
+        "title_truncate_length": {
+          "name": "title_truncate_length",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 50
+        },
+        "line_clamp": {
+          "name": "line_clamp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "session_items_per_page": {
+          "name": "session_items_per_page",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 10
+        },
+        "jobs_per_page": {
+          "name": "jobs_per_page",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 5
+        },
+        "default_session_count": {
+          "name": "default_session_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 10
+        },
+        "pr_status_poll_interval": {
+          "name": "pr_status_poll_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 60
         }
       },
       "indexes": {},

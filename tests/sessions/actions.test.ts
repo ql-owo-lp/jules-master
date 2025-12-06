@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { listSessions, fetchSessionsPage, listSources, cancelSessionRequest } from '@/app/sessions/actions';
 import * as fetchClient from '@/lib/fetch-client';
 import * as sessionService from '@/lib/session-service';
-import { profileService } from '@/lib/db/profile-service';
 
 // Mock the fetch-client module
 vi.mock('@/lib/fetch-client', () => ({
@@ -17,13 +16,6 @@ vi.mock('@/lib/session-service', () => ({
   upsertSession: vi.fn(),
   syncStaleSessions: vi.fn(),
   forceRefreshSession: vi.fn(),
-}));
-
-// Mock profileService
-vi.mock('@/lib/db/profile-service', () => ({
-  profileService: {
-    getActiveProfile: vi.fn().mockResolvedValue({ id: 'test-profile-id' })
-  }
 }));
 
 describe('Session Actions', () => {
@@ -48,7 +40,7 @@ describe('Session Actions', () => {
 
       const result = await listSessions('test-key');
       expect(result.sessions).toEqual(mockSessions);
-      expect(sessionService.getCachedSessions).toHaveBeenCalledWith('test-profile-id');
+      expect(sessionService.getCachedSessions).toHaveBeenCalled();
       expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
     });
 
@@ -86,7 +78,7 @@ describe('Session Actions', () => {
       // Actually, since it's a promise floating in the void, checking if it was called might require a small delay or just relying on the fact that the function started execution.
       // But syncStaleSessions is called synchronously (the promise creation), so the mock should record the call.
 
-      expect(sessionService.syncStaleSessions).toHaveBeenCalledWith('test-key', 'test-profile-id');
+      expect(sessionService.syncStaleSessions).toHaveBeenCalledWith('test-key');
     });
 
     it('should return an error if no API key is provided', async () => {

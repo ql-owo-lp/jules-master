@@ -17,7 +17,6 @@ export type Session = {
   automationMode?: AutomationMode;
   retryCount?: number;
   lastError?: string;
-  profileId?: string | null;
 };
 
 export type Job = {
@@ -35,7 +34,6 @@ export type Job = {
     automationMode?: AutomationMode;
     requirePlanApproval?: boolean;
     cronJobId?: string | null;
-    profileId?: string | null;
 }
 
 export type CronJob = {
@@ -52,7 +50,6 @@ export type CronJob = {
     automationMode?: AutomationMode;
     requirePlanApproval?: boolean;
     sessionCount?: number;
-    profileId?: string | null;
 };
 
 export type SourceContext = {
@@ -113,14 +110,12 @@ export type PredefinedPrompt = {
   id: string;
   title: string;
   prompt: string;
-  profileId?: string | null;
 };
 
 export type HistoryPrompt = {
     id: string;
     prompt: string;
     lastUsedAt: string;
-    profileId?: string | null;
 };
 
 // Activity and related types
@@ -243,4 +238,32 @@ export type PullRequestStatus = {
 export type Settings = {
   autoContinueEnabled?: boolean;
   autoRetryEnabled?: boolean;
+};
+
+export type Profile = {
+  id: string;
+  name: string;
+  julesApiKey: string | null;
+  githubToken: string | null;
+  isActive: boolean;
+  idlePollInterval: number;
+  activePollInterval: number;
+  titleTruncateLength: number;
+  lineClamp: number;
+  sessionItemsPerPage: number;
+  jobsPerPage: number;
+  defaultSessionCount: number;
+  prStatusPollInterval: number;
+  historyPromptsCount: number;
+  autoApprovalInterval: number;
+  autoRetryEnabled: boolean;
+  autoRetryMessage: string;
+  autoContinueEnabled: boolean;
+  autoContinueMessage: string;
+  sessionCacheInProgressInterval: number;
+  sessionCacheCompletedNoPrInterval: number;
+  sessionCachePendingApprovalInterval: number;
+  sessionCacheMaxAgeDays: number;
+  autoDeleteStaleBranches: boolean;
+  autoDeleteStaleBranchesAfterDays: number;
 };

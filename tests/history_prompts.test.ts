@@ -3,14 +3,6 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { saveHistoryPrompt, getHistoryPrompts } from '@/app/config/actions';
 import { appDatabase, db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
-import { profileService } from '@/lib/db/profile-service';
-
-// Mock profileService
-vi.mock('@/lib/db/profile-service', () => ({
-  profileService: {
-    getActiveProfile: vi.fn().mockResolvedValue({ id: 'test-profile-id' })
-  }
-}));
 
 // Mock the dependencies
 vi.mock('@/lib/db', () => {
@@ -21,18 +13,18 @@ vi.mock('@/lib/db', () => {
         from: vi.fn((table) => {
              if (table === schema.settings) {
                  return {
-                     get: vi.fn().mockResolvedValue({ historyPromptsCount: 5 }),
-                      where: vi.fn().mockReturnValue({
-                          get: vi.fn().mockResolvedValue({ historyPromptsCount: 5 })
-                      })
+                     get: vi.fn().mockResolvedValue({ historyPromptsCount: 5 })
                  }
              }
              return {
                 where: vi.fn((condition) => ({
                     get: vi.fn().mockImplementation(() => {
+                        // This is a very rough mock.
+                        // In a real scenario, we'd need to parse the condition.
+                        // For this test, we'll control the return via `vi.spyOn` in the test if needed,
+                        // or just return undefined by default (simulate not found).
                         return undefined;
-                    }),
-                    all: vi.fn().mockResolvedValue([])
+                    })
                 })),
                 orderBy: vi.fn(() => ({
                      limit: vi.fn().mockResolvedValue([])
@@ -68,11 +60,11 @@ describe('History Prompts', () => {
      const prompt = "New Prompt";
 
      // Setup mocks
-     // Mock db.select().from().where().all() to return [] (not found) for the profile check
+     // Mock db.select().from().where().get() to return undefined (not found)
      const dbSelectMock = {
          from: vi.fn().mockReturnValue({
              where: vi.fn().mockReturnValue({
-                 all: vi.fn().mockResolvedValue([])
+                 get: vi.fn().mockResolvedValue(undefined)
              })
          })
      };
@@ -88,13 +80,13 @@ describe('History Prompts', () => {
 
   it('should update an existing history prompt', async () => {
      const prompt = "Existing Prompt";
-     const existingRecord = { id: '123', prompt: prompt, lastUsedAt: 'old-date', profileId: 'test-profile-id' };
+     const existingRecord = { id: '123', prompt: prompt, lastUsedAt: 'old-date' };
 
      // Setup mocks
      const dbSelectMock = {
          from: vi.fn().mockReturnValue({
              where: vi.fn().mockReturnValue({
-                 all: vi.fn().mockResolvedValue([existingRecord])
+                 get: vi.fn().mockResolvedValue(existingRecord)
              })
          })
      };

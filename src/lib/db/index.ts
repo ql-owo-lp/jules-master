@@ -3,11 +3,10 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import * as schema from './schema';
 import { Job, PredefinedPrompt, HistoryPrompt } from '../types';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'fs';
 import path from 'path';
-import { profileService } from './profile-service';
 
 // Resolve database path (handle relative paths in DATABASE_URL or default)
 const dbUrl = process.env.DATABASE_URL || 'data/sqlite.db';
@@ -43,12 +42,9 @@ if (fs.existsSync(dbPath)) {
 const sqlite = new Database(dbPath);
 export const db = drizzle(sqlite, { schema });
 
-// Initialize default profile if needed
-profileService.ensureDefaultProfile().catch(console.error);
-
 // Generic DAO Interface
 export interface IDao<T> {
-  getAll(profileId?: string): Promise<T[]>;
+  getAll(): Promise<T[]>;
   getById(id: string): Promise<T | undefined>;
   create(data: T): Promise<void>;
   createMany(data: T[]): Promise<void>;
@@ -60,13 +56,8 @@ export interface IDao<T> {
 class AppDatabase {
   // Job DAO
   public jobs: IDao<Job> = {
-    getAll: async (profileId?: string) => {
-        let query = db.select().from(schema.jobs);
-        if (profileId) {
-             // @ts-ignore
-             query = query.where(eq(schema.jobs.profileId, profileId));
-        }
-      const jobs = await query;
+    getAll: async () => {
+      const jobs = await db.select().from(schema.jobs);
       return jobs.map(job => ({
         ...job,
         sessionIds: job.sessionIds || []
@@ -90,12 +81,7 @@ class AppDatabase {
 
   // PredefinedPrompt DAO
   public predefinedPrompts: IDao<PredefinedPrompt> = {
-    getAll: async (profileId?: string) => {
-        if (profileId) {
-            return db.select().from(schema.predefinedPrompts).where(eq(schema.predefinedPrompts.profileId, profileId));
-        }
-        return db.select().from(schema.predefinedPrompts);
-    },
+    getAll: async () => db.select().from(schema.predefinedPrompts),
     getById: async (id) => db.select().from(schema.predefinedPrompts).where(eq(schema.predefinedPrompts.id, id)).get(),
     create: async (prompt) => { await db.insert(schema.predefinedPrompts).values(prompt) },
     createMany: async (prompts) => {
@@ -107,19 +93,9 @@ class AppDatabase {
   };
 
   // HistoryPrompt DAO
-  public historyPrompts: IDao<HistoryPrompt> & { getRecent: (limit: number, profileId?: string) => Promise<HistoryPrompt[]> } = {
-    getAll: async (profileId?: string) => {
-        if (profileId) {
-            return db.select().from(schema.historyPrompts).where(eq(schema.historyPrompts.profileId, profileId)).orderBy(desc(schema.historyPrompts.lastUsedAt));
-        }
-        return db.select().from(schema.historyPrompts).orderBy(desc(schema.historyPrompts.lastUsedAt));
-    },
-    getRecent: async (limit, profileId?: string) => {
-        if (profileId) {
-             return db.select().from(schema.historyPrompts).where(eq(schema.historyPrompts.profileId, profileId)).orderBy(desc(schema.historyPrompts.lastUsedAt)).limit(limit);
-        }
-        return db.select().from(schema.historyPrompts).orderBy(desc(schema.historyPrompts.lastUsedAt)).limit(limit);
-    },
+  public historyPrompts: IDao<HistoryPrompt> & { getRecent: (limit: number) => Promise<HistoryPrompt[]> } = {
+    getAll: async () => db.select().from(schema.historyPrompts).orderBy(desc(schema.historyPrompts.lastUsedAt)),
+    getRecent: async (limit) => db.select().from(schema.historyPrompts).orderBy(desc(schema.historyPrompts.lastUsedAt)).limit(limit),
     getById: async (id) => db.select().from(schema.historyPrompts).where(eq(schema.historyPrompts.id, id)).get(),
     create: async (prompt) => { await db.insert(schema.historyPrompts).values(prompt) },
     createMany: async (prompts) => {
@@ -132,12 +108,7 @@ class AppDatabase {
 
   // QuickReply DAO
   public quickReplies: IDao<PredefinedPrompt> = {
-    getAll: async (profileId?: string) => {
-        if (profileId) {
-            return db.select().from(schema.quickReplies).where(eq(schema.quickReplies.profileId, profileId));
-        }
-        return db.select().from(schema.quickReplies);
-    },
+    getAll: async () => db.select().from(schema.quickReplies),
     getById: async (id) => db.select().from(schema.quickReplies).where(eq(schema.quickReplies.id, id)).get(),
     create: async (reply) => { await db.insert(schema.quickReplies).values(reply) },
     createMany: async (replies) => {
@@ -150,37 +121,26 @@ class AppDatabase {
 
   // GlobalPrompt DAO
   public globalPrompt = {
-    get: async (profileId?: string) => {
-        if (profileId) {
-            return db.select().from(schema.globalPrompt).where(eq(schema.globalPrompt.profileId, profileId)).get();
-        }
-        return db.select().from(schema.globalPrompt).get();
-    },
-    save: async (prompt: string, profileId: string) => {
-        const existing = await db.select().from(schema.globalPrompt).where(eq(schema.globalPrompt.profileId, profileId)).get();
+    get: async () => db.select().from(schema.globalPrompt).get(),
+    save: async (prompt: string) => {
+        const existing = await db.select().from(schema.globalPrompt).get();
         if (existing) {
             await db.update(schema.globalPrompt).set({ prompt }).where(eq(schema.globalPrompt.id, existing.id));
         } else {
-             // For simplicity, we use a random ID or rely on auto-increment if we change the schema.
-             // But the schema defined id as integer primary key.
-             // Let's check the schema again.
-             // It is `id: integer('id').primaryKey()`. SQLite handles auto-increment for integer primary keys.
-             // But `profileId` is also needed.
-             // We need to check if we can insert without ID.
-            await db.insert(schema.globalPrompt).values({ prompt, profileId });
+            await db.insert(schema.globalPrompt).values({id: 1, prompt: prompt });
         }
     }
   };
 
   // RepoPrompts DAO
   public repoPrompts = {
-    get: async (repo: string, profileId: string) => db.select().from(schema.repoPrompts).where(and(eq(schema.repoPrompts.repo, repo), eq(schema.repoPrompts.profileId, profileId))).get(),
-    save: async (repo: string, prompt: string, profileId: string) => {
-        const existing = await db.select().from(schema.repoPrompts).where(and(eq(schema.repoPrompts.repo, repo), eq(schema.repoPrompts.profileId, profileId))).get();
+    get: async (repo: string) => db.select().from(schema.repoPrompts).where(eq(schema.repoPrompts.repo, repo)).get(),
+    save: async (repo: string, prompt: string) => {
+        const existing = await db.select().from(schema.repoPrompts).where(eq(schema.repoPrompts.repo, repo)).get();
         if (existing) {
-            await db.update(schema.repoPrompts).set({ prompt }).where(eq(schema.repoPrompts.id, existing.id));
+            await db.update(schema.repoPrompts).set({ prompt }).where(eq(schema.repoPrompts.repo, repo));
         } else {
-            await db.insert(schema.repoPrompts).values({ id: crypto.randomUUID(), repo, prompt, profileId });
+            await db.insert(schema.repoPrompts).values({ repo, prompt });
         }
     }
   };
