@@ -1,6 +1,6 @@
 
 import { db } from './db';
-import { jobs, settings, sessions } from './db/schema';
+import { jobs, profiles, sessions } from './db/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
 import type { Session } from '@/lib/types';
@@ -37,14 +37,14 @@ export async function runAutoContinueCheck(options = { schedule: true }) {
 
     try {
         // 1. Get global settings
-        const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
-        if (settingsResult.length === 0 || !settingsResult[0].autoContinueEnabled) {
+        const activeProfile = await db.query.profiles.findFirst({ where: eq(profiles.isActive, true) });
+        if (!activeProfile || !activeProfile.autoContinueEnabled) {
              isRunning = false;
              scheduleNextRun();
              return;
         }
 
-        const continueMessage = settingsResult[0].autoContinueMessage;
+        const continueMessage = activeProfile.autoContinueMessage;
 
         // 2. Get recently started jobs (created within last 3 days)
         const recentJobs = await db.select().from(jobs); // Fetch all and filter in memory to avoid complex date logic in SQL if format is varying
@@ -198,11 +198,11 @@ function scheduleNextRun() {
         clearTimeout(workerTimeout);
     }
 
-    db.select().from(settings).where(eq(settings.id, 1)).limit(1)
-        .then(settingsResult => {
+    db.query.profiles.findFirst({ where: eq(profiles.isActive, true) })
+        .then(activeProfile => {
             let intervalSeconds = 60;
-             if (settingsResult.length > 0) {
-                intervalSeconds = settingsResult[0].autoApprovalInterval;
+             if (activeProfile) {
+                intervalSeconds = activeProfile.autoApprovalInterval;
              }
 
             if (intervalSeconds < 10) intervalSeconds = 10;

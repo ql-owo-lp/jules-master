@@ -1,6 +1,6 @@
 
 import { db } from './db';
-import { jobs, settings } from './db/schema';
+import { jobs, profiles } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
 import { differenceInHours } from 'date-fns';
@@ -24,14 +24,14 @@ export async function runAutoRetryCheck(options = { schedule: true }) {
 
     try {
         // 1. Get global settings
-        const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
-        if (settingsResult.length === 0 || !settingsResult[0].autoRetryEnabled) {
+        const activeProfile = await db.query.profiles.findFirst({ where: eq(profiles.isActive, true) });
+        if (!activeProfile || !activeProfile.autoRetryEnabled) {
              isRunning = false;
              scheduleNextRun();
              return;
         }
 
-        const retryMessage = settingsResult[0].autoRetryMessage;
+        const retryMessage = activeProfile.autoRetryMessage;
 
         // 2. Get all jobs
         const allJobs = await db.select().from(jobs);
@@ -130,13 +130,13 @@ function scheduleNextRun() {
         clearTimeout(workerTimeout);
     }
 
-    db.select().from(settings).where(eq(settings.id, 1)).limit(1)
-        .then(settingsResult => {
+    db.query.profiles.findFirst({ where: eq(profiles.isActive, true) })
+        .then(activeProfile => {
             let intervalSeconds = 60;
              // Using autoApprovalInterval as a proxy for "worker interval" or default 60
              // Ideally we should have a specific interval setting, but using 60s as default is fine
-             if (settingsResult.length > 0) {
-                intervalSeconds = settingsResult[0].autoApprovalInterval; // reusing this or should use a default?
+             if (activeProfile) {
+                intervalSeconds = activeProfile.autoApprovalInterval; // reusing this or should use a default?
              }
 
             if (intervalSeconds < 10) intervalSeconds = 10;

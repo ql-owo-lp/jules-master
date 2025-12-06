@@ -41,6 +41,10 @@ test.describe('Settings Page', () => {
     await page.getByRole('tab', { name: 'Automation' }).click();
     await expect(page.getByLabel('Auto Retry Failed Sessions')).toBeVisible();
 
+    // Switch to Profiles tab
+    await page.getByRole('tab', { name: 'Profiles' }).click();
+    await expect(page.getByText('Profiles')).toBeVisible();
+
      // Switch to Display tab
     await page.getByRole('tab', { name: 'Display' }).click();
     await expect(page.getByLabel('Jobs Per Page')).toBeVisible();
