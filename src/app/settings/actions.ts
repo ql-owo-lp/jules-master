@@ -1,8 +1,8 @@
 
 import { db } from "@/lib/db";
-import { cronJobs } from "@/lib/db/schema";
+import { cronJobs, jobs } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
-import type { CronJob } from "@/lib/types";
+import type { CronJob, Job } from "@/lib/types";
 
 export async function getCronJobs(): Promise<CronJob[]> {
   try {
@@ -54,6 +54,42 @@ export async function toggleCronJob(id: string, enabled: boolean) {
         await db.update(cronJobs).set({ enabled, updatedAt: new Date().toISOString() }).where(eq(cronJobs.id, id));
     } catch (error) {
         console.error("Failed to toggle cron job:", error);
+        throw error;
+    }
+}
+
+export async function triggerCronJob(id: string) {
+    try {
+        const result = await db.select().from(cronJobs).where(eq(cronJobs.id, id));
+        if (result.length === 0) {
+            throw new Error(`Cron job with id ${id} not found`);
+        }
+        const job = result[0];
+        const now = new Date();
+        const newJobId = crypto.randomUUID();
+        const newJob: Job = {
+            id: newJobId,
+            name: job.name,
+            sessionIds: [],
+            createdAt: now.toISOString(),
+            repo: job.repo,
+            branch: job.branch,
+            autoApproval: job.autoApproval,
+            background: true, // Cron jobs are background jobs
+            prompt: job.prompt,
+            sessionCount: job.sessionCount || 1,
+            status: 'PENDING',
+            automationMode: job.automationMode,
+            requirePlanApproval: job.requirePlanApproval,
+            cronJobId: job.id,
+        };
+
+        await db.insert(jobs).values(newJob);
+        // We do NOT update lastRunAt when manually triggered
+
+        return newJobId;
+    } catch (error) {
+        console.error("Failed to trigger cron job:", error);
         throw error;
     }
 }

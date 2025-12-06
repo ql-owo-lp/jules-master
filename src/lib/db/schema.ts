@@ -2,8 +2,20 @@ import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { SourceContext, SessionOutput, AutomationMode } from '@/lib/types';
 
+export const profiles = sqliteTable('profiles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at'),
+  githubToken: text('github_token'),
+  julesApiUrl: text('jules_api_url'),
+  julesApiKey: text('jules_api_key'),
+});
+
 export const jobs = sqliteTable('jobs', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   name: text('name').notNull(),
   sessionIds: text('session_ids', { mode: 'json' }).$type<string[]>(),
   createdAt: text('created_at').notNull(),
@@ -21,6 +33,7 @@ export const jobs = sqliteTable('jobs', {
 
 export const cronJobs = sqliteTable('cron_jobs', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   name: text('name').notNull(),
   schedule: text('schedule').notNull(),
   prompt: text('prompt').notNull(),
@@ -38,44 +51,41 @@ export const cronJobs = sqliteTable('cron_jobs', {
 
 export const predefinedPrompts = sqliteTable('predefined_prompts', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   title: text('title').notNull(),
   prompt: text('prompt').notNull(),
 });
 
 export const historyPrompts = sqliteTable('history_prompts', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   prompt: text('prompt').notNull(),
   lastUsedAt: text('last_used_at').notNull(),
 });
 
 export const quickReplies = sqliteTable('quick_replies', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   title: text('title').notNull(),
   prompt: text('prompt').notNull(),
 });
 
 export const globalPrompt = sqliteTable('global_prompt', {
   id: integer('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   prompt: text('prompt').notNull(),
 });
 
 export const repoPrompts = sqliteTable('repo_prompts', {
-  repo: text('repo').primaryKey(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  profileId: text('profile_id').references(() => profiles.id),
+  repo: text('repo').notNull(),
   prompt: text('prompt').notNull(),
 });
 
-export const profiles = sqliteTable('profiles', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull().unique(),
-  isSelected: integer('is_selected', { mode: 'boolean' }).notNull().default(false),
-  createdAt: text('created_at').notNull(),
-});
-
 export const settings = sqliteTable('settings', {
-  id: integer('id').primaryKey(),
-  profileId: text('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
-  julesApiKey: text('jules_api_key'),
-  githubToken: text('github_token'),
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  profileId: text('profile_id').references(() => profiles.id),
   idlePollInterval: integer('idle_poll_interval').notNull().default(120),
   activePollInterval: integer('active_poll_interval').notNull().default(30),
   titleTruncateLength: integer('title_truncate_length').notNull().default(50),
@@ -102,6 +112,7 @@ export const settings = sqliteTable('settings', {
 
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   name: text('name').notNull(),
   title: text('title').notNull(),
   prompt: text('prompt').notNull(),
@@ -116,4 +127,9 @@ export const sessions = sqliteTable('sessions', {
   lastUpdated: integer('last_updated').notNull(), // Timestamp in ms
   retryCount: integer('retry_count').notNull().default(0),
   lastError: text('last_error'),
+});
+
+export const locks = sqliteTable('locks', {
+  id: text('id').primaryKey(),
+  expiresAt: integer('expires_at').notNull(),
 });

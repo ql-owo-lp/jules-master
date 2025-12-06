@@ -1,40 +1,18 @@
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { settings, profiles } from '@/lib/db/schema';
+import { db, getActiveProfileId } from '@/lib/db';
+import * as schema from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { settingsSchema } from '@/lib/validation';
-import { ensureDefaultProfile } from '@/lib/profile-utils';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const profileId = searchParams.get('profileId');
-
-    // Ensure data integrity on every access (lazy migration)
-    await ensureDefaultProfile();
-
-    let result;
-
-    if (profileId) {
-        result = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
-    } else {
-        // If no profileId, get the selected profile
-        const selectedProfile = await db.select().from(profiles).where(eq(profiles.isSelected, true)).limit(1);
-
-        if (selectedProfile.length > 0) {
-             result = await db.select().from(settings).where(eq(settings.profileId, selectedProfile[0].id)).limit(1);
-        } else {
-             // Should not happen after ensureDefaultProfile()
-             result = [];
-        }
-    }
+    const profileId = await getActiveProfileId();
+    const result = await db.select().from(schema.settings).where(eq(schema.settings.profileId, profileId)).limit(1);
 
     if (result.length === 0) {
-      // Return default settings if none exist in DB (should theoretically be handled by ensureDefaultProfile creating them, but as a fallback)
-      return NextResponse.json({
-        julesApiKey: "",
-        githubToken: "",
+       // Should have been created by getActiveProfileId, but just in case
+       return NextResponse.json({
         idlePollInterval: 120,
         activePollInterval: 30,
         titleTruncateLength: 50,
@@ -59,7 +37,20 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.json(result[0]);
+    // Fetch profile credentials as well, to merge into response?
+    // The settings page expects API keys separately usually, but let's check.
+    // In page.tsx: const [apiKey, setApiKey] = useLocalStorage...
+    // We want to move away from local storage.
+
+    const profile = await db.select().from(schema.profiles).where(eq(schema.profiles.id, profileId)).get();
+
+    return NextResponse.json({
+        ...result[0],
+        julesApiKey: profile?.julesApiKey,
+        githubToken: profile?.githubToken,
+        julesApiUrl: profile?.julesApiUrl
+    });
+
   } catch (error) {
     console.error('Error fetching settings:', error);
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -74,42 +65,41 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'At least one setting must be provided.' }, { status: 400 });
     }
 
-    const validation = settingsSchema.safeParse(body);
+    // validation schema might need updates if we include tokens in body
+    // or we separate them.
+    // For now, let's assume body might contain tokens too.
+
+    const { julesApiKey, githubToken, julesApiUrl, ...settingsData } = body;
+
+    const validation = settingsSchema.safeParse(settingsData);
 
     if (!validation.success) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    // Ensure data integrity
-    await ensureDefaultProfile();
+    const profileId = await getActiveProfileId();
 
-    // Determine which profile to update
-    // If request body has profileId, use it? Schema doesn't have it.
-    // The client should probably pass it in query param or we assume selected profile.
-    // But `settingsSchema` is strict.
+    // Update Profile Credentials
+    const profileUpdates: any = {};
+    if (julesApiKey !== undefined) profileUpdates.julesApiKey = julesApiKey;
+    if (githubToken !== undefined) profileUpdates.githubToken = githubToken;
+    if (julesApiUrl !== undefined) profileUpdates.julesApiUrl = julesApiUrl;
 
-    // Let's get the currently selected profile.
-    const selectedProfile = await db.select().from(profiles).where(eq(profiles.isSelected, true)).limit(1);
-
-    if (selectedProfile.length === 0) {
-         return NextResponse.json({ error: 'No profile selected to update settings for.' }, { status: 400 });
+    if (Object.keys(profileUpdates).length > 0) {
+        await db.update(schema.profiles).set({ ...profileUpdates, updatedAt: new Date().toISOString() }).where(eq(schema.profiles.id, profileId));
     }
 
-    const targetProfileId = selectedProfile[0].id;
-
     const newSettings = {
-      profileId: targetProfileId,
+      profileId,
       ...validation.data,
     };
 
-    // Check if settings exist for this profile
-    const existing = await db.select().from(settings).where(eq(settings.profileId, targetProfileId)).limit(1);
+    const existing = await db.select().from(schema.settings).where(eq(schema.settings.profileId, profileId)).limit(1);
 
     if (existing.length > 0) {
-        // We shouldn't change ID, so exclude it if it was in `newSettings` (it's not).
-        await db.update(settings).set(newSettings).where(eq(settings.id, existing[0].id));
+        await db.update(schema.settings).set(newSettings).where(eq(schema.settings.id, existing[0].id));
     } else {
-        await db.insert(settings).values(newSettings);
+        await db.insert(schema.settings).values(newSettings);
     }
 
     return NextResponse.json({ success: true });

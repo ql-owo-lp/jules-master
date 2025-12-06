@@ -2,8 +2,6 @@
 import { z } from 'zod';
 
 export const settingsSchema = z.object({
-  julesApiKey: z.string().optional(),
-  githubToken: z.string().optional(),
   idlePollInterval: z.number(),
   activePollInterval: z.number(),
   titleTruncateLength: z.number(),

@@ -90,7 +90,7 @@ export function isPrMerged(session: Session): boolean {
   }
 
   for (const output of session.outputs) {
-    if (output.pullRequest?.status === 'MERGED') {
+    if (output.pullRequest?.status?.toUpperCase() === 'MERGED') {
       return true;
     }
   }

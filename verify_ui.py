@@ -1,29 +1,39 @@
 
-from playwright.sync_api import Page, expect, sync_playwright
+from playwright.sync_api import sync_playwright
 
-def verify_settings_page(page: Page):
-  """
-  This test verifies that the new auto-delete settings are visible on the
-  settings page.
-  """
-  # 1. Arrange: Go to the settings page.
-  page.goto("http://localhost:9002/settings")
+def verify_profiles_tab():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context()
+        page = context.new_page()
 
-  # 2. Act: Find the "Automation" tab and click it.
-  automation_tab = page.get_by_role("tab", name="Automation")
-  automation_tab.click()
+        try:
+            # Navigate to Settings page
+            page.goto("http://localhost:9002/settings")
 
-  # 3. Assert: Confirm the new settings are visible.
-  expect(page.get_by_label("Auto Delete Stale Branches")).to_be_visible()
+            # Click on Profiles tab
+            page.get_by_role("tab", name="Profiles").click()
 
-  # 4. Screenshot: Capture the final result for visual verification.
-  page.screenshot(path="/app/verification_screenshot.png")
+            # Wait for content to load
+            page.wait_for_selector("text=Profiles")
+            page.wait_for_selector("text=Create Profile")
+
+            # Take screenshot of Profiles tab
+            page.screenshot(path="verification/profiles_tab.png")
+            print("Screenshot taken: verification/profiles_tab.png")
+
+            # Click Create Profile button to show dialog
+            page.get_by_role("button", name="Create Profile").click()
+            page.wait_for_selector("text=Create Profile")
+
+            # Take screenshot of Create Profile dialog
+            page.screenshot(path="verification/create_profile_dialog.png")
+            print("Screenshot taken: verification/create_profile_dialog.png")
+
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            browser.close()
 
 if __name__ == "__main__":
-  with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    page = browser.new_page()
-    try:
-      verify_settings_page(page)
-    finally:
-      browser.close()
+    verify_profiles_tab()

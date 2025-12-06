@@ -8,12 +8,15 @@ import * as schema from '@/lib/db/schema';
 vi.mock('@/lib/db', () => {
   const mockHistoryPrompts: any[] = [];
   return {
+    getActiveProfileId: vi.fn().mockResolvedValue('profile-123'),
     db: {
       select: vi.fn(() => ({
         from: vi.fn((table) => {
              if (table === schema.settings) {
                  return {
-                     get: vi.fn().mockResolvedValue({ historyPromptsCount: 5 })
+                     where: vi.fn(() => ({
+                        get: vi.fn().mockResolvedValue({ historyPromptsCount: 5 })
+                     }))
                  }
              }
              return {

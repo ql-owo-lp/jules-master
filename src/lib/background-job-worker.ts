@@ -1,7 +1,7 @@
 
 import { db } from './db';
-import { jobs, sessions, settings } from './db/schema';
-import { eq, and, isNotNull, sql } from 'drizzle-orm';
+import { jobs, sessions, settings, locks } from './db/schema';
+import { eq, and, isNotNull, sql, lt } from 'drizzle-orm';
 import { listActivities, sendMessage } from '@/app/sessions/[id]/actions';
 import { createSession } from '@/app/sessions/new/actions';
 import { differenceInHours } from 'date-fns';
@@ -11,6 +11,9 @@ import { listSources } from '@/app/sessions/actions';
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
+let hasStarted = false;
+
+const WORKER_LOCK_ID = 'background_job_worker';
 
 // Sleep helper
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -19,26 +22,80 @@ export async function runBackgroundJobCheck(options = { schedule: true }) {
     if (isRunning) return;
     isRunning = true;
 
+    let nextIntervalSeconds = 60; // Default interval
+
     const apiKey = process.env.JULES_API_KEY;
     if (!apiKey) {
         console.warn("BackgroundJobWorker: JULES_API_KEY not set. Skipping check.");
         isRunning = false;
         if (options.schedule) {
-            scheduleNextRun();
+            scheduleNextRun(nextIntervalSeconds);
         }
         return;
     }
 
     try {
-        await processPendingJobs(apiKey);
-        await processFailedSessions(apiKey);
-    } catch (error) {
+        // Attempt to acquire lock
+        const hasLock = await acquireLock();
+        if (!hasLock) {
+            console.log("BackgroundJobWorker: Could not acquire lock, another worker is running.");
+            // We do NOT schedule next run here if we failed to acquire lock?
+            // Actually we should, because we want to retry acquiring it later.
+            // But if another instance is scheduling, do we want to double schedule?
+            // If the other instance crashes, we need to take over.
+            // So yes, we should keep scheduling, but maybe with a jitter to avoid lock contention step-lock.
+            // However, the `startBackgroundJobWorker` is called once per instance.
+            // If instance A holds the lock, instance B checks, fails, and sleeps.
+            // Instance A finishes, releases (or lets expire), and sleeps.
+            // Instance B wakes up, tries to acquire.
+            // So we definitely need to reschedule.
+        } else {
+             await processPendingJobs(apiKey);
+             await processFailedSessions(apiKey);
+        }
+
+    } catch (error: any) {
         console.error("BackgroundJobWorker: Error during check cycle:", error);
+
+        // If we hit a rate limit, back off for a longer period
+        // Check if error message contains 429 or "Too Many Requests"
+        const errorMessage = error?.message || "";
+        if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("too many requests")) {
+             console.log("BackgroundJobWorker: Rate limit detected. Backing off next run for 5 minutes.");
+             nextIntervalSeconds = 300;
+        }
+
     } finally {
         isRunning = false;
         if (options.schedule) {
-            scheduleNextRun();
+            scheduleNextRun(nextIntervalSeconds);
         }
+    }
+}
+
+async function acquireLock(): Promise<boolean> {
+    const now = Date.now();
+    const LOCK_DURATION_MS = 60 * 1000 * 2; // 2 minutes lock duration
+
+    try {
+        // 1. Delete expired locks
+        await db.delete(locks).where(
+            and(
+                eq(locks.id, WORKER_LOCK_ID),
+                lt(locks.expiresAt, now)
+            )
+        );
+
+        // 2. Try to insert new lock
+        await db.insert(locks).values({
+            id: WORKER_LOCK_ID,
+            expiresAt: now + LOCK_DURATION_MS
+        });
+
+        return true;
+    } catch (e) {
+        // If insert fails (likely UNIQUE constraint), we didn't get the lock
+        return false;
     }
 }
 
@@ -146,7 +203,7 @@ async function processPendingJobs(apiKey: string) {
                 }
 
                 // Avoid rate limits
-                await sleep(500);
+                await sleep(2000); // Increased sleep to 2s
             }
 
             // Update Job final status
@@ -176,7 +233,10 @@ async function processFailedSessions(apiKey: string) {
     // We don't have a direct "failed" query easily unless we check local state.
     // We should rely on local DB `sessions` table.
 
-    const failedSessions = await db.select().from(sessions).where(eq(sessions.state, 'FAILED'));
+    // Limit to 5 sessions per cycle to avoid flooding API if many fail
+    const failedSessions = await db.select().from(sessions)
+        .where(eq(sessions.state, 'FAILED'))
+        .limit(5);
 
     for (const session of failedSessions) {
         // Check if we should retry
@@ -245,19 +305,18 @@ async function processFailedSessions(apiKey: string) {
             console.error(`BackgroundJobWorker: Failed to retry session ${session.id}`, e);
         }
 
-        await sleep(1000);
+        await sleep(2000); // Increase sleep to 2s
     }
 }
 
 
-function scheduleNextRun() {
+function scheduleNextRun(overrideIntervalSeconds?: number) {
     if (workerTimeout) {
         clearTimeout(workerTimeout);
     }
 
-    // Run every 10 seconds? Or configurable?
-    // "continuously running"
-    const intervalSeconds = 10;
+    // Increased to 60 seconds to avoid rate limits
+    const intervalSeconds = overrideIntervalSeconds || 60;
 
     workerTimeout = setTimeout(() => {
         runBackgroundJobCheck();
@@ -265,6 +324,11 @@ function scheduleNextRun() {
 }
 
 export async function startBackgroundJobWorker() {
+    if (hasStarted) {
+        console.log("BackgroundJobWorker: Already started, skipping.");
+        return;
+    }
+    hasStarted = true;
     console.log(`BackgroundJobWorker: Starting...`);
     runBackgroundJobCheck();
 }

@@ -144,8 +144,8 @@ test.describe('Settings Persistence', () => {
     await page.getByLabel('Active Poll Interval (seconds)').fill('33');
     await page.getByLabel('PR Status Cache Refresh Interval (seconds)').fill('90');
 
-    // Save Advanced Settings (General tab)
-    await page.getByRole('button', { name: 'Save Advanced Settings' }).click();
+    // Save General Settings (General tab)
+    await page.getByRole('button', { name: 'Save General Settings' }).click();
     await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible();
     await expect(page.getByText('Your settings have been updated.', { exact: true })).toBeVisible();
 

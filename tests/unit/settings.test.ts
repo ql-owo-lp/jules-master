@@ -3,37 +3,18 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { POST, GET } from '@/app/api/settings/route';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { settings, profiles } from '@/lib/db/schema';
+import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('Settings API', () => {
-  let testProfileId: string;
-  const testProfileName = 'Test Profile ' + crypto.randomUUID(); // Make unique to avoid collision
-
   beforeAll(async () => {
-    // Create a test profile and select it
-    testProfileId = crypto.randomUUID();
-
-    // Check if it exists (it shouldn't due to random name, but robust test)
-    // Actually, just try catch insert
-    try {
-        await db.insert(profiles).values({
-            id: testProfileId,
-            name: testProfileName,
-            isSelected: true,
-            createdAt: new Date().toISOString(),
-        });
-    } catch (e) {
-        // If collision, maybe clean up?
-        console.error("Setup failed", e);
-    }
+    // Clean up the settings table before each test run
+    await db.delete(settings).where(eq(settings.id, 1));
   });
 
   afterAll(async () => {
-    // Clean up
-    if (testProfileId) {
-        await db.delete(profiles).where(eq(profiles.id, testProfileId));
-    }
+    // Clean up the settings table after each test run
+    await db.delete(settings).where(eq(settings.id, 1));
   });
 
   it('should return 400 for invalid data', async () => {
@@ -82,8 +63,7 @@ describe('Settings API', () => {
     const postResponse = await POST(postReq);
     expect(postResponse.status).toBe(200);
 
-    const getReq = new NextRequest('http://localhost/api/settings');
-    const getResponse = await GET(getReq);
+    const getResponse = await GET();
     const retrievedSettings = await getResponse.json();
 
     expect(retrievedSettings).toEqual(expect.objectContaining(newSettings));
