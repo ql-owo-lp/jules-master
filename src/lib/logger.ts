@@ -18,9 +18,7 @@ const globalForLogger = globalThis as unknown as {
 
 export const logEmitter = globalForLogger.logEmitter || new LogEmitter();
 
-if (process.env.NODE_ENV !== 'production') {
-    globalForLogger.logEmitter = logEmitter;
-}
+globalForLogger.logEmitter = logEmitter;
 
 let isInitialized = globalForLogger.isLoggerInitialized || false;
 
