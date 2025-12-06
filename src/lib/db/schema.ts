@@ -107,3 +107,8 @@ export const sessions = sqliteTable('sessions', {
   retryCount: integer('retry_count').notNull().default(0),
   lastError: text('last_error'),
 });
+
+export const locks = sqliteTable('locks', {
+  id: text('id').primaryKey(),
+  expiresAt: integer('expires_at').notNull(),
+});
