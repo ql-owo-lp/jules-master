@@ -3,7 +3,7 @@ import { db } from './db';
 import { jobs, settings } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
-import { differenceInHours } from 'date-fns';
+import { differenceInHours, differenceInMinutes } from 'date-fns';
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
@@ -88,7 +88,26 @@ export async function runAutoRetryCheck(options = { schedule: true }) {
                     }
 
                     // Check if session is FAILED
+                    // Or check if session is stuck: not completed, no PR, and > 60 minutes
+                    let shouldRetry = false;
+                    let retryReason = '';
+
                     if (session && session.state === 'FAILED') {
+                        shouldRetry = true;
+                        retryReason = 'FAILED state';
+                    } else if (session && session.state !== 'COMPLETED') {
+                        // Check for stuck session
+                        const updateTime = session.updateTime ? new Date(session.updateTime) : new Date();
+                        const minutesSinceUpdate = differenceInMinutes(new Date(), updateTime);
+                        const hasPR = session.outputs?.some(o => !!o.pullRequest);
+
+                        if (!hasPR && minutesSinceUpdate > 60) {
+                            shouldRetry = true;
+                            retryReason = 'Stuck session (> 60 mins, no PR)';
+                        }
+                    }
+
+                    if (shouldRetry) {
                          // Check activities to avoid spamming the same retry message
                          const activities = await listActivities(sessionId, apiKey);
                          const lastUserMessage = activities
@@ -100,7 +119,7 @@ export async function runAutoRetryCheck(options = { schedule: true }) {
                              return;
                          }
 
-                         console.log(`AutoRetryWorker: Retrying session ${sessionId}...`);
+                         console.log(`AutoRetryWorker: Retrying session ${sessionId} (${retryReason})...`);
                          // Send retry message
                          const result = await sendMessage(sessionId, retryMessage, apiKey);
                          // Note: sendMessage doesn't return a simple boolean success, but if it throws it's caught below.
