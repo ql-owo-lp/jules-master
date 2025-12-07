@@ -66,6 +66,14 @@ export async function runBackgroundJobCheck(options = { schedule: true }) {
         }
 
     } finally {
+        // Release lock
+        try {
+            await db.delete(locks).where(eq(locks.id, WORKER_LOCK_ID));
+            console.log("BackgroundJobWorker: Lock released.");
+        } catch (e) {
+            console.error("BackgroundJobWorker: Failed to release lock", e);
+        }
+
         isRunning = false;
         if (options.schedule) {
             scheduleNextRun(nextIntervalSeconds);
