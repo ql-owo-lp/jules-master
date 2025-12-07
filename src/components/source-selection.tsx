@@ -7,7 +7,7 @@ import { listSources } from '@/app/sessions/actions';
 import type { Source } from '@/lib/types';
 import { AlertCircle, GitMerge } from 'lucide-react';
 import { Combobox } from './ui/combobox';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useProfileSettings } from '@/hooks/use-profile-settings';
 
 type SourceSelectionProps = {
   onSourceSelected: (source: Source | null) => void;
@@ -20,7 +20,7 @@ type SourceSelectionProps = {
 export function SourceSelection({ onSourceSelected, disabled, selectedValue, sources, onSourcesLoaded }: SourceSelectionProps) {
   const [isFetching, startFetching] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [apiKey] = useProfileSettings<string | null>("jules-api-key", null);
 
 
   useEffect(() => {

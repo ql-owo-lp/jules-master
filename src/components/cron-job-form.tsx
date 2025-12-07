@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, RefreshCw, X, BookText } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { Switch } from "./ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -55,9 +55,9 @@ export function CronJobForm({
 
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string | undefined>(undefined);
-  const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
-  const [lastSourcesFetch, setLastSourcesFetch] = useLocalStorage<number>("jules-sources-last-fetch", 0);
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [sources, setSources] = useProfileSettings<Source[]>("jules-sources-cache", []);
+  const [lastSourcesFetch, setLastSourcesFetch] = useProfileSettings<number>("jules-sources-last-fetch", 0);
+  const [apiKey] = useProfileSettings<string | null>("jules-api-key", null);
 
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
   const [historyPrompts, setHistoryPrompts] = useState<HistoryPrompt[]>([]);

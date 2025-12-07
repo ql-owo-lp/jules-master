@@ -90,6 +90,13 @@ export const settings = sqliteTable('settings', {
   autoDeleteStaleBranchesAfterDays: integer('auto_delete_stale_branches_after_days').notNull().default(3),
 });
 
+export const profiles = sqliteTable('profiles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
+  settings: text('settings', { mode: 'json' }).$type<typeof settings>(),
+});
+
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),

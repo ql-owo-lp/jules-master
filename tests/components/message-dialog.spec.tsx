@@ -1,17 +1,17 @@
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MessageDialog } from '@/components/message-dialog';
 import { Button } from '@/components/ui/button';
 import React from 'react';
 
 import { vi } from 'vitest';
 
-// Mock useLocalStorage to behave like useState for this test
-vi.mock('@/hooks/use-local-storage', () => ({
-  useLocalStorage: (key: string, initialValue: any) => {
+vi.mock('@/hooks/use-profile-settings', () => ({
+  useProfileSettings: (key: string, initialValue: any) => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const React = require('react');
-    return React.useState(initialValue);
+    const [value, setValue] = React.useState(initialValue);
+    return [value, setValue];
   },
 }));
 
@@ -29,21 +29,29 @@ describe('MessageDialog', () => {
     );
 
     // Open the dialog
-    fireEvent.click(screen.getByText('Open Dialog'));
+    act(() => {
+      fireEvent.click(screen.getByText('Open Dialog'));
+    });
 
     // Check if the dialog is open
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     // Type a message
     const textarea = screen.getByPlaceholderText('Type your message here...');
-    fireEvent.change(textarea, { target: { value: 'Hello, World!' } });
+    act(() => {
+      fireEvent.change(textarea, { target: { value: 'Hello, World!' } });
+    });
     expect(textarea.value).toBe('Hello, World!');
 
     // Close the dialog
-    fireEvent.click(screen.getByText('Cancel'));
+    act(() => {
+      fireEvent.click(screen.getByText('Cancel'));
+    });
 
     // Reopen the dialog
-    fireEvent.click(screen.getByText('Open Dialog'));
+    act(() => {
+      fireEvent.click(screen.getByText('Open Dialog'));
+    });
 
     // Check if the message is cleared
     expect(textarea.value).toBe('');

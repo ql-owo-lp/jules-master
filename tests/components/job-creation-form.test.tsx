@@ -4,7 +4,7 @@ import { render, fireEvent, waitFor, screen } from '@testing-library/react';
 import { JobCreationForm } from '@/components/job-creation-form';
 import { addJob, getPredefinedPrompts, getGlobalPrompt, getHistoryPrompts, getSettings, saveHistoryPrompt } from '@/app/config/actions';
 import { listSources, refreshSources } from '@/app/sessions/actions';
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Job } from '@/lib/types';
 
@@ -13,7 +13,7 @@ vi.mock('@/app/config/actions');
 vi.mock('@/app/sessions/actions');
 
 // Mock hooks and other dependencies
-vi.mock('@/hooks/use-local-storage');
+vi.mock('@/hooks/use-profile-settings');
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
@@ -24,7 +24,7 @@ vi.mock('@/components/env-provider', () => ({
   useEnv: () => ({ julesApiKey: 'test-key' }),
 }));
 
-const mockedUseLocalStorage = useLocalStorage as jest.Mock;
+const mockedUseProfileSettings = useProfileSettings as jest.Mock;
 
 describe('JobCreationForm', () => {
   beforeEach(() => {
@@ -33,7 +33,7 @@ describe('JobCreationForm', () => {
     const now = Date.now();
     vi.spyOn(Date, 'now').mockReturnValue(now);
 
-    mockedUseLocalStorage.mockImplementation((key, defaultValue) => {
+    mockedUseProfileSettings.mockImplementation((key, defaultValue) => {
       if (key === 'jules-sources-last-fetch') return [now, vi.fn()];
       if (key === 'jules-last-source') return [{ name: 'test-source', githubRepo: { owner: 'test', repo: 'test', defaultBranch: { displayName: 'main' }, branches: [{ displayName: 'main' }] } }, vi.fn()];
       if (key === 'jules-last-branch') return ['main', vi.fn()];
@@ -59,7 +59,7 @@ describe('JobCreationForm', () => {
     const onJobsCreated = vi.fn();
     const onCreateJob = vi.fn();
 
-    mockedUseLocalStorage.mockImplementation((key, defaultValue) => {
+    mockedUseProfileSettings.mockImplementation((key, defaultValue) => {
       if (key === 'jules-new-job-background') return [true, vi.fn()];
       if (key === 'jules-last-source') return [{ name: 'test-source', githubRepo: { owner: 'test', repo: 'test', defaultBranch: { displayName: 'main' }, branches: [{ displayName: 'main' }] } }, vi.fn()];
       if (key === 'jules-last-branch') return ['main', vi.fn()];
@@ -90,7 +90,7 @@ describe('JobCreationForm', () => {
     const onJobsCreated = vi.fn();
     const onCreateJob = vi.fn().mockResolvedValue({ id: 'session-123' });
 
-    mockedUseLocalStorage.mockImplementation((key, defaultValue) => {
+    mockedUseProfileSettings.mockImplementation((key, defaultValue) => {
       if (key === 'jules-new-job-background') return [false, vi.fn()];
       if (key === 'jules-last-source') return [{ name: 'test-source', githubRepo: { owner: 'test', repo: 'test', defaultBranch: { displayName: 'main' }, branches: [{ displayName: 'main' }] } }, vi.fn()];
       if (key === 'jules-last-branch') return ['main', vi.fn()];

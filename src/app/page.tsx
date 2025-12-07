@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useTransition, useCallback, Suspense, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, X, Briefcase, GitMerge, Activity, Wand2 } from "lucide-react";
@@ -24,14 +24,14 @@ import { NewJobDialog } from "@/components/new-job-dialog";
 
 function HomePageContent() {
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
-  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const [apiKey] = useProfileSettings<string | null>("jules-api-key", null);
+  const [githubToken] = useProfileSettings<string | null>("jules-github-token", null);
 
-  const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
-  const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
-  const [sessions, setSessions] = useLocalStorage<Session[]>("jules-sessions", []);
-  const [quickReplies, setQuickReplies] = useLocalStorage<PredefinedPrompt[]>("jules-quick-replies", []);
-  const [lastUpdatedAt, setLastUpdatedAt] = useLocalStorage<number | null>("jules-last-updated-at", null);
+  const [sessionListPollInterval] = useProfileSettings<number>("jules-idle-poll-interval", 120);
+  const [jobs, setJobs] = useProfileSettings<Job[]>("jules-jobs", []);
+  const [sessions, setSessions] = useProfileSettings<Session[]>("jules-sessions", []);
+  const [quickReplies, setQuickReplies] = useProfileSettings<PredefinedPrompt[]>("jules-quick-replies", []);
+  const [lastUpdatedAt, setLastUpdatedAt] = useProfileSettings<number | null>("jules-last-updated-at", null);
   
   const [pendingBackgroundWork, setPendingBackgroundWork] = useState<{ pendingJobs: number, retryingSessions: number } | undefined>(undefined);
 
@@ -41,8 +41,8 @@ function HomePageContent() {
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(sessionListPollInterval);
-  const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
-  const [jobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
+  const [titleTruncateLength] = useProfileSettings<number>("jules-title-truncate-length", 50);
+  const [jobsPerPage] = useProfileSettings<number>("jules-jobs-per-page", 5);
 
   const searchParams = useSearchParams();
   const router = useRouter();

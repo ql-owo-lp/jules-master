@@ -12,6 +12,15 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('@/hooks/use-profile-settings', () => ({
+  useProfileSettings: (key: string, initialValue: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const React = require('react');
+    const [value, setValue] = React.useState(initialValue);
+    return [value, setValue];
+  },
+}));
+
 describe('SessionList', () => {
   it('should render', () => {
     render(

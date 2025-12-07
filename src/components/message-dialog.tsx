@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, MessageSquare, BookText, MessageSquareReply, X, RotateCcw } from "lucide-react";
 import type { PredefinedPrompt } from "@/lib/types";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { getPredefinedPrompts, getQuickReplies } from "@/app/config/actions";
 import { Combobox } from "./ui/combobox";
 import { ScrollArea } from "./ui/scroll-area";
@@ -48,11 +48,11 @@ export function MessageDialog({
     tooltip
 }: MessageDialogProps) {
     const [open, setOpen] = useState(false);
-    const [message, setMessage] = useLocalStorage(storageKey, "");
+    const [message, setMessage] = useProfileSettings(storageKey, "");
     const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>(initialPrompts);
     const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>(initialReplies);
     const { toast } = useToast();
-    const [debugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
+    const [debugMode] = useProfileSettings<boolean>("jules-debug-mode", false);
 
     // When the dialog opens, re-read from local storage, in case another dialog updated it.
     useEffect(() => {

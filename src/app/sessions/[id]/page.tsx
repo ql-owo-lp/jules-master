@@ -5,7 +5,7 @@
 import { useState, useEffect, useTransition, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { notFound, useSearchParams, useParams } from "next/navigation";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { useToast } from "@/hooks/use-toast";
 import type { Session, Job, Activity, PredefinedPrompt } from "@/lib/types";
 import { getSession, approvePlan, sendMessage, listActivities } from "./actions";
@@ -65,15 +65,15 @@ export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const { julesApiKey } = useEnv();
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
-  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
-  const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
-  const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
+  const [apiKey] = useProfileSettings<string | null>("jules-api-key", null);
+  const [githubToken] = useProfileSettings<string | null>("jules-github-token", null);
+  const [idlePollInterval] = useProfileSettings<number>("jules-idle-poll-interval", 120);
+  const [activePollInterval] = useProfileSettings<number>("jules-active-poll-interval", 30);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
   
-  const [session, setSession] = useLocalStorage<Session | null>(`jules-session-${id}`, null);
-  const [activities, setActivities] = useLocalStorage<Activity[]>(`jules-activities-${id}`, []);
+  const [session, setSession] = useProfileSettings<Session | null>(`jules-session-${id}`, null);
+  const [activities, setActivities] = useProfileSettings<Activity[]>(`jules-activities-${id}`, []);
   
   const [isClient, setIsClient] = useState(false);
   const [isFetching, startFetching] = useTransition();
@@ -87,7 +87,7 @@ export default function SessionDetailPage() {
   const jobId = searchParams.get('jobId');
 
   const [isPollingActive, setIsPollingActive] = useState(false);
-  const [activeTab, setActiveTab] = useLocalStorage<string>(`jules-session-detail-tab-${id}`, "details");
+  const [activeTab, setActiveTab] = useProfileSettings<string>(`jules-session-detail-tab-${id}`, "details");
   
   // Determine current poll interval
   const isSessionDone = session?.state === 'COMPLETED' || session?.state === 'FAILED';

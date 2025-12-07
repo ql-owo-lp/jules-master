@@ -33,7 +33,7 @@ import { PrStatus } from "./pr-status";
 import { Checkbox } from "./ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Skeleton } from "./ui/skeleton";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { MessageDialog } from "./message-dialog";
 
 
@@ -101,7 +101,7 @@ export function SessionList({
     }
   }, [isActionPending]);
   
-  const [sessionsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
+  const [sessionsPerPage] = useProfileSettings<number>("jules-session-items-per-page", 10);
   const [sessionPages, setSessionPages] = useState<Record<string, number>>({});
 
   const sessionMap = useMemo(() => {

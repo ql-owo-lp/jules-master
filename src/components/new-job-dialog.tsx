@@ -4,7 +4,7 @@
 import React, { useState, ReactNode } from "react";
 import { useRouter } from 'next/navigation';
 import { JobCreationForm } from "@/components/job-creation-form";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import type { Session, Source, AutomationMode, Job, Settings } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/sessions/new/actions";
@@ -25,8 +25,8 @@ type NewJobDialogProps = {
 
 export function NewJobDialog({ isPage = false, children, initialValues }: NewJobDialogProps) {
     const { julesApiKey } = useEnv();
-    const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
-    const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
+    const [apiKey] = useProfileSettings<string | null>("jules-api-key", null);
+    const [jobs, setJobs] = useProfileSettings<Job[]>("jules-jobs", []);
     const router = useRouter();
     const { toast } = useToast();
     const [open, setOpen] = useState(false);

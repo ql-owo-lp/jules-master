@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Wand2, Loader2, RefreshCw, X, Trash2, BookText } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { Switch } from "./ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -62,23 +62,23 @@ export function JobCreationForm({
 }: JobCreationFormProps) {
   const [prompt, setPrompt] = useState("");
   const [jobName, setJobName] = useState("");
-  const [defaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
+  const [defaultSessionCount] = useProfileSettings<number>("jules-default-session-count", 10);
   const [sessionCount, setSessionCount] = useState(defaultSessionCount);
   
-  const [requirePlanApproval, setRequirePlanApproval] = useLocalStorage<boolean>("jules-new-job-require-plan-approval", false);
-  const [automationMode, setAutomationMode] = useLocalStorage<AutomationMode>("jules-new-job-automation-mode", "AUTO_CREATE_PR");
-  const [backgroundJob, setBackgroundJob] = useLocalStorage<boolean>("jules-new-job-background", true);
+  const [requirePlanApproval, setRequirePlanApproval] = useProfileSettings<boolean>("jules-new-job-require-plan-approval", false);
+  const [automationMode, setAutomationMode] = useProfileSettings<AutomationMode>("jules-new-job-automation-mode", "AUTO_CREATE_PR");
+  const [backgroundJob, setBackgroundJob] = useProfileSettings<boolean>("jules-new-job-background", true);
   const [applyGlobalPrompt, setApplyGlobalPrompt] = useState(true);
 
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, startRefreshTransition] = useTransition();
   const { toast } = useToast();
   
-  const [selectedSource, setSelectedSource] = useLocalStorage<Source | null>("jules-last-source", null);
-  const [selectedBranch, setSelectedBranch] = useLocalStorage<string | undefined>("jules-last-branch", undefined);
-  const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
-  const [lastSourcesFetch, setLastSourcesFetch] = useLocalStorage<number>("jules-sources-last-fetch", 0);
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [selectedSource, setSelectedSource] = useProfileSettings<Source | null>("jules-last-source", null);
+  const [selectedBranch, setSelectedBranch] = useProfileSettings<string | undefined>("jules-last-branch", undefined);
+  const [sources, setSources] = useProfileSettings<Source[]>("jules-sources-cache", []);
+  const [lastSourcesFetch, setLastSourcesFetch] = useProfileSettings<number>("jules-sources-last-fetch", 0);
+  const [apiKey] = useProfileSettings<string | null>("jules-api-key", null);
 
   const [sourceSelectionKey, setSourceSelectionKey] = useState(Date.now());
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);

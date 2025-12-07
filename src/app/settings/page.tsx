@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw } from "lucide-react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { useToast } from "@/hooks/use-toast";
 import { useEnv } from "@/components/env-provider";
 import {
@@ -63,6 +63,7 @@ import {
 } from "@/app/config/actions";
 import { SourceSelection } from "@/components/source-selection";
 import { CronJobsList } from "@/components/cron-jobs-list";
+import { ProfilesTab } from "@/components/profiles-tab";
 import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
 import type { PredefinedPrompt, Source } from "@/lib/types";
@@ -91,33 +92,33 @@ export default function SettingsPage() {
   };
 
   // --- Settings State (from SettingsSheet) ---
-  const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
+  const [apiKey, setApiKey] = useProfileSettings<string>("jules-api-key", "");
+  const [githubToken, setGithubToken] = useProfileSettings<string>("jules-github-token", "");
 
-  const [idlePollInterval, setIdlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
-  const [activePollInterval, setActivePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
-  const [titleTruncateLength, setTitleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
-  const [lineClamp, setLineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
-  const [sessionItemsPerPage, setSessionItemsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
-  const [jobsPerPage, setJobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
-  const [defaultSessionCount, setDefaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
-  const [prStatusPollInterval, setPrStatusPollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
-  const [historyPromptsCount, setHistoryPromptsCount] = useLocalStorage<number>("jules-history-prompts-count", 10);
-  const [autoApprovalInterval, setAutoApprovalInterval] = useLocalStorage<number>("jules-auto-approval-interval", 60);
-  const [autoRetryEnabled, setAutoRetryEnabled] = useLocalStorage<boolean>("jules-auto-retry-enabled", true);
-  const [autoRetryMessage, setAutoRetryMessage] = useLocalStorage<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
-  const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
-  const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
-  const [debugMode, setDebugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
+  const [idlePollInterval, setIdlePollInterval] = useProfileSettings<number>("jules-idle-poll-interval", 120);
+  const [activePollInterval, setActivePollInterval] = useProfileSettings<number>("jules-active-poll-interval", 30);
+  const [titleTruncateLength, setTitleTruncateLength] = useProfileSettings<number>("jules-title-truncate-length", 50);
+  const [lineClamp, setLineClamp] = useProfileSettings<number>("jules-line-clamp", 1);
+  const [sessionItemsPerPage, setSessionItemsPerPage] = useProfileSettings<number>("jules-session-items-per-page", 10);
+  const [jobsPerPage, setJobsPerPage] = useProfileSettings<number>("jules-jobs-per-page", 5);
+  const [defaultSessionCount, setDefaultSessionCount] = useProfileSettings<number>("jules-default-session-count", 10);
+  const [prStatusPollInterval, setPrStatusPollInterval] = useProfileSettings<number>("jules-pr-status-poll-interval", 60);
+  const [historyPromptsCount, setHistoryPromptsCount] = useProfileSettings<number>("jules-history-prompts-count", 10);
+  const [autoApprovalInterval, setAutoApprovalInterval] = useProfileSettings<number>("jules-auto-approval-interval", 60);
+  const [autoRetryEnabled, setAutoRetryEnabled] = useProfileSettings<boolean>("jules-auto-retry-enabled", true);
+  const [autoRetryMessage, setAutoRetryMessage] = useProfileSettings<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
+  const [autoContinueEnabled, setAutoContinueEnabled] = useProfileSettings<boolean>("jules-auto-continue-enabled", true);
+  const [autoContinueMessage, setAutoContinueMessage] = useProfileSettings<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
+  const [debugMode, setDebugMode] = useProfileSettings<boolean>("jules-debug-mode", false);
 
   // New Settings for Session Cache
-  const [sessionCacheInProgressInterval, setSessionCacheInProgressInterval] = useLocalStorage<number>("jules-session-cache-in-progress-interval", 60);
-  const [sessionCacheCompletedNoPrInterval, setSessionCacheCompletedNoPrInterval] = useLocalStorage<number>("jules-session-cache-completed-no-pr-interval", 1800);
-  const [sessionCachePendingApprovalInterval, setSessionCachePendingApprovalInterval] = useLocalStorage<number>("jules-session-cache-pending-approval-interval", 300);
-  const [sessionCacheMaxAgeDays, setSessionCacheMaxAgeDays] = useLocalStorage<number>("jules-session-cache-max-age-days", 3);
+  const [sessionCacheInProgressInterval, setSessionCacheInProgressInterval] = useProfileSettings<number>("jules-session-cache-in-progress-interval", 60);
+  const [sessionCacheCompletedNoPrInterval, setSessionCacheCompletedNoPrInterval] = useProfileSettings<number>("jules-session-cache-completed-no-pr-interval", 1800);
+  const [sessionCachePendingApprovalInterval, setSessionCachePendingApprovalInterval] = useProfileSettings<number>("jules-session-cache-pending-approval-interval", 300);
+  const [sessionCacheMaxAgeDays, setSessionCacheMaxAgeDays] = useProfileSettings<number>("jules-session-cache-max-age-days", 3);
 
-  const [autoDeleteStaleBranches, setAutoDeleteStaleBranches] = useLocalStorage<boolean>("jules-auto-delete-stale-branches", false);
-  const [autoDeleteStaleBranchesAfterDays, setAutoDeleteStaleBranchesAfterDays] = useLocalStorage<number>("jules-auto-delete-stale-branches-after-days", 3);
+  const [autoDeleteStaleBranches, setAutoDeleteStaleBranches] = useProfileSettings<boolean>("jules-auto-delete-stale-branches", false);
+  const [autoDeleteStaleBranchesAfterDays, setAutoDeleteStaleBranchesAfterDays] = useProfileSettings<number>("jules-auto-delete-stale-branches-after-days", 3);
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
@@ -159,7 +160,7 @@ export default function SettingsPage() {
   const [globalPrompt, setGlobalPrompt] = useState<string>("");
   const [repoPrompt, setRepoPrompt] = useState<string>("");
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
-  const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
+  const [sources, setSources] = useProfileSettings<Source[]>("jules-sources-cache", []);
 
   const [isRefreshingSources, startRefreshSources] = useTransition();
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
@@ -525,12 +526,26 @@ export default function SettingsPage() {
       <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="display">Display</TabsTrigger>
         </TabsList>
+
+        {/* Profiles Tab */}
+        <TabsContent value="profiles" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Profiles</CardTitle>
+              <CardDescription>Manage your settings profiles.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProfilesTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* General Tab */}
         <TabsContent value="general" className="space-y-6">

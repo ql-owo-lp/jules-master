@@ -8,7 +8,7 @@ import { Skeleton } from "./ui/skeleton";
 import type { PullRequestStatus } from "@/lib/types";
 import { getPullRequestStatus } from "@/app/github/actions";
 import { useEffect, useState } from "react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { useEnv } from "@/components/env-provider";
 
 
@@ -25,16 +25,16 @@ export function PrStatus({ prUrl }: PrStatusProps) {
   // We store the cached status object (with timestamp) in local storage
   // Key includes the PR URL to be unique
   const storageKey = prUrl ? `pr-status-${prUrl}` : "pr-status-null";
-  const [cachedData, setCachedData] = useLocalStorage<CachedStatus | null>(storageKey, null);
-  const [pollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
-  const [debugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
+  const [cachedData, setCachedData] = useProfileSettings<CachedStatus | null>(storageKey, null);
+  const [pollInterval] = useProfileSettings<number>("jules-pr-status-poll-interval", 60);
+  const [debugMode] = useProfileSettings<boolean>("jules-debug-mode", false);
 
   // Displayed status is derived from cached data
   const status = cachedData?.status;
 
   const [isLoading, setIsLoading] = useState(false);
   const { githubToken: envGithubToken } = useEnv();
-  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const [githubToken] = useProfileSettings<string | null>("jules-github-token", null);
   
   useEffect(() => {
     async function fetchStatus() {

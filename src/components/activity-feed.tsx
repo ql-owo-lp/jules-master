@@ -36,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, forwardRef, useEffect } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 
 const originatorIcons: Record<string, React.ReactNode> = {
   user: <User className="h-5 w-5 text-blue-500" />,
@@ -61,7 +61,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
     countdown,
     pollInterval
 }, ref) => {
-  const [debugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
+  const [debugMode] = useProfileSettings<boolean>("jules-debug-mode", false);
 
   useEffect(() => {
     if (debugMode && isRefreshing) {
@@ -163,7 +163,7 @@ ActivityFeed.displayName = 'ActivityFeed';
 
 
 function ActivityContent({ activity }: { activity: Activity }) {
-  const [lineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
+  const [lineClamp] = useProfileSettings<number>("jules-line-clamp", 1);
   const agentMessage = activity.agentMessaged?.agentMessage;
   const userMessage = activity.userMessaged?.userMessage;
 

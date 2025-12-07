@@ -4,11 +4,11 @@ import React, { useState, useEffect } from "react";
 import { NewJobDialog } from "@/components/new-job-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function NewJobPage() {
-  const [apiKey] = useLocalStorage<string>("jules-api-key", "");
+  const [apiKey] = useProfileSettings<string>("jules-api-key", "");
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
