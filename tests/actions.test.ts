@@ -10,7 +10,7 @@ import {
 } from '../src/app/config/actions';
 import { Job, PredefinedPrompt } from '../src/lib/types';
 import { db } from '../src/lib/db';
-import { jobs, predefinedPrompts, quickReplies, globalPrompt, historyPrompts, repoPrompts } from '../src/lib/db/schema';
+import { jobs, predefinedPrompts, quickReplies, globalPrompt, historyPrompts, repoPrompts, profiles, settings } from '../src/lib/db/schema';
 
 // Mock next/cache
 vi.mock('next/cache', () => ({
@@ -26,6 +26,9 @@ describe('Config Actions', () => {
         await db.delete(globalPrompt);
         await db.delete(historyPrompts);
         await db.delete(repoPrompts);
+        // Create a default profile and settings
+        await db.insert(profiles).values({ id: 'default', name: 'Default', isActive: true });
+        await db.insert(settings).values({ profileId: 'default' });
     });
 
     afterAll(async () => {

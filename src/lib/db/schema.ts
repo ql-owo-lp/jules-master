@@ -67,9 +67,12 @@ export const repoPrompts = sqliteTable('repo_prompts', {
 export const profiles = sqliteTable('profiles', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  julesApiKey: text('jules_api_key'),
-  githubToken: text('github_token'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
+});
+
+export const settings = sqliteTable('settings', {
+  id: integer('id').primaryKey(),
+  profileId: text('profile_id').references(() => profiles.id),
   idlePollInterval: integer('idle_poll_interval').notNull().default(120),
   activePollInterval: integer('active_poll_interval').notNull().default(30),
   titleTruncateLength: integer('title_truncate_length').notNull().default(50),
@@ -78,23 +81,20 @@ export const profiles = sqliteTable('profiles', {
   jobsPerPage: integer('jobs_per_page').notNull().default(5),
   defaultSessionCount: integer('default_session_count').notNull().default(10),
   prStatusPollInterval: integer('pr_status_poll_interval').notNull().default(60),
+  theme: text('theme').notNull().default('system'),
   historyPromptsCount: integer('history_prompts_count').notNull().default(10),
   autoApprovalInterval: integer('auto_approval_interval').notNull().default(60),
   autoRetryEnabled: integer('auto_retry_enabled', { mode: 'boolean' }).notNull().default(true),
   autoRetryMessage: text('auto_retry_message').notNull().default("You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution"),
   autoContinueEnabled: integer('auto_continue_enabled', { mode: 'boolean' }).notNull().default(true),
   autoContinueMessage: text('auto_continue_message').notNull().default("Sounds good. Now go ahead finish the work"),
+  // Session Cache Settings
   sessionCacheInProgressInterval: integer('session_cache_in_progress_interval').notNull().default(60),
   sessionCacheCompletedNoPrInterval: integer('session_cache_completed_no_pr_interval').notNull().default(1800), // 30 minutes
   sessionCachePendingApprovalInterval: integer('session_cache_pending_approval_interval').notNull().default(300), // 5 minutes
   sessionCacheMaxAgeDays: integer('session_cache_max_age_days').notNull().default(3),
   autoDeleteStaleBranches: integer('auto_delete_stale_branches', { mode: 'boolean' }).notNull().default(false),
   autoDeleteStaleBranchesAfterDays: integer('auto_delete_stale_branches_after_days').notNull().default(3),
-});
-
-export const settings = sqliteTable('settings', {
-  id: integer('id').primaryKey(),
-  theme: text('theme').notNull().default('system'),
 });
 
 export const sessions = sqliteTable('sessions', {

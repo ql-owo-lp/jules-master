@@ -239,31 +239,3 @@ export type Settings = {
   autoContinueEnabled?: boolean;
   autoRetryEnabled?: boolean;
 };
-
-export type Profile = {
-  id: string;
-  name: string;
-  julesApiKey: string | null;
-  githubToken: string | null;
-  isActive: boolean;
-  idlePollInterval: number;
-  activePollInterval: number;
-  titleTruncateLength: number;
-  lineClamp: number;
-  sessionItemsPerPage: number;
-  jobsPerPage: number;
-  defaultSessionCount: number;
-  prStatusPollInterval: number;
-  historyPromptsCount: number;
-  autoApprovalInterval: number;
-  autoRetryEnabled: boolean;
-  autoRetryMessage: string;
-  autoContinueEnabled: boolean;
-  autoContinueMessage: string;
-  sessionCacheInProgressInterval: number;
-  sessionCacheCompletedNoPrInterval: number;
-  sessionCachePendingApprovalInterval: number;
-  sessionCacheMaxAgeDays: number;
-  autoDeleteStaleBranches: boolean;
-  autoDeleteStaleBranchesAfterDays: number;
-};

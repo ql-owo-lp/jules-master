@@ -129,7 +129,68 @@ export async function saveRepoPrompt(repo: string, prompt: string): Promise<void
     revalidatePath('/settings');
 }
 
+// --- Profiles ---
+export async function getProfiles() {
+    return db.query.profiles.findMany();
+}
+
+export async function createProfile(name: string) {
+    const activeProfile = await db.query.profiles.findFirst({ where: eq(schema.profiles.isActive, true) });
+    if (!activeProfile) {
+        throw new Error('No active profile found.');
+    }
+    const activeSettings = await db.query.settings.findFirst({ where: eq(schema.settings.profileId, activeProfile.id) });
+    const newProfile = { id: crypto.randomUUID(), name, isActive: false };
+    await db.insert(schema.profiles).values(newProfile);
+    await db.insert(schema.settings).values({ ...activeSettings, id: undefined, profileId: newProfile.id });
+    revalidatePath('/settings');
+}
+
+export async function renameProfile(id: string, name: string) {
+    await db.update(schema.profiles).set({ name }).where(eq(schema.profiles.id, id));
+    revalidatePath('/settings');
+}
+
+export async function deleteProfile(id: string) {
+    const allProfiles = await db.query.profiles.findMany();
+    if (allProfiles.length <= 1) {
+        throw new Error('Cannot delete the last profile.');
+    }
+    const profile = await db.query.profiles.findFirst({ where: eq(schema.profiles.id, id) });
+    if (profile?.isActive) {
+        throw new Error('Cannot delete the active profile.');
+    }
+    await db.transaction(async (tx) => {
+        await tx.delete(schema.settings).where(eq(schema.settings.profileId, id));
+        await tx.delete(schema.profiles).where(eq(schema.profiles.id, id));
+    });
+    revalidatePath('/settings');
+}
+
+export async function setActiveProfile(id: string) {
+    const currentActive = await db.query.profiles.findFirst({ where: eq(schema.profiles.isActive, true) });
+    if (currentActive?.id === id) {
+        return; // Profile is already active
+    }
+    await db.transaction(async (tx) => {
+        if (currentActive) {
+            await tx.update(schema.profiles).set({ isActive: false }).where(eq(schema.profiles.id, currentActive.id));
+        }
+        await tx.update(schema.profiles).set({ isActive: true }).where(eq(schema.profiles.id, id));
+    });
+    revalidatePath('/settings');
+}
+
 // --- Settings ---
 export async function getSettings() {
-    return db.query.settings.findFirst();
+    const activeProfile = await db.query.profiles.findFirst({ where: eq(schema.profiles.isActive, true) });
+    if (!activeProfile) {
+        // Create a default profile if none exists
+        const defaultProfile = { id: 'default', name: 'Default', isActive: true };
+        await db.insert(schema.profiles).values(defaultProfile);
+        const defaultSettings = { profileId: 'default' };
+        await db.insert(schema.settings).values(defaultSettings);
+        return db.query.settings.findFirst({ where: eq(schema.settings.profileId, 'default') });
+    }
+    return db.query.settings.findFirst({ where: eq(schema.settings.profileId, activeProfile.id) });
 }

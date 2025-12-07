@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "af279236-db89-4ad9-9f1e-305ff36fb50c",
+  "id": "c98a3f7c-0543-4cb8-a783-b8d5e0b058d5",
   "prevId": "3385753b-0d7b-4844-a027-54795d27b9a2",
   "tables": {
     "cron_jobs": {
@@ -328,20 +328,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "jules_api_key": {
-          "name": "jules_api_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "github_token": {
-          "name": "github_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "is_active": {
           "name": "is_active",
           "type": "integer",
@@ -349,166 +335,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": false
-        },
-        "idle_poll_interval": {
-          "name": "idle_poll_interval",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 120
-        },
-        "active_poll_interval": {
-          "name": "active_poll_interval",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 30
-        },
-        "title_truncate_length": {
-          "name": "title_truncate_length",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 50
-        },
-        "line_clamp": {
-          "name": "line_clamp",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 1
-        },
-        "session_items_per_page": {
-          "name": "session_items_per_page",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 10
-        },
-        "jobs_per_page": {
-          "name": "jobs_per_page",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 5
-        },
-        "default_session_count": {
-          "name": "default_session_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 10
-        },
-        "pr_status_poll_interval": {
-          "name": "pr_status_poll_interval",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 60
-        },
-        "history_prompts_count": {
-          "name": "history_prompts_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 10
-        },
-        "auto_approval_interval": {
-          "name": "auto_approval_interval",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 60
-        },
-        "auto_retry_enabled": {
-          "name": "auto_retry_enabled",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "auto_retry_message": {
-          "name": "auto_retry_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution'"
-        },
-        "auto_continue_enabled": {
-          "name": "auto_continue_enabled",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "auto_continue_message": {
-          "name": "auto_continue_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'Sounds good. Now go ahead finish the work'"
-        },
-        "session_cache_in_progress_interval": {
-          "name": "session_cache_in_progress_interval",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 60
-        },
-        "session_cache_completed_no_pr_interval": {
-          "name": "session_cache_completed_no_pr_interval",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 1800
-        },
-        "session_cache_pending_approval_interval": {
-          "name": "session_cache_pending_approval_interval",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 300
-        },
-        "session_cache_max_age_days": {
-          "name": "session_cache_max_age_days",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 3
-        },
-        "auto_delete_stale_branches": {
-          "name": "auto_delete_stale_branches",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "auto_delete_stale_branches_after_days": {
-          "name": "auto_delete_stale_branches_after_days",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 3
         }
       },
       "indexes": {},
@@ -698,6 +524,77 @@
           "notNull": true,
           "autoincrement": false
         },
+        "profile_id": {
+          "name": "profile_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "idle_poll_interval": {
+          "name": "idle_poll_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 120
+        },
+        "active_poll_interval": {
+          "name": "active_poll_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 30
+        },
+        "title_truncate_length": {
+          "name": "title_truncate_length",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 50
+        },
+        "line_clamp": {
+          "name": "line_clamp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "session_items_per_page": {
+          "name": "session_items_per_page",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 10
+        },
+        "jobs_per_page": {
+          "name": "jobs_per_page",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 5
+        },
+        "default_session_count": {
+          "name": "default_session_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 10
+        },
+        "pr_status_poll_interval": {
+          "name": "pr_status_poll_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 60
+        },
         "theme": {
           "name": "theme",
           "type": "text",
@@ -705,10 +602,120 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'system'"
+        },
+        "history_prompts_count": {
+          "name": "history_prompts_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 10
+        },
+        "auto_approval_interval": {
+          "name": "auto_approval_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 60
+        },
+        "auto_retry_enabled": {
+          "name": "auto_retry_enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "auto_retry_message": {
+          "name": "auto_retry_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution'"
+        },
+        "auto_continue_enabled": {
+          "name": "auto_continue_enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "auto_continue_message": {
+          "name": "auto_continue_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'Sounds good. Now go ahead finish the work'"
+        },
+        "session_cache_in_progress_interval": {
+          "name": "session_cache_in_progress_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 60
+        },
+        "session_cache_completed_no_pr_interval": {
+          "name": "session_cache_completed_no_pr_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1800
+        },
+        "session_cache_pending_approval_interval": {
+          "name": "session_cache_pending_approval_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 300
+        },
+        "session_cache_max_age_days": {
+          "name": "session_cache_max_age_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 3
+        },
+        "auto_delete_stale_branches": {
+          "name": "auto_delete_stale_branches",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "auto_delete_stale_branches_after_days": {
+          "name": "auto_delete_stale_branches_after_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 3
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "settings_profile_id_profiles_id_fk": {
+          "name": "settings_profile_id_profiles_id_fk",
+          "tableFrom": "settings",
+          "tableTo": "profiles",
+          "columnsFrom": [
+            "profile_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}

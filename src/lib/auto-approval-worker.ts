@@ -1,6 +1,6 @@
 
 import { db } from './db';
-import { profiles } from './db/schema';
+import { settings } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { fetchSessionsPage } from '@/app/sessions/actions';
 import { approvePlan } from '@/app/sessions/[id]/actions';
@@ -26,8 +26,8 @@ export async function runAutoApprovalCheck(options = { schedule: true }) {
     try {
         console.log("AutoApprovalWorker: Starting check for all sessions...");
 
-    const activeProfile = await db.query.profiles.findFirst({ where: eq(profiles.isActive, true) });
-    const autoApprovalEnabled = activeProfile ? activeProfile.autoApprovalEnabled : false;
+        const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+        const autoApprovalEnabled = settingsResult.length > 0 && settingsResult[0].autoApprovalEnabled;
 
         if (!autoApprovalEnabled) {
             console.log("AutoApprovalWorker: Auto-approval is disabled. Skipping approval part of the check.");
@@ -96,11 +96,11 @@ function scheduleNextRun() {
 
     // Get interval from settings (default 60s)
     // We fetch this every time to pick up changes without restart
-db.query.profiles.findFirst({ where: eq(profiles.isActive, true) })
-    .then(activeProfile => {
+    db.select().from(settings).where(eq(settings.id, 1)).limit(1)
+        .then(settingsResult => {
             let intervalSeconds = 60;
-        if (activeProfile) {
-            intervalSeconds = activeProfile.autoApprovalInterval;
+            if (settingsResult.length > 0) {
+                intervalSeconds = settingsResult[0].autoApprovalInterval;
             }
             // Ensure reasonable minimum
             if (intervalSeconds < 10) intervalSeconds = 10;
