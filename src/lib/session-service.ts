@@ -122,7 +122,17 @@ async function fetchSessionFromApi(sessionId: string, apiKey: string): Promise<S
             }
             return null;
         }
-        return await response.json();
+        const session = await response.json();
+
+        // Ensure ID is populated from name if missing
+        if (!session.id && session.name) {
+            const parts = session.name.split('/');
+            if (parts.length > 1) {
+                session.id = parts[parts.length - 1];
+            }
+        }
+
+        return session;
     } catch (e) {
         console.error(`Failed to fetch session ${sessionId}`, e);
         return null;
