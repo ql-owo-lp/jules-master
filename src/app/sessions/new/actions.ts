@@ -55,6 +55,15 @@ export async function createSession(
     }
 
     const newSession: Session = await response.json();
+
+    // Ensure ID is populated from name if missing
+    if (!newSession.id && newSession.name) {
+      const parts = newSession.name.split('/');
+      if (parts.length > 1) {
+        newSession.id = parts[parts.length - 1];
+      }
+    }
+
     return newSession;
   } catch (error) {
     console.error("Error creating session:", error);
