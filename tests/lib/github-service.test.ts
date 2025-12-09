@@ -54,4 +54,15 @@ describe('deleteBranch', () => {
         const result = await deleteBranch('test-repo', 'test-branch');
         expect(result).toBe(false);
     });
+
+    it('should return false when attempting to delete protected branches', async () => {
+        process.env.GITHUB_TOKEN = 'test-token';
+        const branches = ['main', 'master', 'develop'];
+
+        for (const branch of branches) {
+            const result = await deleteBranch('test-repo', branch);
+            expect(result).toBe(false);
+            expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
+        }
+    });
 });
