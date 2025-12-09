@@ -121,7 +121,13 @@ export async function fetchPullRequestStatus(prUrl: string, token?: string | nul
         }
       }
 
-      return { state, checks, merged_at: prData.merged_at };
+      return {
+        state,
+        checks,
+        merged_at: prData.merged_at,
+        headBranch: prData.head.ref,
+        headRepo: prData.head.repo ? prData.head.repo.full_name : undefined
+      };
 
     } catch (error) {
       console.error('Error fetching pull request status:', error);

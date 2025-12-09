@@ -85,15 +85,47 @@ describe('runAutoDeleteStaleBranchCheck', () => {
             outputs: [{ pullRequest: { url: 'http://example.com' } }],
             sourceContext: {
                 source: 'sources/github/test-owner/test-repo',
-                githubRepoContext: { startingBranch: 'test-branch' },
+                githubRepoContext: { startingBranch: 'main' }, // Simulating session started from main
             },
         };
 
         vi.spyOn(actions, 'fetchSessionsPage').mockResolvedValueOnce({ sessions: [session], nextPageToken: undefined });
-        vi.spyOn(githubActions, 'fetchPullRequestStatus').mockResolvedValue({ state: 'MERGED', merged_at: new Date(0).toISOString() });
+        vi.spyOn(githubActions, 'fetchPullRequestStatus').mockResolvedValue({
+            state: 'MERGED',
+            merged_at: new Date(0).toISOString(),
+            checks: { status: 'success', total: 1, passed: 1, runs: [] },
+            headBranch: 'test-branch'
+        });
 
         await runAutoDeleteStaleBranchCheck({ schedule: false });
 
         expect(github.deleteBranch).toHaveBeenCalledWith('test-owner/test-repo', 'test-branch');
+    });
+
+    it('should not call deleteBranch if the PR branch is from a different repository', async () => {
+        const settingsMock = db.limit as vi.Mock;
+        settingsMock.mockResolvedValueOnce([{ autoDeleteStaleBranches: true, autoDeleteStaleBranchesAfterDays: 1 }]);
+
+        const session = {
+            state: 'COMPLETED',
+            outputs: [{ pullRequest: { url: 'http://example.com' } }],
+            sourceContext: {
+                source: 'sources/github/test-owner/test-repo',
+                githubRepoContext: { startingBranch: 'main' },
+            },
+        };
+
+        vi.spyOn(actions, 'fetchSessionsPage').mockResolvedValueOnce({ sessions: [session], nextPageToken: undefined });
+        vi.spyOn(githubActions, 'fetchPullRequestStatus').mockResolvedValue({
+            state: 'MERGED',
+            merged_at: new Date(0).toISOString(),
+            checks: { status: 'success', total: 1, passed: 1, runs: [] },
+            headBranch: 'feature-branch',
+            headRepo: 'fork-owner/test-repo' // Different repo
+        });
+
+        await runAutoDeleteStaleBranchCheck({ schedule: false });
+
+        expect(github.deleteBranch).not.toHaveBeenCalled();
     });
 });

@@ -4,6 +4,11 @@
 import { fetchWithRetry } from './fetch-client';
 
 export async function deleteBranch(repo: string, branch: string): Promise<boolean> {
+    if (['main', 'master', 'develop'].includes(branch)) {
+        console.warn(`Attempted to delete protected branch ${branch} in ${repo}, preventing deletion.`);
+        return false;
+    }
+
     const token = process.env.GITHUB_TOKEN;
     if (!token) {
         console.warn('GitHub token not configured, skipping branch deletion.');
