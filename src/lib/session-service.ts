@@ -46,7 +46,7 @@ export async function upsertSession(session: Session) {
     sourceContext: session.sourceContext,
     createTime: session.createTime,
     updateTime: session.updateTime,
-    state: session.state,
+    state: session.state || 'STATE_UNSPECIFIED',
     url: session.url,
     outputs: session.outputs,
     requirePlanApproval: session.requirePlanApproval,
