@@ -89,8 +89,8 @@ describe('fetchWithRetry', () => {
     });
   });
 
-  describe('Throttling (Concurrency & LIFO)', () => {
-    it('should limit concurrency to 5', async () => {
+  describe('Throttling (Concurrency & FIFO)', () => {
+    it('should limit concurrency to 1', async () => {
         let activeCount = 0;
         let maxActive = 0;
 
@@ -118,12 +118,13 @@ describe('fetchWithRetry', () => {
         // We need 5 tasks to start. 0, 200, 400, 600, 800.
         // At T=800, 5 tasks are active.
 
-        await vi.advanceTimersByTimeAsync(3000);
+        await vi.advanceTimersByTimeAsync(30000);
+        await vi.runAllTimersAsync();
 
-        expect(maxActive).toBe(5);
+        expect(maxActive).toBe(1);
     });
 
-    it('should process in LIFO order', async () => {
+    it('should process in FIFO order', async () => {
          const startOrder: number[] = [];
 
          const delayedFetch = async (url: string) => {
@@ -152,17 +153,17 @@ describe('fetchWithRetry', () => {
          }
 
          // All R1..R9 are in queue.
-         // At T=200, one will be popped. LIFO -> R9.
+         // FIFO -> R1.
 
          await vi.runAllTimersAsync();
          await Promise.all(promises);
 
          // R0 started first.
          expect(startOrder[0]).toBe(0);
-         // R9 started second.
-         expect(startOrder[1]).toBe(9);
-         // R1 started last.
-         expect(startOrder[9]).toBe(1);
+         // R1 started second.
+         expect(startOrder[1]).toBe(1);
+         // R9 started last.
+         expect(startOrder[9]).toBe(9);
     });
   });
 
