@@ -215,6 +215,7 @@ export type GitHubPullRequest = {
   merged_at: string | null;
   head: {
     sha: string;
+    ref: string;
   };
 };
 
@@ -227,6 +228,7 @@ export type CheckRun = {
 export type PullRequestStatus = {
   state: 'OPEN' | 'MERGED' | 'CLOSED' | 'NO_TOKEN' | 'ERROR' | 'NOT_FOUND' | 'UNAUTHORIZED';
   merged_at?: string | null;
+  headBranch?: string;
   checks: {
     status: 'pending' | 'success' | 'failure' | 'unknown';
     total: number;

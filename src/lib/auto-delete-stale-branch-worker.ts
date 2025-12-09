@@ -65,13 +65,15 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
                         const daysSinceMerge = (now.getTime() - mergedAt.getTime()) / (1000 * 60 * 60 * 24);
 
                         if (daysSinceMerge > autoDeleteDays) {
-                            if (session.sourceContext?.githubRepoContext?.startingBranch) {
-                                const repo = session.sourceContext.source.replace('sources/github/', '');
-                                const branch = session.sourceContext.githubRepoContext.startingBranch;
-                                console.log(`AutoDeleteStaleBranchWorker: Deleting stale branch ${branch} from ${repo}...`);
-                                const deleted = await deleteBranch(repo, branch);
-                                if (deleted) {
-                                    deletedCount++;
+                            if (prStatus.headBranch) {
+                                const repo = session.sourceContext?.source.replace('sources/github/', '');
+                                if (repo) {
+                                    const branch = prStatus.headBranch;
+                                    console.log(`AutoDeleteStaleBranchWorker: Deleting stale branch ${branch} from ${repo}...`);
+                                    const deleted = await deleteBranch(repo, branch);
+                                    if (deleted) {
+                                        deletedCount++;
+                                    }
                                 }
                             }
                         }
