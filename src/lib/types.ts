@@ -25,6 +25,7 @@ export type Job = {
     sessionIds: string[];
     createdAt: string;
     repo: string;
+    sourceName?: string | null;
     branch: string;
     autoApproval?: boolean;
     background?: boolean;
@@ -42,6 +43,7 @@ export type CronJob = {
     schedule: string;
     prompt: string;
     repo: string;
+    sourceName?: string | null;
     branch: string;
     createdAt: string;
     lastRunAt: string | null;

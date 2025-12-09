@@ -207,6 +207,7 @@ export function CronJobForm({
             schedule,
             prompt: initialValues ? prompt : finalPrompt, // If editing, we trust the prompt box. If new, we construct it.
             repo: `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`,
+            sourceName: selectedSource.name,
             branch: selectedBranch,
             sessionCount,
             requirePlanApproval,

@@ -119,18 +119,6 @@ async function processPendingJobs(apiKey: string) {
 
     console.log(`BackgroundJobWorker: Found ${pendingJobs.length} pending/processing jobs.`);
 
-    // We need to fetch sources to resolve repo/branch to Source object if needed.
-    // However, createSession needs 'Source' object which contains ID and name.
-    // The Job record stores 'repo' (owner/repo) and 'branch'.
-    // We can list sources and find the matching one.
-    let sourcesList = null;
-    try {
-        sourcesList = await listSources(apiKey);
-    } catch (e) {
-        console.error("BackgroundJobWorker: Failed to list sources", e);
-        return;
-    }
-
     for (const job of pendingJobs) {
         try {
             console.log(`BackgroundJobWorker: Processing job ${job.id} (${job.name})`);
@@ -142,10 +130,24 @@ async function processPendingJobs(apiKey: string) {
                 continue;
             }
 
-            const [owner, repoName] = job.repo.split('/');
-            const source = sourcesList.find(s => s.githubRepo.owner === owner && s.githubRepo.repo === repoName);
+            // Prefer sourceName if available
+            let sourceName = job.sourceName;
 
-            if (!source) {
+            // Fallback to looking up by repo if sourceName is missing (for legacy jobs)
+            if (!sourceName) {
+                try {
+                     const sourcesList = await listSources(apiKey);
+                     const [owner, repoName] = job.repo.split('/');
+                     const source = sourcesList.find(s => s.githubRepo.owner === owner && s.githubRepo.repo === repoName);
+                     if (source) {
+                        sourceName = source.name;
+                     }
+                } catch (e) {
+                     console.error("BackgroundJobWorker: Failed to list sources for fallback lookup", e);
+                }
+            }
+
+            if (!sourceName) {
                 console.error(`BackgroundJobWorker: Source not found for job ${job.id} (repo: ${job.repo})`);
                  await db.update(jobs).set({ status: 'FAILED' }).where(eq(jobs.id, job.id));
                 continue;
@@ -177,7 +179,7 @@ async function processPendingJobs(apiKey: string) {
                             title: job.name,
                             prompt: job.prompt,
                             sourceContext: {
-                                source: source.name,
+                                source: sourceName,
                                 githubRepoContext: {
                                     startingBranch: job.branch,
                                 }

@@ -41,6 +41,7 @@ export async function processCronJobs() {
                 sessionIds: [],
                 createdAt: now.toISOString(),
                 repo: job.repo,
+                sourceName: job.sourceName,
                 branch: job.branch,
                 autoApproval: job.autoApproval,
                 background: true, // Cron jobs are background jobs
