@@ -62,21 +62,21 @@ export function initLogger() {
 
   console.log = (...args: any[]) => {
     emitLog('log', ...args);
-    originalLog.apply(console, args);
+    originalLog.apply(console, [new Date().toISOString(), ...args]);
   };
 
   console.error = (...args: any[]) => {
     emitLog('error', ...args);
-    originalError.apply(console, args);
+    originalError.apply(console, [new Date().toISOString(), ...args]);
   };
 
   console.warn = (...args: any[]) => {
     emitLog('warn', ...args);
-    originalWarn.apply(console, args);
+    originalWarn.apply(console, [new Date().toISOString(), ...args]);
   };
 
   console.info = (...args: any[]) => {
     emitLog('info', ...args);
-    originalInfo.apply(console, args);
+    originalInfo.apply(console, [new Date().toISOString(), ...args]);
   };
 }
