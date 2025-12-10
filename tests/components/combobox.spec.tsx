@@ -2,7 +2,7 @@
 import React from "react";
 import { render, fireEvent, screen } from "@testing-library/react";
 import { Combobox } from "@/components/ui/combobox";
-import { vi } from "vitest";
+import { vi, describe, it, expect } from "vitest";
 
 const options = [
   { value: "1", label: "Option 1" },

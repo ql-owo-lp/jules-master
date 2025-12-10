@@ -64,10 +64,11 @@ export function JobCreationForm({
   const [jobName, setJobName] = useState("");
   const [defaultSessionCount] = useLocalStorage<number>("jules-default-session-count", 10);
   const [sessionCount, setSessionCount] = useState(defaultSessionCount);
+  const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
   
-  const [requirePlanApproval, setRequirePlanApproval] = useLocalStorage<boolean>("jules-new-job-require-plan-approval", false);
-  const [automationMode, setAutomationMode] = useLocalStorage<AutomationMode>("jules-new-job-automation-mode", "AUTO_CREATE_PR");
-  const [backgroundJob, setBackgroundJob] = useLocalStorage<boolean>("jules-new-job-background", true);
+  const [requirePlanApproval, setRequirePlanApproval] = useState(false);
+  const [automationMode, setAutomationMode] = useState<AutomationMode>("AUTO_CREATE_PR");
+  const [backgroundJob, setBackgroundJob] = useState(true);
   const [applyGlobalPrompt, setApplyGlobalPrompt] = useState(true);
 
   const [isPending, startTransition] = useTransition();
@@ -99,15 +100,16 @@ export function JobCreationForm({
     setIsClient(true);
     async function fetchData() {
         const [prompts, gPrompt, hPrompts, settings] = await Promise.all([
-            getPredefinedPrompts(),
-            getGlobalPrompt(),
-            getHistoryPrompts(),
-            getSettings()
+            getPredefinedPrompts(currentProfileId),
+            getGlobalPrompt(currentProfileId),
+            getHistoryPrompts(currentProfileId),
+            getSettings(currentProfileId)
         ]);
         setPredefinedPrompts(prompts);
         setGlobalPrompt(gPrompt);
         setHistoryPrompts(hPrompts);
-        setSettings(settings);
+        setHistoryPrompts(hPrompts);
+        setSettings(settings || null);
     }
     fetchData();
   }, []);
@@ -247,9 +249,9 @@ export function JobCreationForm({
 
     startTransition(async () => {
       // Save to history prompts
-      await saveHistoryPrompt(prompt);
+      await saveHistoryPrompt(prompt, currentProfileId);
       // Refresh history prompts in UI
-      const hPrompts = await getHistoryPrompts();
+      const hPrompts = await getHistoryPrompts(currentProfileId);
       setHistoryPrompts(hPrompts);
 
       const createdSessions: Session[] = [];
@@ -270,7 +272,8 @@ export function JobCreationForm({
             sessionCount: sessionCount,
             status: 'PENDING',
             automationMode: automationMode,
-            requirePlanApproval: requirePlanApproval
+            requirePlanApproval: requirePlanApproval,
+            profileId: currentProfileId
         };
         await addJob(newJob);
         toast({
@@ -478,7 +481,7 @@ export function JobCreationForm({
                 id="job-name"
                 placeholder="e.g., My Awesome Job"
                 value={jobName}
-                onChange={(e) => setJobName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobName(e.target.value)}
                 disabled={isPending || disabled}
               />
             </div>
@@ -517,7 +520,7 @@ export function JobCreationForm({
               placeholder="e.g., Create a boba app!"
               rows={5}
               value={prompt}
-              onChange={(e) => {
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                   setPrompt(e.target.value);
                   // If user types, we deselect any suggestion because it might differ now
                   if (selectedPromptId) setSelectedPromptId(null);

@@ -5,9 +5,12 @@ import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { settingsSchema } from '@/lib/validation';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const result = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    const { searchParams } = new URL(request.url);
+    const profileId = searchParams.get('profileId') || 'default';
+
+    const result = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
     if (result.length === 0) {
       // Return default settings if none exist in DB
@@ -30,9 +33,12 @@ export async function GET() {
         sessionCacheCompletedNoPrInterval: 1800,
         sessionCachePendingApprovalInterval: 300,
         sessionCacheMaxAgeDays: 3,
-        autoDeleteStaleBranches: false,
         autoDeleteStaleBranchesAfterDays: 3,
+
         historyPromptsCount: 10,
+        minSessionInteractionInterval: 60,
+        retryTimeout: 1200,
+        profileId: profileId
       });
     }
 
@@ -57,15 +63,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    const newSettings = {
-      id: 1, // Ensure we are updating the singleton row
-      ...validation.data,
-    };
+    const profileId = body.profileId || 'default';
 
-    const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    const newSettings = {
+      ...validation.data,
+      profileId
+    };
+    // Remove id from validation data if present, as we manage it differently or let it autoincrement
+    if ('id' in newSettings) delete (newSettings as any).id;
+
+
+    const existing = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
     if (existing.length > 0) {
-        await db.update(settings).set(newSettings).where(eq(settings.id, 1));
+        await db.update(settings).set(newSettings).where(eq(settings.id, existing[0].id));
     } else {
         await db.insert(settings).values(newSettings);
     }

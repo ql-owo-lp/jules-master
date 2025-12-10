@@ -5,6 +5,7 @@ import { eq, and, isNotNull, sql, lt } from 'drizzle-orm';
 import { listActivities, sendMessage } from '@/app/sessions/[id]/actions';
 import { createSession } from '@/app/sessions/new/actions';
 import { differenceInHours } from 'date-fns';
+import { shouldInteract } from '@/lib/throttle';
 import { Job, AutomationMode, Session } from './types';
 import { getSettings, upsertSession } from './session-service';
 import { listSources } from '@/app/sessions/actions';
@@ -184,7 +185,7 @@ async function processPendingJobs(apiKey: string) {
                             },
                             requirePlanApproval: job.requirePlanApproval ?? false,
                             automationMode: (job.automationMode as AutomationMode) || 'AUTO_CREATE_PR',
-                        }, apiKey);
+                        }, apiKey, job.profileId || 'default');
                     } catch (e) {
                          console.error(`BackgroundJobWorker: Error creating session ${i+1} for job ${job.id}`, e);
                     }
@@ -296,10 +297,21 @@ async function processFailedSessions(apiKey: string) {
             // But `auto-retry-worker` only retries ONCE per failure type (checks if last message was retry message).
             // Here we need to force it up to N times.
 
+// ...
+
             const settingsResult = await getSettings();
+            
+            // Check throttling
+            // session is from local DB, so it has lastInteractionAt but possibly missing/stale updateTime.
+            // This defaults to "wait for retryTimeout" behavior, which is correct for failed retry loops.
+            if (!shouldInteract(session as any, settingsResult)) {
+                 // console.log(`BackgroundJobWorker: Throttling session ${session.id}.`);
+                 continue;
+            }
+
             const retryMessage = settingsResult.autoRetryMessage;
 
-            await sendMessage(session.id, retryMessage, apiKey);
+            await sendMessage(session.id, retryMessage, apiKey, true);
 
             // Increment retry count
             await db.update(sessions).set({

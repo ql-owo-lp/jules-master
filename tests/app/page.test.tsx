@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import HomePageContent from '@/app/page';
-import { vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useRouter } from 'next/navigation';
 
@@ -33,7 +33,7 @@ const mockSessions = [
 
 describe('HomePageContent', () => {
   beforeEach(() => {
-    (useLocalStorage as jest.Mock).mockImplementation((key, initialValue) => {
+    (useLocalStorage as Mock).mockImplementation((key, initialValue) => {
       if (key === 'jules-jobs') {
         return [mockJobs, vi.fn()];
       }
@@ -68,7 +68,7 @@ describe('HomePageContent', () => {
   
   it('should navigate to the correct page when onJobPageChange is called', () => {
     const push = vi.fn();
-    (useRouter as jest.Mock).mockReturnValue({ push });
+    (useRouter as Mock).mockReturnValue({ push });
 
     const jobsForPagination = [
       { id: 'job1', name: 'Job 1', sessionIds: ['session1'], repo: 'repo1', createdAt: new Date().toISOString() },
@@ -79,7 +79,7 @@ describe('HomePageContent', () => {
       { id: 'session2', title: 'Session 2', state: 'COMPLETED', createTime: new Date().toISOString() },
     ];
 
-    (useLocalStorage as jest.Mock).mockImplementation((key, initialValue) => {
+    (useLocalStorage as Mock).mockImplementation((key, initialValue) => {
       if (key === 'jules-jobs') {
         return [jobsForPagination, vi.fn()];
       }

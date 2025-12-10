@@ -25,4 +25,7 @@ export const settingsSchema = z.object({
   historyPromptsCount: z.number().min(0, {
     message: "History prompts count must be a non-negative number.",
   }),
+  minSessionInteractionInterval: z.number(),
+  retryTimeout: z.number(),
+  autoDeleteStaleBranchesInterval: z.number(),
 });

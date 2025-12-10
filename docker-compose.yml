@@ -14,12 +14,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: builder
     ports:
       - "9002:9002"
     # Mount the source code for hot-reloading during development
     volumes:
       - ./src:/app/src
       - ./data:/app/data
+      - ./package.json:/app/package.json
       - /app/node_modules
     # Use an env_file to load environment variables for the container
     env_file:

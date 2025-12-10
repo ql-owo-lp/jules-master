@@ -176,7 +176,9 @@ describe('SessionList', () => {
             title: 'Uncategorized Session',
             state: 'COMPLETED',
             createTime: new Date().toISOString(),
-          },
+            name: 'sessions/1',
+            prompt: 'test prompt',
+          } as any,
         ]}
         jobs={[]}
         unknownSessions={[
@@ -185,7 +187,9 @@ describe('SessionList', () => {
             title: 'Uncategorized Session',
             state: 'COMPLETED',
             createTime: new Date().toISOString(),
-          },
+            name: 'sessions/1',
+            prompt: 'test prompt',
+          } as any,
         ]}
         quickReplies={[]}
         lastUpdatedAt={null}
@@ -220,7 +224,9 @@ describe('SessionList', () => {
             title: 'Test Session',
             state: 'COMPLETED',
             createTime: new Date().toISOString(),
-          },
+            name: 'sessions/1',
+            prompt: 'test prompt',
+          } as any,
         ]}
         jobs={[
           {
@@ -266,13 +272,17 @@ describe('SessionList', () => {
         title: 'Completed Session',
         state: 'COMPLETED',
         createTime: new Date().toISOString(),
-      },
+        name: 'sessions/1',
+        prompt: 'test prompt',
+      } as any,
       {
         id: 'session-2',
         title: 'Awaiting Plan Approval Session',
         state: 'AWAITING_PLAN_APPROVAL',
         createTime: new Date().toISOString(),
-      },
+        name: 'sessions/2',
+        prompt: 'test prompt',
+      } as any,
     ];
 
     const jobs = [

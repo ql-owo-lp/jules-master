@@ -17,27 +17,69 @@ export default function SystemLogPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    const eventSource = new EventSource('/api/logs');
+    let lastTimestamp = '';
+    let intervalId: NodeJS.Timeout;
 
-    eventSource.onmessage = (event) => {
-      try {
-        const newLog: LogEntry = JSON.parse(event.data);
-        setLogs((prevLogs) => [...prevLogs, newLog]);
-      } catch (error) {
-        console.error('Failed to parse log entry:', error);
-      }
+    const fetchLogs = async () => {
+        try {
+            const url = lastTimestamp 
+                ? `/api/logs?since=${encodeURIComponent(lastTimestamp)}` 
+                : '/api/logs';
+            
+            const res = await fetch(url);
+            
+            if (res.status === 403) {
+                setError("Access Denied: SHOW_LOG_PAGE is not enabled.");
+                if (intervalId) clearInterval(intervalId);
+                return;
+            }
+
+            if (!res.ok) {
+                console.error("Failed to fetch logs:", res.statusText);
+                return;
+            }
+
+            const newLogs: LogEntry[] = await res.json();
+            
+            if (newLogs.length > 0) {
+                setLogs(prev => {
+                    // Avoid duplicates if we're doing simple append, but since filter handles it source side roughly, 
+                    // we might want to dedupe by index or timestamp if high volume?
+                    // For now, simpler append is likely fine given 1s poll.
+                    // Actually, if we use 'since', we are getting strictly newer logs.
+                    return [...prev, ...newLogs];
+                });
+                lastTimestamp = newLogs[newLogs.length - 1].timestamp;
+            }
+        } catch (err) {
+            console.error("Error polling logs:", err);
+        }
     };
 
-    eventSource.onerror = (error) => {
-      console.error('EventSource failed:', error);
-      eventSource.close();
-    };
+    // Initial fetch
+    fetchLogs();
+
+    // Poll every 1s
+    intervalId = setInterval(fetchLogs, 1000);
 
     return () => {
-      eventSource.close();
+        if (intervalId) clearInterval(intervalId);
     };
-  }, []);
+  }, []); // Empty dependency array means run once on mount
+
+  if (error) {
+      return (
+        <div className="container mx-auto py-6">
+            <Card className="h-[calc(100vh-100px)] flex flex-col items-center justify-center">
+                <div className="text-destructive font-bold text-lg">{error}</div>
+                <div className="text-muted-foreground mt-2">Please set SHOW_LOG_PAGE=true environment variable.</div>
+            </Card>
+        </div>
+      );
+  }
 
   useEffect(() => {
     if (bottomRef.current) {

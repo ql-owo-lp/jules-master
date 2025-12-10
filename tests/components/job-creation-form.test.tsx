@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { render, fireEvent, waitFor, screen } from '@testing-library/react';
 import { JobCreationForm } from '@/components/job-creation-form';
 import { addJob, getPredefinedPrompts, getGlobalPrompt, getHistoryPrompts, getSettings, saveHistoryPrompt } from '@/app/config/actions';
 import { listSources, refreshSources } from '@/app/sessions/actions';
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import type { Job } from '@/lib/types';
 
 // Mock entire modules to prevent original implementations from running
@@ -24,7 +23,7 @@ vi.mock('@/components/env-provider', () => ({
   useEnv: () => ({ julesApiKey: 'test-key' }),
 }));
 
-const mockedUseLocalStorage = useLocalStorage as jest.Mock;
+const mockedUseLocalStorage = useLocalStorage as Mock;
 
 describe('JobCreationForm', () => {
   beforeEach(() => {
@@ -41,14 +40,14 @@ describe('JobCreationForm', () => {
     });
 
     // Setup mocks for the imported actions
-    (getPredefinedPrompts as vi.Mock).mockResolvedValue([]);
-    (getGlobalPrompt as vi.Mock).mockResolvedValue('');
-    (getHistoryPrompts as vi.Mock).mockResolvedValue([]);
-    (getSettings as vi.Mock).mockResolvedValue(null);
-    (saveHistoryPrompt as vi.Mock).mockResolvedValue(undefined);
-    (listSources as vi.Mock).mockResolvedValue([]);
-    (refreshSources as vi.Mock).mockResolvedValue(undefined);
-    (addJob as vi.Mock).mockResolvedValue(undefined);
+    (getPredefinedPrompts as Mock).mockResolvedValue([]);
+    (getGlobalPrompt as Mock).mockResolvedValue('');
+    (getHistoryPrompts as Mock).mockResolvedValue([]);
+    (getSettings as Mock).mockResolvedValue(null);
+    (saveHistoryPrompt as Mock).mockResolvedValue(undefined);
+    (listSources as Mock).mockResolvedValue([]);
+    (refreshSources as Mock).mockResolvedValue(undefined);
+    (addJob as Mock).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -76,7 +75,7 @@ describe('JobCreationForm', () => {
 
     await waitFor(() => {
       expect(addJob).toHaveBeenCalledTimes(1);
-      const jobPayload = (addJob as vi.Mock).mock.calls[0][0] as Job;
+      const jobPayload = (addJob as Mock).mock.calls[0][0] as Job;
       expect(jobPayload).toMatchObject({
         name: 'Test BG Job',
         prompt: 'Test background job prompt',
@@ -104,11 +103,16 @@ describe('JobCreationForm', () => {
     fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'Test foreground job prompt' } });
     fireEvent.change(screen.getByLabelText('Job Name (Optional)'), { target: { value: 'Test FG Job' } });
     fireEvent.change(screen.getByLabelText('Number of sessions'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Number of sessions'), { target: { value: '2' } });
+    
+    // Toggle background job to false (defaults to true)
+    fireEvent.click(screen.getByLabelText('Background Job'));
+    
     fireEvent.click(screen.getByRole('button', { name: /Create Job/i }));
 
     await waitFor(() => {
       expect(addJob).toHaveBeenCalledTimes(1);
-      const jobPayload = (addJob as vi.Mock).mock.calls[0][0] as Job;
+      const jobPayload = (addJob as Mock).mock.calls[0][0] as Job;
       expect(jobPayload).toMatchObject({
         name: 'Test FG Job',
         prompt: 'Test foreground job prompt',

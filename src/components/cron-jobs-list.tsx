@@ -31,8 +31,8 @@ export function CronJobsList() {
                 const data = await response.json();
                 setCronJobs(data);
             }
-        } catch (error) {
-            console.error("Failed to fetch cron jobs", error);
+        } catch (error: any) {
+            console.error("Failed to fetch cron jobs:", error?.message || error);
         } finally {
             setIsLoading(false);
         }

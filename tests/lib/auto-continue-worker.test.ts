@@ -63,7 +63,15 @@ describe('AutoContinueWorker', () => {
   });
 
   it('should send a continue message to a completed session without a PR', async () => {
-    const session: Session = { id: '1', state: 'COMPLETED', updateTime: new Date().toISOString() };
+    const session: Session = { 
+        id: '1', 
+        name: 'sessions/1',
+        title: 'Test',
+        prompt: 'Test',
+        state: 'COMPLETED', 
+        updateTime: new Date().toISOString(),
+        profileId: 'default'
+    };
     const job = { sessionIds: '["1"]', createdAt: new Date().toISOString() };
 
     // Mock db queries
@@ -99,7 +107,15 @@ describe('AutoContinueWorker', () => {
   });
 
   it('should not send a message if the session is not completed', async () => {
-    const session: Session = { id: '1', state: 'RUNNING', updateTime: new Date().toISOString() };
+    const session: Session = { 
+        id: '1', 
+        name: 'sessions/1',
+        title: 'Test',
+        prompt: 'Test',
+        state: 'IN_PROGRESS', 
+        updateTime: new Date().toISOString(),
+        profileId: 'default'
+    };
     const job = { sessionIds: '["1"]', createdAt: new Date().toISOString() };
 
     (db.select as any).mockImplementation(() => ({
@@ -131,9 +147,13 @@ describe('AutoContinueWorker', () => {
   it('should not send a message if the session has a PR', async () => {
     const session: Session = {
       id: '1',
+      name: 'sessions/1',
+      title: 'Test',
+      prompt: 'Test',
       state: 'COMPLETED',
       updateTime: new Date().toISOString(),
-      outputs: [{ pullRequest: { url: 'http://example.com' } }],
+      outputs: [{ pullRequest: { url: 'http://example.com', title: 'Test PR', description: 'Test' } }],
+      profileId: 'default'
     };
     const job = { sessionIds: '["1"]', createdAt: new Date().toISOString() };
 
@@ -166,8 +186,12 @@ describe('AutoContinueWorker', () => {
   it('should not send a message if the session was updated more than 24 hours ago', async () => {
     const session: Session = {
       id: '1',
+      name: 'sessions/1',
+      title: 'Test',
+      prompt: 'Test',
       state: 'COMPLETED',
       updateTime: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+      profileId: 'default'
     };
     const job = { sessionIds: '["1"]', createdAt: new Date().toISOString() };
 

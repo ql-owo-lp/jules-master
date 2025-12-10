@@ -9,34 +9,40 @@ import fs from 'fs';
 import path from 'path';
 
 // Resolve database path (handle relative paths in DATABASE_URL or default)
-const dbUrl = process.env.DATABASE_URL || 'data/sqlite.db';
-const dbPath = path.isAbsolute(dbUrl) ? dbUrl : path.join(process.cwd(), dbUrl);
-const dbDir = path.dirname(dbPath);
+// Resolve database path (handle relative paths in DATABASE_URL or default)
+const isTest = process.env.NODE_ENV === 'test';
+const dbUrl = process.env.DATABASE_URL || (isTest ? ':memory:' : 'data/sqlite.db');
 
-// Ensure the directory exists
-if (!fs.existsSync(dbDir)) {
-  console.log(`Creating database directory: ${dbDir}`);
-  fs.mkdirSync(dbDir, { recursive: true });
-}
+let dbPath = dbUrl;
+if (dbUrl !== ':memory:') {
+  dbPath = path.isAbsolute(dbUrl) ? dbUrl : path.join(process.cwd(), dbUrl);
+  const dbDir = path.dirname(dbPath);
 
-// Check directory write permissions
-try {
-  fs.accessSync(dbDir, fs.constants.W_OK);
-} catch (error) {
-  console.error(`Error: Database directory '${dbDir}' is not writable.`);
-  throw error;
-}
+  // Ensure the directory exists
+  if (!fs.existsSync(dbDir)) {
+    console.log(`Creating database directory: ${dbDir}`);
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
 
-// Check file permissions if it exists, or log initialization if not
-if (fs.existsSync(dbPath)) {
+  // Check directory write permissions
   try {
-    fs.accessSync(dbPath, fs.constants.R_OK | fs.constants.W_OK);
+    fs.accessSync(dbDir, fs.constants.W_OK);
   } catch (error) {
-    console.error(`Error: Database file '${dbPath}' is not readable/writable.`);
+    console.error(`Error: Database directory '${dbDir}' is not writable.`);
     throw error;
   }
-} else {
-  console.log(`Initializing new database at: ${dbPath}`);
+
+  // Check file permissions if it exists, or log initialization if not
+  if (fs.existsSync(dbPath)) {
+    try {
+      fs.accessSync(dbPath, fs.constants.R_OK | fs.constants.W_OK);
+    } catch (error) {
+      console.error(`Error: Database file '${dbPath}' is not readable/writable.`);
+      throw error;
+    }
+  } else {
+    console.log(`Initializing new database at: ${dbPath}`);
+  }
 }
 
 const sqlite = new Database(dbPath);
@@ -58,24 +64,27 @@ class AppDatabase {
   public jobs: IDao<Job> = {
     getAll: async () => {
       const jobs = await db.select().from(schema.jobs);
-      return jobs.map(job => ({
-        ...job,
-        sessionIds: job.sessionIds || []
-      }));
+      return jobs.map(job => {
+        // Drizzle handles JSON parsing for sessionIds automatically with mode: 'json'
+        return {
+            ...job,
+            sessionIds: job.sessionIds || []
+        } as Job;
+      });
     },
     getById: async (id) => {
         const job = await db.select().from(schema.jobs).where(eq(schema.jobs.id, id)).get();
         if (job) {
-             return { ...job, sessionIds: job.sessionIds || [] };
+             return { ...job, sessionIds: job.sessionIds || [] } as Job;
         }
         return undefined;
     },
-    create: async (job) => { await db.insert(schema.jobs).values(job) },
+    create: async (job) => { await db.insert(schema.jobs).values(job as any) },
     createMany: async (jobs) => { 
       if (jobs.length === 0) return;
-      await db.insert(schema.jobs).values(jobs);
+      await db.insert(schema.jobs).values(jobs as any);
     },
-    update: async (id, job) => { await db.update(schema.jobs).set(job).where(eq(schema.jobs.id, id)) },
+    update: async (id, job) => { await db.update(schema.jobs).set(job as any).where(eq(schema.jobs.id, id)) },
     delete: async (id) => { await db.delete(schema.jobs).where(eq(schema.jobs.id, id)) },
   };
 
