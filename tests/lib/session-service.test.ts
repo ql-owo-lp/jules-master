@@ -1,13 +1,24 @@
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { syncStaleSessions, isPrMerged } from '@/lib/session-service';
-import { db } from '@/lib/db';
+import { db, appDatabase } from '@/lib/db';
 import { sessions, settings } from '@/lib/db/schema';
 import * as fetchClient from '@/lib/fetch-client';
 import type { Session } from '@/lib/types';
 
 // Mock the db module
-vi.mock('@/lib/db');
+vi.mock('@/lib/db', () => ({
+    db: {
+        select: vi.fn(),
+        insert: vi.fn(),
+        update: vi.fn(),
+    },
+    appDatabase: {
+        profiles: {
+            getActive: vi.fn()
+        }
+    }
+}));
 
 // Mock fetchWithRetry from fetch-client
 vi.mock('@/lib/fetch-client');
@@ -22,6 +33,8 @@ describe('Session Service', () => {
       const sessionWithMergedPr: Session = {
         id: 'session-1',
         name: 'sessions/session-1',
+        title: 'Session 1',
+        prompt: 'Prompt 1',
         state: 'COMPLETED',
         outputs: [
           {
@@ -41,6 +54,8 @@ describe('Session Service', () => {
       const sessionWithMergedPr: Session = {
         id: 'session-1-lower',
         name: 'sessions/session-1-lower',
+        title: 'Session 1 Lower',
+        prompt: 'Prompt 1 Lower',
         state: 'COMPLETED',
         outputs: [
           {
@@ -60,6 +75,8 @@ describe('Session Service', () => {
       const sessionWithoutOutputs: Session = {
         id: 'session-2',
         name: 'sessions/session-2',
+        title: 'Session 2',
+        prompt: 'Prompt 2',
         state: 'COMPLETED',
       };
       expect(isPrMerged(sessionWithoutOutputs)).toBe(false);
@@ -69,6 +86,8 @@ describe('Session Service', () => {
       const sessionWithOpenPr: Session = {
         id: 'session-3',
         name: 'sessions/session-3',
+        title: 'Session 3',
+        prompt: 'Prompt 3',
         state: 'COMPLETED',
         outputs: [
           {
@@ -94,6 +113,7 @@ describe('Session Service', () => {
         id: 'session-merged',
         name: 'sessions/session-merged',
         title: 'Merged PR session',
+        prompt: 'Merged PR session prompt',
         state: 'COMPLETED',
         createTime: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day old
         lastUpdated: now - (1801 * 1000), // older than sessionCacheCompletedNoPrInterval
@@ -116,22 +136,39 @@ describe('Session Service', () => {
         sessionCacheCompletedNoPrInterval: 1800,
       };
 
+      // Mock Active Profile
+      const mockProfile = { id: 'default', name: 'Default', isActive: true };
+      // @ts-ignore
+      appDatabase.profiles.getActive.mockResolvedValue(mockProfile);
+
       const mockedDb = vi.mocked(db);
-      const fromMock = vi.fn();
-      mockedDb.select.mockReturnValue({ from: fromMock } as any);
+
+      const selectMock = vi.fn();
+      mockedDb.select.mockReturnValue({ from: selectMock } as any);
 
       // Mock for the insert call in upsertSession
       mockedDb.insert.mockReturnValue({
         values: vi.fn().mockReturnThis(),
         onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+        returning: vi.fn().mockReturnValue([mockSettings]), // For getSettings if insert called
       } as any);
 
-      fromMock.mockImplementation((table: any) => {
+      selectMock.mockImplementation((table: any) => {
         if (table === settings) {
-          return { limit: vi.fn().mockResolvedValue([mockSettings]) };
+             // getSettings query: select().from(settings).where(...).limit(1)
+             return {
+                 where: vi.fn().mockReturnValue({
+                    limit: vi.fn().mockResolvedValue([mockSettings])
+                 }),
+                 limit: vi.fn().mockResolvedValue([mockSettings])
+             };
         }
         if (table === sessions) {
-          return Promise.resolve([mergedSession]);
+             // getCachedSessions query or within syncStaleSessions: select().from(sessions).where(...)
+             return {
+                 where: vi.fn().mockResolvedValue([mergedSession]),
+                 orderBy: vi.fn().mockResolvedValue([mergedSession])
+             }
         }
         return Promise.resolve([]);
       });
@@ -146,8 +183,6 @@ describe('Session Service', () => {
       await syncStaleSessions(apiKey);
 
       // Assert
-      // Due to the bug, this session WILL be fetched for an update.
-      // The test will fail here until the bug is fixed.
       expect(mockedFetch).not.toHaveBeenCalledWith(
         `https://jules.googleapis.com/v1alpha/sessions/${mergedSession.id}`,
         expect.any(Object)

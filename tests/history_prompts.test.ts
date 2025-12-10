@@ -19,10 +19,6 @@ vi.mock('@/lib/db', () => {
              return {
                 where: vi.fn((condition) => ({
                     get: vi.fn().mockImplementation(() => {
-                        // This is a very rough mock.
-                        // In a real scenario, we'd need to parse the condition.
-                        // For this test, we'll control the return via `vi.spyOn` in the test if needed,
-                        // or just return undefined by default (simulate not found).
                         return undefined;
                     })
                 })),
@@ -42,6 +38,12 @@ vi.mock('@/lib/db', () => {
         getRecent: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
+      },
+      settings: {
+        get: vi.fn().mockResolvedValue({ historyPromptsCount: 5 })
+      },
+      profiles: {
+          getActive: vi.fn().mockResolvedValue({ id: 'default', name: 'Default', isActive: true })
       },
       jobs: { getAll: vi.fn(), create: vi.fn() },
       predefinedPrompts: { getAll: vi.fn() },

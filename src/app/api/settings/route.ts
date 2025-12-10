@@ -1,13 +1,19 @@
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { settings } from '@/lib/db/schema';
+import { db, appDatabase } from '@/lib/db';
+import { settings, profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { settingsSchema } from '@/lib/validation';
 
+async function getActiveProfileId() {
+    const active = await appDatabase.profiles.getActive();
+    return active.id;
+}
+
 export async function GET() {
   try {
-    const result = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    const profileId = await getActiveProfileId();
+    const result = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
     if (result.length === 0) {
       // Return default settings if none exist in DB
@@ -57,15 +63,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
+    const profileId = await getActiveProfileId();
+
     const newSettings = {
-      id: 1, // Ensure we are updating the singleton row
       ...validation.data,
+      profileId
     };
 
-    const existing = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    const existing = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
     if (existing.length > 0) {
-        await db.update(settings).set(newSettings).where(eq(settings.id, 1));
+        await db.update(settings).set(newSettings).where(eq(settings.profileId, profileId));
     } else {
         await db.insert(settings).values(newSettings);
     }

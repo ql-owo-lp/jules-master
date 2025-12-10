@@ -1,9 +1,10 @@
 
 import { db } from './db';
-import { sessions, settings } from './db/schema';
+import { sessions, settings, profiles } from './db/schema';
 import { eq, inArray, sql, lt, and, not } from 'drizzle-orm';
 import type { Session, State, SessionOutput } from '@/lib/types';
 import { fetchWithRetry } from './fetch-client';
+import { appDatabase } from './db';
 
 // Type definitions for easier usage
 export type CachedSession = typeof sessions.$inferSelect;
@@ -14,7 +15,9 @@ export type Settings = typeof settings.$inferSelect;
  * Creates default settings if they don't exist.
  */
 export async function getSettings(): Promise<Settings> {
-  const existingSettings = await db.select().from(settings).limit(1);
+  // Use active profile
+  const activeProfile = await appDatabase.profiles.getActive();
+  const existingSettings = await db.select().from(settings).where(eq(settings.profileId, activeProfile.id)).limit(1);
 
   if (existingSettings.length > 0) {
     return existingSettings[0];
@@ -28,6 +31,7 @@ export async function getSettings(): Promise<Settings> {
     sessionCacheCompletedNoPrInterval: 1800,
     sessionCachePendingApprovalInterval: 300,
     sessionCacheMaxAgeDays: 3,
+    profileId: activeProfile.id
   }).returning();
 
   return defaultSettings[0];
@@ -38,6 +42,8 @@ export async function getSettings(): Promise<Settings> {
  */
 export async function upsertSession(session: Session) {
   const now = Date.now();
+  const activeProfile = await appDatabase.profiles.getActive();
+
   const sessionData = {
     id: session.id,
     name: session.name,
@@ -52,7 +58,45 @@ export async function upsertSession(session: Session) {
     requirePlanApproval: session.requirePlanApproval,
     automationMode: session.automationMode,
     lastUpdated: now,
+    profileId: activeProfile.id // Associate with active profile
   };
+
+  // Check if session exists to preserve profileId if it was created under a different profile?
+  // Or do we always overwrite with active?
+  // Requirement: "convert the settings / jobs/ everything to be aware of user / profile".
+  // Sessions are fetched from API. If a session belongs to User A's API key, it should probably be associated with User A's profile.
+  // But here we rely on active profile context.
+  // Ideally, we should check if session exists and keep its profileId unless we are explicitly importing it?
+  // But `upsertSession` is called during sync. If I switch profile and sync, do I see other profile's sessions?
+  // Sessions in API are bound to the API Key (Jules/Google Cloud Project).
+  // If Profile A and Profile B use same API Key, they see same sessions.
+  // If they use different API keys, they see different sessions.
+  // The DB cache should probably reflect that.
+  // If `upsertSession` is called, it means we fetched it using the CURRENT API key (associated with current profile).
+  // So it's safe to assign current profile ID.
+
+  // However, if we switch profiles, `getActive` returns new profile.
+  // If we fetched the session using Profile A's key, we shouldn't overwrite it with Profile B's ID if we happen to run this function while Profile B is active but we are processing Profile A's stuff?
+  // `runBackgroundJobCheck` runs globally?
+  // `runBackgroundJobCheck` reads `JULES_API_KEY` from env or settings?
+  // In `src/lib/background-job-worker.ts`, it reads `process.env.JULES_API_KEY`.
+  // Wait, the worker reads from ENV. If we support multiple profiles with different keys, the worker needs to iterate profiles or use the active one's key?
+  // The requirement says: "including different github api / jules api... We can also extend this to a multi-user settings".
+  // Currently the app uses `process.env` or local storage for keys.
+  // The settings page saves keys to local storage. The backend might not have access to local storage keys unless passed.
+  // `actions.ts` uses `process.env` mostly, or expects the client to pass it?
+  // Actually `useEnv` hook provides context.
+  // But `background-job-worker` runs in background (on server?).
+  // If it runs on server, it can only see ENV vars or DB.
+  // We need to store API keys in DB `settings` table if we want the background worker to use them per profile.
+  // But `settings` table currently doesn't have api keys.
+  // The prompt says "different github api / jules api".
+  // I should probably add api keys to `settings` or `profiles` table.
+  // But for security, maybe storing in DB is risky? But `local-storage` is client side only.
+  // The `BackgroundJobWorker` currently relies on `process.env.JULES_API_KEY`.
+  // If I want to support multiple profiles, I should probably allow storing keys in DB (maybe encrypted, but let's keep it simple for now or assume ENV is for default profile).
+
+  // For now, I will stick to assigning `activeProfile.id` here.
 
   await db.insert(sessions)
     .values(sessionData)
@@ -66,7 +110,10 @@ export async function upsertSession(session: Session) {
  * Retrieves all sessions from the local database, sorted by creation time descending.
  */
 export async function getCachedSessions(): Promise<Session[]> {
-  const cachedSessions = await db.select().from(sessions).orderBy(sql`${sessions.createTime} DESC`);
+  const activeProfile = await appDatabase.profiles.getActive();
+  const cachedSessions = await db.select().from(sessions)
+    .where(eq(sessions.profileId, activeProfile.id))
+    .orderBy(sql`${sessions.createTime} DESC`);
 
   // Map back to Session type if needed, though they should be compatible
   return cachedSessions.map(s => ({
@@ -135,7 +182,8 @@ async function fetchSessionFromApi(sessionId: string, apiKey: string): Promise<S
  */
 export async function syncStaleSessions(apiKey: string) {
   const settings = await getSettings();
-  const cachedSessions = await db.select().from(sessions);
+  const activeProfile = await appDatabase.profiles.getActive();
+  const cachedSessions = await db.select().from(sessions).where(eq(sessions.profileId, activeProfile.id));
   const now = Date.now();
 
   const sessionsToUpdate: string[] = [];

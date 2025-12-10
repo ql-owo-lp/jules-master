@@ -11,6 +11,14 @@ vi.mock('@/lib/db', () => ({
       },
     },
   },
+  appDatabase: {
+      settings: {
+          get: vi.fn()
+      },
+      profiles: {
+          getActive: vi.fn().mockResolvedValue({ id: 'default', name: 'Default', isActive: true })
+      }
+  }
 }));
 
 describe('Config Actions', () => {
@@ -21,18 +29,18 @@ describe('Config Actions', () => {
   describe('getSettings', () => {
     it('should return the settings from the database', async () => {
       const mockSettings = { autoContinueEnabled: true, autoRetryEnabled: true };
-      (db.db.query.settings.findFirst as vi.Mock).mockResolvedValue(mockSettings);
+      (db.appDatabase.settings.get as vi.Mock).mockResolvedValue(mockSettings);
 
       const settings = await getSettings();
-      expect(db.db.query.settings.findFirst).toHaveBeenCalled();
+      expect(db.appDatabase.settings.get).toHaveBeenCalledWith('default');
       expect(settings).toEqual(mockSettings);
     });
 
     it('should return null if no settings are found', async () => {
-      (db.db.query.settings.findFirst as vi.Mock).mockResolvedValue(null);
+      (db.appDatabase.settings.get as vi.Mock).mockResolvedValue(null);
 
       const settings = await getSettings();
-      expect(db.db.query.settings.findFirst).toHaveBeenCalled();
+      expect(db.appDatabase.settings.get).toHaveBeenCalledWith('default');
       expect(settings).toBeNull();
     });
   });

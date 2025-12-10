@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw, User, Check } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
 import { useEnv } from "@/components/env-provider";
@@ -59,18 +59,24 @@ import {
     getGlobalPrompt,
     saveGlobalPrompt,
     getRepoPrompt,
-    saveRepoPrompt
+    saveRepoPrompt,
+    getProfiles,
+    createProfile,
+    setActiveProfile,
+    deleteProfile,
+    renameProfile
 } from "@/app/config/actions";
 import { SourceSelection } from "@/components/source-selection";
 import { CronJobsList } from "@/components/cron-jobs-list";
 import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
-import type { PredefinedPrompt, Source } from "@/lib/types";
+import type { PredefinedPrompt, Source, Profile } from "@/lib/types";
+import { format } from "date-fns";
 
 type DialogState = {
   isOpen: boolean;
-  type: 'prompt' | 'reply';
-  data: PredefinedPrompt | null;
+  type: 'prompt' | 'reply' | 'profile';
+  data: PredefinedPrompt | Profile | null;
 }
 
 export default function SettingsPage() {
@@ -160,6 +166,10 @@ export default function SettingsPage() {
   const [repoPrompt, setRepoPrompt] = useState<string>("");
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
+
+  // --- Profiles State ---
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
 
   const [isRefreshingSources, startRefreshSources] = useTransition();
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
@@ -272,6 +282,17 @@ export default function SettingsPage() {
     }
   }, [selectedSource]);
 
+  // --- Effects for Profiles ---
+  useEffect(() => {
+      const fetchProfiles = async () => {
+          setIsLoadingProfiles(true);
+          const profiles = await getProfiles();
+          setProfiles(profiles);
+          setIsLoadingProfiles(false);
+      }
+      if (isClient) fetchProfiles();
+  }, [isClient]);
+
 
   // --- Handlers for Settings ---
   const handleSaveSettings = async () => {
@@ -375,9 +396,11 @@ export default function SettingsPage() {
     });
   };
 
-  const openDialog = (type: 'prompt' | 'reply', data: PredefinedPrompt | null = null) => {
+  const openDialog = (type: 'prompt' | 'reply' | 'profile', data: PredefinedPrompt | Profile | null = null) => {
     setDialogState({ isOpen: true, type, data });
-    setTitle(data?.title || "");
+    // @ts-ignore
+    setTitle(data?.title || data?.name || "");
+    // @ts-ignore
     setPromptText(data?.prompt || "");
   };
 
@@ -385,51 +408,83 @@ export default function SettingsPage() {
     setDialogState({ isOpen: false, type: 'prompt', data: null });
   }
 
-  const handleDelete = (type: 'prompt' | 'reply', id: string) => {
+  const handleDelete = (type: 'prompt' | 'reply' | 'profile', id: string) => {
      startSavingMessage(async () => {
         if (type === 'prompt') {
             const updatedPrompts = prompts.filter((p) => p.id !== id);
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
             toast({ title: "Message deleted" });
-        } else {
+        } else if (type === 'reply') {
             const updatedReplies = quickReplies.filter((r) => r.id !== id);
             await saveQuickReplies(updatedReplies);
             setQuickReplies(updatedReplies);
             toast({ title: "Quick Reply deleted" });
+        } else if (type === 'profile') {
+            try {
+                await deleteProfile(id);
+                setProfiles(prev => prev.filter(p => p.id !== id));
+                toast({ title: "Profile deleted" });
+            } catch (error) {
+                // @ts-ignore
+                toast({ variant: "destructive", title: "Error", description: error.message });
+            }
         }
      });
   };
 
   const handleSaveMessage = () => {
-    if (!title.trim() || !promptText.trim()) {
+      const { type, data } = dialogState;
+
+    if (type !== 'profile' && (!title.trim() || !promptText.trim())) {
       toast({ variant: "destructive", title: "Missing fields", description: "Both title and content are required." });
       return;
     }
 
-    startSavingMessage(async () => {
-        const { type, data } = dialogState;
+    if (type === 'profile' && !title.trim()) {
+        toast({ variant: "destructive", title: "Missing fields", description: "Profile name is required." });
+        return;
+    }
 
+    startSavingMessage(async () => {
         if (type === 'prompt') {
             let updatedPrompts: PredefinedPrompt[];
             if (data?.id) {
+                // @ts-ignore
                 updatedPrompts = prompts.map((p) => p.id === data.id ? { ...p, title, prompt: promptText } : p);
             } else {
                 updatedPrompts = [...prompts, { id: crypto.randomUUID(), title, prompt: promptText }];
             }
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
+            // @ts-ignore
             toast({ title: data?.id ? "Message updated" : "Message added" });
-        } else {
+        } else if (type === 'reply') {
             let updatedReplies: PredefinedPrompt[];
             if (data?.id) {
+                // @ts-ignore
                 updatedReplies = quickReplies.map((r) => r.id === data.id ? { ...r, title, prompt: promptText } : r);
             } else {
                 updatedReplies = [...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText }];
             }
             await saveQuickReplies(updatedReplies);
             setQuickReplies(updatedReplies);
+            // @ts-ignore
             toast({ title: data?.id ? "Quick Reply updated" : "Quick Reply added" });
+        } else if (type === 'profile') {
+            if (data?.id) {
+                // Rename
+                // @ts-ignore
+                await renameProfile(data.id, title);
+                // @ts-ignore
+                setProfiles(prev => prev.map(p => p.id === data.id ? { ...p, name: title } : p));
+                toast({ title: "Profile renamed" });
+            } else {
+                // Create
+                const newProfile = await createProfile(title);
+                setProfiles(prev => [...prev, newProfile]);
+                toast({ title: "Profile created" });
+            }
         }
         closeDialog();
     });
@@ -449,6 +504,16 @@ export default function SettingsPage() {
         await saveRepoPrompt(repoName, repoPrompt);
          toast({ title: "Repository Prompt Saved" });
     });
+  }
+
+  const handleSetActiveProfile = (id: string) => {
+      startSavingMessage(async () => {
+          await setActiveProfile(id);
+          setProfiles(prev => prev.map(p => ({ ...p, isActive: p.id === id })));
+
+          // Refresh page to load new settings
+          window.location.reload();
+      });
   }
 
   const renderTable = (type: 'prompt' | 'reply') => {
@@ -525,6 +590,7 @@ export default function SettingsPage() {
       <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
@@ -650,6 +716,86 @@ export default function SettingsPage() {
             <div className="flex justify-end">
                 <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
             </div>
+        </TabsContent>
+
+        {/* Profiles Tab */}
+        <TabsContent value="profiles" className="space-y-6">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <User className="h-6 w-6" />
+                            <CardTitle>Profiles</CardTitle>
+                        </div>
+                        <CardDescription>Manage multiple profiles with different settings.</CardDescription>
+                    </div>
+                    <Button onClick={() => openDialog('profile')} disabled={isSavingMessage || isLoadingProfiles}>
+                        <Plus className="mr-2 h-4 w-4" /> Add New
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                     {isLoadingProfiles ? (
+                        <div className="space-y-4">
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
+                        </div>
+                    ) : (
+                         <div className="border rounded-lg">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Name</TableHead>
+                                  <TableHead>Created At</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead className="w-[120px] text-right">Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {profiles.map((profile) => (
+                                  <TableRow key={profile.id}>
+                                    <TableCell className="font-medium">
+                                        {profile.name}
+                                        {profile.isActive && <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Active</span>}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">{format(new Date(profile.createdAt), 'MMM d, yyyy')}</TableCell>
+                                    <TableCell>
+                                        {!profile.isActive ? (
+                                             <Button variant="secondary" size="sm" onClick={() => handleSetActiveProfile(profile.id)} disabled={isSavingMessage}>
+                                                 Use this profile
+                                             </Button>
+                                        ) : (
+                                            <span className="flex items-center text-sm text-green-600 font-medium"><Check className="w-4 h-4 mr-1"/> In use</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="icon" disabled={isSavingMessage}>
+                                            <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                          <DropdownMenuItem onClick={() => openDialog('profile', profile)}>
+                                            <Edit className="mr-2 h-4 w-4" /> Rename
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => handleDelete('profile', profile.id)}
+                                            className="text-destructive"
+                                            disabled={profile.isActive || profiles.length <= 1}
+                                          >
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                    )}
+                </CardContent>
+            </Card>
         </TabsContent>
 
         {/* Cron Jobs Tab */}
@@ -963,39 +1109,49 @@ export default function SettingsPage() {
 
       </Tabs>
 
-      {/* Dialogs for Messages */}
+      {/* Dialogs for Messages & Profiles */}
       <Dialog open={dialogState.isOpen} onOpenChange={closeDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {dialogState.data ? "Edit" : "Add New"} {dialogState.type === 'prompt' ? 'Message' : 'Quick Reply'}
+              {dialogState.type === 'profile' ?
+                (dialogState.data ? "Edit Profile" : "Create New Profile") :
+                (dialogState.data ? "Edit" : "Add New") + (dialogState.type === 'prompt' ? ' Message' : ' Quick Reply')
+              }
             </DialogTitle>
             <DialogDescription>
-               Create a new reusable {dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}
+               {dialogState.type === 'profile' ?
+                    "Create a new profile to manage separate settings and keys." :
+                    `Create a new reusable ${dialogState.type === 'prompt' ? 'message for faster job creation.' : 'reply for session feedback.'}`
+               }
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">Title</Label>
+              <Label htmlFor="title" className="text-right">
+                  {dialogState.type === 'profile' ? 'Name' : 'Title'}
+              </Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="col-span-3"
-                placeholder="A short, descriptive title"
+                placeholder={dialogState.type === 'profile' ? "e.g. Work, Personal" : "A short, descriptive title"}
               />
             </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="prompt-text" className="text-right pt-2">Content</Label>
-              <Textarea
-                id="prompt-text"
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                className="col-span-3"
-                rows={6}
-                placeholder="Enter the full text here..."
-              />
-            </div>
+            {dialogState.type !== 'profile' && (
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="prompt-text" className="text-right pt-2">Content</Label>
+                  <Textarea
+                    id="prompt-text"
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
+                    className="col-span-3"
+                    rows={6}
+                    placeholder="Enter the full text here..."
+                  />
+                </div>
+            )}
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" disabled={isSavingMessage}>Cancel</Button></DialogClose>
