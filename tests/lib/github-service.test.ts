@@ -1,5 +1,5 @@
 
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import * as fetchClient from '@/lib/fetch-client';
 import { deleteBranch } from '@/lib/github-service';
 
@@ -8,11 +8,9 @@ describe('deleteBranch', () => {
         vi.spyOn(fetchClient, 'fetchWithRetry').mockResolvedValue({
             ok: true,
         } as Response);
-        vi.spyOn(console, 'error').mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
+        vi.spyOn(fetchClient, 'fetchWithRetry').mockResolvedValue({
+            ok: true,
+        } as Response);
     });
 
     it('should return false if the GitHub token is not configured', async () => {
