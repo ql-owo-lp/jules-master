@@ -3429,3 +3429,135 @@ Number of calls: [1m0[22m
 
 [1m[42m PASS [49m[22m [32mWaiting for file changes...[39m
        [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+c[3J[1m[44m RERUN [49m[22m [34m[2mtests/lib/github-service.test.ts [22m[34mx3 [34m[39m
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false if the GitHub token is not configured
+[22m[39mGitHub token not configured, skipping branch deletion.
+
+[90mstdout[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return true on a successful deletion
+[22m[39mSuccessfully deleted branch test-branch from test-repo
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return true if the branch is not found
+[22m[39mBranch test-branch not found in test-repo, assuming it was already deleted.
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false if the branch cannot be processed
+[22m[39mBranch test-branch in test-repo could not be processed.
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false on a failed deletion
+[22m[39mFailed to delete branch test-branch from test-repo: 500 undefined
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false when attempting to delete protected branches
+[22m[39mAttempted to delete protected branch main in test-repo, preventing deletion.
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false when attempting to delete protected branches
+[22m[39mAttempted to delete protected branch master in test-repo, preventing deletion.
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false when attempting to delete protected branches
+[22m[39mAttempted to delete protected branch develop in test-repo, preventing deletion.
+
+ [32m✓[39m tests/lib/github-service.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m6 passed[39m[22m[90m (6)[39m
+[2m   Start at [22m 23:31:31
+[2m   Duration [22m 1.66s
+
+[1m[42m PASS [49m[22m [32mWaiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+c[3J[1m[44m RERUN [49m[22m [34m[2mtests/lib/github-service.test.ts [22m[34mx4 [34m[39m
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false if the GitHub token is not configured
+[22m[39mGitHub token not configured, skipping branch deletion.
+
+[90mstdout[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return true on a successful deletion
+[22m[39mSuccessfully deleted branch test-branch from test-repo
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return true if the branch is not found
+[22m[39mBranch test-branch not found in test-repo, assuming it was already deleted.
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false if the branch cannot be processed
+[22m[39mBranch test-branch in test-repo could not be processed.
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false on a failed deletion
+[22m[39mFailed to delete branch test-branch from test-repo: 500 undefined
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false when attempting to delete protected branches
+[22m[39mAttempted to delete protected branch main in test-repo, preventing deletion.
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false when attempting to delete protected branches
+[22m[39mAttempted to delete protected branch master in test-repo, preventing deletion.
+
+[90mstderr[2m | tests/lib/github-service.test.ts[2m > [22m[2mdeleteBranch[2m > [22m[2mshould return false when attempting to delete protected branches
+[22m[39mAttempted to delete protected branch develop in test-repo, preventing deletion.
+
+ [32m✓[39m tests/lib/github-service.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m6 passed[39m[22m[90m (6)[39m
+[2m   Start at [22m 23:31:38
+[2m   Duration [22m 1.79s
+
+[1m[42m PASS [49m[22m [32mWaiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+c[3J[1m[44m RERUN [49m[22m [34m[2mtests/lib/background-job-worker.test.ts [22m[34mx3 [34m[39m
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Checking for pending jobs...
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Found 1 pending/processing jobs.
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Processing job test-job-crash-recovery (Test Recovery Job)
+BackgroundJobWorker: Job test-job-crash-recovery has 2/4 sessions created.
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Job test-job-crash-recovery processed. Status: COMPLETED. Created 4/4 sessions.
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Checking for failed sessions to retry...
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Lock released.
+
+ [32m✓[39m tests/lib/background-job-worker.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 4040[2mms[22m[39m
+     [33m[2m✓[22m[39m should resume a PROCESSING job and create remaining sessions with correct arguments [33m 4038[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m   Start at [22m 23:31:43
+[2m   Duration [22m 5.35s
+
+[1m[42m PASS [49m[22m [32mWaiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+c[3J[1m[44m RERUN [49m[22m [34m[2mtests/lib/background-job-worker.test.ts [22m[34mx4 [34m[39m
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Checking for pending jobs...
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Found 1 pending/processing jobs.
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Processing job test-job-crash-recovery (Test Recovery Job)
+BackgroundJobWorker: Job test-job-crash-recovery has 2/4 sessions created.
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Job test-job-crash-recovery processed. Status: COMPLETED. Created 4/4 sessions.
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Checking for failed sessions to retry...
+
+[90mstdout[2m | tests/lib/background-job-worker.test.ts[2m > [22m[2mBackgroundJobWorker - Crash Recovery[2m > [22m[2mshould resume a PROCESSING job and create remaining sessions with correct arguments
+[22m[39mBackgroundJobWorker: Lock released.
+
+ [32m✓[39m tests/lib/background-job-worker.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 4037[2mms[22m[39m
+     [33m[2m✓[22m[39m should resume a PROCESSING job and create remaining sessions with correct arguments [33m 4035[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m   Start at [22m 23:31:51
+[2m   Duration [22m 5.81s
+
+[1m[42m PASS [49m[22m [32mWaiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
