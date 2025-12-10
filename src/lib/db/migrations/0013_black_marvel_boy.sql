@@ -1,1 +1,0 @@
-ALTER TABLE `settings` ADD COLUMN `auto_approval_enabled` integer DEFAULT false NOT NULL;

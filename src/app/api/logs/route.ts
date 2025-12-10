@@ -1,37 +1,25 @@
-import { logEmitter, LogEntry } from '@/lib/logger';
-import { NextRequest } from 'next/server';
+import { logBuffer, LogEntry } from '@/lib/logger';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const encoder = new TextEncoder();
+  // Check for security env var
+  if (process.env.SHOW_LOG_PAGE !== 'true') {
+      return new NextResponse('Forbidden', { status: 403 });
+  }
 
-  const stream = new ReadableStream({
-    start(controller) {
-      const onLog = (entry: LogEntry) => {
-        try {
-          const data = JSON.stringify(entry);
-          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-        } catch (e) {
-          console.error('Error sending log to stream', e);
-        }
-      };
+  const searchParams = req.nextUrl.searchParams;
+  const since = searchParams.get('since');
 
-      logEmitter.on('log', onLog);
+  let logsToSend = logBuffer;
 
-      // Keep the connection open and handle cleanup
-      req.signal.addEventListener('abort', () => {
-        logEmitter.off('log', onLog);
-        controller.close();
-      });
-    },
-  });
+  if (since) {
+      const sinceTime = new Date(since).getTime();
+      if (!isNaN(sinceTime)) {
+          logsToSend = logBuffer.filter(log => new Date(log.timestamp).getTime() > sinceTime);
+      }
+  }
 
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-    },
-  });
+  return NextResponse.json(logsToSend);
 }

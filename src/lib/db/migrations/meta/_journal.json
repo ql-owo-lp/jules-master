@@ -1,103 +1,19 @@
 {
-  "version": "6",
+  "version": "7",
   "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
       "version": "6",
-      "when": 1763567475004,
-      "tag": "0000_stiff_zzzax",
+      "when": 1765348324582,
+      "tag": "0000_moaning_firelord",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1763845314297,
-      "tag": "0001_fancy_captain_universe",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1763847426717,
-      "tag": "0002_lush_blonde_phantom",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1763848277756,
-      "tag": "0003_damp_skullbuster",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1763871998647,
-      "tag": "0004_smart_ultragirl",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1763914560896,
-      "tag": "0005_early_groot",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1763947707065,
-      "tag": "0006_burly_blonde_phantom",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1764023971764,
-      "tag": "0007_salty_the_watchers",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1764054688303,
-      "tag": "0008_nappy_lake",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "6",
-      "when": 1764653799407,
-      "tag": "0009_good_inertia",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "6",
-      "when": 1764790287923,
-      "tag": "0010_mysterious_changeling",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "6",
-      "when": 1764937972788,
-      "tag": "0011_many_sage",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "6",
-      "when": 1765004946142,
-      "tag": "0012_modern_rick_jones",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "6",
-      "when": 1765261438015,
-      "tag": "0013_black_marvel_boy",
+      "when": 1765349208886,
+      "tag": "0001_magical_nico_minoru",
       "breakpoints": true
     }
   ]

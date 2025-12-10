@@ -15,7 +15,8 @@ type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
 
 export async function createSession(
   sessionData: CreateSessionBody,
-  apiKey?: string | null
+  apiKey?: string | null,
+  profileId: string = "default"
 ): Promise<Session | null> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
@@ -64,6 +65,7 @@ export async function createSession(
       }
     }
 
+    newSession.profileId = profileId;
     return newSession;
   } catch (error) {
     console.error("Error creating session:", error);

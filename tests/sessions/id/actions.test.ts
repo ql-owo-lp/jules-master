@@ -1,5 +1,5 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { getSession, listActivities, approvePlan, sendMessage } from '@/app/sessions/[id]/actions';
 import * as fetchClient from '@/lib/fetch-client';
 
@@ -22,7 +22,7 @@ describe('Session [id] Actions', () => {
   describe('getSession', () => {
     it('should return a session on successful fetch', async () => {
       const mockSession = { id: '123', name: 'Test Session' };
-      (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+      (fetchClient.fetchWithRetry as Mock).mockResolvedValue({
         ok: true,
         json: async () => mockSession,
       });
@@ -45,7 +45,7 @@ describe('Session [id] Actions', () => {
   describe('listActivities', () => {
     it('should return a list of activities', async () => {
       const mockActivities = [{ id: 'act1', description: 'Activity 1' }];
-      (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+      (fetchClient.fetchWithRetry as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({ activities: mockActivities }),
       });

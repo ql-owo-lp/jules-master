@@ -20,7 +20,7 @@ describe('Cron Jobs API and Actions', () => {
     vi.doMock('@/app/settings/actions', async (importOriginal) => {
       const actual = await importOriginal();
       return {
-        ...actual,
+        ...(actual as any),
         getCronJobs: vi.fn().mockRejectedValue(new Error(errorMessage)),
       };
     });

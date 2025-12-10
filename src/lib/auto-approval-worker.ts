@@ -4,6 +4,7 @@ import { settings } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { fetchSessionsPage } from '@/app/sessions/actions';
 import { approvePlan } from '@/app/sessions/[id]/actions';
+import { shouldInteract } from '@/lib/throttle';
 import type { Session } from '@/lib/types';
 
 let workerTimeout: NodeJS.Timeout | null = null;
@@ -52,16 +53,23 @@ export async function runAutoApprovalCheck(options = { schedule: true }) {
 
             if (pendingSessions.length > 0 && autoApprovalEnabled) {
                  console.log(`AutoApprovalWorker: Found ${pendingSessions.length} pending sessions in current batch. Approving...`);
+                 
+                 const currentSettings = settingsResult[0] as any;
 
                  // Approve them
                  // limiting concurrency to 5 requests at a time
                  const CONCURRENCY_LIMIT = 5;
                  for (let i = 0; i < pendingSessions.length; i += CONCURRENCY_LIMIT) {
                      const batch = pendingSessions.slice(i, i + CONCURRENCY_LIMIT);
-                     await Promise.all(batch.map(async (session) => {
-                         try {
-                             console.log(`AutoApprovalWorker: Approving session ${session.id}...`);
-                             const result = await approvePlan(session.id, apiKey);
+                      await Promise.all(batch.map(async (session) => {
+                          try {
+                              if (!shouldInteract(session, currentSettings)) {
+                                  // console.log(`AutoApprovalWorker: Throttling session ${session.id}.`);
+                                  return;
+                              }
+
+                              console.log(`AutoApprovalWorker: Approving session ${session.id}...`);
+                              const result = await approvePlan(session.id, apiKey);
                              if (result) {
                                  console.log(`AutoApprovalWorker: Session ${session.id} approved successfully.`);
                                  approvedCount++;

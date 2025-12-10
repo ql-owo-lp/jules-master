@@ -47,10 +47,14 @@ describe('BackgroundJobWorker - Crash Recovery', () => {
         githubRepo: { owner: 'owner', repo: 'repo' }
       }
     ]);
+
+    // Silence console logs
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
     delete process.env.JULES_API_KEY;
   });
 
@@ -112,7 +116,8 @@ describe('BackgroundJobWorker - Crash Recovery', () => {
             requirePlanApproval: false,
             automationMode: 'AUTO_CREATE_PR'
         }),
-        apiKey
+        apiKey,
+        'default'
     );
   });
 });

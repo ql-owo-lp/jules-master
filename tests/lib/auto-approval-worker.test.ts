@@ -1,5 +1,5 @@
 
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach, type Mock } from 'vitest';
 import { runAutoApprovalCheck, _resetForTest } from '@/lib/auto-approval-worker';
 import * as sessionsActions from '@/app/sessions/actions';
 import * as idActions from '@/app/sessions/[id]/actions';
@@ -25,34 +25,21 @@ vi.mock('@/lib/db', () => ({
 
 const mockSession: Session = {
     id: '1',
-    created_at: new Date().toISOString(),
+    name: 'sessions/1',
+    title: 'Test Session',
+    prompt: 'Test Prompt',
+    createTime: new Date().toISOString(),
     state: 'AWAITING_PLAN_APPROVAL',
-    error_retries: 0,
-    plan_retries: 0,
-    prompt_retries: 0,
-    has_user_intervened: false,
-    github_pr_id: 1,
-    github_pr_url: '',
-    github_pr_title: '',
-    github_pr_body: '',
-    github_repo_id: 1,
-    github_repo_full_name: '',
-    github_pr_is_draft: false,
-    github_pr_is_merged: false,
-    github_pr_is_closed: false,
-    github_pr_created_at: new Date().toISOString(),
-    github_pr_updated_at: new Date().toISOString(),
-    github_pr_merged_at: null,
-    github_pr_closed_at: null,
-};
+    profileId: 'default'
+} as any;
 
 describe('runAutoApprovalCheck', () => {
     beforeEach(() => {
         process.env.JULES_API_KEY = 'test-api-key';
         _resetForTest();
         vi.spyOn(sessionsActions, 'fetchSessionsPage').mockResolvedValue({ sessions: [mockSession], nextPageToken: undefined });
-        vi.spyOn(idActions, 'approvePlan').mockResolvedValue(true);
-        const settingsMock = db.limit as vi.Mock;
+        vi.spyOn(idActions, 'approvePlan').mockResolvedValue({ id: '1' } as any);
+        const settingsMock = (db as any).limit as Mock;
         settingsMock.mockResolvedValue([{ autoApprovalEnabled: true, autoApprovalInterval: 60 }]);
     });
 
@@ -92,7 +79,7 @@ describe('runAutoApprovalCheck', () => {
     });
 
     it('should not approve sessions if autoApprovalEnabled is false', async () => {
-        const settingsMock = db.limit as vi.Mock;
+        const settingsMock = (db as any).limit as Mock;
         settingsMock.mockResolvedValueOnce([{ autoApprovalEnabled: false, autoApprovalInterval: 60 }]);
         await runAutoApprovalCheck({ schedule: false });
         expect(idActions.approvePlan).not.toHaveBeenCalled();

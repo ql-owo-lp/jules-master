@@ -1,5 +1,5 @@
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { runAutoRetryCheck, _resetForTest } from '@/lib/auto-retry-worker';
 import { db } from '@/lib/db';
 import * as actions from '@/app/sessions/[id]/actions';
@@ -26,7 +26,7 @@ describe('AutoRetryWorker', () => {
     vi.useFakeTimers();
     process.env.JULES_API_KEY = 'test-api-key';
     vi.clearAllMocks();
-    vi.mocked(db.limit).mockResolvedValue([{ autoRetryEnabled: true, autoRetryMessage: 'Retry?' }]);
+    vi.mocked((db as any).limit).mockResolvedValue([{ autoRetryEnabled: true, autoRetryMessage: 'Retry?' }]);
   });
 
   afterEach(() => {
@@ -36,23 +36,23 @@ describe('AutoRetryWorker', () => {
   });
 
   it('should not run if auto-retry is disabled', async () => {
-    vi.mocked(db.limit).mockResolvedValueOnce([{ autoRetryEnabled: false }]);
+    vi.mocked((db as any).limit).mockResolvedValueOnce([{ autoRetryEnabled: false }]);
     await runAutoRetryCheck({ schedule: false });
     expect(actions.getSession).not.toHaveBeenCalled();
   });
 
   it('should send a retry message to a failed session', async () => {
-    const session: Session = { id: '1', state: 'FAILED', updateTime: new Date().toISOString() };
-    vi.mocked(db.then).mockImplementationOnce((resolve) => resolve([{ sessionIds: '["1"]' }]));
+    const session: Session = { id: '1', state: 'FAILED', updateTime: new Date().toISOString() } as any;
+    vi.mocked((db as any).then).mockImplementationOnce((resolve: any) => resolve([{ sessionIds: '["1"]' }]));
     vi.mocked(actions.getSession).mockResolvedValue(session);
     vi.mocked(actions.listActivities).mockResolvedValue([]);
     await runAutoRetryCheck({ schedule: false });
-    expect(actions.sendMessage).toHaveBeenCalledWith('1', 'Retry?', 'test-api-key');
+    expect(actions.sendMessage).toHaveBeenCalledWith('1', 'Retry?', 'test-api-key', true);
   });
 
   it('should not send a message if the session is not failed', async () => {
-    const session: Session = { id: '1', state: 'COMPLETED', updateTime: new Date().toISOString() };
-    vi.mocked(db.then).mockImplementationOnce((resolve) => resolve([{ sessionIds: '["1"]' }]));
+    const session: Session = { id: '1', state: 'COMPLETED', updateTime: new Date().toISOString() } as any;
+    vi.mocked((db as any).then).mockImplementationOnce((resolve: any) => resolve([{ sessionIds: '["1"]' }]));
     vi.mocked(actions.getSession).mockResolvedValue(session);
     await runAutoRetryCheck({ schedule: false });
     expect(actions.sendMessage).not.toHaveBeenCalled();
@@ -63,8 +63,8 @@ describe('AutoRetryWorker', () => {
       id: '1',
       state: 'FAILED',
       updateTime: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
-    };
-    vi.mocked(db.then).mockImplementationOnce((resolve) => resolve([{ sessionIds: '["1"]' }]));
+    } as any;
+    vi.mocked((db as any).then).mockImplementationOnce((resolve: any) => resolve([{ sessionIds: '["1"]' }]));
     vi.mocked(actions.getSession).mockResolvedValue(session);
     await runAutoRetryCheck({ schedule: false });
     expect(actions.sendMessage).not.toHaveBeenCalled();

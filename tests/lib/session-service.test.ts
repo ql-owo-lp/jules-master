@@ -22,6 +22,8 @@ describe('Session Service', () => {
       const sessionWithMergedPr: Session = {
         id: 'session-1',
         name: 'sessions/session-1',
+        title: 'Test Session',
+        prompt: 'Test Prompt',
         state: 'COMPLETED',
         outputs: [
           {
@@ -41,6 +43,8 @@ describe('Session Service', () => {
       const sessionWithMergedPr: Session = {
         id: 'session-1-lower',
         name: 'sessions/session-1-lower',
+        title: 'Test Session',
+        prompt: 'Test Prompt',
         state: 'COMPLETED',
         outputs: [
           {
@@ -60,6 +64,8 @@ describe('Session Service', () => {
       const sessionWithoutOutputs: Session = {
         id: 'session-2',
         name: 'sessions/session-2',
+        title: 'Test Session',
+        prompt: 'Test Prompt',
         state: 'COMPLETED',
       };
       expect(isPrMerged(sessionWithoutOutputs)).toBe(false);
@@ -69,6 +75,8 @@ describe('Session Service', () => {
       const sessionWithOpenPr: Session = {
         id: 'session-3',
         name: 'sessions/session-3',
+        title: 'Test Session',
+        prompt: 'Test Prompt',
         state: 'COMPLETED',
         outputs: [
           {
@@ -128,7 +136,10 @@ describe('Session Service', () => {
 
       fromMock.mockImplementation((table: any) => {
         if (table === settings) {
-          return { limit: vi.fn().mockResolvedValue([mockSettings]) };
+          return {
+            where: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockResolvedValue([mockSettings])
+          };
         }
         if (table === sessions) {
           return Promise.resolve([mergedSession]);

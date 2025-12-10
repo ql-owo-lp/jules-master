@@ -17,6 +17,21 @@ export async function register() {
         startAutoDeleteStaleBranchWorker();
         startBackgroundJobWorker();
 
+        // Initialize settings if needed
+        const { db } = await import('./lib/db');
+        const { settings } = await import('./lib/db/schema');
+        const { eq } = await import('drizzle-orm');
+
+        try {
+            const existingSettings = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+            if (existingSettings.length === 0) {
+                console.log('Seeding default settings...');
+                await db.insert(settings).values({ id: 1 });
+            }
+        } catch (error) {
+            console.error('Failed to seed settings:', error);
+        }
+
         // Run cron worker every minute
         setInterval(processCronJobs, 60 * 1000);
     }

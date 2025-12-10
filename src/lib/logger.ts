@@ -22,6 +22,9 @@ globalForLogger.logEmitter = logEmitter;
 
 let isInitialized = globalForLogger.isLoggerInitialized || false;
 
+export const LOG_BUFFER_SIZE = 1000;
+export const logBuffer: LogEntry[] = [];
+
 export function initLogger() {
   if (isInitialized) return;
   isInitialized = true;
@@ -32,20 +35,29 @@ export function initLogger() {
   const originalWarn = console.warn;
   const originalInfo = console.info;
 
-  function emitLog(type: LogType, ...args: any[]) {
+
+
+
+function emitLog(type: LogType, ...args: any[]) {
     try {
       const message = args
         .map((arg) => {
           if (typeof arg === 'object') {
             try {
-              return JSON.stringify(arg);
+              const str = JSON.stringify(arg);
+              // Filter empty object logs
+              if (str === '{}') return '';
+              return str;
             } catch (e) {
               return String(arg);
             }
           }
           return String(arg);
         })
+        .filter(msg => msg !== '') // Remove empty messages after stringify
         .join(' ');
+
+      if (!message.trim()) return; // Don't log empty messages
 
       const entry: LogEntry = {
         timestamp: new Date().toISOString(),
@@ -53,12 +65,18 @@ export function initLogger() {
         message,
       };
 
+      // Add to buffer
+      logBuffer.push(entry);
+      if (logBuffer.length > LOG_BUFFER_SIZE) {
+          logBuffer.shift();
+      }
+
       logEmitter.emit('log', entry);
     } catch (err) {
       // Avoid infinite loops if logging fails
       originalError('Failed to capture log:', err);
     }
-  }
+}
 
   console.log = (...args: any[]) => {
     emitLog('log', ...args);

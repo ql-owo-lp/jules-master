@@ -3,7 +3,9 @@ import { db } from './db';
 import { jobs, settings } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
+import { fetchPullRequestStatus } from '@/app/github/actions';
 import { differenceInHours } from 'date-fns';
+import { shouldInteract } from '@/lib/throttle';
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
@@ -79,12 +81,20 @@ export async function runAutoRetryCheck(options = { schedule: true }) {
                 try {
                     const session = await getSession(sessionId, apiKey);
 
+// ... (existing imports)
+
                     // Skip if session updateTime is older than 24 hours to prevent "Zombie" activation
                     if (session?.updateTime) {
                         const updateTime = new Date(session.updateTime);
                         if (differenceInHours(new Date(), updateTime) > 24) {
                             return;
                         }
+                    }
+
+                    // Check throttling
+                    if (session && settingsResult[0] && !shouldInteract(session, settingsResult[0] as any)) {
+                         // console.log(`AutoRetryWorker: Throttling session ${sessionId}.`);
+                         return;
                     }
 
                     // Check if session is FAILED
@@ -102,11 +112,43 @@ export async function runAutoRetryCheck(options = { schedule: true }) {
 
                          console.log(`AutoRetryWorker: Retrying session ${sessionId}...`);
                          // Send retry message
-                         const result = await sendMessage(sessionId, retryMessage, apiKey);
+                         const result = await sendMessage(sessionId, retryMessage, apiKey, true);
                          // Note: sendMessage doesn't return a simple boolean success, but if it throws it's caught below.
                          // If it returns a result, we assume success.
                          if (result) {
                             console.log(`AutoRetryWorker: Retry message sent to session ${sessionId}.`);
+                         }
+                    } else if (session && session.state === 'COMPLETED' && session.outputs?.[0]?.pullRequest?.url) {
+                         // Check for failing PR checks
+                         const prUrl = session.outputs[0].pullRequest.url;
+                         try {
+                             const prStatus = await fetchPullRequestStatus(prUrl);
+                             if (prStatus && prStatus.checks && prStatus.checks.status === 'failure') {
+                                 const failingChecks = prStatus.checks.runs
+                                     .filter(run => run.conclusion === 'failure' || run.conclusion === 'timed_out')
+                                     .map((run, index) => `${index + 1}. ${run.name}`)
+                                     .join('\n');
+
+                                 if (failingChecks) {
+                                     const message = `the following github action checks are failing:\n${failingChecks}\n\nFix the code and test to make sure these github action checks are passing.`;
+
+                                     // Check if we already sent this message
+                                     const activities = await listActivities(sessionId, apiKey);
+                                     const lastUserMessage = activities
+                                         .filter(a => a.userMessaged)
+                                         .sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime())[0];
+
+                                     if (lastUserMessage?.userMessaged?.userMessage === message) {
+                                         console.log(`AutoRetryWorker: Session ${sessionId} already notified about PR checks. Skipping.`);
+                                         return;
+                                     }
+
+                                     console.log(`AutoRetryWorker: Notifying session ${sessionId} about failing checks: ${failingChecks}`);
+                                     await sendMessage(sessionId, message, apiKey, true);
+                                 }
+                             }
+                         } catch (err) {
+                             console.error(`AutoRetryWorker: Error checking PR status for session ${sessionId}`, err);
                          }
                     }
                 } catch (err) {

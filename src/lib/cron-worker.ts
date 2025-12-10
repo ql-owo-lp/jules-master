@@ -47,8 +47,8 @@ export async function processCronJobs() {
                 prompt: job.prompt,
                 sessionCount: job.sessionCount || 1,
                 status: 'PENDING',
-                automationMode: job.automationMode,
-                requirePlanApproval: job.requirePlanApproval,
+                automationMode: job.automationMode || undefined,
+                requirePlanApproval: job.requirePlanApproval || undefined,
                 cronJobId: job.id,
             };
 

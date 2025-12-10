@@ -4,7 +4,7 @@ import { MessageDialog } from '@/components/message-dialog';
 import { Button } from '@/components/ui/button';
 import React from 'react';
 
-import { vi } from 'vitest';
+import { vi, describe, it, expect } from 'vitest';
 
 // Mock useLocalStorage to behave like useState for this test
 vi.mock('@/hooks/use-local-storage', () => ({
@@ -37,7 +37,7 @@ describe('MessageDialog', () => {
     // Type a message
     const textarea = screen.getByPlaceholderText('Type your message here...');
     fireEvent.change(textarea, { target: { value: 'Hello, World!' } });
-    expect(textarea.value).toBe('Hello, World!');
+    expect((textarea as HTMLTextAreaElement).value).toBe('Hello, World!');
 
     // Close the dialog
     fireEvent.click(screen.getByText('Cancel'));
@@ -46,6 +46,6 @@ describe('MessageDialog', () => {
     fireEvent.click(screen.getByText('Open Dialog'));
 
     // Check if the message is cleared
-    expect(textarea.value).toBe('');
+    expect((textarea as HTMLTextAreaElement).value).toBe('');
   });
 });

@@ -14,7 +14,7 @@ vi.mock('@/lib/db', () => ({
 
 describe('GET /api/cron-jobs', () => {
   it('should return a 500 error when getCronJobs throws an error', async () => {
-    vi.spyOn(db, 'orderBy').mockRejectedValue(new Error('Database error'));
+    vi.spyOn(db as any, 'orderBy').mockRejectedValue(new Error('Database error'));
 
     const response = await GET();
 

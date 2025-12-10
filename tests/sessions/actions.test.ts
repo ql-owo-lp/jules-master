@@ -1,5 +1,5 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { listSessions, fetchSessionsPage, listSources, cancelSessionRequest } from '@/app/sessions/actions';
 import * as fetchClient from '@/lib/fetch-client';
 import * as sessionService from '@/lib/session-service';
@@ -36,7 +36,7 @@ describe('Session Actions', () => {
 
     it('should return cached sessions if available', async () => {
       const mockSessions = [{ id: '1', name: 'Session 1', title: 'Title' } as any];
-      (sessionService.getCachedSessions as vi.Mock).mockResolvedValue(mockSessions);
+      (sessionService.getCachedSessions as Mock).mockResolvedValue(mockSessions);
 
       const result = await listSessions('test-key');
       expect(result.sessions).toEqual(mockSessions);
@@ -45,11 +45,11 @@ describe('Session Actions', () => {
     });
 
     it('should fetch from API if cache is empty', async () => {
-       (sessionService.getCachedSessions as vi.Mock)
+       (sessionService.getCachedSessions as Mock)
             .mockResolvedValueOnce([]) // First call empty
             .mockResolvedValueOnce([{ id: '1', name: 'Session 1', title: 'Title' }]); // Second call after populate
 
-       (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+       (fetchClient.fetchWithRetry as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({ sessions: [{ id: '1', name: 'Session 1', title: 'Title' }] }),
       });
@@ -70,7 +70,7 @@ describe('Session Actions', () => {
 
     it('should trigger background sync', async () => {
        const mockSessions = [{ id: '1', name: 'Session 1', title: 'Title' } as any];
-      (sessionService.getCachedSessions as vi.Mock).mockResolvedValue(mockSessions);
+      (sessionService.getCachedSessions as Mock).mockResolvedValue(mockSessions);
 
       await listSessions('test-key');
       // We can't easily await the background sync as it is not awaited in the action.
@@ -90,11 +90,11 @@ describe('Session Actions', () => {
     });
 
     it('should not trigger background sync on initial fetch', async () => {
-      (sessionService.getCachedSessions as vi.Mock)
+      (sessionService.getCachedSessions as Mock)
         .mockResolvedValueOnce([]) // First call empty
         .mockResolvedValueOnce([{ id: '1', name: 'Session 1', title: 'Title' }]); // Second call after populate
 
-      (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+      (fetchClient.fetchWithRetry as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({ sessions: [{ id: '1', name: 'Session 1', title: 'Title' }] }),
       });
@@ -109,7 +109,7 @@ describe('Session Actions', () => {
     it('should call fetchWithRetry and return a page of sessions', async () => {
       const mockSessions = [{ id: '1', name: 'Session 1' }];
       const nextPageToken = 'next-page';
-      (fetchClient.fetchWithRetry as vi.Mock).mockResolvedValue({
+      (fetchClient.fetchWithRetry as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({ sessions: mockSessions, nextPageToken }),
       });
@@ -119,7 +119,16 @@ describe('Session Actions', () => {
         'https://jules.googleapis.com/v1alpha/sessions?pageSize=50&pageToken=prev-page',
         expect.any(Object)
       );
-      expect(result.sessions).toEqual(mockSessions.map(s => ({ ...s, createTime: '' })));
+      expect(result.sessions).toEqual(mockSessions.map(s => ({
+        ...s,
+        createTime: '',
+        automationMode: undefined,
+        outputs: undefined,
+        requirePlanApproval: undefined,
+        sourceContext: undefined,
+        state: 'STATE_UNSPECIFIED', // Default state from mapSession
+        url: undefined,
+      })));
       expect(result.nextPageToken).toBe(nextPageToken);
     });
   });
@@ -128,7 +137,7 @@ describe('Session Actions', () => {
     it('should paginate through all sources', async () => {
       const mockSourcesPage1 = [{ id: '1', name: 'Source 1' }];
       const mockSourcesPage2 = [{ id: '2', name: 'Source 2' }];
-      (fetchClient.fetchWithRetry as vi.Mock)
+      (fetchClient.fetchWithRetry as Mock)
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ sources: mockSourcesPage1, nextPageToken: 'next-page' }),

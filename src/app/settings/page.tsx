@@ -63,6 +63,7 @@ import {
 } from "@/app/config/actions";
 import { SourceSelection } from "@/components/source-selection";
 import { CronJobsList } from "@/components/cron-jobs-list";
+import { ProfilesSettings } from "@/components/profiles-settings";
 import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
 import type { PredefinedPrompt, Source } from "@/lib/types";
@@ -109,6 +110,7 @@ export default function SettingsPage() {
   const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
   const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
   const [debugMode, setDebugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
+  const [currentProfileId, setCurrentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
 
   // New Settings for Session Cache
   const [sessionCacheInProgressInterval, setSessionCacheInProgressInterval] = useLocalStorage<number>("jules-session-cache-in-progress-interval", 60);
@@ -118,6 +120,10 @@ export default function SettingsPage() {
 
   const [autoDeleteStaleBranches, setAutoDeleteStaleBranches] = useLocalStorage<boolean>("jules-auto-delete-stale-branches", false);
   const [autoDeleteStaleBranchesAfterDays, setAutoDeleteStaleBranchesAfterDays] = useLocalStorage<number>("jules-auto-delete-stale-branches-after-days", 3);
+
+  // Throttling Settings
+  const [minSessionInteractionInterval, setMinSessionInteractionInterval] = useLocalStorage<number>("jules-min-session-interaction-interval", 60);
+  const [retryTimeout, setRetryTimeout] = useLocalStorage<number>("jules-retry-timeout", 1200);
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
@@ -145,6 +151,9 @@ export default function SettingsPage() {
 
   const [autoDeleteStaleBranchesValue, setAutoDeleteStaleBranchesValue] = useState(autoDeleteStaleBranches);
   const [autoDeleteStaleBranchesAfterDaysValue, setAutoDeleteStaleBranchesAfterDaysValue] = useState(autoDeleteStaleBranchesAfterDays);
+
+  const [minSessionInteractionIntervalValue, setMinSessionInteractionIntervalValue] = useState(minSessionInteractionInterval);
+  const [retryTimeoutValue, setRetryTimeoutValue] = useState(retryTimeout);
 
 
   const [showApiKey, setShowApiKey] = useState(false);
@@ -196,13 +205,15 @@ export default function SettingsPage() {
 
   useEffect(() => { setAutoDeleteStaleBranchesValue(autoDeleteStaleBranches); }, [autoDeleteStaleBranches]);
   useEffect(() => { setAutoDeleteStaleBranchesAfterDaysValue(autoDeleteStaleBranchesAfterDays); }, [autoDeleteStaleBranchesAfterDays]);
+  useEffect(() => { setMinSessionInteractionIntervalValue(minSessionInteractionInterval); }, [minSessionInteractionInterval]);
+  useEffect(() => { setRetryTimeoutValue(retryTimeout); }, [retryTimeout]);
 
 
   useEffect(() => {
     setIsClient(true);
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/settings');
+        const response = await fetch(`/api/settings?profileId=${currentProfileId}`);
         if (response.ok) {
           const dbSettings = await response.json();
           const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
@@ -228,6 +239,8 @@ export default function SettingsPage() {
           if (!isSetInLocalStorage("jules-session-cache-max-age-days")) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
           if (!isSetInLocalStorage("jules-auto-delete-stale-branches")) setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
           if (!isSetInLocalStorage("jules-auto-delete-stale-branches-after-days")) setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
+          if (!isSetInLocalStorage("jules-min-session-interaction-interval")) setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
+          if (!isSetInLocalStorage("jules-retry-timeout")) setRetryTimeout(dbSettings.retryTimeout);
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);
@@ -240,7 +253,9 @@ export default function SettingsPage() {
       setHistoryPromptsCount, setAutoApprovalInterval, setAutoRetryEnabled, setAutoRetryMessage,
       setAutoContinueEnabled, setAutoContinueMessage,
       setSessionCacheInProgressInterval, setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays,
-      setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays
+      setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays,
+      setMinSessionInteractionInterval, setRetryTimeout,
+      currentProfileId // Re-fetch when profile changes
   ]);
 
   // --- Effects for Messages ---
@@ -300,6 +315,8 @@ export default function SettingsPage() {
 
     setAutoDeleteStaleBranches(autoDeleteStaleBranchesValue);
     setAutoDeleteStaleBranchesAfterDays(autoDeleteStaleBranchesAfterDaysValue);
+    setMinSessionInteractionInterval(minSessionInteractionIntervalValue);
+    setRetryTimeout(retryTimeoutValue);
 
     try {
         const response = await fetch('/api/settings');
@@ -337,6 +354,9 @@ export default function SettingsPage() {
 
                 autoDeleteStaleBranches: autoDeleteStaleBranchesValue,
                 autoDeleteStaleBranchesAfterDays: autoDeleteStaleBranchesAfterDaysValue,
+                minSessionInteractionInterval: minSessionInteractionIntervalValue,
+                retryTimeout: retryTimeoutValue,
+                profileId: currentProfileId,
             }),
         });
 
@@ -530,6 +550,7 @@ export default function SettingsPage() {
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="display">Display</TabsTrigger>
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
         </TabsList>
 
         {/* General Tab */}
@@ -759,6 +780,14 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
+        {/* Profiles Tab */}
+        <TabsContent value="profiles" className="space-y-6">
+            <ProfilesSettings
+                currentProfileId={currentProfileId}
+                onProfileSelect={setCurrentProfileId}
+            />
+        </TabsContent>
+
         {/* Automation Tab */}
         <TabsContent value="automation" className="space-y-6">
              <Card>
@@ -801,6 +830,31 @@ export default function SettingsPage() {
                             />
                         </div>
                     )}
+
+                    <div className="grid gap-2 pt-4 border-t">
+                        <Label htmlFor="min-session-interaction">Minimum Interaction Interval (seconds)</Label>
+                        <Input
+                            id="min-session-interaction"
+                            type="number"
+                            value={minSessionInteractionIntervalValue}
+                            onChange={(e) => setMinSessionInteractionIntervalValue(Number(e.target.value))}
+                            min="1"
+                        />
+                        <p className="text-xs text-muted-foreground">Wait at least this long before sending another automated message to the same session.</p>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="retry-timeout">Retry Timeout (seconds)</Label>
+                         <Input
+                            id="retry-timeout"
+                            type="number"
+                            value={retryTimeoutValue}
+                            onChange={(e) => setRetryTimeoutValue(Number(e.target.value))}
+                            min="60"
+                        />
+                        <p className="text-xs text-muted-foreground">If a session is inactive for this long, retry even without new updates.</p>
+                    </div>
+
                     <div className="grid gap-2">
                         <Label htmlFor="auto-approval-interval">Auto Approval Check Interval (seconds)</Label>
                         <Input

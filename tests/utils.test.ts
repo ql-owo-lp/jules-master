@@ -6,9 +6,9 @@ describe('Utils', () => {
   describe('groupSessionsByTopic', () => {
     it('should group sessions by topic', () => {
       const sessions: Session[] = [
-        { id: '1', prompt: '[TOPIC]: # (Test Topic 1)\nSome details' },
-        { id: '2', prompt: '[TOPIC]: # (Test Topic 2)\nSome details' },
-        { id: '3', prompt: '[TOPIC]: # (Test Topic 1)\nSome other details' },
+        { id: '1', prompt: '[TOPIC]: # (Test Topic 1)\nSome details' } as any,
+        { id: '2', prompt: '[TOPIC]: # (Test Topic 2)\nSome details' } as any,
+        { id: '3', prompt: '[TOPIC]: # (Test Topic 1)\nSome other details' } as any,
       ];
       const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
       expect(groupedSessions.size).toBe(2);
@@ -19,8 +19,8 @@ describe('Utils', () => {
 
     it('should handle sessions with no topic', () => {
       const sessions: Session[] = [
-        { id: '1', prompt: 'No topic here' },
-        { id: '2', prompt: '[TOPIC]: # (Test Topic 1)\nSome details' },
+        { id: '1', prompt: 'No topic here' } as any,
+        { id: '2', prompt: '[TOPIC]: # (Test Topic 1)\nSome details' } as any,
       ];
       const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
       expect(groupedSessions.size).toBe(1);
@@ -38,8 +38,8 @@ describe('Utils', () => {
 
     it('should handle sessions with malformed topics', () => {
         const sessions: Session[] = [
-          { id: '1', prompt: '[TOPIC]: # (Test Topic 1)\nSome details' },
-          { id: '2', prompt: '[TOPIC]: # Test Topic 2\nSome details' },
+          { id: '1', prompt: '[TOPIC]: # (Test Topic 1)\nSome details' } as any,
+          { id: '2', prompt: '[TOPIC]: # Test Topic 2\nSome details' } as any,
         ];
         const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
         expect(groupedSessions.size).toBe(1);
@@ -49,8 +49,8 @@ describe('Utils', () => {
 
     it('should trim whitespace from the topic name', () => {
       const sessions: Session[] = [
-        { id: '1', prompt: '[TOPIC]: # (  Test Topic 1  )\nSome details' },
-        { id: '2', prompt: '[TOPIC]: # (Test Topic 1)\nSome other details' },
+        { id: '1', prompt: '[TOPIC]: # (  Test Topic 1  )\nSome details' } as any,
+        { id: '2', prompt: '[TOPIC]: # (Test Topic 1)\nSome other details' } as any,
       ];
       const { groupedSessions } = groupSessionsByTopic(sessions);
       expect(groupedSessions.size).toBe(1);
@@ -59,7 +59,7 @@ describe('Utils', () => {
 
     it('should handle trailing whitespace after the topic', () => {
       const sessions: Session[] = [
-        { id: '1', prompt: '[TOPIC]: # (Test Topic 1) \nSome details' },
+        { id: '1', prompt: '[TOPIC]: # (Test Topic 1) \nSome details' } as any,
       ];
       const { groupedSessions, remainingUnknown } = groupSessionsByTopic(sessions);
       expect(groupedSessions.size).toBe(1);
@@ -72,11 +72,11 @@ describe('Utils', () => {
     it('should create dynamic jobs from grouped sessions', () => {
       const groupedSessions = new Map<string, Session[]>();
       groupedSessions.set('Test Job 1', [
-        { id: '1', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
-        { id: '2', createTime: '2023-01-01T13:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
+        { id: '1', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } } as any,
+        { id: '2', createTime: '2023-01-01T13:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } } as any,
       ]);
       groupedSessions.set('Test Job 2', [
-        { id: '3', createTime: '2023-01-02T12:00:00Z', sourceContext: { source: 'test/repo2', githubRepoContext: { startingBranch: 'develop' } } },
+        { id: '3', createTime: '2023-01-02T12:00:00Z', sourceContext: { source: 'test/repo2', githubRepoContext: { startingBranch: 'develop' } } } as any,
       ]);
 
       const jobs = createDynamicJobs(groupedSessions);
@@ -102,7 +102,7 @@ describe('Utils', () => {
     it('should handle sessions with missing source context', () => {
         const groupedSessions = new Map<string, Session[]>();
         groupedSessions.set('Test Job 1', [
-          { id: '1', createTime: '2023-01-01T12:00:00Z' },
+          { id: '1', createTime: '2023-01-01T12:00:00Z' } as any,
         ]);
 
         const jobs = createDynamicJobs(groupedSessions);
@@ -115,8 +115,8 @@ describe('Utils', () => {
     it('should handle sessions with invalid createTime', () => {
       const groupedSessions = new Map<string, Session[]>();
       groupedSessions.set('Test Job 1', [
-        { id: '1', createTime: 'invalid-date' },
-        { id: '2', createTime: '2023-01-01T12:00:00Z' },
+        { id: '1', createTime: 'invalid-date' } as any,
+        { id: '2', createTime: '2023-01-01T12:00:00Z' } as any,
       ]);
       const jobs = createDynamicJobs(groupedSessions);
       expect(jobs[0].createdAt).toBe('2023-01-01T12:00:00Z');
@@ -125,8 +125,8 @@ describe('Utils', () => {
     it('should use the repo and branch from the latest session', () => {
       const groupedSessions = new Map<string, Session[]>();
       groupedSessions.set('Test Job 1', [
-        { id: '1', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } },
-        { id: '2', createTime: '2023-01-02T12:00:00Z', sourceContext: { source: 'test/repo2', githubRepoContext: { startingBranch: 'develop' } } },
+        { id: '1', createTime: '2023-01-01T12:00:00Z', sourceContext: { source: 'test/repo1', githubRepoContext: { startingBranch: 'main' } } } as any,
+        { id: '2', createTime: '2023-01-02T12:00:00Z', sourceContext: { source: 'test/repo2', githubRepoContext: { startingBranch: 'develop' } } } as any,
       ]);
 
       const jobs = createDynamicJobs(groupedSessions);
