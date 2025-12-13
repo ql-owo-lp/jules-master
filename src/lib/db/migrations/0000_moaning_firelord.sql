@@ -1,4 +1,4 @@
-CREATE TABLE `cron_jobs` (
+CREATE TABLE IF NOT EXISTS `cron_jobs` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`schedule` text NOT NULL,
@@ -17,14 +17,14 @@ CREATE TABLE `cron_jobs` (
 	FOREIGN KEY (`profile_id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `global_prompt` (
+CREATE TABLE IF NOT EXISTS `global_prompt` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`prompt` text NOT NULL,
 	`profile_id` text DEFAULT 'default' NOT NULL,
 	FOREIGN KEY (`profile_id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `history_prompts` (
+CREATE TABLE IF NOT EXISTS `history_prompts` (
 	`id` text PRIMARY KEY NOT NULL,
 	`prompt` text NOT NULL,
 	`last_used_at` text NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE `history_prompts` (
 	FOREIGN KEY (`profile_id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `jobs` (
+CREATE TABLE IF NOT EXISTS `jobs` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`session_ids` text,
@@ -51,12 +51,12 @@ CREATE TABLE `jobs` (
 	FOREIGN KEY (`profile_id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `locks` (
+CREATE TABLE IF NOT EXISTS `locks` (
 	`id` text PRIMARY KEY NOT NULL,
 	`expires_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE `predefined_prompts` (
+CREATE TABLE IF NOT EXISTS `predefined_prompts` (
 	`id` text PRIMARY KEY NOT NULL,
 	`title` text NOT NULL,
 	`prompt` text NOT NULL,
@@ -64,13 +64,13 @@ CREATE TABLE `predefined_prompts` (
 	FOREIGN KEY (`profile_id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `profiles` (
+CREATE TABLE IF NOT EXISTS `profiles` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`created_at` text NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE `quick_replies` (
+CREATE TABLE IF NOT EXISTS `quick_replies` (
 	`id` text PRIMARY KEY NOT NULL,
 	`title` text NOT NULL,
 	`prompt` text NOT NULL,
@@ -78,7 +78,7 @@ CREATE TABLE `quick_replies` (
 	FOREIGN KEY (`profile_id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `repo_prompts` (
+CREATE TABLE IF NOT EXISTS `repo_prompts` (
 	`repo` text NOT NULL,
 	`prompt` text NOT NULL,
 	`profile_id` text DEFAULT 'default' NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE `repo_prompts` (
 	FOREIGN KEY (`profile_id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `sessions` (
+CREATE TABLE IF NOT EXISTS `sessions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`title` text NOT NULL,
@@ -107,7 +107,7 @@ CREATE TABLE `sessions` (
 	FOREIGN KEY (`profile_id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `settings` (
+CREATE TABLE IF NOT EXISTS `settings` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`idle_poll_interval` integer DEFAULT 120 NOT NULL,
 	`active_poll_interval` integer DEFAULT 30 NOT NULL,
