@@ -1,9 +1,9 @@
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MessageDialog } from '@/components/message-dialog';
 import { Button } from '@/components/ui/button';
 import React from 'react';
-
+import * as configActions from '@/app/config/actions';
 import { vi } from 'vitest';
 
 // Mock useLocalStorage to behave like useState for this test
@@ -47,5 +47,39 @@ describe('MessageDialog', () => {
 
     // Check if the message is cleared
     expect(textarea.value).toBe('');
+  });
+
+  it('should not re-fetch predefined prompts on every open', async () => {
+    const getPredefinedPromptsSpy = vi.spyOn(configActions, 'getPredefinedPrompts').mockResolvedValue([]);
+    const handleSendMessage = vi.fn();
+
+    render(
+      <MessageDialog
+        trigger={trigger}
+        storageKey="test-message"
+        onSendMessage={handleSendMessage}
+      />
+    );
+
+    // Using `act` to wait for state updates
+    await act(async () => {
+      fireEvent.click(screen.getByText('Open Dialog'));
+    });
+
+    // The first time it opens, it should fetch
+    expect(getPredefinedPromptsSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Cancel'));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Open Dialog'));
+    });
+
+    // The second time it should not fetch again
+    expect(getPredefinedPromptsSpy).toHaveBeenCalledTimes(1);
+
+    getPredefinedPromptsSpy.mockRestore();
   });
 });

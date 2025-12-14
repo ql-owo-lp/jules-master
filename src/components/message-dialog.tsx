@@ -65,16 +65,20 @@ export function MessageDialog({
                     // ignore if parsing fails
                 }
             }
-             // Also fetch latest prompts/replies if not provided
-            if (initialPrompts.length === 0) {
-                getPredefinedPrompts().then(setPredefinedPrompts);
-            }
-            if (initialReplies.length === 0) {
-                getQuickReplies().then(setQuickReplies);
-            }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, storageKey, setMessage]);
+    }, [open, storageKey]);
+
+    // Fetch latest prompts/replies if not provided
+    useEffect(() => {
+        if (initialPrompts.length === 0) {
+            getPredefinedPrompts().then(setPredefinedPrompts);
+        }
+        if (initialReplies.length === 0) {
+            getQuickReplies().then(setQuickReplies);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleOpenChange = (isOpen: boolean) => {
         setOpen(isOpen);
