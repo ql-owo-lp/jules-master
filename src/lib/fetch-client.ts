@@ -296,7 +296,15 @@ export async function fetchWithRetry(
               // Cap sleep time to avoid excessive waits if needed?
               // For now, assume Retry-After is authoritative, but if it's crazy high, maybe log it.
 
-              console.warn(`Request failed (${response.status}). Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`);
+              const sanitizedHeaders = { ...fetchOptions.headers };
+              // @ts-ignore
+              if (sanitizedHeaders['Authorization']) sanitizedHeaders['Authorization'] = 'REDACTED';
+              // @ts-ignore
+              if (sanitizedHeaders['X-JULES-API-KEY']) sanitizedHeaders['X-JULES-API-KEY'] = 'REDACTED';
+              console.warn(`Request failed with status ${response.status} for ${url.toString()}. Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`, {
+                request: { url: url.toString(), options: { ...fetchOptions, headers: sanitizedHeaders } },
+                response: { status: response.status }
+              });
 
               if (effectiveSignal.aborted) throw new DOMException('Aborted', 'AbortError');
               await sleep(sleepTime);
@@ -312,7 +320,15 @@ export async function fetchWithRetry(
           attempt++;
           if (attempt < retries) {
             const sleepTime = backoff * Math.pow(2, attempt - 1);
-            console.warn(`Fetch error: ${error}. Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`);
+            const sanitizedHeaders = { ...fetchOptions.headers };
+            // @ts-ignore
+            if (sanitizedHeaders['Authorization']) sanitizedHeaders['Authorization'] = 'REDACTED';
+            // @ts-ignore
+            if (sanitizedHeaders['X-JULES-API-KEY']) sanitizedHeaders['X-JULES-API-KEY'] = 'REDACTED';
+
+            console.warn(`Fetch error for ${url.toString()}: ${error}. Retrying in ${Math.round(sleepTime)}ms... (Attempt ${attempt}/${retries})`, {
+              request: { url: url.toString(), options: { ...fetchOptions, headers: sanitizedHeaders } },
+            });
 
             if (effectiveSignal.aborted) throw new DOMException('Aborted', 'AbortError');
             await sleep(sleepTime);

@@ -138,7 +138,19 @@ function HomePageContent() {
         } else {
           setError(null);
         }
-        const validSessions = (fetchedSessionsResult.sessions || []).filter(s => s);
+        const validSessions = (fetchedSessionsResult.sessions || []).filter(s => s) as Session[];
+        const sessionMap = new Map(validSessions.map(s => [s.id, s]));
+        const allJobSessionIds = new Set(fetchedJobs.flatMap(j => j.sessionIds || []));
+        const missingSessionIds = [...allJobSessionIds].filter(id => !sessionMap.has(id));
+
+        if (missingSessionIds.length > 0) {
+          const fetchedMissingSessions = await Promise.all(
+            missingSessionIds.map(id => refreshSession(id, apiKey))
+          );
+          const validMissingSessions = fetchedMissingSessions.filter((s): s is Session => !!s);
+          validSessions.push(...validMissingSessions);
+        }
+
         setSessions(validSessions);
         setJobs(fetchedJobs);
         setQuickReplies(fetchedQuickReplies);
