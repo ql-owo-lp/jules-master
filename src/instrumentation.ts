@@ -19,10 +19,21 @@ export async function register() {
 
         // Initialize settings if needed
         const { db } = await import('./lib/db');
-        const { settings } = await import('./lib/db/schema');
+        const { settings, profiles } = await import('./lib/db/schema');
         const { eq } = await import('drizzle-orm');
 
         try {
+            // Ensure default profile exists
+            const existingProfile = await db.select().from(profiles).where(eq(profiles.id, 'default')).limit(1);
+            if (existingProfile.length === 0) {
+                console.log('Seeding default profile...');
+                await db.insert(profiles).values({
+                    id: 'default',
+                    name: 'Default',
+                    createdAt: new Date().toISOString()
+                });
+            }
+
             const existingSettings = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
             if (existingSettings.length === 0) {
                 console.log('Seeding default settings...');
