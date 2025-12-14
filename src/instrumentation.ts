@@ -38,6 +38,11 @@ export async function register() {
             if (existingSettings.length === 0) {
                 console.log('Seeding default settings...');
                 await db.insert(settings).values({ id: 1, autoApprovalEnabled: true });
+            } else {
+                // Ensure auto-approval is enabled for existing installs (per user request)
+                console.log(`Current autoApprovalEnabled: ${existingSettings[0].autoApprovalEnabled}`);
+                console.log('Enabling auto-approval...');
+                await db.update(settings).set({ autoApprovalEnabled: true }).where(eq(settings.id, 1));
             }
         } catch (error) {
             console.error('Failed to seed settings:', error);
@@ -48,7 +53,23 @@ export async function register() {
 
         setInterval(() => {
             const used = process.memoryUsage();
-            console.log(`[MEMORY] RSS: ${(used.rss / 1024 / 1024).toFixed(2)} MB, Heap: ${(used.heapUsed / 1024 / 1024).toFixed(2)} MB`);
+            const rssMb = used.rss / 1024 / 1024;
+            // Default to 90MB if not set, but allow override
+            const threshold = parseInt(process.env.GC_THRESHOLD_MB || '90', 10);
+            
+            console.log(`[MEMORY] RSS: ${rssMb.toFixed(2)} MB, Heap: ${(used.heapUsed / 1024 / 1024).toFixed(2)} MB, Threshold: ${threshold} MB`);
+            
+            // Trigger GC if RSS > Threshold and GC is exposed
+            if (rssMb > threshold) {
+                if (global.gc) {
+                    console.log('[MEMORY] Threshold reached. Forcing GC...');
+                    global.gc();
+                    const after = process.memoryUsage();
+                    console.log(`[MEMORY] Post-GC RSS: ${(after.rss / 1024 / 1024).toFixed(2)} MB`);
+                } else {
+                    console.warn('[MEMORY] Threshold reached but global.gc is not available. Run with --expose-gc.');
+                }
+            }
         }, 5000);
 
         const shutdown = (signal: string) => {

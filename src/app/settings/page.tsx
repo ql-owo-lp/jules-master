@@ -105,6 +105,7 @@ export default function SettingsPage() {
   const [prStatusPollInterval, setPrStatusPollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
   const [historyPromptsCount, setHistoryPromptsCount] = useLocalStorage<number>("jules-history-prompts-count", 10);
   const [autoApprovalInterval, setAutoApprovalInterval] = useLocalStorage<number>("jules-auto-approval-interval", 60);
+  const [autoApprovalEnabled, setAutoApprovalEnabled] = useLocalStorage<boolean>("jules-auto-approval-enabled", false);
   const [autoRetryEnabled, setAutoRetryEnabled] = useLocalStorage<boolean>("jules-auto-retry-enabled", true);
   const [autoRetryMessage, setAutoRetryMessage] = useLocalStorage<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
   const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
@@ -137,6 +138,7 @@ export default function SettingsPage() {
   const [prStatusPollIntervalValue, setPrStatusPollIntervalValue] = useState(prStatusPollInterval);
   const [historyPromptsCountValue, setHistoryPromptsCountValue] = useState(historyPromptsCount);
   const [autoApprovalIntervalValue, setAutoApprovalIntervalValue] = useState(autoApprovalInterval);
+  const [autoApprovalEnabledValue, setAutoApprovalEnabledValue] = useState(autoApprovalEnabled);
   const [autoRetryEnabledValue, setAutoRetryEnabledValue] = useState(autoRetryEnabled);
   const [autoRetryMessageValue, setAutoRetryMessageValue] = useState(autoRetryMessage);
   const [autoContinueEnabledValue, setAutoContinueEnabledValue] = useState(autoContinueEnabled);
@@ -192,6 +194,7 @@ export default function SettingsPage() {
   useEffect(() => { setPrStatusPollIntervalValue(prStatusPollInterval); }, [prStatusPollInterval]);
   useEffect(() => { setHistoryPromptsCountValue(historyPromptsCount); }, [historyPromptsCount]);
   useEffect(() => { setAutoApprovalIntervalValue(autoApprovalInterval); }, [autoApprovalInterval]);
+  useEffect(() => { setAutoApprovalEnabledValue(autoApprovalEnabled); }, [autoApprovalEnabled]);
   useEffect(() => { setAutoRetryEnabledValue(autoRetryEnabled); }, [autoRetryEnabled]);
   useEffect(() => { setAutoRetryMessageValue(autoRetryMessage); }, [autoRetryMessage]);
   useEffect(() => { setAutoContinueEnabledValue(autoContinueEnabled); }, [autoContinueEnabled]);
@@ -228,6 +231,7 @@ export default function SettingsPage() {
           if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
           if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
           if (!isSetInLocalStorage("jules-auto-approval-interval")) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
+          if (!isSetInLocalStorage("jules-auto-approval-enabled")) setAutoApprovalEnabled(dbSettings.autoApprovalEnabled);
           if (!isSetInLocalStorage("jules-auto-retry-enabled")) setAutoRetryEnabled(dbSettings.autoRetryEnabled);
           if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
           if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
@@ -250,7 +254,7 @@ export default function SettingsPage() {
   }, [
       setIdlePollInterval, setActivePollInterval, setTitleTruncateLength, setLineClamp,
       setSessionItemsPerPage, setJobsPerPage, setDefaultSessionCount, setPrStatusPollInterval,
-      setHistoryPromptsCount, setAutoApprovalInterval, setAutoRetryEnabled, setAutoRetryMessage,
+      setHistoryPromptsCount, setAutoApprovalInterval, setAutoApprovalEnabled, setAutoRetryEnabled, setAutoRetryMessage,
       setAutoContinueEnabled, setAutoContinueMessage,
       setSessionCacheInProgressInterval, setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays,
       setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays,
@@ -302,6 +306,7 @@ export default function SettingsPage() {
     setPrStatusPollInterval(prStatusPollIntervalValue);
     setHistoryPromptsCount(historyPromptsCountValue);
     setAutoApprovalInterval(autoApprovalIntervalValue);
+    setAutoApprovalEnabled(autoApprovalEnabledValue);
     setAutoRetryEnabled(autoRetryEnabledValue);
     setAutoRetryMessage(autoRetryMessageValue);
     setAutoContinueEnabled(autoContinueEnabledValue);
@@ -340,6 +345,7 @@ export default function SettingsPage() {
                 prStatusPollInterval: prStatusPollIntervalValue,
                 historyPromptsCount: historyPromptsCountValue,
                 autoApprovalInterval: autoApprovalIntervalValue,
+                autoApprovalEnabled: autoApprovalEnabledValue,
                 autoRetryEnabled: autoRetryEnabledValue,
                 autoRetryMessage: autoRetryMessageValue,
                 autoContinueEnabled: autoContinueEnabledValue,
@@ -541,7 +547,13 @@ export default function SettingsPage() {
 
   return (
     <div className="container mx-auto py-8 max-w-5xl">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Settings</h1>
+        <div className="bg-muted p-2 rounded-md border text-sm flex items-center gap-2">
+            <span className="font-semibold">Current Profile:</span> 
+            <code className="bg-background px-1 py-0.5 rounded border">{currentProfileId}</code>
+        </div>
+      </div>
       <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
@@ -865,6 +877,15 @@ export default function SettingsPage() {
                             min="10"
                         />
                     </div>
+                    
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="auto-approval-enabled">Auto Approval</Label>
+                            <p className="text-xs text-muted-foreground">Automatically approve execution if confidence is high.</p>
+                        </div>
+                        <Switch id="auto-approval-enabled" checked={autoApprovalEnabledValue} onCheckedChange={setAutoApprovalEnabledValue} />
+                    </div>
+
                     <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                             <Label htmlFor="auto-delete-stale-branches">Auto Delete Stale Branches</Label>
