@@ -42,17 +42,18 @@ export default function SystemLogPage() {
                 return;
             }
 
-            const newLogs: LogEntry[] = await res.json();
+            const newLogs = await res.json();
             
-            if (newLogs.length > 0) {
+            if (Array.isArray(newLogs) && newLogs.length > 0) {
                 setLogs(prev => {
-                    // Avoid duplicates if we're doing simple append, but since filter handles it source side roughly, 
-                    // we might want to dedupe by index or timestamp if high volume?
-                    // For now, simpler append is likely fine given 1s poll.
-                    // Actually, if we use 'since', we are getting strictly newer logs.
-                    return [...prev, ...newLogs];
+                     // Filter out invalid logs
+                     const validNewLogs = newLogs.filter((l: LogEntry) => l && l.timestamp && l.message);
+                     return [...prev, ...validNewLogs];
                 });
-                lastTimestamp = newLogs[newLogs.length - 1].timestamp;
+                const lastLog = newLogs[newLogs.length - 1];
+                if (lastLog && lastLog.timestamp) {
+                    lastTimestamp = lastLog.timestamp;
+                }
             }
         } catch (err) {
             console.error("Error polling logs:", err);

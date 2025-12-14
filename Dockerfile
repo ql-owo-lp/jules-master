@@ -49,4 +49,5 @@ EXPOSE 9002
 VOLUME /app/data
 
 # Set the command to our startup script
+ENV NODE_OPTIONS='--expose-gc'
 CMD ["start.js"]
