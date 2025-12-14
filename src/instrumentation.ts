@@ -37,7 +37,7 @@ export async function register() {
             const existingSettings = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
             if (existingSettings.length === 0) {
                 console.log('Seeding default settings...');
-                await db.insert(settings).values({ id: 1 });
+                await db.insert(settings).values({ id: 1, autoApprovalEnabled: true });
             }
         } catch (error) {
             console.error('Failed to seed settings:', error);
@@ -45,5 +45,19 @@ export async function register() {
 
         // Run cron worker every minute
         setInterval(processCronJobs, 60 * 1000);
+
+        setInterval(() => {
+            const used = process.memoryUsage();
+            console.log(`[MEMORY] RSS: ${(used.rss / 1024 / 1024).toFixed(2)} MB, Heap: ${(used.heapUsed / 1024 / 1024).toFixed(2)} MB`);
+        }, 5000);
+
+        const shutdown = (signal: string) => {
+            console.log(`Received ${signal}. Shutting down...`);
+            console.log(`[MEMORY FINAL] RSS: ${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)} MB`);
+            process.exit(0);
+        };
+
+        process.on('SIGTERM', () => shutdown('SIGTERM'));
+        process.on('SIGINT', () => shutdown('SIGINT'));
     }
 }
