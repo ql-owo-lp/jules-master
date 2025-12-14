@@ -219,32 +219,32 @@ export default function SettingsPage() {
         const response = await fetch(`/api/settings?profileId=${currentProfileId}`);
         if (response.ok) {
           const dbSettings = await response.json();
-          const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
+          // Update state with values from DB (Source of Truth)
+          // valid DB values will overwrite local storage via the hooks
+          setIdlePollInterval(dbSettings.idlePollInterval);
+          setActivePollInterval(dbSettings.activePollInterval);
+          setTitleTruncateLength(dbSettings.titleTruncateLength);
+          setLineClamp(dbSettings.lineClamp);
+          setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
+          setJobsPerPage(dbSettings.jobsPerPage);
+          setDefaultSessionCount(dbSettings.defaultSessionCount);
+          setPrStatusPollInterval(dbSettings.prStatusPollInterval);
+          setHistoryPromptsCount(dbSettings.historyPromptsCount);
+          setAutoApprovalInterval(dbSettings.autoApprovalInterval);
+          setAutoApprovalEnabled(dbSettings.autoApprovalEnabled);
+          setAutoRetryEnabled(dbSettings.autoRetryEnabled);
+          setAutoRetryMessage(dbSettings.autoRetryMessage);
+          setAutoContinueEnabled(dbSettings.autoContinueEnabled);
+          setAutoContinueMessage(dbSettings.autoContinueMessage);
 
-          if (!isSetInLocalStorage("jules-idle-poll-interval")) setIdlePollInterval(dbSettings.idlePollInterval);
-          if (!isSetInLocalStorage("jules-active-poll-interval")) setActivePollInterval(dbSettings.activePollInterval);
-          if (!isSetInLocalStorage("jules-title-truncate-length")) setTitleTruncateLength(dbSettings.titleTruncateLength);
-          if (!isSetInLocalStorage("jules-line-clamp")) setLineClamp(dbSettings.lineClamp);
-          if (!isSetInLocalStorage("jules-session-items-per-page")) setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
-          if (!isSetInLocalStorage("jules-jobs-per-page")) setJobsPerPage(dbSettings.jobsPerPage);
-          if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
-          if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
-          if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
-          if (!isSetInLocalStorage("jules-auto-approval-interval")) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
-          if (!isSetInLocalStorage("jules-auto-approval-enabled")) setAutoApprovalEnabled(dbSettings.autoApprovalEnabled);
-          if (!isSetInLocalStorage("jules-auto-retry-enabled")) setAutoRetryEnabled(dbSettings.autoRetryEnabled);
-          if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
-          if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
-          if (!isSetInLocalStorage("jules-auto-continue-message")) setAutoContinueMessage(dbSettings.autoContinueMessage);
-
-          if (!isSetInLocalStorage("jules-session-cache-in-progress-interval")) setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
-          if (!isSetInLocalStorage("jules-session-cache-completed-no-pr-interval")) setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
-          if (!isSetInLocalStorage("jules-session-cache-pending-approval-interval")) setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
-          if (!isSetInLocalStorage("jules-session-cache-max-age-days")) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
-          if (!isSetInLocalStorage("jules-auto-delete-stale-branches")) setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
-          if (!isSetInLocalStorage("jules-auto-delete-stale-branches-after-days")) setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
-          if (!isSetInLocalStorage("jules-min-session-interaction-interval")) setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
-          if (!isSetInLocalStorage("jules-retry-timeout")) setRetryTimeout(dbSettings.retryTimeout);
+          setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
+          setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
+          setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
+          setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
+          setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
+          setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
+          setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
+          setRetryTimeout(dbSettings.retryTimeout);
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);

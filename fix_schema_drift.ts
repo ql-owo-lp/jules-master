@@ -49,7 +49,7 @@ for (const change of changes) {
             console.log(`  Column already exists.`);
         }
     } catch (error) {
-        console.error(`  Failed to update ${change.table}:`, error.message);
+        console.error(`  Failed to update ${change.table}:`, (error as any).message);
     }
 }
 
