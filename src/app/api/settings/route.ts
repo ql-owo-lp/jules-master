@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { settings } from '@/lib/db/schema';
+import { settings, profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { settingsSchema } from '@/lib/validation';
 
@@ -64,6 +64,13 @@ export async function POST(request: Request) {
     }
 
     const profileId = body.profileId || 'default';
+
+    // Verify profile exists
+    const profileExists = await db.select().from(profiles).where(eq(profiles.id, profileId)).limit(1);
+
+    if (profileExists.length === 0) {
+       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
 
     const newSettings = {
       ...validation.data,
