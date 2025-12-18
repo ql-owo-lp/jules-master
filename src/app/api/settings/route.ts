@@ -65,6 +65,14 @@ export async function POST(request: Request) {
 
     const profileId = body.profileId || 'default';
 
+    // Verify profile exists before saving settings
+    const profileService = (await import('@/lib/profile-service')).profileService;
+    const profile = await profileService.getProfile(profileId);
+
+    if (!profile) {
+      return NextResponse.json({ error: `Profile '${profileId}' not found.` }, { status: 400 });
+    }
+
     const newSettings = {
       ...validation.data,
       profileId
