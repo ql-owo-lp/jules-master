@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useState, forwardRef, useEffect } from "react";
+import { useState, forwardRef, useEffect, memo } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -162,7 +162,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
 ActivityFeed.displayName = 'ActivityFeed';
 
 
-function ActivityContent({ activity }: { activity: Activity }) {
+const ActivityContent = memo(function ActivityContent({ activity }: { activity: Activity }) {
   const [lineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
   const agentMessage = activity.agentMessaged?.agentMessage;
   const userMessage = activity.userMessaged?.userMessage;
@@ -292,7 +292,33 @@ function ActivityContent({ activity }: { activity: Activity }) {
   }
 
   return null; // Return null if there's no specific content to render
-}
+}, (prev, next) => {
+  // Memoize to prevent expensive re-renders of content (especially Git patches and logs)
+  // when the parent ActivityFeed re-renders due to polling.
+  // We compare key fields instead of JSON.stringify for performance.
+  if (prev.activity.id !== next.activity.id || prev.activity.createTime !== next.activity.createTime) {
+    return false;
+  }
+
+  // Check mutable fields if they exist
+  if (prev.activity.progressUpdated?.description !== next.activity.progressUpdated?.description) return false;
+  if (prev.activity.progressUpdated?.title !== next.activity.progressUpdated?.title) return false;
+  if (prev.activity.sessionFailed?.reason !== next.activity.sessionFailed?.reason) return false;
+  if (prev.activity.planApproved?.planId !== next.activity.planApproved?.planId) return false;
+  if (prev.activity.agentMessaged?.agentMessage !== next.activity.agentMessaged?.agentMessage) return false;
+  if (prev.activity.userMessaged?.userMessage !== next.activity.userMessaged?.userMessage) return false;
+
+  // For planGenerated, we check plan ID and steps length as a proxy for plan changes
+  if (prev.activity.planGenerated?.plan.id !== next.activity.planGenerated?.plan.id) return false;
+  if (prev.activity.planGenerated?.plan.steps.length !== next.activity.planGenerated?.plan.steps.length) return false;
+
+  // For artifacts, we check the length as a proxy. Deep comparison of artifacts (like patches) is expensive.
+  // Usually artifacts are immutable once created in an activity.
+  if ((prev.activity.artifacts?.length || 0) !== (next.activity.artifacts?.length || 0)) return false;
+
+  return true;
+});
+ActivityContent.displayName = 'ActivityContent';
 
 function PlanDetails({ plan }: { plan: Plan }) {
   return (
