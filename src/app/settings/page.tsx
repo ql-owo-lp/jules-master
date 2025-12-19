@@ -221,30 +221,30 @@ export default function SettingsPage() {
           const dbSettings = await response.json();
           // Update state with values from DB (Source of Truth)
           // valid DB values will overwrite local storage via the hooks
-          setIdlePollInterval(dbSettings.idlePollInterval);
-          setActivePollInterval(dbSettings.activePollInterval);
-          setTitleTruncateLength(dbSettings.titleTruncateLength);
-          setLineClamp(dbSettings.lineClamp);
-          setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
-          setJobsPerPage(dbSettings.jobsPerPage);
-          setDefaultSessionCount(dbSettings.defaultSessionCount);
-          setPrStatusPollInterval(dbSettings.prStatusPollInterval);
-          setHistoryPromptsCount(dbSettings.historyPromptsCount);
-          setAutoApprovalInterval(dbSettings.autoApprovalInterval);
-          setAutoApprovalEnabled(dbSettings.autoApprovalEnabled);
-          setAutoRetryEnabled(dbSettings.autoRetryEnabled);
-          setAutoRetryMessage(dbSettings.autoRetryMessage);
-          setAutoContinueEnabled(dbSettings.autoContinueEnabled);
-          setAutoContinueMessage(dbSettings.autoContinueMessage);
+          if (dbSettings.idlePollInterval) setIdlePollInterval(dbSettings.idlePollInterval);
+          if (dbSettings.activePollInterval) setActivePollInterval(dbSettings.activePollInterval);
+          if (dbSettings.titleTruncateLength) setTitleTruncateLength(dbSettings.titleTruncateLength);
+          if (dbSettings.lineClamp) setLineClamp(dbSettings.lineClamp);
+          if (dbSettings.sessionItemsPerPage) setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
+          if (dbSettings.jobsPerPage) setJobsPerPage(dbSettings.jobsPerPage);
+          if (dbSettings.defaultSessionCount) setDefaultSessionCount(dbSettings.defaultSessionCount);
+          if (dbSettings.prStatusPollInterval) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
+          if (dbSettings.historyPromptsCount) setHistoryPromptsCount(dbSettings.historyPromptsCount);
+          if (dbSettings.autoApprovalInterval) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
+          if (dbSettings.autoApprovalEnabled !== undefined) setAutoApprovalEnabled(dbSettings.autoApprovalEnabled);
+          if (dbSettings.autoRetryEnabled !== undefined) setAutoRetryEnabled(dbSettings.autoRetryEnabled);
+          if (dbSettings.autoRetryMessage) setAutoRetryMessage(dbSettings.autoRetryMessage);
+          if (dbSettings.autoContinueEnabled !== undefined) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
+          if (dbSettings.autoContinueMessage) setAutoContinueMessage(dbSettings.autoContinueMessage);
 
-          setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
-          setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
-          setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
-          setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
-          setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
-          setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
-          setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
-          setRetryTimeout(dbSettings.retryTimeout);
+          if (dbSettings.sessionCacheInProgressInterval) setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
+          if (dbSettings.sessionCacheCompletedNoPrInterval) setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
+          if (dbSettings.sessionCachePendingApprovalInterval) setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
+          if (dbSettings.sessionCacheMaxAgeDays) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
+          if (dbSettings.autoDeleteStaleBranches !== undefined) setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
+          if (dbSettings.autoDeleteStaleBranchesAfterDays) setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
+          if (dbSettings.minSessionInteractionInterval) setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
+          if (dbSettings.retryTimeout) setRetryTimeout(dbSettings.retryTimeout);
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);
