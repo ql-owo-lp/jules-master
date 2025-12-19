@@ -1,5 +1,5 @@
 
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach, type Mock } from 'vitest';
 import { runAutoDeleteStaleBranchCheck, _resetForTest } from '@/lib/auto-delete-stale-branch-worker';
 import * as actions from '@/app/sessions/actions';
 import * as githubActions from '@/app/github/actions';
@@ -12,6 +12,7 @@ vi.mock('@/app/sessions/actions', () => ({
 
 vi.mock('@/app/github/actions', () => ({
     getPullRequestStatus: vi.fn(),
+    fetchPullRequestStatus: vi.fn(),
 }));
 
 vi.mock('@/lib/github-service', () => ({
@@ -41,7 +42,7 @@ describe('runAutoDeleteStaleBranchCheck', () => {
     });
 
     it('should schedule the next run with the default interval on error', async () => {
-        const settingsMock = db.limit as vi.Mock;
+        const settingsMock = (db as any).limit as Mock;
         settingsMock.mockResolvedValueOnce([{ autoDeleteStaleBranches: true, autoDeleteStaleBranchesAfterDays: 1 }]); // 1. Initial run
         settingsMock.mockRejectedValueOnce(new Error('DB error')); // 2. scheduleNextRun (fails)
         settingsMock.mockResolvedValueOnce([{ autoDeleteStaleBranches: true, autoDeleteStaleBranchesAfterDays: 1 }]); // 3. Timed run
@@ -56,7 +57,7 @@ describe('runAutoDeleteStaleBranchCheck', () => {
     });
 
     it('should schedule the next run with a custom interval', async () => {
-        const settingsMock = db.limit as vi.Mock;
+        const settingsMock = (db as any).limit as Mock;
         const customSettings = {
             autoDeleteStaleBranches: true,
             autoDeleteStaleBranchesAfterDays: 1,
@@ -76,20 +77,29 @@ describe('runAutoDeleteStaleBranchCheck', () => {
     });
 
     it('should call deleteBranch with the correct branch name', async () => {
-        const settingsMock = db.limit as vi.Mock;
+        const settingsMock = (db as any).limit as Mock;
         settingsMock.mockResolvedValueOnce([{ autoDeleteStaleBranches: true, autoDeleteStaleBranchesAfterDays: 1 }]);
 
         const session = {
+            id: 'session-1',
+            name: 'sessions/session-1',
+            title: 'Test Session',
+            prompt: 'Test Prompt',
             state: 'COMPLETED',
             outputs: [{ pullRequest: { url: 'http://example.com' } }],
             sourceContext: {
                 source: 'sources/github/test-owner/test-repo',
-                githubRepoContext: { startingBranch: 'test-branch' },
+                githubRepoContext: { startingBranch: 'main' }, // Simulating session started from main
             },
-        };
+        } as any;
 
         vi.spyOn(actions, 'fetchSessionsPage').mockResolvedValueOnce({ sessions: [session], nextPageToken: undefined });
-        vi.spyOn(githubActions, 'getPullRequestStatus').mockResolvedValue({ state: 'MERGED', merged_at: new Date(0).toISOString() });
+        vi.spyOn(githubActions, 'fetchPullRequestStatus').mockResolvedValue({
+            state: 'MERGED',
+            merged_at: new Date(0).toISOString(),
+            checks: { status: 'success', total: 1, passed: 1, runs: [] },
+            headBranch: 'test-branch'
+        });
 
         await runAutoDeleteStaleBranchCheck({ schedule: false });
 

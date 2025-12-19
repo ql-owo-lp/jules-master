@@ -3,7 +3,7 @@ import { db } from './db';
 import { settings } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { fetchSessionsPage } from '@/app/sessions/actions';
-import { getPullRequestStatus } from '@/app/github/actions';
+import { fetchPullRequestStatus } from '@/app/github/actions';
 import { deleteBranch } from './github-service';
 import type { Session } from '@/lib/types';
 
@@ -58,20 +58,22 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
             for (const session of completedSessions) {
                 if (session.outputs && session.outputs.length > 0 && session.outputs[0].pullRequest) {
                     const prUrl = session.outputs[0].pullRequest.url;
-                    const prStatus = await getPullRequestStatus(prUrl);
+                    const prStatus = await fetchPullRequestStatus(prUrl);
 
                     if (prStatus && prStatus.state === 'MERGED' && prStatus.merged_at) {
                         const mergedAt = new Date(prStatus.merged_at);
                         const daysSinceMerge = (now.getTime() - mergedAt.getTime()) / (1000 * 60 * 60 * 24);
 
                         if (daysSinceMerge > autoDeleteDays) {
-                            if (session.sourceContext?.githubRepoContext?.startingBranch) {
-                                const repo = session.sourceContext.source.replace('sources/github/', '');
-                                const branch = session.sourceContext.githubRepoContext.startingBranch;
-                                console.log(`AutoDeleteStaleBranchWorker: Deleting stale branch ${branch} from ${repo}...`);
-                                const deleted = await deleteBranch(repo, branch);
-                                if (deleted) {
-                                    deletedCount++;
+                            if (prStatus.headBranch) {
+                                const repo = session.sourceContext?.source.replace('sources/github/', '');
+                                if (repo) {
+                                    const branch = prStatus.headBranch;
+                                    console.log(`AutoDeleteStaleBranchWorker: Deleting stale branch ${branch} from ${repo}...`);
+                                    const deleted = await deleteBranch(repo, branch);
+                                    if (deleted) {
+                                        deletedCount++;
+                                    }
                                 }
                             }
                         }

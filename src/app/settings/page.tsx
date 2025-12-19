@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +63,7 @@ import {
 } from "@/app/config/actions";
 import { SourceSelection } from "@/components/source-selection";
 import { CronJobsList } from "@/components/cron-jobs-list";
+import { ProfilesSettings } from "@/components/profiles-settings";
 import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
 import type { PredefinedPrompt, Source } from "@/lib/types";
@@ -77,6 +79,18 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const currentTab = searchParams.get("tab") || "general";
+
+  const onTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", value);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   // --- Settings State (from SettingsSheet) ---
   const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
   const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
@@ -91,11 +105,13 @@ export default function SettingsPage() {
   const [prStatusPollInterval, setPrStatusPollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
   const [historyPromptsCount, setHistoryPromptsCount] = useLocalStorage<number>("jules-history-prompts-count", 10);
   const [autoApprovalInterval, setAutoApprovalInterval] = useLocalStorage<number>("jules-auto-approval-interval", 60);
+  const [autoApprovalEnabled, setAutoApprovalEnabled] = useLocalStorage<boolean>("jules-auto-approval-enabled", false);
   const [autoRetryEnabled, setAutoRetryEnabled] = useLocalStorage<boolean>("jules-auto-retry-enabled", true);
   const [autoRetryMessage, setAutoRetryMessage] = useLocalStorage<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
   const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
   const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
   const [debugMode, setDebugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
+  const [currentProfileId, setCurrentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
 
   // New Settings for Session Cache
   const [sessionCacheInProgressInterval, setSessionCacheInProgressInterval] = useLocalStorage<number>("jules-session-cache-in-progress-interval", 60);
@@ -105,6 +121,10 @@ export default function SettingsPage() {
 
   const [autoDeleteStaleBranches, setAutoDeleteStaleBranches] = useLocalStorage<boolean>("jules-auto-delete-stale-branches", false);
   const [autoDeleteStaleBranchesAfterDays, setAutoDeleteStaleBranchesAfterDays] = useLocalStorage<number>("jules-auto-delete-stale-branches-after-days", 3);
+
+  // Throttling Settings
+  const [minSessionInteractionInterval, setMinSessionInteractionInterval] = useLocalStorage<number>("jules-min-session-interaction-interval", 60);
+  const [retryTimeout, setRetryTimeout] = useLocalStorage<number>("jules-retry-timeout", 1200);
 
   const [apiKeyValue, setApiKeyValue] = useState(apiKey);
   const [githubTokenValue, setGithubTokenValue] = useState(githubToken);
@@ -118,6 +138,7 @@ export default function SettingsPage() {
   const [prStatusPollIntervalValue, setPrStatusPollIntervalValue] = useState(prStatusPollInterval);
   const [historyPromptsCountValue, setHistoryPromptsCountValue] = useState(historyPromptsCount);
   const [autoApprovalIntervalValue, setAutoApprovalIntervalValue] = useState(autoApprovalInterval);
+  const [autoApprovalEnabledValue, setAutoApprovalEnabledValue] = useState(autoApprovalEnabled);
   const [autoRetryEnabledValue, setAutoRetryEnabledValue] = useState(autoRetryEnabled);
   const [autoRetryMessageValue, setAutoRetryMessageValue] = useState(autoRetryMessage);
   const [autoContinueEnabledValue, setAutoContinueEnabledValue] = useState(autoContinueEnabled);
@@ -132,6 +153,9 @@ export default function SettingsPage() {
 
   const [autoDeleteStaleBranchesValue, setAutoDeleteStaleBranchesValue] = useState(autoDeleteStaleBranches);
   const [autoDeleteStaleBranchesAfterDaysValue, setAutoDeleteStaleBranchesAfterDaysValue] = useState(autoDeleteStaleBranchesAfterDays);
+
+  const [minSessionInteractionIntervalValue, setMinSessionInteractionIntervalValue] = useState(minSessionInteractionInterval);
+  const [retryTimeoutValue, setRetryTimeoutValue] = useState(retryTimeout);
 
 
   const [showApiKey, setShowApiKey] = useState(false);
@@ -170,6 +194,7 @@ export default function SettingsPage() {
   useEffect(() => { setPrStatusPollIntervalValue(prStatusPollInterval); }, [prStatusPollInterval]);
   useEffect(() => { setHistoryPromptsCountValue(historyPromptsCount); }, [historyPromptsCount]);
   useEffect(() => { setAutoApprovalIntervalValue(autoApprovalInterval); }, [autoApprovalInterval]);
+  useEffect(() => { setAutoApprovalEnabledValue(autoApprovalEnabled); }, [autoApprovalEnabled]);
   useEffect(() => { setAutoRetryEnabledValue(autoRetryEnabled); }, [autoRetryEnabled]);
   useEffect(() => { setAutoRetryMessageValue(autoRetryMessage); }, [autoRetryMessage]);
   useEffect(() => { setAutoContinueEnabledValue(autoContinueEnabled); }, [autoContinueEnabled]);
@@ -183,38 +208,43 @@ export default function SettingsPage() {
 
   useEffect(() => { setAutoDeleteStaleBranchesValue(autoDeleteStaleBranches); }, [autoDeleteStaleBranches]);
   useEffect(() => { setAutoDeleteStaleBranchesAfterDaysValue(autoDeleteStaleBranchesAfterDays); }, [autoDeleteStaleBranchesAfterDays]);
+  useEffect(() => { setMinSessionInteractionIntervalValue(minSessionInteractionInterval); }, [minSessionInteractionInterval]);
+  useEffect(() => { setRetryTimeoutValue(retryTimeout); }, [retryTimeout]);
 
 
   useEffect(() => {
     setIsClient(true);
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/settings');
+        const response = await fetch(`/api/settings?profileId=${currentProfileId}`);
         if (response.ok) {
           const dbSettings = await response.json();
-          const isSetInLocalStorage = (key: string) => window.localStorage.getItem(key) !== null;
+          // Update state with values from DB (Source of Truth)
+          // valid DB values will overwrite local storage via the hooks
+          setIdlePollInterval(dbSettings.idlePollInterval);
+          setActivePollInterval(dbSettings.activePollInterval);
+          setTitleTruncateLength(dbSettings.titleTruncateLength);
+          setLineClamp(dbSettings.lineClamp);
+          setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
+          setJobsPerPage(dbSettings.jobsPerPage);
+          setDefaultSessionCount(dbSettings.defaultSessionCount);
+          setPrStatusPollInterval(dbSettings.prStatusPollInterval);
+          setHistoryPromptsCount(dbSettings.historyPromptsCount);
+          setAutoApprovalInterval(dbSettings.autoApprovalInterval);
+          setAutoApprovalEnabled(dbSettings.autoApprovalEnabled);
+          setAutoRetryEnabled(dbSettings.autoRetryEnabled);
+          setAutoRetryMessage(dbSettings.autoRetryMessage);
+          setAutoContinueEnabled(dbSettings.autoContinueEnabled);
+          setAutoContinueMessage(dbSettings.autoContinueMessage);
 
-          if (!isSetInLocalStorage("jules-idle-poll-interval")) setIdlePollInterval(dbSettings.idlePollInterval);
-          if (!isSetInLocalStorage("jules-active-poll-interval")) setActivePollInterval(dbSettings.activePollInterval);
-          if (!isSetInLocalStorage("jules-title-truncate-length")) setTitleTruncateLength(dbSettings.titleTruncateLength);
-          if (!isSetInLocalStorage("jules-line-clamp")) setLineClamp(dbSettings.lineClamp);
-          if (!isSetInLocalStorage("jules-session-items-per-page")) setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
-          if (!isSetInLocalStorage("jules-jobs-per-page")) setJobsPerPage(dbSettings.jobsPerPage);
-          if (!isSetInLocalStorage("jules-default-session-count")) setDefaultSessionCount(dbSettings.defaultSessionCount);
-          if (!isSetInLocalStorage("jules-pr-status-poll-interval")) setPrStatusPollInterval(dbSettings.prStatusPollInterval);
-          if (!isSetInLocalStorage("jules-history-prompts-count")) setHistoryPromptsCount(dbSettings.historyPromptsCount);
-          if (!isSetInLocalStorage("jules-auto-approval-interval")) setAutoApprovalInterval(dbSettings.autoApprovalInterval);
-          if (!isSetInLocalStorage("jules-auto-retry-enabled")) setAutoRetryEnabled(dbSettings.autoRetryEnabled);
-          if (!isSetInLocalStorage("jules-auto-retry-message")) setAutoRetryMessage(dbSettings.autoRetryMessage);
-          if (!isSetInLocalStorage("jules-auto-continue-enabled")) setAutoContinueEnabled(dbSettings.autoContinueEnabled);
-          if (!isSetInLocalStorage("jules-auto-continue-message")) setAutoContinueMessage(dbSettings.autoContinueMessage);
-
-          if (!isSetInLocalStorage("jules-session-cache-in-progress-interval")) setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
-          if (!isSetInLocalStorage("jules-session-cache-completed-no-pr-interval")) setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
-          if (!isSetInLocalStorage("jules-session-cache-pending-approval-interval")) setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
-          if (!isSetInLocalStorage("jules-session-cache-max-age-days")) setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
-          if (!isSetInLocalStorage("jules-auto-delete-stale-branches")) setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
-          if (!isSetInLocalStorage("jules-auto-delete-stale-branches-after-days")) setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
+          setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
+          setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
+          setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
+          setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
+          setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
+          setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
+          setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
+          setRetryTimeout(dbSettings.retryTimeout);
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);
@@ -224,10 +254,12 @@ export default function SettingsPage() {
   }, [
       setIdlePollInterval, setActivePollInterval, setTitleTruncateLength, setLineClamp,
       setSessionItemsPerPage, setJobsPerPage, setDefaultSessionCount, setPrStatusPollInterval,
-      setHistoryPromptsCount, setAutoApprovalInterval, setAutoRetryEnabled, setAutoRetryMessage,
+      setHistoryPromptsCount, setAutoApprovalInterval, setAutoApprovalEnabled, setAutoRetryEnabled, setAutoRetryMessage,
       setAutoContinueEnabled, setAutoContinueMessage,
       setSessionCacheInProgressInterval, setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays,
-      setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays
+      setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays,
+      setMinSessionInteractionInterval, setRetryTimeout,
+      currentProfileId // Re-fetch when profile changes
   ]);
 
   // --- Effects for Messages ---
@@ -274,6 +306,7 @@ export default function SettingsPage() {
     setPrStatusPollInterval(prStatusPollIntervalValue);
     setHistoryPromptsCount(historyPromptsCountValue);
     setAutoApprovalInterval(autoApprovalIntervalValue);
+    setAutoApprovalEnabled(autoApprovalEnabledValue);
     setAutoRetryEnabled(autoRetryEnabledValue);
     setAutoRetryMessage(autoRetryMessageValue);
     setAutoContinueEnabled(autoContinueEnabledValue);
@@ -287,6 +320,8 @@ export default function SettingsPage() {
 
     setAutoDeleteStaleBranches(autoDeleteStaleBranchesValue);
     setAutoDeleteStaleBranchesAfterDays(autoDeleteStaleBranchesAfterDaysValue);
+    setMinSessionInteractionInterval(minSessionInteractionIntervalValue);
+    setRetryTimeout(retryTimeoutValue);
 
     try {
         const response = await fetch('/api/settings');
@@ -310,6 +345,7 @@ export default function SettingsPage() {
                 prStatusPollInterval: prStatusPollIntervalValue,
                 historyPromptsCount: historyPromptsCountValue,
                 autoApprovalInterval: autoApprovalIntervalValue,
+                autoApprovalEnabled: autoApprovalEnabledValue,
                 autoRetryEnabled: autoRetryEnabledValue,
                 autoRetryMessage: autoRetryMessageValue,
                 autoContinueEnabled: autoContinueEnabledValue,
@@ -324,6 +360,9 @@ export default function SettingsPage() {
 
                 autoDeleteStaleBranches: autoDeleteStaleBranchesValue,
                 autoDeleteStaleBranchesAfterDays: autoDeleteStaleBranchesAfterDaysValue,
+                minSessionInteractionInterval: minSessionInteractionIntervalValue,
+                retryTimeout: retryTimeoutValue,
+                profileId: currentProfileId,
             }),
         });
 
@@ -508,8 +547,14 @@ export default function SettingsPage() {
 
   return (
     <div className="container mx-auto py-8 max-w-5xl">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
-      <Tabs defaultValue="general" className="w-full">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Settings</h1>
+        <div className="bg-muted p-2 rounded-md border text-sm flex items-center gap-2">
+            <span className="font-semibold">Current Profile:</span>
+            <code className="bg-background px-1 py-0.5 rounded border">{currentProfileId}</code>
+        </div>
+      </div>
+      <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
@@ -517,7 +562,7 @@ export default function SettingsPage() {
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="display">Display</TabsTrigger>
-          <TabsTrigger value="config">Configuration</TabsTrigger>
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
         </TabsList>
 
         {/* General Tab */}
@@ -582,10 +627,62 @@ export default function SettingsPage() {
                         )}
                     </div>
                 </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
-                </CardFooter>
             </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Advanced</CardTitle>
+                    <CardDescription>Fine-tune polling and other internal settings.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="grid gap-2">
+                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
+                        <Input
+                            id="idle-poll-interval"
+                            type="number"
+                            value={idlePollIntervalValue}
+                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
+                            min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
+                        <Input
+                            id="active-poll-interval"
+                            type="number"
+                            value={activePollIntervalValue}
+                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
+                            min="1"
+                        />
+                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
+                        <Input
+                            id="pr-status-poll-interval"
+                            type="number"
+                            value={prStatusPollIntervalValue}
+                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
+                            min="10"
+                        />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
+                        <Input
+                            id="default-session-count"
+                            type="number"
+                            value={defaultSessionCountValue}
+                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
+                            min="1"
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="flex justify-end">
+                <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
+            </div>
         </TabsContent>
 
         {/* Cron Jobs Tab */}
@@ -695,6 +792,14 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
+        {/* Profiles Tab */}
+        <TabsContent value="profiles" className="space-y-6">
+            <ProfilesSettings
+                currentProfileId={currentProfileId}
+                onProfileSelect={setCurrentProfileId}
+            />
+        </TabsContent>
+
         {/* Automation Tab */}
         <TabsContent value="automation" className="space-y-6">
              <Card>
@@ -737,6 +842,31 @@ export default function SettingsPage() {
                             />
                         </div>
                     )}
+
+                    <div className="grid gap-2 pt-4 border-t">
+                        <Label htmlFor="min-session-interaction">Minimum Interaction Interval (seconds)</Label>
+                        <Input
+                            id="min-session-interaction"
+                            type="number"
+                            value={minSessionInteractionIntervalValue}
+                            onChange={(e) => setMinSessionInteractionIntervalValue(Number(e.target.value))}
+                            min="1"
+                        />
+                        <p className="text-xs text-muted-foreground">Wait at least this long before sending another automated message to the same session.</p>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="retry-timeout">Retry Timeout (seconds)</Label>
+                         <Input
+                            id="retry-timeout"
+                            type="number"
+                            value={retryTimeoutValue}
+                            onChange={(e) => setRetryTimeoutValue(Number(e.target.value))}
+                            min="60"
+                        />
+                        <p className="text-xs text-muted-foreground">If a session is inactive for this long, retry even without new updates.</p>
+                    </div>
+
                     <div className="grid gap-2">
                         <Label htmlFor="auto-approval-interval">Auto Approval Check Interval (seconds)</Label>
                         <Input
@@ -747,6 +877,15 @@ export default function SettingsPage() {
                             min="10"
                         />
                     </div>
+
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="auto-approval-enabled">Auto Approval</Label>
+                            <p className="text-xs text-muted-foreground">Automatically approve execution if confidence is high.</p>
+                        </div>
+                        <Switch id="auto-approval-enabled" checked={autoApprovalEnabledValue} onCheckedChange={setAutoApprovalEnabledValue} />
+                    </div>
+
                     <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                             <Label htmlFor="auto-delete-stale-branches">Auto Delete Stale Branches</Label>
@@ -896,62 +1035,6 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
-        {/* Configuration Tab */}
-        <TabsContent value="config" className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Advanced Configuration</CardTitle>
-                    <CardDescription>Fine-tune polling and other internal settings.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid gap-2">
-                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
-                        <Input
-                            id="idle-poll-interval"
-                            type="number"
-                            value={idlePollIntervalValue}
-                            onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
-                            min="0"
-                        />
-                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
-                        <Input
-                            id="active-poll-interval"
-                            type="number"
-                            value={activePollIntervalValue}
-                            onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
-                            min="1"
-                        />
-                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
-                        <Input
-                            id="pr-status-poll-interval"
-                            type="number"
-                            value={prStatusPollIntervalValue}
-                            onChange={(e) => setPrStatusPollIntervalValue(Number(e.target.value))}
-                            min="10"
-                        />
-                    </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
-                        <Input
-                            id="default-session-count"
-                            type="number"
-                            value={defaultSessionCountValue}
-                            onChange={(e) => setDefaultSessionCountValue(Number(e.target.value))}
-                            min="1"
-                        />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Configuration</Button>
-                </CardFooter>
-            </Card>
-        </TabsContent>
 
       </Tabs>
 

@@ -13,8 +13,8 @@ export type Settings = typeof settings.$inferSelect;
  * Gets the current application settings.
  * Creates default settings if they don't exist.
  */
-export async function getSettings(): Promise<Settings> {
-  const existingSettings = await db.select().from(settings).limit(1);
+export async function getSettings(profileId: string = 'default'): Promise<Settings> {
+  const existingSettings = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
 
   if (existingSettings.length > 0) {
     return existingSettings[0];
@@ -28,6 +28,7 @@ export async function getSettings(): Promise<Settings> {
     sessionCacheCompletedNoPrInterval: 1800,
     sessionCachePendingApprovalInterval: 300,
     sessionCacheMaxAgeDays: 3,
+    profileId: profileId
   }).returning();
 
   return defaultSettings[0];
@@ -46,27 +47,57 @@ export async function upsertSession(session: Session) {
     sourceContext: session.sourceContext,
     createTime: session.createTime,
     updateTime: session.updateTime,
-    state: session.state,
+    state: session.state || 'STATE_UNSPECIFIED',
     url: session.url,
     outputs: session.outputs,
     requirePlanApproval: session.requirePlanApproval,
     automationMode: session.automationMode,
     lastUpdated: now,
+    // Only include profileId if provided, otherwise let database default handle insert,
+    // and rely on partial update logic (see below) to not overwrite existing profileId
+    ...(session.profileId ? { profileId: session.profileId } : {})
   };
 
+  // If we have a profileId in the object (or merged from arg), we perform full upsert including it.
+  // If not, we perform upsert but exclude profileId from SET clause to preserve existing association.
+
+  const safeSessionData = { ...sessionData };
+  // Drizzle needs explicit handling.
+  // If we are inserting and profileId is missing, it uses default.
+  // If updating and profileId is missing in `values` object, Drizzle doesn't touch it?
+  // We passed it to `values`.
+
+  // Actually, we can just filter the object for the SET clause.
+  const setPayload = { ...sessionData };
+  if (!sessionData.profileId) {
+      delete (setPayload as any).profileId;
+  }
+
   await db.insert(sessions)
-    .values(sessionData)
+    .values(sessionData as any) // Type assertion might be needed if dynamic keys
     .onConflictDoUpdate({
       target: sessions.id,
-      set: sessionData,
+      set: setPayload,
     });
+}
+
+/**
+ * Updates the last interaction timestamp for a session.
+ */
+export async function updateSessionInteraction(sessionId: string) {
+    const now = Date.now();
+    await db.update(sessions)
+        .set({ lastInteractionAt: now })
+        .where(eq(sessions.id, sessionId));
 }
 
 /**
  * Retrieves all sessions from the local database, sorted by creation time descending.
  */
-export async function getCachedSessions(): Promise<Session[]> {
-  const cachedSessions = await db.select().from(sessions).orderBy(sql`${sessions.createTime} DESC`);
+export async function getCachedSessions(profileId: string = 'default'): Promise<Session[]> {
+  const cachedSessions = await db.select().from(sessions)
+    .where(eq(sessions.profileId, profileId))
+    .orderBy(sql`${sessions.createTime} DESC`);
 
   // Map back to Session type if needed, though they should be compatible
   return cachedSessions.map(s => ({
@@ -78,6 +109,7 @@ export async function getCachedSessions(): Promise<Session[]> {
     outputs: s.outputs || undefined,
     requirePlanApproval: s.requirePlanApproval || undefined,
     automationMode: s.automationMode || undefined,
+    profileId: s.profileId,
   } as Session));
 }
 
@@ -90,7 +122,7 @@ export function isPrMerged(session: Session): boolean {
   }
 
   for (const output of session.outputs) {
-    if (output.pullRequest?.status === 'MERGED') {
+    if (output.pullRequest?.status?.toUpperCase() === 'MERGED') {
       return true;
     }
   }
@@ -114,8 +146,25 @@ async function fetchSessionFromApi(sessionId: string, apiKey: string): Promise<S
             }
         );
 
-        if (!response.ok) return null;
-        return await response.json();
+        if (!response.ok) {
+            if (response.status === 404) {
+                 console.warn(`Session not found during sync: ${sessionId}`);
+            } else {
+                 console.warn(`Failed to fetch session ${sessionId}: ${response.status} ${response.statusText}`);
+            }
+            return null;
+        }
+        const session = await response.json();
+
+        // Ensure ID is populated from name if missing
+        if (!session.id && session.name) {
+            const parts = session.name.split('/');
+            if (parts.length > 1) {
+                session.id = parts[parts.length - 1];
+            }
+        }
+
+        return session;
     } catch (e) {
         console.error(`Failed to fetch session ${sessionId}`, e);
         return null;
@@ -127,8 +176,19 @@ async function fetchSessionFromApi(sessionId: string, apiKey: string): Promise<S
  * This function is intended to be called periodically or on demand.
  */
 export async function syncStaleSessions(apiKey: string) {
-  const settings = await getSettings();
-  const cachedSessions = await db.select().from(sessions);
+    // We strictly should sync based on per-profile settings, but iterating all sessions in DB
+    // allows a background worker to keep everything fresh regardless of active profile.
+    // However, we need settings (thresholds).
+    // Let's iterate all profiles? Or just use 'default' settings as a baseline?
+    // Or fetch settings for the session's profile?
+
+    // For MVP efficiency, we'll fetch 'default' settings and apply to all sessions,
+    // OR we iterate sessions and lazily fetch their profile settings if needed.
+    // Since we don't have many profiles, maybe we just loop through all settings?
+
+    // Simplification: Use default settings for thresholds.
+    const settings = await getSettings('default');
+    const cachedSessions = await db.select().from(sessions);
   const now = Date.now();
 
   const sessionsToUpdate: string[] = [];
@@ -164,7 +224,7 @@ export async function syncStaleSessions(apiKey: string) {
         break;
 
       case 'COMPLETED':
-        if (isPrMerged(session)) {
+        if (isPrMerged(session as any)) {
           break;
         }
         // If completed and PR is not merged, update every 30 mins.
@@ -196,7 +256,20 @@ export async function syncStaleSessions(apiKey: string) {
     await Promise.all(batch.map(async (id) => {
         const updatedSession = await fetchSessionFromApi(id, apiKey);
         if (updatedSession) {
-            await upsertSession(updatedSession);
+            // Ensure no nulls in sourceContext - fetchSessionFromApi does not sanitize?
+            // I updated src/app/sessions/actions.ts "fetchSessionsPage" logic in the previous step,
+            // but the error was in "fetchSessionFromApi" in src/lib/session-service.ts ??
+            // src/lib/session-service.ts defines fetchSessionFromApi locally!
+            // I need to update THAT one.
+             const sanitizedSession = {
+                ...updatedSession,
+                sourceContext: updatedSession.sourceContext || undefined,
+                url: updatedSession.url || undefined,
+                outputs: updatedSession.outputs || undefined,
+                requirePlanApproval: updatedSession.requirePlanApproval ?? undefined,
+                automationMode: updatedSession.automationMode || undefined,
+             } as Session; // Force cast to avoid null vs undefined issues if runtime object has nulls
+            await upsertSession(sanitizedSession);
         }
     }));
   }

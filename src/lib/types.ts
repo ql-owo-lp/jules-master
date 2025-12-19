@@ -17,6 +17,8 @@ export type Session = {
   automationMode?: AutomationMode;
   retryCount?: number;
   lastError?: string;
+  lastInteractionAt?: number;
+  profileId?: string;
 };
 
 export type Job = {
@@ -34,6 +36,7 @@ export type Job = {
     automationMode?: AutomationMode;
     requirePlanApproval?: boolean;
     cronJobId?: string | null;
+    profileId?: string;
 }
 
 export type CronJob = {
@@ -50,6 +53,7 @@ export type CronJob = {
     automationMode?: AutomationMode;
     requirePlanApproval?: boolean;
     sessionCount?: number;
+    profileId?: string;
 };
 
 export type SourceContext = {
@@ -110,12 +114,14 @@ export type PredefinedPrompt = {
   id: string;
   title: string;
   prompt: string;
+  profileId?: string;
 };
 
 export type HistoryPrompt = {
     id: string;
     prompt: string;
     lastUsedAt: string;
+    profileId?: string;
 };
 
 // Activity and related types
@@ -215,6 +221,7 @@ export type GitHubPullRequest = {
   merged_at: string | null;
   head: {
     sha: string;
+    ref: string;
   };
 };
 
@@ -227,6 +234,7 @@ export type CheckRun = {
 export type PullRequestStatus = {
   state: 'OPEN' | 'MERGED' | 'CLOSED' | 'NO_TOKEN' | 'ERROR' | 'NOT_FOUND' | 'UNAUTHORIZED';
   merged_at?: string | null;
+  headBranch?: string;
   checks: {
     status: 'pending' | 'success' | 'failure' | 'unknown';
     total: number;
@@ -238,4 +246,13 @@ export type PullRequestStatus = {
 export type Settings = {
   autoContinueEnabled?: boolean;
   autoRetryEnabled?: boolean;
+  minSessionInteractionInterval?: number;
+  retryTimeout?: number;
+  profileId?: string;
+};
+
+export type Profile = {
+  id: string;
+  name: string;
+  createdAt: string;
 };

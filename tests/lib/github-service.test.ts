@@ -1,29 +1,71 @@
 
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { deleteBranch } from '../../src/lib/github-service';
-import * as fetchClient from '../../src/lib/fetch-client';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import * as fetchClient from '@/lib/fetch-client';
+import { deleteBranch } from '@/lib/github-service';
 
 describe('deleteBranch', () => {
-  beforeEach(() => {
-    vi.stubEnv('GITHUB_TOKEN', 'test-token');
-  });
+    beforeEach(() => {
+        vi.spyOn(fetchClient, 'fetchWithRetry').mockResolvedValue({
+            ok: true,
+        } as Response);
+        vi.spyOn(fetchClient, 'fetchWithRetry').mockResolvedValue({
+            ok: true,
+        } as Response);
+    });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllEnvs();
-  });
+    it('should return false if the GitHub token is not configured', async () => {
+        process.env.GITHUB_TOKEN = '';
+        const result = await deleteBranch('test-repo', 'test-branch');
+        expect(result).toBe(false);
+    });
 
-  it('should return true when the branch is already deleted', async () => {
-    const fetchWithRetrySpy = vi.spyOn(fetchClient, 'fetchWithRetry').mockResolvedValue(
-      new Response(null, { status: 404 })
-    );
+    it('should return true on a successful deletion', async () => {
+        process.env.GITHUB_TOKEN = 'test-token';
+        const result = await deleteBranch('test-repo', 'test-branch');
+        expect(result).toBe(true);
+    });
 
-    const result = await deleteBranch('test-repo', 'test-branch');
+    it('should return true if the branch is not found', async () => {
+        process.env.GITHUB_TOKEN = 'test-token';
+        vi.spyOn(fetchClient, 'fetchWithRetry').mockResolvedValue({
+            ok: false,
+            status: 404,
+        } as Response);
 
-    expect(result).toBe(true);
-    expect(fetchWithRetrySpy).toHaveBeenCalledWith(
-      'https://api.github.com/repos/test-repo/git/refs/heads/test-branch',
-      expect.any(Object)
-    );
-  });
+        const result = await deleteBranch('test-repo', 'test-branch');
+        expect(result).toBe(true);
+    });
+
+    it('should return false if the branch cannot be processed', async () => {
+        process.env.GITHUB_TOKEN = 'test-token';
+        vi.spyOn(fetchClient, 'fetchWithRetry').mockResolvedValue({
+            ok: false,
+            status: 422,
+        } as Response);
+
+        const result = await deleteBranch('test-repo', 'test-branch');
+        expect(result).toBe(false);
+    });
+
+    it('should return false on a failed deletion', async () => {
+        process.env.GITHUB_TOKEN = 'test-token';
+        vi.spyOn(fetchClient, 'fetchWithRetry').mockResolvedValue({
+            ok: false,
+            status: 500,
+        } as Response);
+
+        const result = await deleteBranch('test-repo', 'test-branch');
+        expect(result).toBe(false);
+    });
+
+    it('should return false when attempting to delete protected branches', async () => {
+        process.env.GITHUB_TOKEN = 'test-token';
+        const branches = ['main', 'master', 'develop'];
+
+        for (const branch of branches) {
+            const result = await deleteBranch('test-repo', branch);
+            expect(result).toBe(false);
+            expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
+        }
+    });
 });

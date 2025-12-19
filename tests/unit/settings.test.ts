@@ -53,6 +53,9 @@ describe('Settings API', () => {
       autoDeleteStaleBranches: true,
       autoDeleteStaleBranchesAfterDays: 7,
       historyPromptsCount: 20,
+      minSessionInteractionInterval: 300,
+      retryTimeout: 1200,
+      autoDeleteStaleBranchesInterval: 1800,
     };
 
     const postReq = new NextRequest('http://localhost/api/settings', {
@@ -63,7 +66,7 @@ describe('Settings API', () => {
     const postResponse = await POST(postReq);
     expect(postResponse.status).toBe(200);
 
-    const getResponse = await GET();
+    const getResponse = await GET(new NextRequest('http://localhost/api/settings'));
     const retrievedSettings = await getResponse.json();
 
     expect(retrievedSettings).toEqual(expect.objectContaining(newSettings));

@@ -76,7 +76,8 @@ export async function cancelSessionRequest(requestId: string) {
 export async function listSessions(
   apiKey?: string | null,
   pageSize: number = 50,
-  requestId?: string
+  requestId?: string,
+  profileId: string = 'default'
 ): Promise<{ sessions: Session[], error?: string }> {
   // Check for mock flag
   if (process.env.MOCK_API === 'true') {
@@ -90,7 +91,7 @@ export async function listSessions(
 
   try {
     // 1. Get cached sessions from DB
-    let sessions = await getCachedSessions();
+    let sessions = await getCachedSessions(profileId);
     const isInitialFetch = sessions.length === 0;
 
     // 2. If DB is empty, perform an initial fetch from API to populate it
@@ -108,9 +109,15 @@ export async function listSessions(
         }
 
         for (const s of firstPage.sessions) {
-            await upsertSession(s);
+            await upsertSession(s); // upsertSession should preserve existing profiles, or if new, assign to default?
+            // Actually upsertSession implementation I updated takes profileId from object OR lets DB default handle it.
+            // If I want "Initial Fetch" to populate the CURRENT profile, I need to update upsertSession to take an arg?
+            // I haven't updated upsertSession signature to take arg yet in previous step!
+            // Wait, I checked session-service.ts in step 1023. I DID NOT update the signature of upsertSession!
+            // I only updated logic inside it to check session.profileId.
+            // I need to update UpsertSession signature in session-service.ts too!
         }
-        sessions = await getCachedSessions();
+        sessions = await getCachedSessions(profileId);
     }
 
     // 3. Trigger background sync for stale sessions
@@ -180,7 +187,7 @@ export async function fetchSessionsPage(
         );
 
         if (!response.ok) {
-            const errorText = `Failed to fetch sessions: ${response.status} ${response.statusText}`;
+            const errorText = `Failed to fetch sessions from ${url.toString()}: ${response.status} ${response.statusText}`;
             console.error(errorText);
             const errorBody = await response.text();
             console.error('Error body:', errorBody);
@@ -190,10 +197,26 @@ export async function fetchSessionsPage(
 
         const data: ListSessionsResponse = await response.json();
 
-        const sessions = (data.sessions || []).map(session => ({
-            ...session,
-            createTime: session.createTime || '',
-        }));
+        const sessions = (data.sessions || []).map(session => {
+            let id = session.id;
+            if (!id && session.name) {
+                const parts = session.name.split('/');
+                if (parts.length > 1) {
+                    id = parts[parts.length - 1];
+                }
+            }
+            return {
+                ...session,
+                id,
+                createTime: session.createTime || '',
+                sourceContext: session.sourceContext || undefined,
+                state: session.state || 'STATE_UNSPECIFIED',
+                url: session.url || undefined,
+                outputs: session.outputs || undefined,
+                requirePlanApproval: session.requirePlanApproval ?? undefined,
+                automationMode: session.automationMode || undefined,
+            };
+        });
 
         return { sessions, nextPageToken: data.nextPageToken };
 

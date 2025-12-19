@@ -13,7 +13,7 @@ describe('Cron Job API', () => {
       body: JSON.stringify({ name: 'test' }),
     });
 
-    const response = await PUT(request, { params: { id: '123' } });
+    const response = await PUT(request, { params: Promise.resolve({ id: '123' }) });
 
     expect(response.status).toBe(200);
     expect(actions.updateCronJob).toHaveBeenCalledWith('123', { name: 'test' });
@@ -24,7 +24,7 @@ describe('Cron Job API', () => {
       method: 'DELETE',
     });
 
-    const response = await DELETE(request, { params: { id: '123' } });
+    const response = await DELETE(request, { params: Promise.resolve({ id: '123' }) });
 
     expect(response.status).toBe(200);
     expect(actions.deleteCronJob).toHaveBeenCalledWith('123');

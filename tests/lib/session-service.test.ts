@@ -22,6 +22,8 @@ describe('Session Service', () => {
       const sessionWithMergedPr: Session = {
         id: 'session-1',
         name: 'sessions/session-1',
+        title: 'Test Session',
+        prompt: 'Test Prompt',
         state: 'COMPLETED',
         outputs: [
           {
@@ -37,10 +39,33 @@ describe('Session Service', () => {
       expect(isPrMerged(sessionWithMergedPr)).toBe(true);
     });
 
+    it('should return true if a session has a merged pull request (case insensitive)', () => {
+      const sessionWithMergedPr: Session = {
+        id: 'session-1-lower',
+        name: 'sessions/session-1-lower',
+        title: 'Test Session',
+        prompt: 'Test Prompt',
+        state: 'COMPLETED',
+        outputs: [
+          {
+            pullRequest: {
+              status: 'merged' as any,
+              url: 'https://github.com/example/repo/pull/1',
+              title: 'Test PR',
+              description: 'This is a test pull request.',
+            },
+          },
+        ],
+      };
+      expect(isPrMerged(sessionWithMergedPr)).toBe(true);
+    });
+
     it('should return false if a session has no outputs', () => {
       const sessionWithoutOutputs: Session = {
         id: 'session-2',
         name: 'sessions/session-2',
+        title: 'Test Session',
+        prompt: 'Test Prompt',
         state: 'COMPLETED',
       };
       expect(isPrMerged(sessionWithoutOutputs)).toBe(false);
@@ -50,6 +75,8 @@ describe('Session Service', () => {
       const sessionWithOpenPr: Session = {
         id: 'session-3',
         name: 'sessions/session-3',
+        title: 'Test Session',
+        prompt: 'Test Prompt',
         state: 'COMPLETED',
         outputs: [
           {
@@ -109,7 +136,10 @@ describe('Session Service', () => {
 
       fromMock.mockImplementation((table: any) => {
         if (table === settings) {
-          return { limit: vi.fn().mockResolvedValue([mockSettings]) };
+          return {
+            where: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockResolvedValue([mockSettings])
+          };
         }
         if (table === sessions) {
           return Promise.resolve([mergedSession]);

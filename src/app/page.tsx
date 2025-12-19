@@ -24,8 +24,12 @@ import { NewJobDialog } from "@/components/new-job-dialog";
 
 function HomePageContent() {
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
-  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+  const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+
+  // API Key is now profile-scoped
+  const [apiKey] = useLocalStorage<string | null>(`jules-api-key-${currentProfileId}`, null);
+  const [githubToken] = useLocalStorage<string | null>(`jules-github-token-${currentProfileId}`, null);
 
   const [sessionListPollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
@@ -124,10 +128,10 @@ function HomePageContent() {
     startFetching(async () => {
       try {
         const [fetchedSessionsResult, fetchedJobs, fetchedQuickReplies, fetchedPendingWork] = await Promise.all([
-          listSessions(apiKey, undefined, requestId),
-          getJobs(),
-          getQuickReplies(),
-          getPendingBackgroundWorkCount()
+          listSessions(apiKey, undefined, requestId, currentProfileId),
+          getJobs(currentProfileId),
+          getQuickReplies(currentProfileId),
+          getPendingBackgroundWorkCount(currentProfileId)
         ]);
 
         if (fetchedSessionsResult.error) {
@@ -154,7 +158,7 @@ function HomePageContent() {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast]);
+  }, [apiKey, sessionListPollInterval, setSessions, setJobs, setQuickReplies, toast, currentProfileId]);
 
   // Cancel any pending request on unmount
   useEffect(() => {
@@ -190,7 +194,7 @@ function HomePageContent() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, apiKey, sessionListPollInterval]);
+  }, [isClient, apiKey, sessionListPollInterval, currentProfileId]);
   
 
   // Countdown timer

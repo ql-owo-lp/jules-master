@@ -42,7 +42,7 @@ function parseRetryAfter(header: string | null): number {
 class RequestQueue {
   private queue: QueueItem[] = [];
   private activeCount = 0;
-  private readonly maxConcurrent = 5; // Global concurrency limit
+  private readonly maxConcurrent = 1; // Global concurrency limit
   private activeRequests: Map<string, QueueItem> = new Map(); // Map requestId to QueueItem (both queued and active)
   private lastRequestTime = 0;
   private minInterval = 200; // Minimum interval between requests in ms
@@ -150,8 +150,8 @@ class RequestQueue {
     // Update last request time immediately to prevent other concurrent processQueue calls from proceeding
     this.lastRequestTime = Date.now();
 
-    // LIFO: Process the last item added
-    const item = this.queue.pop();
+    // FIFO: Process the first item added
+    const item = this.queue.shift();
     if (!item) {
         return;
     }

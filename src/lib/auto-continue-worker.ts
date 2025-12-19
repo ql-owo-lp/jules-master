@@ -5,6 +5,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
 import type { Session } from '@/lib/types';
 import { differenceInHours, differenceInDays } from 'date-fns';
+import { shouldInteract } from '@/lib/throttle';
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
@@ -146,12 +147,19 @@ export async function runAutoContinueCheck(options = { schedule: true }) {
                     // Use larger retry window: start 5s, max ~5m (7 retries: 5, 10, 20, 40, 80, 160, 320)
                     const session = await getSession(sessionId, apiKey, { retries: 7, backoff: 5000 });
 
+// ... (existing imports)
+
                     // Skip if session updateTime is older than 24 hours to prevent "Zombie" activation
                     if (session?.updateTime) {
                         const updateTime = new Date(session.updateTime);
                         if (differenceInHours(new Date(), updateTime) > 24) {
                             return;
                         }
+                    }
+
+                    // Check throttling
+                    if (session && settingsResult[0] && !shouldInteract(session, settingsResult[0] as any)) {
+                        return;
                     }
 
                     // Check if session is COMPLETED and has NO PR

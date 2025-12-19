@@ -4,6 +4,10 @@
 import type { Session, Activity } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { fetchWithRetry, type FetchOptions } from "@/lib/fetch-client";
+import { updateSessionInteraction } from "@/lib/session-service";
+import { db } from "@/lib/db";
+import { sessions } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 type ListActivitiesResponse = {
   activities: Activity[];
@@ -32,12 +36,32 @@ export async function getSession(
       }
     );
     if (!response.ok) {
-      console.error(
-        `Failed to fetch session: ${response.status} ${response.statusText}`
-      );
+      if (response.status === 404) {
+        console.warn(`Session not found: ${sessionId}`);
+      } else {
+        console.error(
+          `Failed to fetch session: ${response.status} ${response.statusText}`
+        );
+      }
       return null;
     }
     const session: Session = await response.json();
+
+    // Merge with local data (lastInteractionAt)
+    try {
+        const localSession = await db.select({ lastInteractionAt: sessions.lastInteractionAt })
+            .from(sessions)
+            .where(eq(sessions.id, sessionId))
+            .get();
+
+        if (localSession && localSession.lastInteractionAt) {
+            session.lastInteractionAt = localSession.lastInteractionAt;
+        }
+    } catch (error) {
+        console.warn(`Failed to fetch local data for session ${sessionId}`, error);
+        // Non-fatal, return session without local data
+    }
+
     return session;
   } catch (error) {
     console.error("Error fetching session:", error);
@@ -109,6 +133,7 @@ export async function approvePlan(
       return null;
     }
     const updatedSession: Session = await response.json();
+    await updateSessionInteraction(sessionId);
     revalidatePath(`/sessions/${sessionId}`);
     revalidatePath(`/`);
     return updatedSession;
@@ -121,7 +146,8 @@ export async function approvePlan(
 export async function sendMessage(
   sessionId: string,
   message: string,
-  apiKey?: string | null
+  apiKey?: string | null,
+  skipRevalidation: boolean = false
 ): Promise<Session | null> {
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
@@ -149,8 +175,11 @@ export async function sendMessage(
       return null;
     }
     const updatedSession: Session = await response.json();
-    revalidatePath(`/sessions/${sessionId}`);
-    revalidatePath(`/`);
+    await updateSessionInteraction(sessionId);
+    if (!skipRevalidation) {
+        revalidatePath(`/sessions/${sessionId}`);
+        revalidatePath(`/`);
+    }
     return updatedSession;
   } catch (error) {
     console.error("Error sending message:", error);

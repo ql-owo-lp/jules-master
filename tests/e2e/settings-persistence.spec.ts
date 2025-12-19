@@ -4,9 +4,9 @@ import { test, expect } from '@playwright/test';
 test.describe('Settings Persistence', () => {
   test.setTimeout(60000); // Increase timeout for persistence tests
 
-  test('should prioritize local storage over database', async ({ page }) => {
+  test('should prioritize database over local storage', async ({ page }) => {
     // Mock DB to return a specific value
-    await page.route('/api/settings', async route => {
+    await page.route('/api/settings**', async route => { // Match query params
       const json = {
         idlePollInterval: 999,
         activePollInterval: 888,
@@ -30,20 +30,14 @@ test.describe('Settings Persistence', () => {
 
     await page.goto('/settings');
 
-    // Switch to Configuration tab for Default Session Count and Poll Intervals
-    await page.getByRole('tab', { name: 'Configuration' }).click();
+    // Expect DB value (20) not LS value (5)
+    await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('20');
 
-    // Expect LS value (5) not DB value (20)
-    await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('5');
+    // Expect DB value (999) not LS value (111)
+    await expect(page.getByLabel('Idle Poll Interval (seconds)')).toHaveValue('999');
 
-    // Expect LS value (111) not DB value (999)
-    await expect(page.getByLabel('Idle Poll Interval (seconds)')).toHaveValue('111');
-
-    // Verify theme is from LS (light) not DB (dark).
-    // next-themes puts class "light" or "dark" on html element.
-    // Note: Theme is still in the sidebar (header) settings sheet, but also effective globally.
-    // We don't need to open the settings sheet to check the effect on html class.
-    await expect(page.locator('html')).toHaveClass(/light/);
+    // Verify theme is from DB (dark) not LS (light)
+    await expect(page.locator('html')).toHaveClass(/dark/);
   });
 
   test('should fallback to database when local storage is empty', async ({ page }) => {
@@ -66,9 +60,6 @@ test.describe('Settings Persistence', () => {
      // Local storage is empty by default in a new context
 
      await page.goto('/settings');
-
-     // Switch to Configuration tab
-     await page.getByRole('tab', { name: 'Configuration' }).click();
 
      // Expect DB value (15)
      await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('15');
@@ -145,16 +136,13 @@ test.describe('Settings Persistence', () => {
 
     await page.goto('/settings');
 
-    // Switch to Configuration tab
-    await page.getByRole('tab', { name: 'Configuration' }).click();
-
     await page.getByLabel('Default Session Count for New Jobs').fill('7');
     await page.getByLabel('Idle Poll Interval (seconds)').fill('123');
     await page.getByLabel('Active Poll Interval (seconds)').fill('33');
     await page.getByLabel('PR Status Cache Refresh Interval (seconds)').fill('90');
 
-    // Save Configuration
-    await page.getByRole('button', { name: 'Save Configuration' }).click();
+    // Save General Settings (General tab)
+    await page.getByRole('button', { name: 'Save General Settings' }).click();
     await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible();
     await expect(page.getByText('Your settings have been updated.', { exact: true })).toBeVisible();
 

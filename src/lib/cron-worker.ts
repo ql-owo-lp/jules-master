@@ -14,7 +14,7 @@ export async function processCronJobs() {
       if (!job.enabled) continue;
 
       try {
-        const interval = cronParser.parseExpression(job.schedule);
+        const interval = cronParser.parse(job.schedule);
         const now = new Date();
 
         // If lastRunAt is null, it means it's a new job.
@@ -47,8 +47,8 @@ export async function processCronJobs() {
                 prompt: job.prompt,
                 sessionCount: job.sessionCount || 1,
                 status: 'PENDING',
-                automationMode: job.automationMode,
-                requirePlanApproval: job.requirePlanApproval,
+                automationMode: job.automationMode || undefined,
+                requirePlanApproval: job.requirePlanApproval || undefined,
                 cronJobId: job.id,
             };
 

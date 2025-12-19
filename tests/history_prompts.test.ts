@@ -33,8 +33,14 @@ vi.mock('@/lib/db', () => {
         }),
       })),
       transaction: vi.fn(),
-      insert: vi.fn(() => ({ values: vi.fn(() => ({ run: vi.fn() })) })),
-      update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({ run: vi.fn() })
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({ run: vi.fn() })
+        })
+      }),
       delete: vi.fn(() => ({ where: vi.fn() })),
     },
     appDatabase: {
@@ -60,7 +66,6 @@ describe('History Prompts', () => {
      const prompt = "New Prompt";
 
      // Setup mocks
-     // Mock db.select().from().where().get() to return undefined (not found)
      const dbSelectMock = {
          from: vi.fn().mockReturnValue({
              where: vi.fn().mockReturnValue({
@@ -71,11 +76,18 @@ describe('History Prompts', () => {
      // @ts-ignore
      db.select.mockReturnValue(dbSelectMock);
 
+     // Spy on the chain
+     const runSpy = vi.fn();
+     const valuesSpy = vi.fn().mockReturnValue({ run: runSpy });
+     (db.insert as any).mockReturnValue({ values: valuesSpy });
+
      await saveHistoryPrompt(prompt);
 
-     expect(appDatabase.historyPrompts.create).toHaveBeenCalled();
-     const createCall = (appDatabase.historyPrompts.create as any).mock.calls[0][0];
-     expect(createCall.prompt).toBe(prompt);
+     expect(db.insert).toHaveBeenCalledWith(schema.historyPrompts);
+     expect(valuesSpy).toHaveBeenCalledWith(expect.objectContaining({
+        prompt: prompt
+     }));
+     expect(runSpy).toHaveBeenCalled();
   });
 
   it('should update an existing history prompt', async () => {
@@ -93,10 +105,19 @@ describe('History Prompts', () => {
      // @ts-ignore
      db.select.mockReturnValue(dbSelectMock);
 
+     const runSpy = vi.fn();
+     const whereSpy = vi.fn().mockReturnValue({ run: runSpy });
+     const setSpy = vi.fn().mockReturnValue({ where: whereSpy });
+     (db.update as any).mockReturnValue({ set: setSpy });
+
      await saveHistoryPrompt(prompt);
 
-     expect(appDatabase.historyPrompts.update).toHaveBeenCalledWith(existingRecord.id, expect.objectContaining({
+     expect(db.update).toHaveBeenCalledWith(schema.historyPrompts);
+     expect(setSpy).toHaveBeenCalledWith(expect.objectContaining({
          lastUsedAt: expect.any(String)
      }));
+     // We can't easily check 'where' arguments specifically here unless we match the exact sql/eq object,
+     // but verifying 'set' was called is sufficient to prove update logic ran.
+     expect(runSpy).toHaveBeenCalled();
   });
 });

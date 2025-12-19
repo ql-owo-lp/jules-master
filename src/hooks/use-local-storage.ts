@@ -40,6 +40,11 @@ export function useLocalStorage<T>(
       try {
         const valueToStore =
           value instanceof Function ? value(storedValue) : value;
+
+        // Update the ref immediately to prevent the event listener from
+        // unnecessarily updating the state again when we emit the event
+        storedValueRef.current = valueToStore;
+
         setStoredValue(valueToStore);
         if (typeof window !== "undefined") {
           window.localStorage.setItem(key, JSON.stringify(valueToStore));

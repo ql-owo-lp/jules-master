@@ -112,7 +112,8 @@ describe('BackgroundJobWorker - Crash Recovery', () => {
             requirePlanApproval: false,
             automationMode: 'AUTO_CREATE_PR'
         }),
-        apiKey
+        apiKey,
+        'default'
     );
   });
 });

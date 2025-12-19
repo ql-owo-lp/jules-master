@@ -20,13 +20,19 @@ export function CronJobsList() {
     const fetchCronJobs = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/cron-jobs');
+            const response = await fetch('/api/cron-jobs', {
+                cache: 'no-store',
+                headers: {
+                    'Pragma': 'no-cache',
+                    'Cache-Control': 'no-cache'
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 setCronJobs(data);
             }
-        } catch (error) {
-            console.error("Failed to fetch cron jobs", error);
+        } catch (error: any) {
+            console.error("Failed to fetch cron jobs:", error?.message || error);
         } finally {
             setIsLoading(false);
         }
@@ -64,6 +70,22 @@ export function CronJobsList() {
             }
         } catch (error) {
              console.error("Failed to toggle cron job", error);
+        }
+    }
+
+    const handleExecuteNow = async (id: string) => {
+        try {
+            const response = await fetch(`/api/cron-jobs/${id}/execute`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                toast({ title: "Cron Job Executed" });
+            } else {
+                toast({ variant: "destructive", title: "Failed to execute cron job" });
+            }
+        } catch (error) {
+            console.error("Failed to execute cron job", error);
+            toast({ variant: "destructive", title: "Failed to execute cron job" });
         }
     }
 
@@ -127,6 +149,9 @@ export function CronJobsList() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
+                                                    <DropdownMenuItem onClick={() => handleExecuteNow(job.id)}>
+                                                        <PlayCircle className="mr-2 h-4 w-4" /> Execute Now
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                                         <CronJobDialog mode="edit" initialValues={job} onSuccess={fetchCronJobs}>
                                                              <div className="flex items-center w-full cursor-pointer">
