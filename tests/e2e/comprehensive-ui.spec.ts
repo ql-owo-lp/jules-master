@@ -59,7 +59,7 @@ test.describe('Comprehensive UI Tests', () => {
       }
 
       // Verify "New Job" button
-      const newJobButton = page.getByRole('button', { name: 'New Job' });
+      const newJobButton = page.getByRole('button', { name: 'New Job' }).first();
       await expect(newJobButton).toBeVisible();
 
       // Verify "Jobs & Sessions" link
@@ -195,8 +195,8 @@ test.describe('Comprehensive UI Tests', () => {
       await page.goto('/settings');
       await page.getByRole('tab', { name: 'Automation' }).click();
 
-      await expect(page.getByLabel('Auto Delete Stale Branches')).toBeVisible();
-      await page.getByLabel('Auto Delete Stale Branches').check();
+      await expect(page.getByRole('switch', { name: 'Auto Delete Stale Branches' })).toBeVisible();
+      await page.getByRole('switch', { name: 'Auto Delete Stale Branches' }).check();
       await expect(page.getByLabel('Auto Delete Stale Branches After (days)')).toBeVisible();
       await page.getByLabel('Auto Delete Stale Branches After (days)').fill('5');
       await page.getByRole('button', { name: 'Save Automation Settings' }).click();

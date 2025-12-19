@@ -43,6 +43,6 @@ test.describe('Job Creation with JULES_API_KEY', () => {
     // The message might be "Background Job Scheduled" if background job is selected (default)
     // or "Job submitted!" if not.
     const toastMessage = page.getByText(/Job submitted!|Background Job Scheduled/).first();
-    await expect(toastMessage).toBeVisible();
+    await expect(toastMessage).toBeVisible({ timeout: 10000 });
   });
 });

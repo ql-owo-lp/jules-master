@@ -71,6 +71,7 @@ test.describe('Background Jobs Progress', () => {
 
     // Expand if needed (it might be collapsed)
     await jobHeader.click();
+    await expect(page.locator('div.border.rounded-lg.bg-card[data-state="open"]')).toBeVisible();
 
     // 3. Verify Progress Bar
     // Look for text "Creating Sessions..."

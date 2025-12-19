@@ -402,7 +402,11 @@ function HomePageContent() {
     setRepoFilter(value);
     setJobPage(1);
     const newParams = new URLSearchParams(searchParams.toString());
-    newParams.set('repo', value);
+    if (value === 'all') {
+      newParams.delete('repo');
+    } else {
+      newParams.set('repo', value);
+    }
     newParams.delete('jobPage');
     router.push(`?${newParams.toString()}`);
   };
@@ -411,7 +415,11 @@ function HomePageContent() {
     setStatusFilter(value);
     setJobPage(1);
     const newParams = new URLSearchParams(searchParams.toString());
-    newParams.set('status', value);
+    if (value === 'all') {
+      newParams.delete('status');
+    } else {
+      newParams.set('status', value);
+    }
     newParams.delete('jobPage');
     router.push(`?${newParams.toString()}`);
   }

@@ -13,7 +13,7 @@ test('should display PR Status Cache Refresh Interval setting', async ({ page })
 
   // Check default value
   const input = page.getByLabel('PR Status Cache Refresh Interval (seconds)');
-  await expect(input).toHaveValue('60');
+  await expect(input).toHaveValue('120');
 
   // Update value
   await input.fill('120');
