@@ -29,5 +29,5 @@ export const settingsSchema = z.object({
   }),
   minSessionInteractionInterval: z.number().min(1, "Min session interaction interval must be at least 1 second"),
   retryTimeout: z.number().min(1, "Retry timeout must be at least 1 second"),
-  autoDeleteStaleBranchesInterval: z.number().min(60, "Auto delete stale branches interval must be at least 60 seconds"),
+  autoDeleteStaleBranchesInterval: z.number().min(60, "Auto delete stale branches interval must be at least 60 seconds").optional(),
 });

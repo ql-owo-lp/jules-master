@@ -51,9 +51,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+        body = await request.json();
+    } catch (e) {
+        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
 
-    if (Object.keys(body).length === 0) {
+    if (!body || Object.keys(body).length === 0) {
       return NextResponse.json({ error: 'At least one setting must be provided.' }, { status: 400 });
     }
 
@@ -69,7 +74,13 @@ export async function POST(request: Request) {
     const profileExists = await db.select().from(profiles).where(eq(profiles.id, profileId)).limit(1);
 
     if (profileExists.length === 0) {
-       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+       if (profileId === 'default') {
+           // Ensure default profile exists
+           const { profileService } = await import('@/lib/profile-service');
+           await profileService.ensureDefaultProfile();
+       } else {
+           return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+       }
     }
 
     const newSettings = {
