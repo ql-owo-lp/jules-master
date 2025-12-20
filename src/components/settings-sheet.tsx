@@ -44,7 +44,7 @@ export function SettingsSheet() {
            const isSetInLocalStorage = (key: string) => {
              return window.localStorage.getItem(key) !== null;
           }
-          if (dbSettings.theme && !isSetInLocalStorage("theme")) setTheme(dbSettings.theme);
+          if (dbSettings.theme) setTheme(dbSettings.theme);
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);
