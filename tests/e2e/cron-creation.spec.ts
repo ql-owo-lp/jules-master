@@ -9,7 +9,7 @@ test.describe('Cron Job Creation', () => {
         await page.getByRole('tab', { name: 'Cron Jobs' }).click();
 
         // Click "New Cron Job" button
-        await page.getByRole('button', { name: 'New Cron Job' }).click();
+        await page.getByRole('button', { name: 'Add New Cron Job' }).first().click();
 
         // Fill in the form
         await page.getByLabel('Job Name').fill('Test Cron Job');
@@ -69,7 +69,7 @@ test.describe('Cron Job Creation', () => {
         // Verify list is initially empty
         await expect(page.getByText('No cron jobs yet')).toBeVisible();
 
-        await page.getByRole('button', { name: 'New Cron Job' }).click();
+        await page.getByRole('button', { name: 'Add New Cron Job' }).first().click();
 
         await page.getByLabel('Job Name').fill(jobName);
         await page.getByLabel('Schedule (Cron Expression)').fill('0 0 * * *');
@@ -93,7 +93,7 @@ test.describe('Cron Job Creation', () => {
     test('should show error for invalid schedule', async ({ page }) => {
         await page.goto('/settings');
         await page.getByRole('tab', { name: 'Cron Jobs' }).click();
-        await page.getByRole('button', { name: 'New Cron Job' }).click();
+        await page.getByRole('button', { name: 'Add New Cron Job' }).first().click();
 
         await page.getByLabel('Job Name').fill('Invalid Job');
         await page.getByLabel('Schedule (Cron Expression)').fill('invalid-cron');
