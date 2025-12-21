@@ -68,6 +68,16 @@ function HomePageContent() {
     setJobFilter(jobIdParam);
   }, [jobIdParam]);
 
+  useEffect(() => {
+    const newParams = new URLSearchParams();
+    if (jobFilter) newParams.set('jobId', jobFilter);
+    newParams.set('repo', repoFilter);
+    newParams.set('status', statusFilter);
+    if (jobPage > 1) newParams.set('jobPage', jobPage.toString());
+
+    router.push(`?${newParams.toString()}`);
+  }, [jobFilter, repoFilter, statusFilter, jobPage, router]);
+
   const { filteredJobs, unknownSessions } = useMemo(() => {
     const allJobSessionIds = new Set(jobs.flatMap(j => j.sessionIds));
     let unknown = sessions.filter(s => !allJobSessionIds.has(s.id));
@@ -138,19 +148,7 @@ function HomePageContent() {
         } else {
           setError(null);
         }
-        const validSessions = (fetchedSessionsResult.sessions || []).filter(s => s) as Session[];
-        const sessionMap = new Map(validSessions.map(s => [s.id, s]));
-        const allJobSessionIds = new Set(fetchedJobs.flatMap(j => j.sessionIds || []));
-        const missingSessionIds = [...allJobSessionIds].filter(id => !sessionMap.has(id));
-
-        if (missingSessionIds.length > 0) {
-          const fetchedMissingSessions = await Promise.all(
-            missingSessionIds.map(id => refreshSession(id, apiKey))
-          );
-          const validMissingSessions = fetchedMissingSessions.filter((s): s is Session => !!s);
-          validSessions.push(...validMissingSessions);
-        }
-
+        const validSessions = (fetchedSessionsResult.sessions || []).filter(s => s);
         setSessions(validSessions);
         setJobs(fetchedJobs);
         setQuickReplies(fetchedQuickReplies);
@@ -388,40 +386,16 @@ function HomePageContent() {
   const onJobFilterChange = (value: string | null) => {
     setJobFilter(value);
     setJobPage(1);
-    const newParams = new URLSearchParams(searchParams.toString());
-    if (value) {
-      newParams.set('jobId', value);
-    } else {
-      newParams.delete('jobId');
-    }
-    newParams.delete('jobPage');
-    router.push(`?${newParams.toString()}`);
   }
 
   const onRepoFilterChange = (value: string) => {
     setRepoFilter(value);
     setJobPage(1);
-    const newParams = new URLSearchParams(searchParams.toString());
-    if (value === 'all') {
-      newParams.delete('repo');
-    } else {
-      newParams.set('repo', value);
-    }
-    newParams.delete('jobPage');
-    router.push(`?${newParams.toString()}`);
   };
 
   const onStatusFilterChange = (value: string) => {
     setStatusFilter(value);
     setJobPage(1);
-    const newParams = new URLSearchParams(searchParams.toString());
-    if (value === 'all') {
-      newParams.delete('status');
-    } else {
-      newParams.set('status', value);
-    }
-    newParams.delete('jobPage');
-    router.push(`?${newParams.toString()}`);
   }
   
   const repoOptions = useMemo(() => [
