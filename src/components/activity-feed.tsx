@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useState, forwardRef, useEffect } from "react";
+import { useState, forwardRef, useEffect, memo } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -162,7 +162,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
 ActivityFeed.displayName = 'ActivityFeed';
 
 
-function ActivityContent({ activity }: { activity: Activity }) {
+const ActivityContent = memo(function ActivityContent({ activity }: { activity: Activity }) {
   const [lineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
   const agentMessage = activity.agentMessaged?.agentMessage;
   const userMessage = activity.userMessaged?.userMessage;
@@ -292,7 +292,16 @@ function ActivityContent({ activity }: { activity: Activity }) {
   }
 
   return null; // Return null if there's no specific content to render
-}
+}, (prev, next) => {
+  // Memoize to prevent expensive re-renders of content (especially Git patches and logs)
+  // when the parent ActivityFeed re-renders due to polling.
+  // We compare ID and createTime for fast exit, and JSON stringify to ensure deep equality
+  // since activity objects are replaced on every poll.
+  return prev.activity.id === next.activity.id &&
+         prev.activity.createTime === next.activity.createTime &&
+         JSON.stringify(prev.activity) === JSON.stringify(next.activity);
+});
+ActivityContent.displayName = 'ActivityContent';
 
 function PlanDetails({ plan }: { plan: Plan }) {
   return (
