@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useTransition, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -68,6 +67,9 @@ export function CronJobForm({
 
   const [isClient, setIsClient] = useState(false);
 
+  const [nextRunTime, setNextRunTime] = useState<string | null>(null);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+
   useEffect(() => {
     setIsClient(true);
     async function fetchData() {
@@ -100,6 +102,23 @@ export function CronJobForm({
         }
     }
   }, [initialValues, sources]);
+
+  useEffect(() => {
+    if (!schedule.trim()) {
+        setNextRunTime(null);
+        setScheduleError(null);
+        return;
+    }
+    try {
+        const interval = cronParser.parse(schedule);
+        const next = interval.next().toDate();
+        setNextRunTime(next.toLocaleString());
+        setScheduleError(null);
+    } catch (err) {
+        setNextRunTime(null);
+        setScheduleError("Invalid cron expression");
+    }
+  }, [schedule]);
 
   const handleRefresh = useCallback(async () => {
     startRefreshTransition(async () => {
@@ -345,9 +364,19 @@ export function CronJobForm({
                 onChange={(e) => setSchedule(e.target.value)}
                 disabled={isPending}
               />
-               <p className="text-xs text-muted-foreground">
-                Format: Minute Hour Day Month DayOfWeek
-              </p>
+               <div className="flex justify-between items-start flex-wrap gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Format: Minute Hour Day Month DayOfWeek
+                  </p>
+                  {scheduleError && (
+                      <p className="text-xs text-destructive font-medium" role="alert">{scheduleError}</p>
+                  )}
+                  {!scheduleError && nextRunTime && (
+                       <p className="text-xs text-muted-foreground">
+                        Next run: <span className="font-medium text-foreground">{nextRunTime}</span>
+                      </p>
+                  )}
+               </div>
             </div>
           </div>
 
