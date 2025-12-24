@@ -313,7 +313,7 @@ export function SessionList({
                           )}
                            <MessageDialog
                               trigger={
-                                  <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message"><MessageSquare className="h-4 w-4" /></Button>
                               }
                               tooltip="Send Message"
                               storageKey={`jules-session-message-${session.id}`}
@@ -540,7 +540,7 @@ export function SessionList({
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                              <MessageDialog
                                 trigger={
-                                    <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message to Job"><MessageSquare className="h-4 w-4" /></Button>
                                 }
                                 tooltip="Send Message to all sessions in this job"
                                 storageKey={`jules-job-message-${job.id}`}
@@ -705,7 +705,7 @@ export function SessionList({
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                            <MessageDialog
                               trigger={
-                                  <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message to Uncategorized"><MessageSquare className="h-4 w-4" /></Button>
                               }
                               tooltip="Send Message to all uncategorized sessions"
                               storageKey={`jules-job-message-uncategorized`}
