@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { Activity, Plan, GitPatch } from "@/lib/types";
@@ -33,7 +32,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useState, forwardRef, useEffect } from "react";
+import { useState, forwardRef, useEffect, memo } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -52,6 +51,44 @@ type ActivityFeedProps = {
   countdown: number;
   pollInterval: number;
 };
+
+const ActivityListItems = memo(({ activities }: { activities: Activity[] }) => {
+  return (
+    <div className="space-y-8">
+      {activities.map((activity, index) => (
+        <div key={activity.id} className="flex gap-4">
+          <div className="flex flex-col items-center">
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
+              title={`Originated by: ${activity.originator}`}
+            >
+              {originatorIcons[activity.originator] || (
+                <MessageSquare className="h-5 w-5" />
+              )}
+            </span>
+            {index < activities.length - 1 && (
+              <div className="flex-1 w-px bg-border my-2"></div>
+            )}
+          </div>
+          <div className="flex-1 space-y-1 min-w-0 pt-1">
+            <div className="flex justify-between items-start gap-4">
+              <p className="font-semibold text-sm break-words">{activity.description}</p>
+              <p className="text-xs text-muted-foreground whitespace-nowrap pl-4 pt-0.5">
+                {formatDistanceToNow(new Date(activity.createTime), {
+                  addSuffix: true,
+                })}
+              </p>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <ActivityContent activity={activity} />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+});
+ActivityListItems.displayName = 'ActivityListItems';
 
 export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({ 
     activities, 
@@ -122,38 +159,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[700px] pr-4" ref={ref}>
-            <div className="space-y-8">
-            {activities.map((activity, index) => (
-                <div key={activity.id} className="flex gap-4">
-                <div className="flex flex-col items-center">
-                    <span
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
-                    title={`Originated by: ${activity.originator}`}
-                    >
-                    {originatorIcons[activity.originator] || (
-                        <MessageSquare className="h-5 w-5" />
-                    )}
-                    </span>
-                    {index < activities.length - 1 && (
-                       <div className="flex-1 w-px bg-border my-2"></div>
-                    )}
-                </div>
-                <div className="flex-1 space-y-1 min-w-0 pt-1">
-                    <div className="flex justify-between items-start gap-4">
-                    <p className="font-semibold text-sm break-words">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground whitespace-nowrap pl-4 pt-0.5">
-                        {formatDistanceToNow(new Date(activity.createTime), {
-                        addSuffix: true,
-                        })}
-                    </p>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                    <ActivityContent activity={activity} />
-                    </div>
-                </div>
-                </div>
-            ))}
-            </div>
+            <ActivityListItems activities={activities} />
         </ScrollArea>
       </CardContent>
     </Card>
