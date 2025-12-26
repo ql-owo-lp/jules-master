@@ -6,7 +6,7 @@ test.describe('Settings Persistence', () => {
 
   test('should prioritize database over local storage', async ({ page }) => {
     // Mock DB to return a specific value
-    await page.route('/api/settings**', async route => { // Match query params
+    await page.route('/api/settings*', async route => { // Match query params
       const json = {
         idlePollInterval: 999,
         activePollInterval: 888,
@@ -42,7 +42,7 @@ test.describe('Settings Persistence', () => {
 
   test('should fallback to database when local storage is empty', async ({ page }) => {
      // Mock DB
-     await page.route('/api/settings', async route => {
+     await page.route('/api/settings*', async route => {
         const json = {
             idlePollInterval: 120,
             activePollInterval: 30,
@@ -81,7 +81,7 @@ test.describe('Settings Persistence', () => {
 
   test('should save settings to database', async ({ page }) => {
     // Mock DB for initial load
-    await page.route('/api/settings', async route => {
+    await page.route('/api/settings*', async route => {
          if (route.request().method() === 'GET') {
              await route.fulfill({ json: {
                  defaultSessionCount: 10,
