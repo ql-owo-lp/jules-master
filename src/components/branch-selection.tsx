@@ -11,9 +11,10 @@ type BranchSelectionProps = {
   selectedValue?: string;
   onBranchSelected: (branch?: string) => void;
   disabled?: boolean;
+  id?: string;
 };
 
-export function BranchSelection({ branches, selectedValue, onBranchSelected, disabled }: BranchSelectionProps) {
+export function BranchSelection({ branches, selectedValue, onBranchSelected, disabled, id = "branch" }: BranchSelectionProps) {
 
   const options = branches.map(branch => ({
     value: branch.displayName,
@@ -26,8 +27,9 @@ export function BranchSelection({ branches, selectedValue, onBranchSelected, dis
 
   return (
     <div className="grid w-full items-center gap-2">
-      <Label htmlFor="branch">Branch</Label>
+      <Label htmlFor={id}>Branch</Label>
       <Combobox 
+        id={id}
         options={options}
         selectedValue={selectedValue}
         onValueChange={handleValueChange}

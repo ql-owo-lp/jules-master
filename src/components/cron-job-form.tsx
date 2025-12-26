@@ -424,6 +424,7 @@ export function CronJobForm({
                     </Button>
                 </div>
                 <SourceSelection
+                    id="repository"
                     onSourceSelected={setSelectedSource}
                     disabled={isPending}
                     selectedValue={selectedSource}
@@ -432,6 +433,7 @@ export function CronJobForm({
                 />
             </div>
             <BranchSelection
+              id="branch"
               branches={branches}
               onBranchSelected={setSelectedBranch}
               disabled={isPending || !selectedSource}

@@ -570,6 +570,7 @@ export function JobCreationForm({
                     </Button>
                 </div>
                 <SourceSelection 
+                    id="repository"
                     onSourceSelected={setSelectedSource} 
                     disabled={disabled || isPending}
                     selectedValue={selectedSource}
@@ -578,6 +579,7 @@ export function JobCreationForm({
                 />
             </div>
             <BranchSelection 
+              id="branch"
               branches={branches} 
               onBranchSelected={setSelectedBranch}
               disabled={disabled || isPending || !selectedSource}

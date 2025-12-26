@@ -37,6 +37,7 @@ type ComboboxProps = {
     disabled?: boolean;
     icon?: React.ReactNode;
     name?: string;
+    id?: string;
     renderOption?: (option: ComboboxOption) => React.ReactNode;
 };
 
@@ -55,6 +56,7 @@ export function Combobox({
     disabled,
     icon,
     name,
+    id,
     renderOption
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
@@ -118,6 +120,7 @@ export function Combobox({
           className="w-full justify-between"
           disabled={disabled}
           name={name}
+          id={id}
         >
             <div className="flex items-center gap-2 truncate">
                 {icon}
