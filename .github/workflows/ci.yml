@@ -23,7 +23,7 @@ jobs:
         run: npm ci
 
       - name: Run Unit Tests
-        run: npm test
+        run: npm run test:unit
 
   e2e:
     timeout-minutes: 20
@@ -64,7 +64,7 @@ jobs:
         run: npx playwright install-deps
 
       - name: Run E2E Tests
-        run: npm run test:e2e
+        run: npm test
 
       - uses: actions/upload-artifact@v4
         if: always()
