@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,6 +78,7 @@ type DialogState = {
 export default function SettingsPage() {
   const { julesApiKey, githubToken: envGithubToken } = useEnv();
   const { toast } = useToast();
+  const { setTheme } = useTheme();
   const [isClient, setIsClient] = useState(false);
 
   const searchParams = useSearchParams();
@@ -245,6 +247,10 @@ export default function SettingsPage() {
           setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
           setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
           setRetryTimeout(dbSettings.retryTimeout);
+
+          if (dbSettings.theme) {
+            setTheme(dbSettings.theme);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);
@@ -259,6 +265,7 @@ export default function SettingsPage() {
       setSessionCacheInProgressInterval, setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays,
       setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays,
       setMinSessionInteractionInterval, setRetryTimeout,
+      setTheme,
       currentProfileId // Re-fetch when profile changes
   ]);
 
