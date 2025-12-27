@@ -565,9 +565,16 @@ export function JobCreationForm({
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
                     <Label htmlFor="repository">Repository</Label>
-                     <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-6 w-6" disabled={isRefreshing} aria-label="Refresh Repositories">
-                        <RefreshCw className={cn("h-4 w-4", isRefreshing ? "animate-spin" : "")} />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-6 w-6" disabled={isRefreshing} aria-label="Refresh Repositories">
+                            <RefreshCw className={cn("h-4 w-4", isRefreshing ? "animate-spin" : "")} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Refresh Repositories</p>
+                      </TooltipContent>
+                    </Tooltip>
                 </div>
                 <SourceSelection 
                     onSourceSelected={setSelectedSource} 
