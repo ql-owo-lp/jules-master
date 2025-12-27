@@ -15,7 +15,8 @@ test.describe('Auto Approval Features', () => {
 
         // Wait for form to be ready - matching the snapshot structure
         // Using text because "New Job" is inside a generic container that looks like a title but isn't a heading role
-        await expect(page.getByText('New Job', { exact: true })).toBeVisible();
+        // Narrowing to main to avoid conflict with sidebar button
+        await expect(page.locator('main').getByText('New Job', { exact: true })).toBeVisible();
 
         // Check for "Require Plan Approval" switch
         const requireApprovalLabel = page.getByLabel('Require Plan Approval');
@@ -33,7 +34,7 @@ test.describe('Auto Approval Features', () => {
 
     test('should create a job with Auto Approval enabled', async ({ page }) => {
         await page.goto('/jobs/new');
-        await expect(page.getByText('New Job', { exact: true })).toBeVisible();
+        await expect(page.locator('main').getByText('New Job', { exact: true })).toBeVisible();
 
         // Fill basic info
         await page.getByLabel('Job Name').fill('Auto Approval Test Job');
