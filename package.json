@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/lib/db/migrate.ts",
-    "test": "playwright test",
+    "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
     "postinstall": "patch-package"
