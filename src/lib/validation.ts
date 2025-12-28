@@ -28,4 +28,18 @@ export const settingsSchema = z.object({
   minSessionInteractionInterval: z.number(),
   retryTimeout: z.number(),
   autoDeleteStaleBranchesInterval: z.number(),
+  profileId: z.string().optional(),
+});
+
+export const cronJobSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  schedule: z.string().min(1, "Schedule is required"),
+  prompt: z.string().min(1, "Prompt is required"),
+  repo: z.string().min(1, "Repository is required"),
+  branch: z.string().min(1, "Branch is required"),
+  autoApproval: z.boolean(),
+  automationMode: z.enum(['AUTOMATION_MODE_UNSPECIFIED', 'AUTO_CREATE_PR']).optional(),
+  requirePlanApproval: z.boolean().optional(),
+  sessionCount: z.number().int().min(1).optional(),
+  profileId: z.string().optional(),
 });
