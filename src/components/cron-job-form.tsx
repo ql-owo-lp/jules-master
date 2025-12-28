@@ -18,7 +18,7 @@ import { refreshSources, listSources } from "@/app/sessions/actions";
 import { getPredefinedPrompts, getGlobalPrompt, getRepoPrompt, getHistoryPrompts } from "@/app/config/actions";
 import type { Source, PredefinedPrompt, AutomationMode, HistoryPrompt, CronJob } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw, X, BookText } from "lucide-react";
+import { Loader2, RefreshCw, X, BookText, HelpCircle } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -457,10 +457,30 @@ export function CronJobForm({
                 onCheckedChange={setRequirePlanApproval}
                 disabled={isPending}
               />
-              <Label htmlFor="require-plan-approval">Require Plan Approval</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="require-plan-approval">Require Plan Approval</Label>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>If enabled, you must manually approve the plan before changes are applied.</p>
+                    </TooltipContent>
+                  </Tooltip>
+              </div>
             </div>
              <div className="space-y-2">
-                <Label htmlFor="automation-mode">Automation Mode</Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="automation-mode">Automation Mode</Label>
+                   <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Determines how the job interacts with the repository (e.g., auto-creating PRs).</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                  <Select
                     value={automationMode}
                     onValueChange={(value: AutomationMode) => setAutomationMode(value)}
