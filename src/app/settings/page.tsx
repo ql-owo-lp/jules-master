@@ -76,7 +76,7 @@ type DialogState = {
 }
 
 export default function SettingsPage() {
-  const { julesApiKey, githubToken: envGithubToken } = useEnv();
+  const { hasJulesApiKey, hasGithubToken: hasEnvGithubToken } = useEnv();
   const { toast } = useToast();
   const { setTheme } = useTheme();
   const [isClient, setIsClient] = useState(false);
@@ -162,9 +162,6 @@ export default function SettingsPage() {
 
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
-
-  const isJulesKeyFromEnv = !!julesApiKey;
-  const isGithubTokenFromEnv = !!envGithubToken;
 
   // --- Messages State (from PromptsPage) ---
   const [prompts, setPrompts] = useState<PredefinedPrompt[]>([]);
@@ -606,7 +603,7 @@ export default function SettingsPage() {
                                 {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </Button>
                         </div>
-                        {isJulesKeyFromEnv && !apiKeyValue && (
+                        {hasJulesApiKey && !apiKeyValue && (
                             <p className="text-xs text-muted-foreground">Using JULES_API_KEY environment variable.</p>
                         )}
                     </div>
@@ -629,7 +626,7 @@ export default function SettingsPage() {
                                 {showGithubToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </Button>
                         </div>
-                         {isGithubTokenFromEnv && !githubTokenValue && (
+                         {hasEnvGithubToken && !githubTokenValue && (
                             <p className="text-xs text-muted-foreground">Using GITHUB_TOKEN environment variable.</p>
                         )}
                     </div>

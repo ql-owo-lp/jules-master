@@ -50,8 +50,8 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased h-full">
         <EnvProvider
-          julesApiKey={process.env.JULES_API_KEY}
-          githubToken={process.env.GITHUB_TOKEN}
+          hasJulesApiKey={!!process.env.JULES_API_KEY}
+          hasGithubToken={!!process.env.GITHUB_TOKEN}
         >
           <ThemeProvider
             attribute="class"

@@ -14,8 +14,8 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/components/env-provider', () => ({
   useEnv: () => ({
-    julesApiKey: 'test-api-key',
-    githubToken: 'test-github-token',
+    hasJulesApiKey: true,
+    hasGithubToken: true,
   }),
 }));
 
