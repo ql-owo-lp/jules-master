@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    const profileId = body.profileId || 'default';
+    const profileId = validation.data.profileId || 'default';
 
     const newSettings = {
       ...validation.data,

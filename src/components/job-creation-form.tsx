@@ -18,7 +18,7 @@ import { refreshSources, listSources } from "@/app/sessions/actions";
 import { getPredefinedPrompts, getGlobalPrompt, getRepoPrompt, addJob, getHistoryPrompts, saveHistoryPrompt, getSettings } from "@/app/config/actions";
 import type { Session, Source, Branch, PredefinedPrompt, Job, AutomationMode, HistoryPrompt, Settings } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Wand2, Loader2, RefreshCw, X, Trash2, BookText } from "lucide-react";
+import { Wand2, Loader2, RefreshCw, X, Trash2, BookText, HelpCircle } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -599,7 +599,17 @@ export function JobCreationForm({
                     onCheckedChange={setBackgroundJob}
                     disabled={isPending || disabled}
                 />
-                <Label htmlFor="background-job">Background Job</Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="background-job">Background Job</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Job will run in the background. You can check the status later.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
             </div>
             <div className="flex items-center space-x-2">
               <Switch 
@@ -608,10 +618,30 @@ export function JobCreationForm({
                 onCheckedChange={setRequirePlanApproval}
                 disabled={isPending || disabled}
               />
-              <Label htmlFor="require-plan-approval">Require Plan Approval</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="require-plan-approval">Require Plan Approval</Label>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>If enabled, you must manually approve the plan before changes are applied.</p>
+                    </TooltipContent>
+                  </Tooltip>
+              </div>
             </div>
              <div className="space-y-2">
-                <Label htmlFor="automation-mode">Automation Mode</Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="automation-mode">Automation Mode</Label>
+                   <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Determines how the job interacts with the repository (e.g., auto-creating PRs).</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                  <Select 
                     value={automationMode}
                     onValueChange={(value: AutomationMode) => setAutomationMode(value)}
