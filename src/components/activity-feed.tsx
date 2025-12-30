@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useState, forwardRef, useEffect, memo } from "react";
+import React, { useState, forwardRef, useEffect, memo } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
