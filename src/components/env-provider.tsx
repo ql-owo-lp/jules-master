@@ -3,21 +3,21 @@
 import { createContext, useContext, ReactNode } from 'react';
 
 interface EnvContextType {
-  julesApiKey?: string;
-  githubToken?: string;
+  hasJulesApiKey: boolean;
+  hasGithubToken: boolean;
 }
 
-const EnvContext = createContext<EnvContextType>({});
+const EnvContext = createContext<EnvContextType>({ hasJulesApiKey: false, hasGithubToken: false });
 
 export const useEnv = () => useContext(EnvContext);
 
 export function EnvProvider({
-  julesApiKey,
-  githubToken,
+  hasJulesApiKey,
+  hasGithubToken,
   children
 }: EnvContextType & { children: ReactNode }) {
   return (
-    <EnvContext.Provider value={{ julesApiKey, githubToken }}>
+    <EnvContext.Provider value={{ hasJulesApiKey, hasGithubToken }}>
       {children}
     </EnvContext.Provider>
   );
