@@ -23,7 +23,7 @@ import { FloatingProgressBar } from "@/components/floating-progress-bar";
 import { NewJobDialog } from "@/components/new-job-dialog";
 
 function HomePageContent() {
-  const { julesApiKey, githubToken: envGithubToken } = useEnv();
+  const { hasJulesApiKey: hasEnvJulesApiKey, hasGithubToken: hasEnvGithubToken } = useEnv();
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
   const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
   
@@ -66,6 +66,9 @@ function HomePageContent() {
   const [progressLabel, setProgressLabel] = useState("");
   
   const activeRequestId = useRef<string | null>(null);
+
+  const hasJulesApiKey = !!(hasEnvJulesApiKey || apiKey);
+  const hasGithubToken = !!(hasEnvGithubToken || githubToken);
 
   // Effect to sync job filter with URL param
   useEffect(() => {
@@ -128,7 +131,7 @@ function HomePageContent() {
     startFetching(async () => {
       try {
         const [fetchedSessionsResult, fetchedJobs, fetchedQuickReplies, fetchedPendingWork] = await Promise.all([
-          listSessions(apiKey, undefined, requestId, currentProfileId),
+          listSessions(apiKey || null, undefined, requestId, currentProfileId),
           getJobs(currentProfileId),
           getQuickReplies(currentProfileId),
           getPendingBackgroundWorkCount(currentProfileId)
@@ -176,7 +179,7 @@ function HomePageContent() {
   // Initial fetch and set up polling interval
   useEffect(() => {
     if (isClient) {
-      if (apiKey || julesApiKey) {
+      if (apiKey || hasJulesApiKey) {
         const now = Date.now();
         const intervalInMs = sessionListPollInterval * 1000;
 
@@ -199,14 +202,14 @@ function HomePageContent() {
 
   // Countdown timer
   useEffect(() => {
-    if (!isClient || (!apiKey && !julesApiKey) || sessionListPollInterval <= 0) return;
+    if (!isClient || (!apiKey && !hasJulesApiKey) || sessionListPollInterval <= 0) return;
 
     const timer = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isClient, apiKey, sessionListPollInterval, lastUpdatedAt]);
+  }, [isClient, apiKey, hasJulesApiKey, sessionListPollInterval, lastUpdatedAt]);
 
 
   const handleRefresh = async () => {
@@ -266,10 +269,10 @@ function HomePageContent() {
 
       const approvalPromises = sessionIds.map(async (id) => {
         try {
-            const result = await approvePlan(id, apiKey);
+            const result = await approvePlan(id, apiKey || null);
             if (result) successfulApprovals++;
              // Force refresh this session immediately
-             await refreshSession(id, apiKey);
+             await refreshSession(id, apiKey || null);
         } catch (e) {
            console.error(`Failed to approve plan for session ${id}`, e);
         } finally {
@@ -305,10 +308,10 @@ function HomePageContent() {
 
   const handleSendMessage = (sessionId: string, message: string) => {
     startActionTransition(async () => {
-      const result = await sendMessage(sessionId, message, apiKey);
+      const result = await sendMessage(sessionId, message, apiKey || null);
       if (result) {
         // Force refresh this session immediately
-        await refreshSession(sessionId, apiKey);
+        await refreshSession(sessionId, apiKey || null);
         fetchAllData();
         toast({ title: "Message Sent", description: "Your message has been sent to the session." });
       } else {
@@ -333,11 +336,11 @@ function HomePageContent() {
 
       const messagePromises = sessionIds.map(async (id) => {
         try {
-            const result = await sendMessage(id, message, apiKey);
+            const result = await sendMessage(id, message, apiKey || null);
             if (result) {
                 successfulMessages++;
                  // Force refresh this session immediately
-                 await refreshSession(id, apiKey);
+                 await refreshSession(id, apiKey || null);
             }
         } catch (e) {
             console.error(`Failed to send message to session ${id}`, e);
@@ -439,9 +442,6 @@ function HomePageContent() {
       </div>
     );
   }
-
-  const hasJulesApiKey = !!(julesApiKey || apiKey);
-  const hasGithubToken = !!(envGithubToken || githubToken);
 
   return (
     <div className="flex flex-col flex-1 bg-background">

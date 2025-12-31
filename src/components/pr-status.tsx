@@ -33,7 +33,7 @@ export function PrStatus({ prUrl }: PrStatusProps) {
   const status = cachedData?.status;
 
   const [isLoading, setIsLoading] = useState(false);
-  const { githubToken: envGithubToken } = useEnv();
+  const { hasGithubToken: hasEnvGithubToken } = useEnv();
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
   
   useEffect(() => {
@@ -57,7 +57,8 @@ export function PrStatus({ prUrl }: PrStatusProps) {
             console.log(`Refreshing PR status cache for ${prUrl}`);
         }
         try {
-             const prStatus = await getPullRequestStatus(prUrl, githubToken || envGithubToken || "");
+             // Pass null if using env token, so server action uses process.env
+             const prStatus = await getPullRequestStatus(prUrl, githubToken || (hasEnvGithubToken ? null : ""));
              setCachedData({
                  status: prStatus,
                  timestamp: Date.now(),

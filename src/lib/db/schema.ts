@@ -104,6 +104,9 @@ export const settings = sqliteTable('settings', {
   autoDeleteStaleBranches: integer('auto_delete_stale_branches', { mode: 'boolean' }).notNull().default(false),
   autoDeleteStaleBranchesAfterDays: integer('auto_delete_stale_branches_after_days').notNull().default(3),
   autoDeleteStaleBranchesInterval: integer('auto_delete_stale_branches_interval').notNull().default(1800), // 30 minutes
+  // Check Failing Actions
+  checkFailingActionsEnabled: integer('check_failing_actions_enabled', { mode: 'boolean' }).notNull().default(true),
+  checkFailingActionsInterval: integer('check_failing_actions_interval').notNull().default(60), // 1 minute default
   // Throttling Settings
   minSessionInteractionInterval: integer('min_session_interaction_interval').notNull().default(60),
   retryTimeout: integer('retry_timeout').notNull().default(1200), // 20 minutes

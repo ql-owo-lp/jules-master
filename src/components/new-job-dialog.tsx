@@ -24,7 +24,7 @@ type NewJobDialogProps = {
 }
 
 export function NewJobDialog({ isPage = false, children, initialValues }: NewJobDialogProps) {
-    const { julesApiKey } = useEnv();
+    const { hasJulesApiKey } = useEnv();
     const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
     const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
     const router = useRouter();
@@ -48,7 +48,7 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
             return null;
         }
 
-        const effectiveApiKey = apiKey || julesApiKey;
+        const effectiveApiKey = apiKey || null;
 
         const newSession = await createSession({
             title: title,
@@ -101,7 +101,7 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
         // but we can keep it for clearing UI state if needed.
     };
 
-    const hasApiKey = !!(julesApiKey || apiKey);
+    const hasApiKey = !!(hasJulesApiKey || apiKey);
 
     const form = (
         <JobCreationForm
