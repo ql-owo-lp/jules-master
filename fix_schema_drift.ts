@@ -11,6 +11,8 @@ const changes = [
     { table: 'settings', column: 'auto_delete_stale_branches_interval', type: 'integer DEFAULT 1800 NOT NULL' },
     { table: 'settings', column: 'retry_timeout', type: 'integer DEFAULT 1200 NOT NULL' },
     { table: 'settings', column: 'profile_id', type: "text DEFAULT 'default' NOT NULL REFERENCES profiles(id)" },
+    { table: 'settings', column: 'check_failing_actions_enabled', type: 'integer DEFAULT 1 NOT NULL' },
+    { table: 'settings', column: 'check_failing_actions_interval', type: 'integer DEFAULT 60 NOT NULL' },
     
     // Profile ID updates for other tables
     { table: 'jobs', column: 'profile_id', type: "text DEFAULT 'default' NOT NULL REFERENCES profiles(id)" },

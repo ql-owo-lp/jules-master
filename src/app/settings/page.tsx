@@ -124,6 +124,10 @@ export default function SettingsPage() {
   const [autoDeleteStaleBranches, setAutoDeleteStaleBranches] = useLocalStorage<boolean>("jules-auto-delete-stale-branches", false);
   const [autoDeleteStaleBranchesAfterDays, setAutoDeleteStaleBranchesAfterDays] = useLocalStorage<number>("jules-auto-delete-stale-branches-after-days", 3);
 
+  // Check Failing Actions
+  const [checkFailingActionsEnabled, setCheckFailingActionsEnabled] = useLocalStorage<boolean>("jules-check-failing-actions-enabled", true);
+  const [checkFailingActionsInterval, setCheckFailingActionsInterval] = useLocalStorage<number>("jules-check-failing-actions-interval", 60);
+
   // Throttling Settings
   const [minSessionInteractionInterval, setMinSessionInteractionInterval] = useLocalStorage<number>("jules-min-session-interaction-interval", 60);
   const [retryTimeout, setRetryTimeout] = useLocalStorage<number>("jules-retry-timeout", 1200);
@@ -155,6 +159,9 @@ export default function SettingsPage() {
 
   const [autoDeleteStaleBranchesValue, setAutoDeleteStaleBranchesValue] = useState(autoDeleteStaleBranches);
   const [autoDeleteStaleBranchesAfterDaysValue, setAutoDeleteStaleBranchesAfterDaysValue] = useState(autoDeleteStaleBranchesAfterDays);
+
+  const [checkFailingActionsEnabledValue, setCheckFailingActionsEnabledValue] = useState(checkFailingActionsEnabled);
+  const [checkFailingActionsIntervalValue, setCheckFailingActionsIntervalValue] = useState(checkFailingActionsInterval);
 
   const [minSessionInteractionIntervalValue, setMinSessionInteractionIntervalValue] = useState(minSessionInteractionInterval);
   const [retryTimeoutValue, setRetryTimeoutValue] = useState(retryTimeout);
@@ -210,6 +217,8 @@ export default function SettingsPage() {
 
   useEffect(() => { setAutoDeleteStaleBranchesValue(autoDeleteStaleBranches); }, [autoDeleteStaleBranches]);
   useEffect(() => { setAutoDeleteStaleBranchesAfterDaysValue(autoDeleteStaleBranchesAfterDays); }, [autoDeleteStaleBranchesAfterDays]);
+  useEffect(() => { setCheckFailingActionsEnabledValue(checkFailingActionsEnabled); }, [checkFailingActionsEnabled]);
+  useEffect(() => { setCheckFailingActionsIntervalValue(checkFailingActionsInterval); }, [checkFailingActionsInterval]);
   useEffect(() => { setMinSessionInteractionIntervalValue(minSessionInteractionInterval); }, [minSessionInteractionInterval]);
   useEffect(() => { setRetryTimeoutValue(retryTimeout); }, [retryTimeout]);
 
@@ -245,6 +254,8 @@ export default function SettingsPage() {
           setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
           setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
           setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
+          setCheckFailingActionsEnabled(dbSettings.checkFailingActionsEnabled);
+          setCheckFailingActionsInterval(dbSettings.checkFailingActionsInterval);
           setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
           setRetryTimeout(dbSettings.retryTimeout);
 
@@ -264,6 +275,7 @@ export default function SettingsPage() {
       setAutoContinueEnabled, setAutoContinueMessage,
       setSessionCacheInProgressInterval, setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays,
       setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays,
+      setCheckFailingActionsEnabled, setCheckFailingActionsInterval,
       setMinSessionInteractionInterval, setRetryTimeout,
       setTheme,
       currentProfileId // Re-fetch when profile changes
@@ -327,6 +339,8 @@ export default function SettingsPage() {
 
     setAutoDeleteStaleBranches(autoDeleteStaleBranchesValue);
     setAutoDeleteStaleBranchesAfterDays(autoDeleteStaleBranchesAfterDaysValue);
+    setCheckFailingActionsEnabled(checkFailingActionsEnabledValue);
+    setCheckFailingActionsInterval(checkFailingActionsIntervalValue);
     setMinSessionInteractionInterval(minSessionInteractionIntervalValue);
     setRetryTimeout(retryTimeoutValue);
 
@@ -367,6 +381,8 @@ export default function SettingsPage() {
 
                 autoDeleteStaleBranches: autoDeleteStaleBranchesValue,
                 autoDeleteStaleBranchesAfterDays: autoDeleteStaleBranchesAfterDaysValue,
+                checkFailingActionsEnabled: checkFailingActionsEnabledValue,
+                checkFailingActionsInterval: checkFailingActionsIntervalValue,
                 minSessionInteractionInterval: minSessionInteractionIntervalValue,
                 retryTimeout: retryTimeoutValue,
                 profileId: currentProfileId,
@@ -909,6 +925,26 @@ export default function SettingsPage() {
                                 value={autoDeleteStaleBranchesAfterDaysValue}
                                 onChange={(e) => setAutoDeleteStaleBranchesAfterDaysValue(Number(e.target.value))}
                                 min="1"
+                            />
+                        </div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="check-failing-actions-enabled">Check Failing Actions</Label>
+                            <p className="text-xs text-muted-foreground">Automatically post a comment when PR checks fail.</p>
+                        </div>
+                        <Switch id="check-failing-actions-enabled" checked={checkFailingActionsEnabledValue} onCheckedChange={setCheckFailingActionsEnabledValue} />
+                    </div>
+                    {checkFailingActionsEnabledValue && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="check-failing-actions-interval">Check Interval (seconds)</Label>
+                            <Input
+                                id="check-failing-actions-interval"
+                                type="number"
+                                value={checkFailingActionsIntervalValue}
+                                onChange={(e) => setCheckFailingActionsIntervalValue(Number(e.target.value))}
+                                min="10"
                             />
                         </div>
                     )}
