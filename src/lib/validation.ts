@@ -28,8 +28,8 @@ export const settingsSchema = z.object({
   minSessionInteractionInterval: z.number(),
   retryTimeout: z.number(),
   autoDeleteStaleBranchesInterval: z.number(),
-  checkFailingActionsEnabled: z.boolean(),
-  checkFailingActionsInterval: z.number(),
+  checkFailingActionsEnabled: z.boolean().optional().default(true),
+  checkFailingActionsInterval: z.number().optional().default(60),
   profileId: z.string().optional(),
 });
 
