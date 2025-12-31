@@ -246,6 +246,8 @@ export type PullRequestStatus = {
 export type Settings = {
   autoContinueEnabled?: boolean;
   autoRetryEnabled?: boolean;
+  checkFailingActionsEnabled?: boolean;
+  checkFailingActionsInterval?: number;
   minSessionInteractionInterval?: number;
   retryTimeout?: number;
   profileId?: string;

@@ -34,6 +34,8 @@ export async function GET(request: Request) {
         sessionCachePendingApprovalInterval: 300,
         sessionCacheMaxAgeDays: 3,
         autoDeleteStaleBranchesAfterDays: 3,
+        checkFailingActionsEnabled: true,
+        checkFailingActionsInterval: 60,
 
         historyPromptsCount: 10,
         minSessionInteractionInterval: 60,
