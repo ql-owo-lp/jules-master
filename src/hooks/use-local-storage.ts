@@ -39,7 +39,7 @@ export function useLocalStorage<T>(
     (value: T) => {
       try {
         const valueToStore =
-          value instanceof Function ? value(storedValue) : value;
+          value instanceof Function ? value(storedValueRef.current) : value;
 
         // Update the ref immediately to prevent the event listener from
         // unnecessarily updating the state again when we emit the event
@@ -55,7 +55,7 @@ export function useLocalStorage<T>(
         console.error(error);
       }
     },
-    [key, storedValue]
+    [key]
   );
   
   // Effect to listen for storage change events from other instances of the hook

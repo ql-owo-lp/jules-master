@@ -15,6 +15,13 @@
       "when": 1765349208886,
       "tag": "0001_magical_nico_minoru",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1767152609503,
+      "tag": "0002_wonderful_storm",
+      "breakpoints": true
     }
   ]
 }
