@@ -31,10 +31,10 @@ test.describe('Settings Persistence', () => {
     await page.goto('/settings');
 
     // Expect DB value (20) not LS value (5)
-    await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('20');
+    await expect(page.getByRole('spinbutton', { name: 'Default Session Count for New Jobs' })).toHaveValue('20');
 
     // Expect DB value (999) not LS value (111)
-    await expect(page.getByLabel('Idle Poll Interval (seconds)')).toHaveValue('999');
+    await expect(page.getByRole('spinbutton', { name: 'Idle Poll Interval (seconds)' })).toHaveValue('999');
 
     // Verify theme is from DB (dark) not LS (light)
     await expect(page.locator('html')).toHaveClass(/dark/);
@@ -62,10 +62,10 @@ test.describe('Settings Persistence', () => {
      await page.goto('/settings');
 
      // Expect DB value (15)
-     await expect(page.getByLabel('Default Session Count for New Jobs')).toHaveValue('15');
-     await expect(page.getByLabel('Idle Poll Interval (seconds)')).toHaveValue('120');
-     await expect(page.getByLabel('Active Poll Interval (seconds)')).toHaveValue('30');
-     await expect(page.getByLabel('PR Status Cache Refresh Interval (seconds)')).toHaveValue('60');
+     await expect(page.getByRole('spinbutton', { name: 'Default Session Count for New Jobs' })).toHaveValue('15');
+     await expect(page.getByRole('spinbutton', { name: 'Idle Poll Interval (seconds)' })).toHaveValue('120');
+     await expect(page.getByRole('spinbutton', { name: 'Active Poll Interval (seconds)' })).toHaveValue('30');
+     await expect(page.getByRole('spinbutton', { name: 'PR Status Cache Refresh Interval (seconds)' })).toHaveValue('60');
 
      // Switch to Display tab
      await page.getByRole('tab', { name: 'Display' }).click();
@@ -142,10 +142,10 @@ test.describe('Settings Persistence', () => {
 
     await page.goto('/settings');
 
-    await page.getByLabel('Default Session Count for New Jobs').fill('7');
-    await page.getByLabel('Idle Poll Interval (seconds)').fill('123');
-    await page.getByLabel('Active Poll Interval (seconds)').fill('33');
-    await page.getByLabel('PR Status Cache Refresh Interval (seconds)').fill('90');
+    await page.getByRole('spinbutton', { name: 'Default Session Count for New Jobs' }).fill('7');
+    await page.getByRole('spinbutton', { name: 'Idle Poll Interval (seconds)' }).fill('123');
+    await page.getByRole('spinbutton', { name: 'Active Poll Interval (seconds)' }).fill('33');
+    await page.getByRole('spinbutton', { name: 'PR Status Cache Refresh Interval (seconds)' }).fill('90');
 
     // Save General Settings (General tab)
     await page.getByRole('button', { name: 'Save General Settings' }).click();

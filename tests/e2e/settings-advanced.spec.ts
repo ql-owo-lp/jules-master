@@ -17,8 +17,8 @@ test.describe('Settings Page - Advanced Section', () => {
     await expect(page.getByText('Advanced', { exact: true })).toBeVisible();
 
     // Verify Advanced fields are present
-    await expect(page.getByLabel('Idle Poll Interval (seconds)')).toBeVisible();
-    await expect(page.getByLabel('Default Session Count for New Jobs')).toBeVisible();
+    await expect(page.getByRole('spinbutton', { name: 'Idle Poll Interval (seconds)' })).toBeVisible();
+    await expect(page.getByRole('spinbutton', { name: 'Default Session Count for New Jobs' })).toBeVisible();
 
     // Check if Configuration tab is NOT present (double check)
     await expect(page.getByRole('tab', { name: 'Configuration' })).not.toBeVisible();

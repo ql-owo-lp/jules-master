@@ -23,7 +23,7 @@ test.describe('Settings Page', () => {
     // Verify General Tab content (default)
     await expect(page.getByLabel('Jules API Key')).toBeVisible();
     // Verify Advanced settings moved to General tab
-    await expect(page.getByLabel('Idle Poll Interval (seconds)')).toBeVisible();
+    await expect(page.getByRole('spinbutton', { name: 'Idle Poll Interval (seconds)' })).toBeVisible();
   });
 
   test('should switch tabs and show content', async ({ page }) => {
@@ -39,7 +39,7 @@ test.describe('Settings Page', () => {
 
     // Switch to Automation tab
     await page.getByRole('tab', { name: 'Automation' }).click();
-    await expect(page.getByLabel('Auto Retry Failed Sessions')).toBeVisible();
+    await expect(page.locator('#auto-retry-enabled')).toBeVisible();
 
      // Switch to Display tab
     await page.getByRole('tab', { name: 'Display' }).click();
