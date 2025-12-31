@@ -268,18 +268,8 @@ export default function SettingsPage() {
       }
     };
     fetchSettings();
-  }, [
-      setIdlePollInterval, setActivePollInterval, setTitleTruncateLength, setLineClamp,
-      setSessionItemsPerPage, setJobsPerPage, setDefaultSessionCount, setPrStatusPollInterval,
-      setHistoryPromptsCount, setAutoApprovalInterval, setAutoApprovalEnabled, setAutoRetryEnabled, setAutoRetryMessage,
-      setAutoContinueEnabled, setAutoContinueMessage,
-      setSessionCacheInProgressInterval, setSessionCacheCompletedNoPrInterval, setSessionCachePendingApprovalInterval, setSessionCacheMaxAgeDays,
-      setAutoDeleteStaleBranches, setAutoDeleteStaleBranchesAfterDays,
-      setCheckFailingActionsEnabled, setCheckFailingActionsInterval,
-      setMinSessionInteractionInterval, setRetryTimeout,
-      setTheme,
-      currentProfileId // Re-fetch when profile changes
-  ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProfileId]);
 
   // --- Effects for Messages ---
   useEffect(() => {

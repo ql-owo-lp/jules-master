@@ -80,23 +80,29 @@ test.describe('Settings Persistence', () => {
   });
 
   test('should save settings to database', async ({ page }) => {
+    let dbSettings = {
+        defaultSessionCount: 10,
+        idlePollInterval: 120,
+        activePollInterval: 30,
+        titleTruncateLength: 50,
+        lineClamp: 1,
+        sessionItemsPerPage: 10,
+        jobsPerPage: 5,
+        prStatusPollInterval: 60,
+        theme: 'system'
+    };
+
     // Mock DB for initial load
     await page.route('/api/settings*', async route => {
          if (route.request().method() === 'GET') {
-             await route.fulfill({ json: {
-                 defaultSessionCount: 10,
-                 idlePollInterval: 120,
-                 activePollInterval: 30,
-                 titleTruncateLength: 50,
-                 lineClamp: 1,
-                 sessionItemsPerPage: 10,
-                 jobsPerPage: 5,
-                 prStatusPollInterval: 60,
-                 theme: 'system'
-              } });
+             await route.fulfill({ json: dbSettings });
          } else if (route.request().method() === 'POST') {
              // Verify the payload
              const postData = route.request().postDataJSON();
+
+             // Update dbSettings with posted data to simulate persistence
+             dbSettings = { ...dbSettings, ...postData };
+
              // We have two save actions now.
              // 1. Config Save: defaultSessionCount, idlePollInterval, activePollInterval, prStatusPollInterval
              // 2. Display Save: titleTruncateLength, lineClamp, sessionItemsPerPage, jobsPerPage
