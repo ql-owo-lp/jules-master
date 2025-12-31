@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw, HelpCircle } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
 import { useEnv } from "@/components/env-provider";
@@ -67,6 +67,8 @@ import { CronJobsList } from "@/components/cron-jobs-list";
 import { ProfilesSettings } from "@/components/profiles-settings";
 import { listSources, refreshSources } from "@/app/sessions/actions";
 import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { LabelWithTooltip } from "@/components/label-with-tooltip";
 import type { PredefinedPrompt, Source } from "@/lib/types";
 
 type DialogState = {
@@ -639,6 +641,7 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
 
+            <TooltipProvider>
             <Card>
                 <CardHeader>
                     <CardTitle>Advanced</CardTitle>
@@ -646,7 +649,11 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="grid gap-2">
-                        <Label htmlFor="idle-poll-interval">Idle Poll Interval (seconds)</Label>
+                        <LabelWithTooltip
+                            label="Idle Poll Interval (seconds)"
+                            htmlFor="idle-poll-interval"
+                            helpText="Poll interval for completed/failed sessions."
+                        />
                         <Input
                             id="idle-poll-interval"
                             type="number"
@@ -654,10 +661,13 @@ export default function SettingsPage() {
                             onChange={(e) => setIdlePollIntervalValue(Number(e.target.value))}
                             min="0"
                         />
-                        <p className="text-xs text-muted-foreground">Poll interval for completed/failed sessions.</p>
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="active-poll-interval">Active Poll Interval (seconds)</Label>
+                        <LabelWithTooltip
+                            label="Active Poll Interval (seconds)"
+                            htmlFor="active-poll-interval"
+                            helpText="Poll interval for active sessions."
+                        />
                         <Input
                             id="active-poll-interval"
                             type="number"
@@ -665,10 +675,13 @@ export default function SettingsPage() {
                             onChange={(e) => setActivePollIntervalValue(Number(e.target.value))}
                             min="1"
                         />
-                         <p className="text-xs text-muted-foreground">Poll interval for active sessions.</p>
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="pr-status-poll-interval">PR Status Cache Refresh Interval (seconds)</Label>
+                        <LabelWithTooltip
+                            label="PR Status Cache Refresh Interval (seconds)"
+                            htmlFor="pr-status-poll-interval"
+                            helpText="How often to refresh the cache for PR statuses."
+                        />
                         <Input
                             id="pr-status-poll-interval"
                             type="number"
@@ -678,7 +691,11 @@ export default function SettingsPage() {
                         />
                     </div>
                      <div className="grid gap-2">
-                        <Label htmlFor="default-session-count">Default Session Count for New Jobs</Label>
+                        <LabelWithTooltip
+                            label="Default Session Count for New Jobs"
+                            htmlFor="default-session-count"
+                            helpText="The default number of sessions to create when creating a new job."
+                        />
                         <Input
                             id="default-session-count"
                             type="number"
@@ -689,6 +706,7 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            </TooltipProvider>
 
             <div className="flex justify-end">
                 <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
@@ -812,6 +830,7 @@ export default function SettingsPage() {
 
         {/* Automation Tab */}
         <TabsContent value="automation" className="space-y-6">
+             <TooltipProvider>
              <Card>
                 <CardHeader>
                     <CardTitle>Automation Settings</CardTitle>
@@ -819,10 +838,11 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-retry-enabled">Auto Retry Failed Sessions</Label>
-                            <p className="text-xs text-muted-foreground">Automatically send a retry message when a session fails.</p>
-                        </div>
+                        <LabelWithTooltip
+                            label="Auto Retry Failed Sessions"
+                            htmlFor="auto-retry-enabled"
+                            helpText="Automatically send a retry message when a session fails."
+                        />
                         <Switch id="auto-retry-enabled" checked={autoRetryEnabledValue} onCheckedChange={setAutoRetryEnabledValue} />
                     </div>
                     {autoRetryEnabledValue && (
@@ -836,10 +856,11 @@ export default function SettingsPage() {
                         </div>
                     )}
                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-continue-enabled">Auto Continue Completed Sessions</Label>
-                            <p className="text-xs text-muted-foreground">Automatically send a continue message when a session completes without a PR.</p>
-                        </div>
+                        <LabelWithTooltip
+                            label="Auto Continue Completed Sessions"
+                            htmlFor="auto-continue-enabled"
+                            helpText="Automatically send a continue message when a session completes without a PR."
+                        />
                         <Switch id="auto-continue-enabled" checked={autoContinueEnabledValue} onCheckedChange={setAutoContinueEnabledValue} />
                     </div>
                     {autoContinueEnabledValue && (
@@ -854,7 +875,11 @@ export default function SettingsPage() {
                     )}
 
                     <div className="grid gap-2 pt-4 border-t">
-                        <Label htmlFor="min-session-interaction">Minimum Interaction Interval (seconds)</Label>
+                        <LabelWithTooltip
+                            label="Minimum Interaction Interval (seconds)"
+                            htmlFor="min-session-interaction"
+                            helpText="Wait at least this long before sending another automated message to the same session."
+                        />
                         <Input
                             id="min-session-interaction"
                             type="number"
@@ -862,11 +887,14 @@ export default function SettingsPage() {
                             onChange={(e) => setMinSessionInteractionIntervalValue(Number(e.target.value))}
                             min="1"
                         />
-                        <p className="text-xs text-muted-foreground">Wait at least this long before sending another automated message to the same session.</p>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="retry-timeout">Retry Timeout (seconds)</Label>
+                        <LabelWithTooltip
+                            label="Retry Timeout (seconds)"
+                            htmlFor="retry-timeout"
+                            helpText="If a session is inactive for this long, retry even without new updates."
+                        />
                          <Input
                             id="retry-timeout"
                             type="number"
@@ -874,11 +902,14 @@ export default function SettingsPage() {
                             onChange={(e) => setRetryTimeoutValue(Number(e.target.value))}
                             min="60"
                         />
-                        <p className="text-xs text-muted-foreground">If a session is inactive for this long, retry even without new updates.</p>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="auto-approval-interval">Auto Approval Check Interval (seconds)</Label>
+                        <LabelWithTooltip
+                            label="Auto Approval Check Interval (seconds)"
+                            htmlFor="auto-approval-interval"
+                            helpText="How often to check if a session can be auto-approved."
+                        />
                         <Input
                             id="auto-approval-interval"
                             type="number"
@@ -889,18 +920,20 @@ export default function SettingsPage() {
                     </div>
                     
                     <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-approval-enabled">Auto Approval</Label>
-                            <p className="text-xs text-muted-foreground">Automatically approve execution if confidence is high.</p>
-                        </div>
+                        <LabelWithTooltip
+                            label="Auto Approval"
+                            htmlFor="auto-approval-enabled"
+                            helpText="Automatically approve execution if confidence is high."
+                        />
                         <Switch id="auto-approval-enabled" checked={autoApprovalEnabledValue} onCheckedChange={setAutoApprovalEnabledValue} />
                     </div>
 
                     <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-delete-stale-branches">Auto Delete Stale Branches</Label>
-                            <p className="text-xs text-muted-foreground">Automatically delete branches after their PRs are merged.</p>
-                        </div>
+                        <LabelWithTooltip
+                            label="Auto Delete Stale Branches"
+                            htmlFor="auto-delete-stale-branches"
+                            helpText="Automatically delete branches after their PRs are merged."
+                        />
                         <Switch id="auto-delete-stale-branches" checked={autoDeleteStaleBranchesValue} onCheckedChange={setAutoDeleteStaleBranchesValue} />
                     </div>
                     {autoDeleteStaleBranchesValue && (
@@ -917,15 +950,20 @@ export default function SettingsPage() {
                     )}
 
                     <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="check-failing-actions-enabled">Check Failing Actions</Label>
-                            <p className="text-xs text-muted-foreground">Automatically post a comment when PR checks fail.</p>
-                        </div>
+                        <LabelWithTooltip
+                            label="Check Failing Actions"
+                            htmlFor="check-failing-actions-enabled"
+                            helpText="Automatically post a comment when PR checks fail."
+                        />
                         <Switch id="check-failing-actions-enabled" checked={checkFailingActionsEnabledValue} onCheckedChange={setCheckFailingActionsEnabledValue} />
                     </div>
                     {checkFailingActionsEnabledValue && (
                         <div className="grid gap-2">
-                            <Label htmlFor="check-failing-actions-interval">Check Interval (seconds)</Label>
+                            <LabelWithTooltip
+                                label="Check Interval (seconds)"
+                                htmlFor="check-failing-actions-interval"
+                                helpText="How often to check for failing PR actions."
+                            />
                             <Input
                                 id="check-failing-actions-interval"
                                 type="number"
@@ -940,10 +978,12 @@ export default function SettingsPage() {
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Automation Settings</Button>
                 </CardFooter>
              </Card>
+             </TooltipProvider>
         </TabsContent>
 
         {/* Cache Tab (New) */}
         <TabsContent value="cache" className="space-y-6">
+             <TooltipProvider>
              <Card>
                 <CardHeader>
                     <CardTitle>Cache & Polling Settings</CardTitle>
@@ -951,7 +991,11 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="grid gap-2">
-                        <Label htmlFor="cache-in-progress">In Progress Update Interval (seconds)</Label>
+                        <LabelWithTooltip
+                            label="In Progress Update Interval (seconds)"
+                            htmlFor="cache-in-progress"
+                            helpText="How often to update in-progress sessions in the cache."
+                        />
                         <Input
                             id="cache-in-progress"
                             type="number"
@@ -961,7 +1005,11 @@ export default function SettingsPage() {
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="cache-pending">Pending Approval Update Interval (seconds)</Label>
+                        <LabelWithTooltip
+                            label="Pending Approval Update Interval (seconds)"
+                            htmlFor="cache-pending"
+                            helpText="How often to update sessions pending approval in the cache."
+                        />
                         <Input
                             id="cache-pending"
                             type="number"
@@ -971,7 +1019,11 @@ export default function SettingsPage() {
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="cache-completed-nopr">Completed (No PR) Update Interval (seconds)</Label>
+                        <LabelWithTooltip
+                            label="Completed (No PR) Update Interval (seconds)"
+                            htmlFor="cache-completed-nopr"
+                            helpText="How often to update completed sessions without a PR in the cache."
+                        />
                         <Input
                             id="cache-completed-nopr"
                             type="number"
@@ -981,7 +1033,11 @@ export default function SettingsPage() {
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="cache-max-age">Max Session Age to Update (days)</Label>
+                        <LabelWithTooltip
+                            label="Max Session Age to Update (days)"
+                            htmlFor="cache-max-age"
+                            helpText="Sessions older than this will only update manually."
+                        />
                         <Input
                             id="cache-max-age"
                             type="number"
@@ -989,13 +1045,13 @@ export default function SettingsPage() {
                             onChange={(e) => setSessionCacheMaxAgeDaysValue(Number(e.target.value))}
                             min="1"
                         />
-                         <p className="text-xs text-muted-foreground">Sessions older than this will only update manually.</p>
                     </div>
                 </CardContent>
                 <CardFooter>
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Cache Settings</Button>
                 </CardFooter>
             </Card>
+            </TooltipProvider>
         </TabsContent>
 
 
