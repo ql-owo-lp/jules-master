@@ -256,7 +256,7 @@ function HomePageContent() {
     fetchAllData({ isRefresh: true });
   };
 
-  const handleApprovePlan = (sessionIds: string[]) => {
+  const handleApprovePlan = useCallback((sessionIds: string[]) => {
     startActionTransition(async () => {
       if (sessionIds.length > 1) {
         setProgressLabel("Approving plans...");
@@ -304,9 +304,9 @@ function HomePageContent() {
         setProgressTotal(0);
       }
     });
-  };
+  }, [apiKey, fetchAllData, toast]);
 
-  const handleSendMessage = (sessionId: string, message: string) => {
+  const handleSendMessage = useCallback((sessionId: string, message: string) => {
     startActionTransition(async () => {
       const result = await sendMessage(sessionId, message, apiKey || null);
       if (result) {
@@ -321,9 +321,9 @@ function HomePageContent() {
         });
       }
     });
-  };
+  }, [apiKey, fetchAllData, toast]);
 
-  const handleBulkSendMessage = (sessionIds: string[], message: string) => {
+  const handleBulkSendMessage = useCallback((sessionIds: string[], message: string) => {
     startActionTransition(async () => {
       if (sessionIds.length > 1) {
         setProgressLabel("Sending messages...");
@@ -371,7 +371,7 @@ function HomePageContent() {
             setProgressTotal(0);
         }
     });
-  }
+  }, [apiKey, fetchAllData, toast]);
 
   const handleClearFilters = () => {
     onJobFilterChange(null);
