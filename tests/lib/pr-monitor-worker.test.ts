@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach, type Mock } from 'vitest';
-import { runCheckFailingActions, _resetForTest } from '@/lib/check-failing-actions-worker';
+import { runPrMonitor, _resetForTest } from '@/lib/pr-monitor-worker';
 import * as githubService from '@/lib/github-service';
 import * as sessionService from '@/lib/session-service';
 import * as sessionActions from '@/app/sessions/actions';
@@ -7,17 +7,18 @@ import { db } from '@/lib/db';
 
 vi.mock('@/lib/github-service', () => ({
     listOpenPullRequests: vi.fn(),
-    getPullRequestChecks: vi.fn(),
-    getAllCheckRuns: vi.fn(),
-    getCommit: vi.fn(),
+    getPullRequestCheckStatus: vi.fn(),
     getPullRequestComments: vi.fn(),
     createPullRequestComment: vi.fn(),
     addReactionToIssueComment: vi.fn(),
     getPullRequest: vi.fn(),
     getIssueComment: vi.fn(),
     listPullRequestFiles: vi.fn(),
+    updatePullRequest: vi.fn(),
+    mergePullRequest: vi.fn(),
     getFailingWorkflowRuns: vi.fn(),
     rerunFailedJobs: vi.fn(),
+    getCommit: vi.fn(),
 }));
 
 vi.mock('@/lib/session-service', () => ({
@@ -37,7 +38,7 @@ vi.mock('@/lib/db', () => ({
     },
 }));
 
-describe('check-failing-actions-worker', () => {
+describe('pr-monitor-worker', () => {
     beforeEach(() => {
         process.env.JULES_API_KEY = 'test-api-key';
         _resetForTest();
@@ -63,13 +64,11 @@ describe('check-failing-actions-worker', () => {
         const listPRsMock = vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
-        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([]);
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({ status: 'unknown' } as any);
         vi.spyOn(githubService, 'getIssueComment').mockResolvedValue(null); // Default mock
         vi.spyOn(githubService, 'listPullRequestFiles').mockResolvedValue([]); // Default mock
         
-        const execution = runCheckFailingActions({ schedule: false });
+        const execution = runPrMonitor({ schedule: false });
         await vi.runAllTimersAsync();
         await execution;
 
@@ -80,16 +79,22 @@ describe('check-failing-actions-worker', () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
-        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({
+            status: 'failure',
+            runs: [{ name: 'test-check', status: 'completed', conclusion: 'failure' }]
+        } as any);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
         vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: true } as any);
         vi.spyOn(githubService, 'getFailingWorkflowRuns').mockResolvedValue([1001, 1002]);
         vi.spyOn(githubService, 'rerunFailedJobs').mockResolvedValue(true);
-        
-        const execution = runCheckFailingActions({ schedule: false });
+        // Mock getIssueComment for monitoring (async call)
+        vi.spyOn(githubService, 'getIssueComment').mockResolvedValue({
+            id: 12345,
+            reactions: { eyes: 1 }
+        } as any);
+
+        const execution = runPrMonitor({ schedule: false });
         await vi.runAllTimersAsync();
         await execution;
 
@@ -120,20 +125,22 @@ describe('check-failing-actions-worker', () => {
 
         // Wait for background monitoring
         await vi.advanceTimersByTimeAsync(40000);
+        expect(githubService.getIssueComment).toHaveBeenCalledWith('test-owner/test-repo', 12345);
     }, 10000);
 
     it('should append merge conflict message if not mergeable', async () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
-        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({
+            status: 'failure',
+            runs: [{ name: 'test-check', status: 'completed', conclusion: 'failure' }]
+        } as any);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
         vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: false } as any);
         
-        const execution = runCheckFailingActions({ schedule: false });
+        const execution = runPrMonitor({ schedule: false });
         await vi.runAllTimersAsync();
         await execution;
 
@@ -150,89 +157,62 @@ describe('check-failing-actions-worker', () => {
     }, 10000);
 
     it('should skip if already commented on this commit (SHA match)', async () => {
-        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
-           { number: 1, head: { sha: 'sha1' } } as any
-       ]);
-       vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
-       vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
-       vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
-       // One comment by us with SHA tag
-       vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
-           { body: 'Some comment <!-- jules-bot-check-failing-actions commit:sha1 -->' } as any,
-       ]);
-
-       const execution = runCheckFailingActions({ schedule: false });
-       await vi.runAllTimersAsync();
-       await execution;
-
-       expect(githubService.createPullRequestComment).not.toHaveBeenCalled();
-   });
-
-    it('should NOT skip if comment is on a DIFFERENT commit', async () => {
-        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
-           { number: 1, head: { sha: 'sha1' } } as any
-       ]);
-       vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-02T00:00:00Z' } } } as any);
-       vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
-       vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
-       // Comment from older commit
-       vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
-           { body: 'Some comment <!-- jules-bot-check-failing-actions commit:old-sha -->', created_at: '2023-01-01T00:00:00Z' } as any,
-       ]);
-       // Other mocks needed for "should comment" path
-       vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
-       vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: true } as any);
-       vi.spyOn(githubService, 'getFailingWorkflowRuns').mockResolvedValue([]);
-
-       const execution = runCheckFailingActions({ schedule: false });
-        await vi.runAllTimersAsync();
-        await execution;
-
-        expect(githubService.createPullRequestComment).toHaveBeenCalled();
-    });
-
-    it('should post comment and monitor reaction (instead of auto-reacting)', async () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
-        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
-        vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
-        // Mock getIssueComment for monitoring
-        vi.spyOn(githubService, 'getIssueComment').mockResolvedValue({
-            id: 12345,
-            reactions: { eyes: 1 }
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({
+            status: 'failure',
+            runs: [{ name: 'test-check', status: 'completed', conclusion: 'failure' }]
         } as any);
-
-        vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
-        vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
         
-        // Timer setup moved to beforeEach
-
-        const execution = runCheckFailingActions({ schedule: false });
-        await vi.advanceTimersByTimeAsync(2000); // Advance enough for main loop sleep(1000)
+        // Return comment with SHA tag
+        vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
+            { body: 'Some comment <!-- jules-bot-check-failing-actions commit:sha1 -->' } as any,
+        ]);
+        
+        const execution = runPrMonitor({ schedule: false });
+        await vi.runAllTimersAsync();
         await execution;
 
-        expect(githubService.createPullRequestComment).toHaveBeenCalled();
-        // Auto-reaction should be REMOVED
-        expect(githubService.addReactionToIssueComment).not.toHaveBeenCalled();
-
-        // Advance time to trigger monitoring (30s)
-        await vi.advanceTimersByTimeAsync(35000); 
-
-        // Check if monitoring fetched the comment
-        expect(githubService.getIssueComment).toHaveBeenCalledWith('test-owner/test-repo', 12345);
-        
-        // Teardown handled by afterEach
+        expect(githubService.createPullRequestComment).not.toHaveBeenCalled();
     });
+
+    it('should NOT skip (comment again) if comment is on a DIFFERENT commit', async () => {
+        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
+           { number: 1, head: { sha: 'sha2' } } as any
+       ]);
+       vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({
+            status: 'failure',
+            runs: [{ name: 'test-check', status: 'completed', conclusion: 'failure' }]
+        } as any);
+        vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
+        vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: true } as any);
+        vi.spyOn(githubService, 'getFailingWorkflowRuns').mockResolvedValue([]);
+
+       // Comment from older commit
+       vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
+           { body: 'Some comment <!-- jules-bot-check-failing-actions commit:sha1 -->', created_at: '2023-01-01T00:00:00Z' } as any,
+       ]);
+
+        const execution = runPrMonitor({ schedule: false });
+        await vi.runAllTimersAsync();
+        await execution;
+
+        expect(githubService.createPullRequestComment).toHaveBeenCalledWith(
+            'test-owner/test-repo',
+            1,
+            expect.stringContaining('commit:sha2') // Expect new SHA
+        );
+    });
+
     it('should warn if test files are deleted', async () => {
         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
-        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({
+            status: 'failure',
+            runs: [{ name: 'test-check', status: 'completed', conclusion: 'failure' }]
+        } as any);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
         vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: true } as any);
@@ -243,7 +223,7 @@ describe('check-failing-actions-worker', () => {
             { filename: 'bar.ts', status: 'modified' }
         ]);
 
-        const execution = runCheckFailingActions({ schedule: false });
+        const execution = runPrMonitor({ schedule: false });
         await vi.runAllTimersAsync();
         await execution;
 
@@ -258,9 +238,10 @@ describe('check-failing-actions-worker', () => {
         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
-        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({
+            status: 'failure',
+            runs: [{ name: 'test-check', status: 'completed', conclusion: 'failure' }]
+        } as any);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
         vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: true } as any);
@@ -270,7 +251,7 @@ describe('check-failing-actions-worker', () => {
             { filename: 'foo.go', status: 'modified' }
         ]);
 
-        const execution = runCheckFailingActions({ schedule: false });
+        const execution = runPrMonitor({ schedule: false });
         await vi.runAllTimersAsync();
         await execution;
 
@@ -280,10 +261,93 @@ describe('check-failing-actions-worker', () => {
             expect.not.stringContaining('Deleting existing tests are not allowed')
         );
     });
-    
+
+    it('should mark PR as ready for review if checks pass and no tests deleted', async () => {
+        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
+            { number: 1, head: { sha: 'sha1' } } as any
+        ]);
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({
+            status: 'success',
+            runs: [{ name: 'test-check', status: 'completed', conclusion: 'success' }]
+        } as any);
+        // Mock files - no deletion of tests
+        vi.spyOn(githubService, 'listPullRequestFiles').mockResolvedValue([
+            { filename: 'foo.go', status: 'modified', deletions: 0 }
+        ]);
+        // Mock PR - draft=true
+        vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({
+            mergeable: true,
+            draft: true
+        } as any);
+
+        const execution = runPrMonitor({ schedule: false });
+        await vi.runAllTimersAsync();
+        await execution;
+
+        expect(githubService.updatePullRequest).toHaveBeenCalledWith(
+            'test-owner/test-repo',
+            1,
+            { draft: false }
+        );
+        expect(githubService.mergePullRequest).not.toHaveBeenCalled();
+    });
+
+    it('should auto-merge PR if checks pass and only adding tests', async () => {
+        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
+            { number: 1, head: { sha: 'sha1' } } as any
+        ]);
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({
+            status: 'success',
+            runs: [{ name: 'test-check', status: 'completed', conclusion: 'success' }]
+        } as any);
+        // Mock files - only test files, no deletions
+        vi.spyOn(githubService, 'listPullRequestFiles').mockResolvedValue([
+            { filename: 'foo.test.ts', status: 'added', deletions: 0 }
+        ]);
+        // Mock PR - mergeable
+        vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({
+            mergeable: true,
+            draft: false // or true, doesn't matter for merge but logically usually ready
+        } as any);
+
+        const execution = runPrMonitor({ schedule: false });
+        await vi.runAllTimersAsync();
+        await execution;
+
+        expect(githubService.mergePullRequest).toHaveBeenCalledWith(
+            'test-owner/test-repo',
+            1,
+            'rebase'
+        );
+    });
+
+    it('should NOT auto-merge PR if not only test files', async () => {
+        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
+            { number: 1, head: { sha: 'sha1' } } as any
+        ]);
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({
+            status: 'success',
+            runs: [{ name: 'test-check', status: 'completed', conclusion: 'success' }]
+        } as any);
+        // Mock files - mixed content
+        vi.spyOn(githubService, 'listPullRequestFiles').mockResolvedValue([
+            { filename: 'foo.test.ts', status: 'added', deletions: 0 },
+            { filename: 'src/foo.ts', status: 'modified', deletions: 0 }
+        ]);
+
+        vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({
+            mergeable: true,
+        } as any);
+
+        const execution = runPrMonitor({ schedule: false });
+        await vi.runAllTimersAsync();
+        await execution;
+
+        expect(githubService.mergePullRequest).not.toHaveBeenCalled();
+    });
 
     it('should clean up lock after execution', async () => {
-        const execution = runCheckFailingActions({ schedule: false });
+        const execution = runPrMonitor({ schedule: false });
         await vi.advanceTimersByTimeAsync(2000); // Advance enough for main loop sleep(1000)
         await execution;
         expect(db.delete).toHaveBeenCalled();

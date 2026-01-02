@@ -9,7 +9,7 @@ export async function register() {
         const { startAutoContinueWorker } = await import('./lib/auto-continue-worker');
         const { startAutoDeleteStaleBranchWorker } = await import('./lib/auto-delete-stale-branch-worker');
         const { startBackgroundJobWorker } = await import('./lib/background-job-worker');
-        const { startCheckFailingActionsWorker } = await import('./lib/check-failing-actions-worker');
+        const { startPrMonitorWorker } = await import('./lib/pr-monitor-worker');
         const { processCronJobs } = await import('./lib/cron-worker');
 
         startAutoApprovalWorker();
@@ -17,7 +17,7 @@ export async function register() {
         startAutoContinueWorker();
         startAutoDeleteStaleBranchWorker();
         startBackgroundJobWorker();
-        startCheckFailingActionsWorker();
+        startPrMonitorWorker();
 
         // Initialize settings if needed
         const { db } = await import('./lib/db');
