@@ -128,7 +128,16 @@ export async function rerunFailedJobs(repo: string, runId: number): Promise<bool
     }
 }
 
-export async function getPullRequestChecks(repo: string, ref: string): Promise<string[]> {
+export interface CheckRun {
+    name: string;
+    output?: {
+        title?: string;
+        summary?: string;
+        text?: string;
+    };
+}
+
+export async function getPullRequestChecks(repo: string, ref: string): Promise<CheckRun[]> {
     // We want to get the check runs for a specific commit SHA (ref)
     const token = process.env.GITHUB_TOKEN;
     if (!token) return [];
@@ -158,7 +167,10 @@ export async function getPullRequestChecks(repo: string, ref: string): Promise<s
         // We only care about completed and failing checks
         const failing = runs
             .filter((run: any) => run.status === 'completed' && ['failure', 'timed_out', 'action_required', 'cancelled'].includes(run.conclusion))
-            .map((run: any) => run.name);
+            .map((run: any) => ({
+                name: run.name,
+                output: run.output
+            }));
 
         return failing;
     } catch (error) {
