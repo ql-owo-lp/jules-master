@@ -6,6 +6,8 @@ import { listSources } from '@/app/sessions/actions';
 import {
     listOpenPullRequests,
     getPullRequestChecks,
+    getAllCheckRuns,
+    getCommit,
     getPullRequestComments,
     createPullRequestComment,
     addReactionToIssueComment,
@@ -131,6 +133,23 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
             const prs = await listOpenPullRequests(repoFullName, BOT_NAME_FILTER);
 
             for (const pr of prs) {
+                // Get Commit Info
+                const commit = await getCommit(repoFullName, pr.head.sha);
+                let commitDate = commit ? new Date(commit.commit.committer.date) : null;
+                // Clamp commitDate to now to prevent future dates from causing infinite loops
+                if (commitDate && commitDate.getTime() > Date.now()) {
+                    console.warn(`CheckFailingActionsWorker: Commit date ${commitDate.toISOString()} is in the future. Clamping to now.`);
+                    commitDate = new Date();
+                }
+
+                // Check all checks to see if any are pending
+                const allChecks = await getAllCheckRuns(repoFullName, pr.head.sha);
+                const pendingChecks = allChecks.filter(c => c.status !== 'completed');
+                if (pendingChecks.length > 0) {
+                     // console.log(`CheckFailingActionsWorker: PR #${pr.number} in ${repoFullName} has pending checks. Waiting...`);
+                     continue;
+                }
+
                 // Check checks
                 const failingChecks = await getPullRequestChecks(repoFullName, pr.head.sha);
 
@@ -141,22 +160,33 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
                     // Check comments
                     const comments = await getPullRequestComments(repoFullName, pr.number);
 
+                    // Filter comments to those created AFTER the commit
+                    // If commitDate is null (error), we fall back to all comments, or maybe safer to skip?
+                    // Let's assume if commitDate is missing something is wrong, but we can try to proceed with all comments.
+                    const relevantComments = commitDate
+                        ? comments.filter(c => new Date(c.created_at) > commitDate)
+                        : comments;
+
                     // 1. Check Threshold
-                    // We count how many comments are "ours" (containing the special tag)
-                    const ourComments = comments.filter(c => c.body.includes(BOT_COMMENT_TAG));
-                    if (ourComments.length >= maxCommentsThreshold) {
-                         console.log(`CheckFailingActionsWorker: PR #${pr.number} has reached comment threshold (${ourComments.length}/${maxCommentsThreshold}). Skipping.`);
+                    // We count how many relevant comments are "ours" (containing the special tag)
+                    const ourRelevantComments = relevantComments.filter(c => c.body.includes(BOT_COMMENT_TAG));
+                    if (ourRelevantComments.length >= maxCommentsThreshold) {
+                         console.log(`CheckFailingActionsWorker: PR #${pr.number} has reached comment threshold for this commit (${ourRelevantComments.length}/${maxCommentsThreshold}). Skipping.`);
                          continue;
                     }
 
-                    // 2. Check if last comment is by us (no reply)
-                    if (comments.length > 0) {
-                        const lastComment = comments[comments.length - 1];
-                        // Check tag or content for backward compatibility
-                        if (lastComment.body.includes(BOT_COMMENT_TAG) || lastComment.body.includes("@jules the GitHub actions are failing")) {
-                             console.log(`CheckFailingActionsWorker: Last comment already about failing actions. Skipping.`);
-                             continue;
-                        }
+                    // 2. Check if we already commented on this commit
+                    // If any of our relevant comments exists, we probably already reported this failure.
+                    // Unless we want to support multiple reports if things change?
+                    // The user said "wait for all checks ... then later we can comment again".
+                    // If we comment once, we should stop, unless checks are rerun and fail *again*?
+                    // But if checks are rerun, they are still on the same commit SHA.
+                    // If we rerun jobs, they might fail again.
+                    // If we already commented "Actions failing", and we rerun, and they fail again... do we comment again?
+                    // Probably not needed if the message is the same.
+                    if (ourRelevantComments.length > 0) {
+                        console.log(`CheckFailingActionsWorker: Already commented on this commit failure. Skipping.`);
+                        continue;
                     }
 
                     // Attempt to rerun failing jobs
