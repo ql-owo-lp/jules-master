@@ -29,7 +29,8 @@ export const settingsSchema = z.object({
   retryTimeout: z.number(),
   autoDeleteStaleBranchesInterval: z.number(),
   checkFailingActionsEnabled: z.boolean().optional().default(true),
-  checkFailingActionsInterval: z.number().optional().default(60),
+  checkFailingActionsInterval: z.number().optional().default(600),
+  checkFailingActionsThreshold: z.number().optional().default(10),
   profileId: z.string().optional(),
 });
 

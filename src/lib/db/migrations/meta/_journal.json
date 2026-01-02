@@ -22,6 +22,13 @@
       "when": 1767152609503,
       "tag": "0002_wonderful_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1767318271559,
+      "tag": "0003_fair_bloodaxe",
+      "breakpoints": true
     }
   ]
 }
