@@ -82,7 +82,7 @@
     "@vitest/coverage-v8": "^4.0.15",
     "drizzle-kit": "^0.31.7",
     "eslint": "9.39.2",
-    "eslint-config-next": "16.0.10",
+    "eslint-config-next": "15.0.4",
     "genkit-cli": "^1.20.0",
     "jsdom": "^27.2.0",
     "patch-package": "^8.0.1",

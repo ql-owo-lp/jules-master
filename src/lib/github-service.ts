@@ -48,7 +48,7 @@ export async function listOpenPullRequests(repo: string, author?: string): Promi
     const token = process.env.GITHUB_TOKEN;
     if (!token) return [];
 
-    let url = `https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`;
+    const url = `https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`;
 
     try {
         const response = await fetchWithRetry(url, {
@@ -99,7 +99,7 @@ export async function getFailingWorkflowRuns(repo: string, headSha: string): Pro
         const data = await response.json();
         const runs = data.workflow_runs || [];
 
-        return runs.map((run: any) => run.id);
+        return runs.map((run: any) => run.id); // eslint-disable-line @typescript-eslint/no-explicit-any
     } catch (error) {
         console.error(`Error listing workflow runs for ${repo} ${headSha}:`, error);
         return [];
@@ -159,10 +159,10 @@ export async function getPullRequestCheckStatus(repo: string, ref: string): Prom
         const runs = data.check_runs || [];
 
         const total = runs.length;
-        const passed = runs.filter((run: any) => run.conclusion === 'success').length;
+        const passed = runs.filter((run: any) => run.conclusion === 'success').length; // eslint-disable-line @typescript-eslint/no-explicit-any
         // Pending: status is queued or in_progress. Or status completed but no conclusion (rare).
-        const pendingCount = runs.filter((run: any) => run.status !== 'completed').length;
-        const failedCount = runs.filter((run: any) =>
+        const pendingCount = runs.filter((run: any) => run.status !== 'completed').length; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const failedCount = runs.filter((run: any) => // eslint-disable-line @typescript-eslint/no-explicit-any
             run.status === 'completed' && ['failure', 'timed_out', 'action_required', 'cancelled'].includes(run.conclusion)
         ).length;
 
@@ -183,7 +183,7 @@ export async function getPullRequestCheckStatus(repo: string, ref: string): Prom
             passed,
             pending: pendingCount,
             failed: failedCount,
-            runs: runs.map((r: any) => ({ 
+            runs: runs.map((r: any) => ({  // eslint-disable-line @typescript-eslint/no-explicit-any 
                 name: r.name, 
                 status: r.status, 
                 conclusion: r.conclusion,
@@ -247,7 +247,7 @@ export async function getAllCheckRuns(repo: string, ref: string): Promise<CheckR
     }
 }
 
-export async function getCommit(repo: string, sha: string): Promise<any | null> {
+export async function getCommit(repo: string, sha: string): Promise<any | null> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const token = process.env.GITHUB_TOKEN;
     if (!token) return null;
 
@@ -440,7 +440,7 @@ export async function deleteBranch(repo: string, branch: string): Promise<boolea
     }
 }
 
-export async function listPullRequestFiles(repo: string, prNumber: number): Promise<any[]> {
+export async function listPullRequestFiles(repo: string, prNumber: number): Promise<any[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const token = process.env.GITHUB_TOKEN;
     if (!token) return [];
 

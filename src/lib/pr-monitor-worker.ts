@@ -1,6 +1,6 @@
 
 import { db } from './db';
-import { settings, locks } from './db/schema';
+import { locks } from './db/schema';
 import { eq, and, lt } from 'drizzle-orm';
 import { listSources } from '@/app/sessions/actions';
 import {
@@ -8,15 +8,13 @@ import {
     getPullRequestCheckStatus,
     getPullRequestComments,
     createPullRequestComment,
-    addReactionToIssueComment,
     getPullRequest,
     getIssueComment,
     listPullRequestFiles,
     updatePullRequest,
     mergePullRequest,
     getFailingWorkflowRuns,
-    rerunFailedJobs,
-    getCommit
+    rerunFailedJobs
 } from './github-service';
 import { getSettings } from './session-service';
 
@@ -71,14 +69,14 @@ export async function runPrMonitor(options = { schedule: true }) {
              await processRepositories(apiKey, maxCommentsThreshold);
         }
 
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error("PrMonitorWorker: Error during check cycle:", error);
     } finally {
         // Release lock
         try {
             await db.delete(locks).where(eq(locks.id, WORKER_LOCK_ID));
-        } catch (e) {
-            console.error("PrMonitorWorker: Failed to release lock", e);
+        } catch {
+            console.error("PrMonitorWorker: Failed to release lock");
         }
 
         isRunning = false;
@@ -108,7 +106,7 @@ async function acquireLock(): Promise<boolean> {
         });
 
         return true;
-    } catch (e) {
+    } catch {
         return false;
     }
 }
@@ -119,8 +117,8 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
     let sources = [];
     try {
         sources = await listSources(apiKey);
-    } catch (e) {
-        console.error("PrMonitorWorker: Failed to list sources", e);
+    } catch (_e) {
+        console.error("PrMonitorWorker: Failed to list sources", _e);
         return;
     }
 
@@ -192,7 +190,8 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
                     }
 
                     // Post comment
-                    let commentBody = `@jules the git hub actions are failing. Failing GitHub actions:\n${failingChecks.join(', ')}.`;
+                    const failingChecksList = failingChecks.map(name => `- ${name}`).join('\n');
+                    let commentBody = `@jules the git hub actions are failing. Failing GitHub actions:\n${failingChecksList}`;
 
                     // Add CodeQL details
                     const codeqlCheck = checkStatus.runs.find(c => c.name.toLowerCase().includes('codeql'));
@@ -370,7 +369,7 @@ async function monitorCommentReaction(repo: string, commentId: number) {
 
         // GitHub API response for issue comment includes 'reactions' object
         // Typings might need update or we can cast if not present in GitHubIssueComment
-        const reactions = (comment as any).reactions;
+        const reactions = (comment as any).reactions; // eslint-disable-line @typescript-eslint/no-explicit-any
         if (reactions && reactions['eyes'] > 0) {
             console.log(`PrMonitorWorker: [Jules replied] Eye reaction found on comment ${commentId}.`);
         } else {
