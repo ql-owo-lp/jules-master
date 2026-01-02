@@ -68,6 +68,66 @@ export async function listOpenPullRequests(repo: string, author?: string): Promi
     }
 }
 
+export async function getFailingWorkflowRuns(repo: string, headSha: string): Promise<number[]> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return [];
+
+    // https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#list-workflow-runs-for-a-repository
+    const url = `https://api.github.com/repos/${repo}/actions/runs?head_sha=${headSha}&status=failure`;
+
+    try {
+        const response = await fetchWithRetry(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+            },
+        });
+
+        if (!response.ok) {
+             console.error(`Failed to list workflow runs for ${repo} ${headSha}: ${response.status}`);
+             return [];
+        }
+
+        const data = await response.json();
+        const runs = data.workflow_runs || [];
+
+        return runs.map((run: any) => run.id);
+    } catch (error) {
+        console.error(`Error listing workflow runs for ${repo} ${headSha}:`, error);
+        return [];
+    }
+}
+
+export async function rerunFailedJobs(repo: string, runId: number): Promise<boolean> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return false;
+
+    // https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#re-run-failed-jobs-from-a-workflow-run
+    const url = `https://api.github.com/repos/${repo}/actions/runs/${runId}/rerun-failed-jobs`;
+
+    try {
+        const response = await fetchWithRetry(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+            },
+        });
+
+        if (response.ok) {
+            console.log(`Successfully triggered rerun for workflow run ${runId} in ${repo}`);
+            return true;
+        } else {
+            const errorText = await response.text();
+            console.error(`Failed to trigger rerun for workflow run ${runId} in ${repo}: ${response.status} ${response.statusText} - ${errorText}`);
+            return false;
+        }
+    } catch (error) {
+        console.error(`Error triggering rerun for workflow run ${runId} in ${repo}:`, error);
+        return false;
+    }
+}
+
 export async function getPullRequestChecks(repo: string, ref: string): Promise<string[]> {
     // We want to get the check runs for a specific commit SHA (ref)
     const token = process.env.GITHUB_TOKEN;

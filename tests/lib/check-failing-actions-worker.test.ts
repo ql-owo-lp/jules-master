@@ -14,6 +14,8 @@ vi.mock('@/lib/github-service', () => ({
     getPullRequest: vi.fn(),
     getIssueComment: vi.fn(),
     listPullRequestFiles: vi.fn(),
+    getFailingWorkflowRuns: vi.fn(),
+    rerunFailedJobs: vi.fn(),
 }));
 
 vi.mock('@/lib/session-service', () => ({
@@ -70,7 +72,7 @@ describe('check-failing-actions-worker', () => {
         expect(listPRsMock).toHaveBeenCalledWith('test-owner/test-repo', 'google-labs-jules');
     });
 
-    it('should comment on failing actions', async () => {
+    it('should comment on failing actions and trigger reruns', async () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
@@ -78,6 +80,8 @@ describe('check-failing-actions-worker', () => {
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
         vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: true } as any);
+        vi.spyOn(githubService, 'getFailingWorkflowRuns').mockResolvedValue([1001, 1002]);
+        vi.spyOn(githubService, 'rerunFailedJobs').mockResolvedValue(true);
         
         const execution = runCheckFailingActions({ schedule: false });
         await vi.runAllTimersAsync();
@@ -86,8 +90,14 @@ describe('check-failing-actions-worker', () => {
         expect(githubService.createPullRequestComment).toHaveBeenCalledWith(
             'test-owner/test-repo',
             1,
-            expect.stringContaining('Failing github actions: test-check')
+            expect.stringContaining('Failing GitHub actions: test-check')
         );
+
+        // Expect reruns to be triggered
+        expect(githubService.getFailingWorkflowRuns).toHaveBeenCalledWith('test-owner/test-repo', 'sha1');
+        expect(githubService.rerunFailedJobs).toHaveBeenCalledWith('test-owner/test-repo', 1001);
+        expect(githubService.rerunFailedJobs).toHaveBeenCalledWith('test-owner/test-repo', 1002);
+
         expect(githubService.createPullRequestComment).toHaveBeenCalledWith(
             'test-owner/test-repo',
             1,
@@ -142,6 +152,23 @@ describe('check-failing-actions-worker', () => {
 
         expect(githubService.createPullRequestComment).not.toHaveBeenCalled();
     });
+
+    it('should skip if last comment is by us (old content match)', async () => {
+        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
+           { number: 1, head: { sha: 'sha1' } } as any
+       ]);
+       vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue(['test-check']);
+       // Only 1 comment, but it is by us (with TAG) and is the last one.
+       vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
+           { body: '@jules the GitHub actions are failing' } as any,
+       ]);
+
+       const execution = runCheckFailingActions({ schedule: false });
+       await vi.runAllTimersAsync();
+       await execution;
+
+       expect(githubService.createPullRequestComment).not.toHaveBeenCalled();
+   });
 
     it('should skip if last comment is by us', async () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
