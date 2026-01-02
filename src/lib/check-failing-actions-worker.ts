@@ -135,7 +135,8 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
                 const failingChecks = await getPullRequestChecks(repoFullName, pr.head.sha);
 
                 if (failingChecks.length > 0) {
-                    console.log(`CheckFailingActionsWorker: PR #${pr.number} in ${repoFullName} has failing checks: ${failingChecks.join(', ')}`);
+                    const failingCheckNames = failingChecks.map(c => c.name).join(', ');
+                    console.log(`CheckFailingActionsWorker: PR #${pr.number} in ${repoFullName} has failing checks: ${failingCheckNames}`);
 
                     // Check comments
                     const comments = await getPullRequestComments(repoFullName, pr.number);
@@ -174,7 +175,15 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
                     }
 
                     // Post comment
-                    let commentBody = `@jules the GitHub actions are failing. Failing GitHub actions: ${failingChecks.join(', ')}.`;
+                    let commentBody = `@jules the GitHub actions are failing. Failing GitHub actions: ${failingCheckNames}.`;
+
+                    // Add CodeQL details
+                    const codeqlCheck = failingChecks.find(c => c.name.toLowerCase().includes('codeql'));
+                    if (codeqlCheck && codeqlCheck.output) {
+                         if (codeqlCheck.output.summary) {
+                             commentBody += `\n\n**CodeQL Summary:**\n${codeqlCheck.output.summary}`;
+                         }
+                    }
 
                     // Check for merge conflicts
                     try {

@@ -76,7 +76,7 @@ describe('check-failing-actions-worker', () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue(['test-check']);
+        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
         vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: true } as any);
@@ -114,7 +114,7 @@ describe('check-failing-actions-worker', () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue(['test-check']);
+        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
         vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: false } as any);
@@ -139,7 +139,7 @@ describe('check-failing-actions-worker', () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue(['test-check']);
+        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         // Threshold is 2. Return 2 comments by "us" with the TAG.
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
             { body: 'Some comment <!-- jules-bot-check-failing-actions -->' } as any,
@@ -157,7 +157,7 @@ describe('check-failing-actions-worker', () => {
         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
            { number: 1, head: { sha: 'sha1' } } as any
        ]);
-       vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue(['test-check']);
+       vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
        // Only 1 comment, but it is by us (with TAG) and is the last one.
        vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
            { body: '@jules the GitHub actions are failing' } as any,
@@ -174,7 +174,7 @@ describe('check-failing-actions-worker', () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue(['test-check']);
+        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         // Only 1 comment, but it is by us (with TAG) and is the last one.
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
             { body: 'Some comment <!-- jules-bot-check-failing-actions -->' } as any,
@@ -191,7 +191,7 @@ describe('check-failing-actions-worker', () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue(['test-check']);
+        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         // Mock getIssueComment for monitoring
         vi.spyOn(githubService, 'getIssueComment').mockResolvedValue({
@@ -224,7 +224,7 @@ describe('check-failing-actions-worker', () => {
         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue(['test-check']);
+        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
         vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: true } as any);
@@ -250,7 +250,7 @@ describe('check-failing-actions-worker', () => {
         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue(['test-check']);
+        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
         vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: true } as any);
