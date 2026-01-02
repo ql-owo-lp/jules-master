@@ -157,7 +157,7 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
                     }
 
                     // Post comment
-                    let commentBody = `@jules the git hub actions are failing. Failing github actions: ${failingChecks.join(', ')}. (Checked at ${new Date().toISOString()})`;
+                    let commentBody = `@jules the git hub actions are failing. Failing github actions: ${failingChecks.join(', ')}.`;
 
                     // Check for merge conflicts
                     try {
