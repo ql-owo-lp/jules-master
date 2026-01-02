@@ -23,12 +23,25 @@ export type GitHubPullRequestSimple = {
     };
     head: {
         sha: string;
+        ref: string;
     };
+    draft?: boolean;
 };
 
 export type GitHubPullRequestFull = GitHubPullRequestSimple & {
     mergeable: boolean | null;
     mergeable_state: string;
+    merged: boolean;
+    merged_at: string | null;
+};
+
+export type PullRequestCheckStatus = {
+    status: 'unknown' | 'success' | 'failure' | 'pending';
+    total: number;
+    passed: number;
+    pending: number;
+    failed: number;
+    runs: { name: string; status: string; conclusion: string | null; output?: { title?: string; summary?: string; text?: string } }[];
 };
 
 export async function listOpenPullRequests(repo: string, author?: string): Promise<GitHubPullRequestSimple[]> {
@@ -36,11 +49,6 @@ export async function listOpenPullRequests(repo: string, author?: string): Promi
     if (!token) return [];
 
     let url = `https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`;
-    // If author is provided, we can't filter directly in the API call for list pulls unless we use search API.
-    // List pulls API lists all pulls.
-    // Search API is better for filtering: `is:pr is:open repo:${repo} author:${author}`
-    // But let's use list and filter locally for simplicity if the volume is low, or search if we expect many.
-    // Let's use list and filter locally to avoid search rate limits which are lower.
 
     try {
         const response = await fetchWithRetry(url, {
@@ -128,19 +136,9 @@ export async function rerunFailedJobs(repo: string, runId: number): Promise<bool
     }
 }
 
-export interface CheckRun {
-    name: string;
-    output?: {
-        title?: string;
-        summary?: string;
-        text?: string;
-    };
-}
-
-export async function getPullRequestChecks(repo: string, ref: string): Promise<CheckRun[]> {
-    // We want to get the check runs for a specific commit SHA (ref)
+export async function getPullRequestCheckStatus(repo: string, ref: string): Promise<PullRequestCheckStatus> {
     const token = process.env.GITHUB_TOKEN;
-    if (!token) return [];
+    if (!token) return { status: 'unknown', total: 0, passed: 0, pending: 0, failed: 0, runs: [] };
 
     const url = `https://api.github.com/repos/${repo}/commits/${ref}/check-runs`;
 
@@ -154,28 +152,48 @@ export async function getPullRequestChecks(repo: string, ref: string): Promise<C
 
         if (!response.ok) {
             console.error(`Failed to get checks for ${repo} ${ref}: ${response.status}`);
-            return [];
+            return { status: 'unknown', total: 0, passed: 0, pending: 0, failed: 0, runs: [] };
         }
 
         const data = await response.json();
         const runs = data.check_runs || [];
 
-        // Filter for failing runs
-        // status: queued, in_progress, completed
-        // conclusion: success, failure, neutral, cancelled, skipped, timed_out, action_required
+        const total = runs.length;
+        const passed = runs.filter((run: any) => run.conclusion === 'success').length;
+        // Pending: status is queued or in_progress. Or status completed but no conclusion (rare).
+        const pendingCount = runs.filter((run: any) => run.status !== 'completed').length;
+        const failedCount = runs.filter((run: any) =>
+            run.status === 'completed' && ['failure', 'timed_out', 'action_required', 'cancelled'].includes(run.conclusion)
+        ).length;
 
-        // We only care about completed and failing checks
-        const failing = runs
-            .filter((run: any) => run.status === 'completed' && ['failure', 'timed_out', 'action_required', 'cancelled'].includes(run.conclusion))
-            .map((run: any) => ({
-                name: run.name,
-                output: run.output
-            }));
+        let status: 'unknown' | 'success' | 'failure' | 'pending' = 'unknown';
+        if (total === 0) {
+            status = 'unknown';
+        } else if (failedCount > 0) {
+            status = 'failure';
+        } else if (pendingCount > 0) {
+            status = 'pending';
+        } else {
+            status = 'success';
+        }
 
-        return failing;
+        return {
+            status,
+            total,
+            passed,
+            pending: pendingCount,
+            failed: failedCount,
+            runs: runs.map((r: any) => ({ 
+                name: r.name, 
+                status: r.status, 
+                conclusion: r.conclusion,
+                output: r.output // Added output here for CodeQL support
+            }))
+        };
+
     } catch (error) {
-         console.error(`Error getting checks for ${repo} ${ref}:`, error);
-         return [];
+         console.error(`Error getting check status for ${repo} ${ref}:`, error);
+         return { status: 'unknown', total: 0, passed: 0, pending: 0, failed: 0, runs: [] };
     }
 }
 
@@ -217,8 +235,6 @@ export async function getAllCheckRuns(repo: string, ref: string): Promise<CheckR
             const runs = data.check_runs || [];
             allRuns = allRuns.concat(runs);
 
-            // If we received fewer runs than perPage, we are on the last page.
-            // Also check total_count if available to be sure, but page size check is usually enough.
             if (runs.length < perPage) {
                 break;
             }
@@ -227,7 +243,7 @@ export async function getAllCheckRuns(repo: string, ref: string): Promise<CheckR
         return allRuns;
     } catch (error) {
          console.error(`Error getting all checks for ${repo} ${ref}:`, error);
-         return allRuns; // Return what we have so far
+         return allRuns;
     }
 }
 
@@ -255,32 +271,21 @@ export async function getCommit(repo: string, sha: string): Promise<any | null> 
     }
 }
 
+export async function getPullRequestChecks(repo: string, ref: string): Promise<string[]> {
+    // Legacy support wrapper or keep for simple list of failing checks
+    const status = await getPullRequestCheckStatus(repo, ref);
+    if (status.status === 'failure') {
+        return status.runs
+            .filter(r => r.status === 'completed' && ['failure', 'timed_out', 'action_required', 'cancelled'].includes(r.conclusion || ''))
+            .map(r => r.name);
+    }
+    return [];
+}
+
 export async function getPullRequestComments(repo: string, prNumber: number): Promise<GitHubIssueComment[]> {
     const token = process.env.GITHUB_TOKEN;
     if (!token) return [];
 
-    // Use query parameters to get the latest comments.
-    // GitHub API lists comments in ascending order by default.
-    // We can use per_page=100 (max) to get most, but if there are more than 100, we miss the last one.
-    // A better approach to check the *last* comment is to just fetch the last page.
-    // But we don't know the last page number without a HEAD request.
-    // Alternatively, we can use the Issue Comments API which does NOT support sorting by creation date in the list endpoint easily (it returns in ascending order).
-    // Actually, looking at GitHub API docs, `GET /repos/{owner}/{repo}/issues/{issue_number}/comments` lists comments.
-    // It takes `per_page` and `page`.
-
-    // However, since we just want to check if the *last* comment is ours,
-    // and we want to avoid pagination complexity if possible.
-    // But to be robust against > 30 comments (default page size), we should increase page size.
-    // Even better, we can assume that if we are checking for spam loop, we only care about very recent comments.
-    // Let's try to fetch with `per_page=100`. That covers 99% of cases.
-    // If we want 100% robustness, we would need to follow Link headers.
-
-    // Actually, wait. We can't sort issue comments by date DESC in the standard API?
-    // The docs say "Issue comments are ordered by ascending ID."
-    // So to get the last one, we really need the last page.
-
-    // Let's implement a simple loop or just fetch the last page if Link header exists?
-    // For this environment, fetching 100 comments is likely sufficient.
     const url = `https://api.github.com/repos/${repo}/issues/${prNumber}/comments?per_page=100`;
 
     try {
@@ -292,13 +297,7 @@ export async function getPullRequestComments(repo: string, prNumber: number): Pr
         });
 
         if (!response.ok) return [];
-        const comments: GitHubIssueComment[] = await response.json();
-
-        // If we got 100 comments, there might be more.
-        // We should check if there is a 'link' header indicating a next/last page.
-        // But for now, 100 is a safe enough upper bound for this specific bot check to prevent spam in most realistic scenarios.
-        // If a PR has > 100 comments, it's very active.
-        return comments;
+        return await response.json();
     } catch (error) {
         console.error(`Error getting comments for ${repo} #${prNumber}:`, error);
         return [];
@@ -326,14 +325,7 @@ export async function createPullRequestComment(repo: string, prNumber: number, b
             const data = await response.json();
             return data.id;
         }
-        const errorText = await response.text();
-        const errorMessage = `Failed to create comment: ${response.status} ${response.statusText} - ${errorText}`;
-        console.error(errorMessage);
-        
-        if (response.status === 403 || response.status === 404) {
-             console.error(`[ACTION REQUIRED] Permission Issue detected: The GitHub token does not have 'Write' permissions for Pull Requests on repository '${repo}'.\nRequired Permissions:\n- Fine-Grained Token: "Pull requests" -> "Read and write"\n- Classic Token: "repo" (or "public_repo")`);
-        }
-        
+        console.error(`Failed to create comment: ${response.status} ${response.statusText}`);
         return null;
     } catch (error) {
         console.error(`Error creating comment on ${repo} #${prNumber}:`, error);
@@ -352,7 +344,7 @@ export async function addReactionToIssueComment(repo: string, commentId: number,
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Accept': 'application/vnd.github.v3+json', // Reactions preview header might be needed for older API versions but v3+json is standard now
+                'Accept': 'application/vnd.github.v3+json',
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ content }),
@@ -399,7 +391,7 @@ export async function getIssueComment(repo: string, commentId: number): Promise<
         const response = await fetchWithRetry(url, {
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Accept': 'application/vnd.github.v3+json', // v3+json usually includes reactions summary, but squirrel-girl-preview might be needed for specific reaction details endpoints. Standard API returns 'reactions' object on comment.
+                'Accept': 'application/vnd.github.v3+json',
             },
         });
 
@@ -437,26 +429,16 @@ export async function deleteBranch(repo: string, branch: string): Promise<boolea
         });
 
         if (response.ok) {
-            console.log(`Successfully deleted branch ${branch} from ${repo}`);
             return true;
         } else if (response.status === 404) {
-            // The branch is not found, so we can consider the deletion successful.
-            console.warn(`Branch ${branch} not found in ${repo}, assuming it was already deleted.`);
             return true;
-        } else if (response.status === 422) {
-            // The branch cannot be processed, so it is a failure case.
-            console.warn(`Branch ${branch} in ${repo} could not be processed.`);
-            return false;
-        } else {
-            console.error(`Failed to delete branch ${branch} from ${repo}: ${response.status} ${response.statusText}`);
-            return false;
         }
+        return false;
     } catch (error) {
         console.error(`Error deleting branch ${branch} from ${repo}:`, error);
         return false;
     }
 }
-// ... existing code ...
 
 export async function listPullRequestFiles(repo: string, prNumber: number): Promise<any[]> {
     const token = process.env.GITHUB_TOKEN;
@@ -475,10 +457,65 @@ export async function listPullRequestFiles(repo: string, prNumber: number): Prom
         if (response.ok) {
             return await response.json();
         }
-        console.error(`Failed to list files for PR #${prNumber} in ${repo}: ${response.status} ${response.statusText}`);
         return [];
     } catch (error) {
         console.error(`Error listing files for PR #${prNumber} in ${repo}:`, error);
         return [];
+    }
+}
+
+export async function updatePullRequest(repo: string, prNumber: number, updates: { title?: string; body?: string; state?: 'open' | 'closed'; draft?: boolean; maintainer_can_modify?: boolean }): Promise<GitHubPullRequestFull | null> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return null;
+
+    const url = `https://api.github.com/repos/${repo}/pulls/${prNumber}`;
+
+    try {
+        const response = await fetchWithRetry(url, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updates),
+        });
+
+        if (response.ok) {
+            return await response.json();
+        }
+        console.error(`Failed to update PR #${prNumber} in ${repo}: ${response.status} ${response.statusText}`);
+        return null;
+    } catch (error) {
+        console.error(`Error updating PR #${prNumber} in ${repo}:`, error);
+        return null;
+    }
+}
+
+export async function mergePullRequest(repo: string, prNumber: number, method: 'merge' | 'squash' | 'rebase' = 'merge'): Promise<boolean> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return false;
+
+    const url = `https://api.github.com/repos/${repo}/pulls/${prNumber}/merge`;
+
+    try {
+        const response = await fetchWithRetry(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ merge_method: method }),
+        });
+
+        if (response.ok) {
+            return true;
+        }
+        console.error(`Failed to merge PR #${prNumber} in ${repo}: ${response.status} ${response.statusText}`);
+        return false;
+    } catch (error) {
+        console.error(`Error merging PR #${prNumber} in ${repo}:`, error);
+        return false;
     }
 }
