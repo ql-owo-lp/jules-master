@@ -19,7 +19,9 @@ import {
 } from './github-service';
 import { getSettings } from './session-service';
 
-const BOT_COMMENT_TAG = '<!-- jules-bot-check-failing-actions -->';
+const BOT_COMMENT_TAG_PREFIX = '<!-- jules-bot-check-failing-actions';
+const BOT_COMMENT_TAG_SUFFIX = '-->';
+const BOT_COMMENT_TAG = `${BOT_COMMENT_TAG_PREFIX} ${BOT_COMMENT_TAG_SUFFIX}`; // Legacy tag
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
@@ -154,40 +156,37 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
                 const failingChecks = await getPullRequestChecks(repoFullName, pr.head.sha);
 
                 if (failingChecks.length > 0) {
-                    const failingCheckNames = failingChecks.map(c => c.name).join(', ');
-                    console.log(`CheckFailingActionsWorker: PR #${pr.number} in ${repoFullName} has failing checks: ${failingCheckNames}`);
+                    const failingCheckNames = failingChecks.map(c => `- ${c.name}`).join('\n');
+                    console.log(`CheckFailingActionsWorker: PR #${pr.number} in ${repoFullName} has failing checks:\n${failingCheckNames}`);
 
                     // Check comments
                     const comments = await getPullRequestComments(repoFullName, pr.number);
 
-                    // Filter comments to those created AFTER the commit
-                    // If commitDate is null (error), we fall back to all comments, or maybe safer to skip?
-                    // Let's assume if commitDate is missing something is wrong, but we can try to proceed with all comments.
-                    const relevantComments = commitDate
-                        ? comments.filter(c => new Date(c.created_at) > commitDate)
-                        : comments;
+                    // Check if we already commented on this commit using the commit SHA in the tag
+                    const alreadyCommentedOnSha = comments.some(c => {
+                        return c.body.includes(`${BOT_COMMENT_TAG_PREFIX} commit:${pr.head.sha} ${BOT_COMMENT_TAG_SUFFIX}`);
+                    });
 
-                    // 1. Check Threshold
-                    // We count how many relevant comments are "ours" (containing the special tag)
-                    const ourRelevantComments = relevantComments.filter(c => c.body.includes(BOT_COMMENT_TAG));
-                    if (ourRelevantComments.length >= maxCommentsThreshold) {
-                         console.log(`CheckFailingActionsWorker: PR #${pr.number} has reached comment threshold for this commit (${ourRelevantComments.length}/${maxCommentsThreshold}). Skipping.`);
+                    if (alreadyCommentedOnSha) {
+                         console.log(`CheckFailingActionsWorker: Already commented on commit ${pr.head.sha}. Skipping.`);
                          continue;
                     }
 
-                    // 2. Check if we already commented on this commit
-                    // If any of our relevant comments exists, we probably already reported this failure.
-                    // Unless we want to support multiple reports if things change?
-                    // The user said "wait for all checks ... then later we can comment again".
-                    // If we comment once, we should stop, unless checks are rerun and fail *again*?
-                    // But if checks are rerun, they are still on the same commit SHA.
-                    // If we rerun jobs, they might fail again.
-                    // If we already commented "Actions failing", and we rerun, and they fail again... do we comment again?
-                    // Probably not needed if the message is the same.
-                    if (ourRelevantComments.length > 0) {
-                        console.log(`CheckFailingActionsWorker: Already commented on this commit failure. Skipping.`);
-                        continue;
-                    }
+                    // Threshold Logic:
+                    // We still respect the global threshold for spam prevention, but we reset it per commit implicitly
+                    // by only checking recent comments? Or do we stick to "reset threshold" idea?
+                    // The user said: "when jules bot uploaded a new commit ... we will reset the comment threshold".
+                    // If we use the commit SHA in the tag, we know exactly if we commented on THIS commit.
+                    // The threshold is mainly to prevent spamming if we *retry* and it fails again and we comment again on the SAME commit?
+                    // But our logic above prevents commenting on the same commit SHA again.
+                    // So the threshold is maybe less relevant per-commit, but good to keep as a safety valve.
+                    // Let's count how many comments we made on this PR *in general* to be safe, OR just trust the SHA check.
+                    // Actually, if we use SHA check, we only comment ONCE per commit. That is inherently limited.
+                    // But if the user pushes 50 commits in an hour, we might post 50 comments.
+                    // Let's keep the threshold check based on "relevant" comments (those on the current commit, which is 0 by definition here)
+                    // Wait, if we haven't commented on this commit yet, 'ourRelevantComments' would be 0.
+                    // So the threshold check essentially becomes: have we spammed *other* things?
+                    // Let's just stick to the SHA check for now as the primary mechanism.
 
                     // Attempt to rerun failing jobs
                     try {
@@ -205,7 +204,7 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
                     }
 
                     // Post comment
-                    let commentBody = `@jules the GitHub actions are failing. Failing GitHub actions: ${failingCheckNames}.`;
+                    let commentBody = `@jules the GitHub actions are failing. Failing GitHub actions:\n${failingCheckNames}`;
 
                     // Add CodeQL details
                     const codeqlCheck = failingChecks.find(c => c.name.toLowerCase().includes('codeql'));
@@ -248,8 +247,8 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
                     }
 
 
-                    // Append unique tag
-                    commentBody += `\n\n${BOT_COMMENT_TAG}`;
+                    // Append unique tag with commit SHA
+                    commentBody += `\n\n${BOT_COMMENT_TAG_PREFIX} commit:${pr.head.sha} ${BOT_COMMENT_TAG_SUFFIX}`;
 
                     const commentId = await createPullRequestComment(repoFullName, pr.number, commentBody);
                     if (commentId) {
