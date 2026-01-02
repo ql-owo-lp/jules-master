@@ -11,7 +11,9 @@ import {
     addReactionToIssueComment,
     getPullRequest,
     getIssueComment,
-    listPullRequestFiles
+    listPullRequestFiles,
+    getFailingWorkflowRuns,
+    rerunFailedJobs
 } from './github-service';
 import { getSettings } from './session-service';
 
@@ -150,14 +152,29 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
                     if (comments.length > 0) {
                         const lastComment = comments[comments.length - 1];
                         // Check tag or content for backward compatibility
-                        if (lastComment.body.includes(BOT_COMMENT_TAG) || lastComment.body.includes("@jules the git hub actions are failing")) {
+                        if (lastComment.body.includes(BOT_COMMENT_TAG) || lastComment.body.includes("@jules the GitHub actions are failing")) {
                              console.log(`CheckFailingActionsWorker: Last comment already about failing actions. Skipping.`);
                              continue;
                         }
                     }
 
+                    // Attempt to rerun failing jobs
+                    try {
+                        const failingRuns = await getFailingWorkflowRuns(repoFullName, pr.head.sha);
+                        if (failingRuns.length > 0) {
+                             console.log(`CheckFailingActionsWorker: Triggering rerun for failing workflow runs: ${failingRuns.join(', ')}`);
+                             for (const runId of failingRuns) {
+                                 await rerunFailedJobs(repoFullName, runId);
+                             }
+                        } else {
+                            console.log(`CheckFailingActionsWorker: No failing workflow runs found for ${pr.head.sha} despite failing checks.`);
+                        }
+                    } catch (err) {
+                        console.error(`CheckFailingActionsWorker: Error triggering reruns for PR #${pr.number}:`, err);
+                    }
+
                     // Post comment
-                    let commentBody = `@jules the git hub actions are failing. Failing github actions: ${failingChecks.join(', ')}.`;
+                    let commentBody = `@jules the GitHub actions are failing. Failing GitHub actions: ${failingChecks.join(', ')}.`;
 
                     // Check for merge conflicts
                     try {
