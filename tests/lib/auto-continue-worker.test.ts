@@ -86,7 +86,9 @@ describe('AutoContinueWorker', () => {
         }
         if (table === schema.jobs) {
              // Return a Thenable (Promise-like) that resolves to [job]
-             return Promise.resolve([job]);
+             return {
+                 where: vi.fn().mockResolvedValue([job])
+             };
         }
         if (table === schema.sessions) {
              // Return a builder that has .where()
@@ -128,7 +130,9 @@ describe('AutoContinueWorker', () => {
              };
         }
         if (table === schema.jobs) {
-             return Promise.resolve([job]);
+             return {
+                 where: vi.fn().mockResolvedValue([job])
+             };
         }
         if (table === schema.sessions) {
              return {
@@ -167,7 +171,9 @@ describe('AutoContinueWorker', () => {
              };
         }
         if (table === schema.jobs) {
-             return Promise.resolve([job]);
+             return {
+                 where: vi.fn().mockResolvedValue([job])
+             };
         }
         if (table === schema.sessions) {
              return {
@@ -205,7 +211,9 @@ describe('AutoContinueWorker', () => {
              };
         }
         if (table === schema.jobs) {
-             return Promise.resolve([job]);
+             return {
+                 where: vi.fn().mockResolvedValue([job])
+             };
         }
         if (table === schema.sessions) {
              return {

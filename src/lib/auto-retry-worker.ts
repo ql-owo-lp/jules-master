@@ -1,10 +1,10 @@
 
 import { db } from './db';
 import { jobs, settings } from './db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, gte } from 'drizzle-orm';
 import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
 import { fetchPullRequestStatus } from '@/app/github/actions';
-import { differenceInHours } from 'date-fns';
+import { differenceInHours, subDays } from 'date-fns';
 import { shouldInteract } from '@/lib/throttle';
 
 let workerTimeout: NodeJS.Timeout | null = null;
@@ -35,10 +35,12 @@ export async function runAutoRetryCheck(options = { schedule: true }) {
 
         const retryMessage = settingsResult[0].autoRetryMessage;
 
-        // 2. Get all jobs
-        const allJobs = await db.select().from(jobs);
+        // 2. Get recently started jobs (created within last 3 days)
+        // Optimization: Filter by createdAt in SQL to avoid fetching all jobs
+        const cutoffDate = subDays(new Date(), 3);
+        const recentJobs = await db.select().from(jobs).where(gte(jobs.createdAt, cutoffDate.toISOString()));
 
-        if (allJobs.length === 0) {
+        if (recentJobs.length === 0) {
             isRunning = false;
             scheduleNextRun();
             return;
@@ -46,7 +48,7 @@ export async function runAutoRetryCheck(options = { schedule: true }) {
 
         // 3. Collect all session IDs
         const sessionIds: string[] = [];
-        for (const job of allJobs) {
+        for (const job of recentJobs) {
             let ids: string[] = [];
 
             if (Array.isArray(job.sessionIds)) {

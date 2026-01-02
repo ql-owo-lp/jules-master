@@ -1,10 +1,10 @@
 
 import { db } from './db';
 import { jobs, settings, sessions } from './db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, gte } from 'drizzle-orm';
 import { getSession, sendMessage, listActivities } from '@/app/sessions/[id]/actions';
 import type { Session } from '@/lib/types';
-import { differenceInHours, differenceInDays } from 'date-fns';
+import { differenceInHours, subDays } from 'date-fns';
 import { shouldInteract } from '@/lib/throttle';
 
 let workerTimeout: NodeJS.Timeout | null = null;
@@ -48,16 +48,10 @@ export async function runAutoContinueCheck(options = { schedule: true }) {
         const continueMessage = settingsResult[0].autoContinueMessage;
 
         // 2. Get recently started jobs (created within last 3 days)
-        const recentJobs = await db.select().from(jobs); // Fetch all and filter in memory to avoid complex date logic in SQL if format is varying
-
-        const now = new Date();
-        const filteredJobs = recentJobs.filter(job => {
-            const createdAt = new Date(job.createdAt);
-            // Check if valid date
-            if (isNaN(createdAt.getTime())) return false;
-            // Filter out jobs older than 3 days
-            return differenceInDays(now, createdAt) <= 3;
-        });
+        // Optimization: Filter by createdAt in SQL to avoid fetching all jobs
+        // We assume ISO string format for createdAt which allows lexicographical comparison
+        const cutoffDate = subDays(new Date(), 3);
+        const filteredJobs = await db.select().from(jobs).where(gte(jobs.createdAt, cutoffDate.toISOString()));
 
         if (filteredJobs.length === 0) {
             isRunning = false;
