@@ -96,7 +96,13 @@ describe('check-failing-actions-worker', () => {
         expect(githubService.createPullRequestComment).toHaveBeenCalledWith(
             'test-owner/test-repo',
             1,
-            expect.stringContaining('Failing GitHub actions: test-check')
+            expect.stringContaining('Failing GitHub actions:\n- test-check')
+        );
+
+        expect(githubService.createPullRequestComment).toHaveBeenCalledWith(
+            'test-owner/test-repo',
+            1,
+            expect.stringContaining('commit:sha1')
         );
 
         // Expect reruns to be triggered
@@ -143,36 +149,16 @@ describe('check-failing-actions-worker', () => {
         await vi.advanceTimersByTimeAsync(40000);
     }, 10000);
 
-    it('should skip if threshold reached', async () => {
-         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
-            { number: 1, head: { sha: 'sha1' } } as any
-        ]);
-        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
-        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
-        // Threshold is 2. Return 2 comments by "us" with the TAG, created AFTER commit date.
-        vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
-            { body: 'Some comment <!-- jules-bot-check-failing-actions -->', created_at: '2023-01-02T00:00:00Z' } as any,
-            { body: 'Another comment <!-- jules-bot-check-failing-actions -->', created_at: '2023-01-03T00:00:00Z' } as any,
-        ]);
-        
-        const execution = runCheckFailingActions({ schedule: false });
-        await vi.runAllTimersAsync();
-        await execution;
-
-        expect(githubService.createPullRequestComment).not.toHaveBeenCalled();
-    });
-
-    it('should skip if already commented on this commit', async () => {
+    it('should skip if already commented on this commit (SHA match)', async () => {
         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
            { number: 1, head: { sha: 'sha1' } } as any
        ]);
        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
-       // One comment by us created AFTER commit.
+       // One comment by us with SHA tag
        vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
-           { body: 'Some comment <!-- jules-bot-check-failing-actions -->', created_at: '2023-01-02T00:00:00Z' } as any,
+           { body: 'Some comment <!-- jules-bot-check-failing-actions commit:sha1 -->' } as any,
        ]);
 
        const execution = runCheckFailingActions({ schedule: false });
@@ -182,16 +168,16 @@ describe('check-failing-actions-worker', () => {
        expect(githubService.createPullRequestComment).not.toHaveBeenCalled();
    });
 
-    it('should NOT skip if comment is from BEFORE the commit', async () => {
+    it('should NOT skip if comment is on a DIFFERENT commit', async () => {
         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
            { number: 1, head: { sha: 'sha1' } } as any
        ]);
        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-02T00:00:00Z' } } } as any);
        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
-       // Comment from BEFORE the commit.
+       // Comment from older commit
        vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
-           { body: 'Some comment <!-- jules-bot-check-failing-actions -->', created_at: '2023-01-01T00:00:00Z' } as any,
+           { body: 'Some comment <!-- jules-bot-check-failing-actions commit:old-sha -->', created_at: '2023-01-01T00:00:00Z' } as any,
        ]);
        // Other mocks needed for "should comment" path
        vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
