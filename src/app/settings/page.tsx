@@ -126,7 +126,8 @@ export default function SettingsPage() {
 
   // Check Failing Actions
   const [checkFailingActionsEnabled, setCheckFailingActionsEnabled] = useLocalStorage<boolean>("jules-check-failing-actions-enabled", true);
-  const [checkFailingActionsInterval, setCheckFailingActionsInterval] = useLocalStorage<number>("jules-check-failing-actions-interval", 60);
+  const [checkFailingActionsInterval, setCheckFailingActionsInterval] = useLocalStorage<number>("jules-check-failing-actions-interval", 600);
+  const [checkFailingActionsThreshold, setCheckFailingActionsThreshold] = useLocalStorage<number>("jules-check-failing-actions-threshold", 10);
 
   // Throttling Settings
   const [minSessionInteractionInterval, setMinSessionInteractionInterval] = useLocalStorage<number>("jules-min-session-interaction-interval", 60);
@@ -162,6 +163,7 @@ export default function SettingsPage() {
 
   const [checkFailingActionsEnabledValue, setCheckFailingActionsEnabledValue] = useState(checkFailingActionsEnabled);
   const [checkFailingActionsIntervalValue, setCheckFailingActionsIntervalValue] = useState(checkFailingActionsInterval);
+  const [checkFailingActionsThresholdValue, setCheckFailingActionsThresholdValue] = useState(checkFailingActionsThreshold);
 
   const [minSessionInteractionIntervalValue, setMinSessionInteractionIntervalValue] = useState(minSessionInteractionInterval);
   const [retryTimeoutValue, setRetryTimeoutValue] = useState(retryTimeout);
@@ -216,6 +218,7 @@ export default function SettingsPage() {
   useEffect(() => { setAutoDeleteStaleBranchesAfterDaysValue(autoDeleteStaleBranchesAfterDays); }, [autoDeleteStaleBranchesAfterDays]);
   useEffect(() => { setCheckFailingActionsEnabledValue(checkFailingActionsEnabled); }, [checkFailingActionsEnabled]);
   useEffect(() => { setCheckFailingActionsIntervalValue(checkFailingActionsInterval); }, [checkFailingActionsInterval]);
+  useEffect(() => { setCheckFailingActionsThresholdValue(checkFailingActionsThreshold); }, [checkFailingActionsThreshold]);
   useEffect(() => { setMinSessionInteractionIntervalValue(minSessionInteractionInterval); }, [minSessionInteractionInterval]);
   useEffect(() => { setRetryTimeoutValue(retryTimeout); }, [retryTimeout]);
 
@@ -253,6 +256,7 @@ export default function SettingsPage() {
           setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
           setCheckFailingActionsEnabled(dbSettings.checkFailingActionsEnabled);
           setCheckFailingActionsInterval(dbSettings.checkFailingActionsInterval);
+          setCheckFailingActionsThreshold(dbSettings.checkFailingActionsThreshold);
           setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
           setRetryTimeout(dbSettings.retryTimeout);
 
@@ -328,6 +332,7 @@ export default function SettingsPage() {
     setAutoDeleteStaleBranchesAfterDays(autoDeleteStaleBranchesAfterDaysValue);
     setCheckFailingActionsEnabled(checkFailingActionsEnabledValue);
     setCheckFailingActionsInterval(checkFailingActionsIntervalValue);
+    setCheckFailingActionsThreshold(checkFailingActionsThresholdValue);
     setMinSessionInteractionInterval(minSessionInteractionIntervalValue);
     setRetryTimeout(retryTimeoutValue);
 
@@ -370,6 +375,7 @@ export default function SettingsPage() {
                 autoDeleteStaleBranchesAfterDays: autoDeleteStaleBranchesAfterDaysValue,
                 checkFailingActionsEnabled: checkFailingActionsEnabledValue,
                 checkFailingActionsInterval: checkFailingActionsIntervalValue,
+                checkFailingActionsThreshold: checkFailingActionsThresholdValue,
                 minSessionInteractionInterval: minSessionInteractionIntervalValue,
                 retryTimeout: retryTimeoutValue,
                 profileId: currentProfileId,
@@ -924,6 +930,7 @@ export default function SettingsPage() {
                         <Switch id="check-failing-actions-enabled" checked={checkFailingActionsEnabledValue} onCheckedChange={setCheckFailingActionsEnabledValue} />
                     </div>
                     {checkFailingActionsEnabledValue && (
+                        <>
                         <div className="grid gap-2">
                             <Label htmlFor="check-failing-actions-interval">Check Interval (seconds)</Label>
                             <Input
@@ -934,6 +941,18 @@ export default function SettingsPage() {
                                 min="10"
                             />
                         </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="check-failing-actions-threshold">Max Comments Threshold</Label>
+                            <Input
+                                id="check-failing-actions-threshold"
+                                type="number"
+                                value={checkFailingActionsThresholdValue}
+                                onChange={(e) => setCheckFailingActionsThresholdValue(Number(e.target.value))}
+                                min="1"
+                            />
+                            <p className="text-xs text-muted-foreground">Stop commenting if max comments reached or last comment was by bot.</p>
+                        </div>
+                        </>
                     )}
                 </CardContent>
                 <CardFooter>

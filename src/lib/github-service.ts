@@ -26,6 +26,11 @@ export type GitHubPullRequestSimple = {
     };
 };
 
+export type GitHubPullRequestFull = GitHubPullRequestSimple & {
+    mergeable: boolean | null;
+    mergeable_state: string;
+};
+
 export async function listOpenPullRequests(repo: string, author?: string): Promise<GitHubPullRequestSimple[]> {
     const token = process.env.GITHUB_TOKEN;
     if (!token) return [];
@@ -152,9 +157,9 @@ export async function getPullRequestComments(repo: string, prNumber: number): Pr
     }
 }
 
-export async function createPullRequestComment(repo: string, prNumber: number, body: string): Promise<boolean> {
+export async function createPullRequestComment(repo: string, prNumber: number, body: string): Promise<number | null> {
     const token = process.env.GITHUB_TOKEN;
-    if (!token) return false;
+    if (!token) return null;
 
     const url = `https://api.github.com/repos/${repo}/issues/${prNumber}/comments`;
 
@@ -169,10 +174,94 @@ export async function createPullRequestComment(repo: string, prNumber: number, b
             body: JSON.stringify({ body }),
         });
 
-        return response.ok;
+        if (response.ok) {
+            const data = await response.json();
+            return data.id;
+        }
+        const errorText = await response.text();
+        const errorMessage = `Failed to create comment: ${response.status} ${response.statusText} - ${errorText}`;
+        console.error(errorMessage);
+        
+        if (response.status === 403 || response.status === 404) {
+             console.error(`[ACTION REQUIRED] Permission Issue detected: The GitHub token does not have 'Write' permissions for Pull Requests on repository '${repo}'.\nRequired Permissions:\n- Fine-Grained Token: "Pull requests" -> "Read and write"\n- Classic Token: "repo" (or "public_repo")`);
+        }
+        
+        return null;
     } catch (error) {
         console.error(`Error creating comment on ${repo} #${prNumber}:`, error);
+        return null;
+    }
+}
+
+export async function addReactionToIssueComment(repo: string, commentId: number, content: 'eyes' | '+1' | '-1' | 'laugh' | 'confused' | 'heart' | 'hooray' | 'rocket'): Promise<boolean> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return false;
+
+    const url = `https://api.github.com/repos/${repo}/issues/comments/${commentId}/reactions`;
+
+    try {
+        const response = await fetchWithRetry(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json', // Reactions preview header might be needed for older API versions but v3+json is standard now
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ content }),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error(`Error adding reaction to comment ${commentId} in ${repo}:`, error);
         return false;
+    }
+}
+
+export async function getPullRequest(repo: string, prNumber: number): Promise<GitHubPullRequestFull | null> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return null;
+
+    const url = `https://api.github.com/repos/${repo}/pulls/${prNumber}`;
+
+    try {
+        const response = await fetchWithRetry(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+            },
+        });
+
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (error) {
+        console.error(`Error fetching PR ${repo} #${prNumber}:`, error);
+        return null;
+    }
+}
+
+export async function getIssueComment(repo: string, commentId: number): Promise<GitHubIssueComment | null> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return null;
+
+    const url = `https://api.github.com/repos/${repo}/issues/comments/${commentId}`;
+
+    try {
+        const response = await fetchWithRetry(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json', // v3+json usually includes reactions summary, but squirrel-girl-preview might be needed for specific reaction details endpoints. Standard API returns 'reactions' object on comment.
+            },
+        });
+
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (error) {
+        console.error(`Error fetching comment ${repo} ${commentId}:`, error);
+        return null;
     }
 }
 
@@ -217,5 +306,31 @@ export async function deleteBranch(repo: string, branch: string): Promise<boolea
     } catch (error) {
         console.error(`Error deleting branch ${branch} from ${repo}:`, error);
         return false;
+    }
+}
+// ... existing code ...
+
+export async function listPullRequestFiles(repo: string, prNumber: number): Promise<any[]> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return [];
+
+    const url = `https://api.github.com/repos/${repo}/pulls/${prNumber}/files?per_page=100`;
+
+    try {
+        const response = await fetchWithRetry(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+            },
+        });
+
+        if (response.ok) {
+            return await response.json();
+        }
+        console.error(`Failed to list files for PR #${prNumber} in ${repo}: ${response.status} ${response.statusText}`);
+        return [];
+    } catch (error) {
+        console.error(`Error listing files for PR #${prNumber} in ${repo}:`, error);
+        return [];
     }
 }
