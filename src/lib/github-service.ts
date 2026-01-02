@@ -179,6 +179,82 @@ export async function getPullRequestChecks(repo: string, ref: string): Promise<C
     }
 }
 
+export interface CheckRunFull {
+    name: string;
+    status: 'queued' | 'in_progress' | 'completed';
+    conclusion: 'success' | 'failure' | 'neutral' | 'cancelled' | 'skipped' | 'timed_out' | 'action_required' | null;
+    output?: {
+        title?: string;
+        summary?: string;
+        text?: string;
+    };
+}
+
+export async function getAllCheckRuns(repo: string, ref: string): Promise<CheckRunFull[]> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return [];
+
+    let allRuns: CheckRunFull[] = [];
+    let page = 1;
+    const perPage = 100;
+
+    try {
+        while (true) {
+            const url = `https://api.github.com/repos/${repo}/commits/${ref}/check-runs?per_page=${perPage}&page=${page}`;
+            const response = await fetchWithRetry(url, {
+                 headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                },
+            });
+
+            if (!response.ok) {
+                console.error(`Failed to get checks for ${repo} ${ref}: ${response.status}`);
+                break;
+            }
+
+            const data = await response.json();
+            const runs = data.check_runs || [];
+            allRuns = allRuns.concat(runs);
+
+            // If we received fewer runs than perPage, we are on the last page.
+            // Also check total_count if available to be sure, but page size check is usually enough.
+            if (runs.length < perPage) {
+                break;
+            }
+            page++;
+        }
+        return allRuns;
+    } catch (error) {
+         console.error(`Error getting all checks for ${repo} ${ref}:`, error);
+         return allRuns; // Return what we have so far
+    }
+}
+
+export async function getCommit(repo: string, sha: string): Promise<any | null> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return null;
+
+    const url = `https://api.github.com/repos/${repo}/commits/${sha}`;
+
+    try {
+        const response = await fetchWithRetry(url, {
+             headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+            },
+        });
+
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (error) {
+         console.error(`Error getting commit ${repo} ${sha}:`, error);
+         return null;
+    }
+}
+
 export async function getPullRequestComments(repo: string, prNumber: number): Promise<GitHubIssueComment[]> {
     const token = process.env.GITHUB_TOKEN;
     if (!token) return [];

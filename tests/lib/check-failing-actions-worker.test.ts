@@ -8,6 +8,8 @@ import { db } from '@/lib/db';
 vi.mock('@/lib/github-service', () => ({
     listOpenPullRequests: vi.fn(),
     getPullRequestChecks: vi.fn(),
+    getAllCheckRuns: vi.fn(),
+    getCommit: vi.fn(),
     getPullRequestComments: vi.fn(),
     createPullRequestComment: vi.fn(),
     addReactionToIssueComment: vi.fn(),
@@ -61,6 +63,8 @@ describe('check-failing-actions-worker', () => {
         const listPRsMock = vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
+        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
+        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([]);
         vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([]);
         vi.spyOn(githubService, 'getIssueComment').mockResolvedValue(null); // Default mock
         vi.spyOn(githubService, 'listPullRequestFiles').mockResolvedValue([]); // Default mock
@@ -76,6 +80,8 @@ describe('check-failing-actions-worker', () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
+        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
+        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
         vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
@@ -114,6 +120,8 @@ describe('check-failing-actions-worker', () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
+        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
+        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
         vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
@@ -139,11 +147,13 @@ describe('check-failing-actions-worker', () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
+        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
+        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
         vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
-        // Threshold is 2. Return 2 comments by "us" with the TAG.
+        // Threshold is 2. Return 2 comments by "us" with the TAG, created AFTER commit date.
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
-            { body: 'Some comment <!-- jules-bot-check-failing-actions -->' } as any,
-            { body: 'Another comment <!-- jules-bot-check-failing-actions -->' } as any,
+            { body: 'Some comment <!-- jules-bot-check-failing-actions -->', created_at: '2023-01-02T00:00:00Z' } as any,
+            { body: 'Another comment <!-- jules-bot-check-failing-actions -->', created_at: '2023-01-03T00:00:00Z' } as any,
         ]);
         
         const execution = runCheckFailingActions({ schedule: false });
@@ -153,14 +163,16 @@ describe('check-failing-actions-worker', () => {
         expect(githubService.createPullRequestComment).not.toHaveBeenCalled();
     });
 
-    it('should skip if last comment is by us (old content match)', async () => {
+    it('should skip if already commented on this commit', async () => {
         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
            { number: 1, head: { sha: 'sha1' } } as any
        ]);
+       vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
+       vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
-       // Only 1 comment, but it is by us (with TAG) and is the last one.
+       // One comment by us created AFTER commit.
        vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
-           { body: '@jules the GitHub actions are failing' } as any,
+           { body: 'Some comment <!-- jules-bot-check-failing-actions -->', created_at: '2023-01-02T00:00:00Z' } as any,
        ]);
 
        const execution = runCheckFailingActions({ schedule: false });
@@ -170,27 +182,35 @@ describe('check-failing-actions-worker', () => {
        expect(githubService.createPullRequestComment).not.toHaveBeenCalled();
    });
 
-    it('should skip if last comment is by us', async () => {
-         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
-            { number: 1, head: { sha: 'sha1' } } as any
-        ]);
-        vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
-        // Only 1 comment, but it is by us (with TAG) and is the last one.
-        vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
-            { body: 'Some comment <!-- jules-bot-check-failing-actions -->' } as any,
-        ]);
-        
-        const execution = runCheckFailingActions({ schedule: false });
+    it('should NOT skip if comment is from BEFORE the commit', async () => {
+        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
+           { number: 1, head: { sha: 'sha1' } } as any
+       ]);
+       vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-02T00:00:00Z' } } } as any);
+       vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
+       vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
+       // Comment from BEFORE the commit.
+       vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([
+           { body: 'Some comment <!-- jules-bot-check-failing-actions -->', created_at: '2023-01-01T00:00:00Z' } as any,
+       ]);
+       // Other mocks needed for "should comment" path
+       vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
+       vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({ mergeable: true } as any);
+       vi.spyOn(githubService, 'getFailingWorkflowRuns').mockResolvedValue([]);
+
+       const execution = runCheckFailingActions({ schedule: false });
         await vi.runAllTimersAsync();
         await execution;
 
-        expect(githubService.createPullRequestComment).not.toHaveBeenCalled();
+        expect(githubService.createPullRequestComment).toHaveBeenCalled();
     });
 
     it('should post comment and monitor reaction (instead of auto-reacting)', async () => {
          vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
+        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
+        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
         vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         // Mock getIssueComment for monitoring
@@ -224,6 +244,8 @@ describe('check-failing-actions-worker', () => {
         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
+        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
+        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
         vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
@@ -250,6 +272,8 @@ describe('check-failing-actions-worker', () => {
         vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
             { number: 1, head: { sha: 'sha1' } } as any
         ]);
+        vi.spyOn(githubService, 'getCommit').mockResolvedValue({ commit: { committer: { date: '2023-01-01T00:00:00Z' } } } as any);
+        vi.spyOn(githubService, 'getAllCheckRuns').mockResolvedValue([{ name: 'test-check', status: 'completed' } as any]);
         vi.spyOn(githubService, 'getPullRequestChecks').mockResolvedValue([{ name: 'test-check' }]);
         vi.spyOn(githubService, 'getPullRequestComments').mockResolvedValue([]);
         vi.spyOn(githubService, 'createPullRequestComment').mockResolvedValue(12345);
