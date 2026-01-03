@@ -40,6 +40,8 @@ export async function runPrMonitor(options = { schedule: true }) {
     const enabled = currentSettings.checkFailingActionsEnabled ?? true;
     const intervalSeconds = currentSettings.checkFailingActionsInterval || 600;
     const maxCommentsThreshold = currentSettings.checkFailingActionsThreshold || 10;
+    const autoCloseStaleConflictedPrs = currentSettings.autoCloseStaleConflictedPrs ?? false;
+    const staleConflictedPrsDurationDays = currentSettings.staleConflictedPrsDurationDays || 3;
 
     if (!enabled) {
         console.log("PrMonitorWorker: Worker is disabled.");
@@ -66,7 +68,7 @@ export async function runPrMonitor(options = { schedule: true }) {
         if (!hasLock) {
             // console.log("PrMonitorWorker: Could not acquire lock, another worker is running.");
         } else {
-             await processRepositories(apiKey, maxCommentsThreshold);
+             await processRepositories(apiKey, maxCommentsThreshold, autoCloseStaleConflictedPrs, staleConflictedPrsDurationDays);
         }
 
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -111,7 +113,7 @@ async function acquireLock(): Promise<boolean> {
     }
 }
 
-async function processRepositories(apiKey: string, maxCommentsThreshold: number) {
+async function processRepositories(apiKey: string, maxCommentsThreshold: number, autoCloseStaleConflictedPrs: boolean, staleConflictedPrsDurationDays: number) {
     console.log("PrMonitorWorker: Checking repositories...");
 
     let sources = [];
@@ -136,6 +138,28 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number)
             for (const pr of prs) {
                 // Check checks
                 const checkStatus = await getPullRequestCheckStatus(repoFullName, pr.head.sha);
+
+                // --- 0. Check for Stale Conflicted PRs ---
+                if (autoCloseStaleConflictedPrs) {
+                    try {
+                        const prDetails = await getPullRequest(repoFullName, pr.number);
+                        if (prDetails && prDetails.mergeable === false) {
+                            const updatedAt = new Date(prDetails.updated_at).getTime();
+                            const now = Date.now();
+                            const daysSinceUpdate = (now - updatedAt) / (1000 * 60 * 60 * 24);
+
+                            if (daysSinceUpdate > staleConflictedPrsDurationDays) {
+                                console.log(`PrMonitorWorker: PR #${pr.number} is stale (${daysSinceUpdate.toFixed(1)} days) and conflicted. Closing.`);
+                                const commentBody = `This PR has been automatically closed because it has had merge conflicts for more than ${staleConflictedPrsDurationDays} days without updates. Please resolve the conflicts and reopen the PR if you wish to continue.`;
+                                await createPullRequestComment(repoFullName, pr.number, commentBody);
+                                await updatePullRequest(repoFullName, pr.number, { state: 'closed' });
+                                continue;
+                            }
+                        }
+                    } catch (err) {
+                        console.error(`PrMonitorWorker: Error checking stale status for PR #${pr.number}:`, err);
+                    }
+                }
 
                 // --- 1. Handle Failing Checks ---
                 if (checkStatus.status === 'failure') {

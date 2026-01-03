@@ -31,6 +31,8 @@ export const settingsSchema = z.object({
   checkFailingActionsEnabled: z.boolean().optional().default(true),
   checkFailingActionsInterval: z.number().optional().default(600),
   checkFailingActionsThreshold: z.number().optional().default(10),
+  autoCloseStaleConflictedPrs: z.boolean().optional().default(false),
+  staleConflictedPrsDurationDays: z.number().optional().default(3),
   profileId: z.string().optional(),
 });
 

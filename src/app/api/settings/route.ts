@@ -37,6 +37,8 @@ export async function GET(request: Request) {
         checkFailingActionsEnabled: true,
         checkFailingActionsInterval: 600,
         checkFailingActionsThreshold: 10,
+        autoCloseStaleConflictedPrs: false,
+        staleConflictedPrsDurationDays: 3,
 
         historyPromptsCount: 10,
         minSessionInteractionInterval: 60,
