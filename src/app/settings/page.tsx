@@ -129,6 +129,10 @@ export default function SettingsPage() {
   const [checkFailingActionsInterval, setCheckFailingActionsInterval] = useLocalStorage<number>("jules-check-failing-actions-interval", 600);
   const [checkFailingActionsThreshold, setCheckFailingActionsThreshold] = useLocalStorage<number>("jules-check-failing-actions-threshold", 10);
 
+  // Auto-Close Stale PRs
+  const [autoCloseStaleConflictedPrs, setAutoCloseStaleConflictedPrs] = useLocalStorage<boolean>("jules-auto-close-stale-conflicted-prs", false);
+  const [staleConflictedPrsDurationDays, setStaleConflictedPrsDurationDays] = useLocalStorage<number>("jules-stale-conflicted-prs-duration-days", 3);
+
   // Throttling Settings
   const [minSessionInteractionInterval, setMinSessionInteractionInterval] = useLocalStorage<number>("jules-min-session-interaction-interval", 60);
   const [retryTimeout, setRetryTimeout] = useLocalStorage<number>("jules-retry-timeout", 1200);
@@ -164,6 +168,9 @@ export default function SettingsPage() {
   const [checkFailingActionsEnabledValue, setCheckFailingActionsEnabledValue] = useState(checkFailingActionsEnabled);
   const [checkFailingActionsIntervalValue, setCheckFailingActionsIntervalValue] = useState(checkFailingActionsInterval);
   const [checkFailingActionsThresholdValue, setCheckFailingActionsThresholdValue] = useState(checkFailingActionsThreshold);
+
+  const [autoCloseStaleConflictedPrsValue, setAutoCloseStaleConflictedPrsValue] = useState(autoCloseStaleConflictedPrs);
+  const [staleConflictedPrsDurationDaysValue, setStaleConflictedPrsDurationDaysValue] = useState(staleConflictedPrsDurationDays);
 
   const [minSessionInteractionIntervalValue, setMinSessionInteractionIntervalValue] = useState(minSessionInteractionInterval);
   const [retryTimeoutValue, setRetryTimeoutValue] = useState(retryTimeout);
@@ -219,6 +226,8 @@ export default function SettingsPage() {
   useEffect(() => { setCheckFailingActionsEnabledValue(checkFailingActionsEnabled); }, [checkFailingActionsEnabled]);
   useEffect(() => { setCheckFailingActionsIntervalValue(checkFailingActionsInterval); }, [checkFailingActionsInterval]);
   useEffect(() => { setCheckFailingActionsThresholdValue(checkFailingActionsThreshold); }, [checkFailingActionsThreshold]);
+  useEffect(() => { setAutoCloseStaleConflictedPrsValue(autoCloseStaleConflictedPrs); }, [autoCloseStaleConflictedPrs]);
+  useEffect(() => { setStaleConflictedPrsDurationDaysValue(staleConflictedPrsDurationDays); }, [staleConflictedPrsDurationDays]);
   useEffect(() => { setMinSessionInteractionIntervalValue(minSessionInteractionInterval); }, [minSessionInteractionInterval]);
   useEffect(() => { setRetryTimeoutValue(retryTimeout); }, [retryTimeout]);
 
@@ -257,6 +266,8 @@ export default function SettingsPage() {
           setCheckFailingActionsEnabled(dbSettings.checkFailingActionsEnabled);
           setCheckFailingActionsInterval(dbSettings.checkFailingActionsInterval);
           setCheckFailingActionsThreshold(dbSettings.checkFailingActionsThreshold);
+          setAutoCloseStaleConflictedPrs(dbSettings.autoCloseStaleConflictedPrs);
+          setStaleConflictedPrsDurationDays(dbSettings.staleConflictedPrsDurationDays);
           setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
           setRetryTimeout(dbSettings.retryTimeout);
 
@@ -333,6 +344,8 @@ export default function SettingsPage() {
     setCheckFailingActionsEnabled(checkFailingActionsEnabledValue);
     setCheckFailingActionsInterval(checkFailingActionsIntervalValue);
     setCheckFailingActionsThreshold(checkFailingActionsThresholdValue);
+    setAutoCloseStaleConflictedPrs(autoCloseStaleConflictedPrsValue);
+    setStaleConflictedPrsDurationDays(staleConflictedPrsDurationDaysValue);
     setMinSessionInteractionInterval(minSessionInteractionIntervalValue);
     setRetryTimeout(retryTimeoutValue);
 
@@ -376,6 +389,8 @@ export default function SettingsPage() {
                 checkFailingActionsEnabled: checkFailingActionsEnabledValue,
                 checkFailingActionsInterval: checkFailingActionsIntervalValue,
                 checkFailingActionsThreshold: checkFailingActionsThresholdValue,
+                autoCloseStaleConflictedPrs: autoCloseStaleConflictedPrsValue,
+                staleConflictedPrsDurationDays: staleConflictedPrsDurationDaysValue,
                 minSessionInteractionInterval: minSessionInteractionIntervalValue,
                 retryTimeout: retryTimeoutValue,
                 profileId: currentProfileId,
@@ -953,6 +968,26 @@ export default function SettingsPage() {
                             <p className="text-xs text-muted-foreground">Stop commenting if max comments reached or last comment was by bot.</p>
                         </div>
                         </>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="auto-close-stale-conflicted-prs">Auto Close Stale Conflicted PRs</Label>
+                            <p className="text-xs text-muted-foreground">Automatically close open PRs with conflicts if older than threshold.</p>
+                        </div>
+                        <Switch id="auto-close-stale-conflicted-prs" checked={autoCloseStaleConflictedPrsValue} onCheckedChange={setAutoCloseStaleConflictedPrsValue} />
+                    </div>
+                    {autoCloseStaleConflictedPrsValue && (
+                        <div className="grid gap-2">
+                             <Label htmlFor="stale-conflicted-prs-duration-days">Close After (days)</Label>
+                             <Input
+                                id="stale-conflicted-prs-duration-days"
+                                type="number"
+                                value={staleConflictedPrsDurationDaysValue}
+                                onChange={(e) => setStaleConflictedPrsDurationDaysValue(Number(e.target.value))}
+                                min="1"
+                             />
+                        </div>
                     )}
                 </CardContent>
                 <CardFooter>

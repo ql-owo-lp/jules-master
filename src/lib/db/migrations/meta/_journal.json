@@ -29,6 +29,13 @@
       "when": 1767318271559,
       "tag": "0003_fair_bloodaxe",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1767414018917,
+      "tag": "0004_panoramic_rage",
+      "breakpoints": true
     }
   ]
 }

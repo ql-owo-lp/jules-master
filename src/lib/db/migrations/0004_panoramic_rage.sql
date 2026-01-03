@@ -1,0 +1,2 @@
+ALTER TABLE `settings` ADD `auto_close_stale_conflicted_prs` integer DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE `settings` ADD `stale_conflicted_prs_duration_days` integer DEFAULT 3 NOT NULL;

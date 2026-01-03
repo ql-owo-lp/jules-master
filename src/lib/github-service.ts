@@ -26,6 +26,7 @@ export type GitHubPullRequestSimple = {
         ref: string;
     };
     draft?: boolean;
+    updated_at: string;
 };
 
 export type GitHubPullRequestFull = GitHubPullRequestSimple & {

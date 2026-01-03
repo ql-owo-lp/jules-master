@@ -19,11 +19,16 @@ The primary goal of this project is to simplify the interaction with the Jules A
 
 To run the application, you may need to configure the following environment variables. You can create a `.env` file in the root directory.
 
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `JULES_API_KEY` | Your Jules API key for accessing the backend services. | *None* |
-| `GOOGLE_GENAI_API_KEY` | API key for Google GenAI (required for AI features). | *None* |
-| `DATABASE_URL` | Path to the SQLite database file. | `data/sqlite.db` |
+| Variable               | Description                                                              | Default          |
+| :--------------------- | :----------------------------------------------------------------------- | :--------------- |
+| `JULES_API_KEY`        | Your Jules API key for accessing the backend services.                   | _None_           |
+| `GOOGLE_GENAI_API_KEY` | API key for Google GenAI (required for AI features).                     | _None_           |
+| `DATABASE_URL`         | Path to the SQLite database file.                                        | `data/sqlite.db` |
+| `BASIC_AUTH_USER`      | Username for Basic Authentication. If set, basic auth is enabled.        | _None_           |
+| `BASIC_AUTH_PASSWORD`  | Password for Basic Authentication. Required if `BASIC_AUTH_USER` is set. | _None_           |
+| `GITHUB_TOKEN`         | GitHub Personal Access Token for GitHub API integrations.                | _None_           |
+| `GC_THRESHOLD_MB`      | Memory threshold (in MB) for triggering garbage collection.              | `90`             |
+| `MOCK_API`             | Set to `true` to use mock data for API calls.                            | _None_           |
 
 ## Documentation
 
@@ -41,12 +46,14 @@ The `docs/` folder contains detailed documentation about the project's design an
 ### Installation
 
 1.  Clone the repository:
+
     ```bash
     git clone <repository-url>
     cd jules-hub
     ```
 
 2.  Install dependencies:
+
     ```bash
     npm install
     ```
@@ -61,9 +68,11 @@ The `docs/` folder contains detailed documentation about the project's design an
 ### Running the Application
 
 1.  Start the development server:
+
     ```bash
     npm run dev
     ```
+
     The application will be available at [http://localhost:9002](http://localhost:9002).
 
 2.  (Optional) Run Genkit for AI features development:
@@ -76,6 +85,7 @@ The `docs/` folder contains detailed documentation about the project's design an
 You can also run the application using Docker.
 
 1.  Build the image:
+
     ```bash
     make build
     ```
