@@ -57,7 +57,7 @@ export async function register() {
             const used = process.memoryUsage();
             const rssMb = used.rss / 1024 / 1024;
             // Default to 90MB if not set, but allow override
-            const threshold = parseInt(process.env.GC_THRESHOLD_MB || '90', 10);
+            const threshold = parseInt(process.env.GC_THRESHOLD_MB || '1024', 10);
             
             console.log(`[MEMORY] RSS: ${rssMb.toFixed(2)} MB, Heap: ${(used.heapUsed / 1024 / 1024).toFixed(2)} MB, Threshold: ${threshold} MB`);
             
