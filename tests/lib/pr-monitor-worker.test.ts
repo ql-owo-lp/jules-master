@@ -346,6 +346,45 @@ describe('pr-monitor-worker', () => {
         expect(githubService.mergePullRequest).not.toHaveBeenCalled();
     });
 
+    it('should close stale conflicted PRs when enabled', async () => {
+        // Enable setting
+        vi.spyOn(sessionService, 'getSettings').mockResolvedValue({
+            checkFailingActionsEnabled: true,
+            autoCloseStaleConflictedPrs: true,
+            staleConflictedPrsDurationDays: 3,
+        } as any);
+
+        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
+            { number: 1, head: { sha: 'sha1' } } as any
+        ]);
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({ status: 'unknown' } as any);
+        
+        // Mock conflicted PR with old update time ( > 3 days ago)
+        const oldDate = new Date();
+        oldDate.setDate(oldDate.getDate() - 4); // 4 days ago
+        
+        vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({
+            mergeable: false,
+            updated_at: oldDate.toISOString()
+        } as any);
+
+        const execution = runPrMonitor({ schedule: false });
+        await vi.runAllTimersAsync();
+        await execution;
+
+        expect(githubService.createPullRequestComment).toHaveBeenCalledWith(
+            'test-owner/test-repo',
+            1,
+            expect.stringContaining('automatically closed')
+        );
+
+        expect(githubService.updatePullRequest).toHaveBeenCalledWith(
+            'test-owner/test-repo',
+            1,
+            { state: 'closed' }
+        );
+    });
+
     it('should clean up lock after execution', async () => {
         const execution = runPrMonitor({ schedule: false });
         await vi.advanceTimersByTimeAsync(2000); // Advance enough for main loop sleep(1000)
