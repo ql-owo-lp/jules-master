@@ -173,7 +173,7 @@ export async function runAutoContinueCheck(options = { schedule: true }) {
                              }
 
                              console.log(`AutoContinueWorker: Session ${sessionId} completed but no PR. Sending continue message...`);
-                             const result = await sendMessage(sessionId, continueMessage, apiKey);
+                             const result = await sendMessage(sessionId, continueMessage, apiKey, true);
                              if (result) {
                                 console.log(`AutoContinueWorker: Continue message sent to session ${sessionId}.`);
                              }
