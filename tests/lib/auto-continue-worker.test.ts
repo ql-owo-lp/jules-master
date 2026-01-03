@@ -105,7 +105,7 @@ describe('AutoContinueWorker', () => {
 
     await runAutoContinueCheck({ schedule: false });
 
-    expect(actions.sendMessage).toHaveBeenCalledWith('1', 'Continue?', 'test-api-key');
+    expect(actions.sendMessage).toHaveBeenCalledWith('1', 'Continue?', 'test-api-key', true);
   });
 
   it('should not send a message if the session is not completed', async () => {
