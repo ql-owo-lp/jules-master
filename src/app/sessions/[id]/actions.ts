@@ -115,7 +115,7 @@ export async function approvePlan(
     return null;
   }
   try {
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}:approvePlan`,
       {
         method: "POST",
@@ -155,7 +155,7 @@ export async function sendMessage(
     return null;
   }
   try {
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}:sendMessage`,
       {
         method: "POST",

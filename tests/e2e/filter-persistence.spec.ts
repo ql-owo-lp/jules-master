@@ -6,14 +6,18 @@ test('should persist repository and status filters in the URL', async ({ page })
 
   // Select a repository filter
   await page.click('button[name="filter-repo"]');
-  await page.click('div[role="option"]:has-text("All Repositories")');
+  const allReposOption = page.locator('div[role="option"]:has-text("All Repositories")');
+  await expect(allReposOption).toBeVisible();
+  await allReposOption.click();
 
   // Wait for the URL to update with the repo filter
   await expect(page).toHaveURL(/repo=all/);
 
   // Select a status filter
   await page.click('button[name="filter-status"]');
-  await page.click('div[role="option"]:has-text("All Statuses")');
+  const allStatusOption = page.locator('div[role="option"]:has-text("All Statuses")');
+  await expect(allStatusOption).toBeVisible();
+  await allStatusOption.click();
 
   // Verify that the filters are in the URL
   await expect(page).toHaveURL(/repo=all/);
