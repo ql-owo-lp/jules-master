@@ -50,16 +50,22 @@ test.describe('Comprehensive UI Tests', () => {
       await page.goto('/');
 
       // Ensure sidebar is visible (it might be collapsed on smaller screens or by default)
-      // Check if there is a toggle button visible (implies it might be closed)
       const sidebarTrigger = page.getByRole('button', { name: 'Toggle Sidebar' });
-      if (await sidebarTrigger.isVisible()) {
-          // If it's not expanded (we can check context or just click), let's try to make sure it is open
-          // However, usually on desktop it is open.
-          // Let's assume desktop view as per Playwright default config usually.
+      // On mobile or if collapsed, the trigger might be in the header or sidebar.
+      // We check if we need to open it.
+      
+      const newJobButton = page.getByRole('button', { name: 'New Job' });
+      
+      if (!await newJobButton.isVisible()) {
+          // Try to click the toggle if visible (e.g. in header on mobile)
+          if (await sidebarTrigger.count() > 0 && await sidebarTrigger.first().isVisible()) {
+               await sidebarTrigger.first().click();
+               // Wait for animation
+               await page.waitForTimeout(500);
+          }
       }
 
       // Verify "New Job" button
-      const newJobButton = page.getByRole('button', { name: 'New Job' });
       await expect(newJobButton).toBeVisible();
 
       // Verify "Jobs & Sessions" link
@@ -72,6 +78,7 @@ test.describe('Comprehensive UI Tests', () => {
       const settingsLink = page.getByRole('link', { name: 'Settings' });
       await expect(settingsLink).toBeVisible();
       await settingsLink.click();
+      await page.waitForURL(/\/settings/);
       await expect(page).toHaveURL(/\/settings/);
       await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
     });
