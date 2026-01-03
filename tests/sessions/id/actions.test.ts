@@ -58,13 +58,13 @@ describe('Session [id] Actions', () => {
   describe('approvePlan', () => {
     it('should approve a plan and return the updated session', async () => {
       const mockSession = { id: '123', status: 'PLAN_APPROVED' };
-      global.fetch = vi.fn().mockResolvedValue({
+      (fetchClient.fetchWithRetry as Mock).mockResolvedValue({
         ok: true,
         json: async () => mockSession,
       });
 
       const session = await approvePlan('123');
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
         'https://jules.googleapis.com/v1alpha/sessions/123:approvePlan',
         expect.any(Object)
       );
@@ -75,13 +75,13 @@ describe('Session [id] Actions', () => {
   describe('sendMessage', () => {
     it('should send a message and return the updated session', async () => {
       const mockSession = { id: '123', status: 'AWAITING_USER_INPUT' };
-      global.fetch = vi.fn().mockResolvedValue({
+      (fetchClient.fetchWithRetry as Mock).mockResolvedValue({
         ok: true,
         json: async () => mockSession,
       });
 
       const session = await sendMessage('123', 'Hello');
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
         'https://jules.googleapis.com/v1alpha/sessions/123:sendMessage',
         expect.any(Object)
       );
