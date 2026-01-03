@@ -520,3 +520,38 @@ export async function mergePullRequest(repo: string, prNumber: number, method: '
         return false;
     }
 }
+
+export type GitHubBranch = {
+    name: string;
+    commit: {
+        sha: string;
+        url: string;
+    };
+    protected: boolean;
+};
+
+export async function listBranches(repo: string): Promise<GitHubBranch[]> {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return [];
+
+    const url = `https://api.github.com/repos/${repo}/branches?per_page=100`;
+
+    try {
+        const response = await fetchWithRetry(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+            },
+        });
+
+        if (response.ok) {
+            return await response.json();
+        }
+        console.error(`Failed to list branches for ${repo}: ${response.status} ${response.statusText}`);
+        return [];
+    } catch (error) {
+        console.error(`Error listing branches for ${repo}:`, error);
+        return [];
+    }
+}
+
