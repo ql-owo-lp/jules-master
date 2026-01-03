@@ -1,11 +1,8 @@
-
 import { db } from './db';
 import { settings } from './db/schema';
 import { eq } from 'drizzle-orm';
-import { fetchSessionsPage } from '@/app/sessions/actions';
-import { fetchPullRequestStatus } from '@/app/github/actions';
-import { deleteBranch } from './github-service';
-import type { Session } from '@/lib/types';
+import { listSources } from '@/app/sessions/actions';
+import { deleteBranch, listBranches, listOpenPullRequests, getCommit } from './github-service';
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
@@ -25,9 +22,10 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
     }
 
     try {
-        console.log("AutoDeleteStaleBranchWorker: Starting check for all sessions...");
+        console.log("AutoDeleteStaleBranchWorker: Starting check for stale branches...");
 
         const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+        // Use existing settings
         if (settingsResult.length === 0 || !settingsResult[0].autoDeleteStaleBranches) {
             console.log("AutoDeleteStaleBranchWorker: Auto-delete stale branches is disabled in settings. Skipping check.");
             isRunning = false;
@@ -38,51 +36,73 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
         }
 
         const autoDeleteDays = settingsResult[0].autoDeleteStaleBranchesAfterDays;
-        const now = new Date();
+        const now = Date.now();
 
-        let nextPageToken: string | undefined = undefined;
-        let processedCount = 0;
+        // New Logic: Iterate all sources (repos) and check branches directly
+        let sources = [];
+        try {
+            sources = await listSources(apiKey);
+        } catch (e) {
+            console.error("AutoDeleteStaleBranchWorker: Failed to list sources", e);
+            return;
+        }
+
         let deletedCount = 0;
 
-        do {
-            const result = await fetchSessionsPage(apiKey, nextPageToken, 50);
-            const sessions = result.sessions;
-            nextPageToken = result.nextPageToken;
+        for (const source of sources) {
+            const repoFullName = `${source.githubRepo.owner}/${source.githubRepo.repo}`;
+            console.log(`AutoDeleteStaleBranchWorker: Checking ${repoFullName}`);
 
-            if (sessions.length === 0) break;
+            try {
+                const branches = await listBranches(repoFullName);
+                const openPrs = await listOpenPullRequests(repoFullName, "google-labs-jules");
+                const openPrHeadRefs = new Set(openPrs.map(pr => pr.head.ref));
 
-            processedCount += sessions.length;
+                for (const branch of branches) {
+                    if (branch.protected) continue;
+                    if (['main', 'master', 'develop'].includes(branch.name)) continue;
 
-            const completedSessions = sessions.filter(s => s.state === 'COMPLETED');
+                    // 1. Check if branch has an open PR
+                    if (openPrHeadRefs.has(branch.name)) {
+                        continue; // Skip branches with open PRs
+                    }
 
-            for (const session of completedSessions) {
-                if (session.outputs && session.outputs.length > 0 && session.outputs[0].pullRequest) {
-                    const prUrl = session.outputs[0].pullRequest.url;
-                    const prStatus = await fetchPullRequestStatus(prUrl);
+                    // 2. Check if branch was updated recently
+                    // We need to fetch commit details to get the date and author
+                    try {
+                        const commit = await getCommit(repoFullName, branch.commit.sha);
+                        if (!commit) continue;
 
-                    if (prStatus && prStatus.state === 'MERGED' && prStatus.merged_at) {
-                        const mergedAt = new Date(prStatus.merged_at);
-                        const daysSinceMerge = (now.getTime() - mergedAt.getTime()) / (1000 * 60 * 60 * 24);
+                        // 3. Check Author: Must be created by the bot
+                        const author = commit.commit.author.name;
+                        const committer = commit.commit.committer.name;
+                        const isBot = author === 'google-labs-jules' || committer === 'google-labs-jules';
 
-                        if (daysSinceMerge > autoDeleteDays) {
-                            if (prStatus.headBranch) {
-                                const repo = session.sourceContext?.source.replace('sources/github/', '');
-                                if (repo) {
-                                    const branch = prStatus.headBranch;
-                                    console.log(`AutoDeleteStaleBranchWorker: Deleting stale branch ${branch} from ${repo}...`);
-                                    const deleted = await deleteBranch(repo, branch);
-                                    if (deleted) {
-                                        deletedCount++;
-                                    }
-                                }
+                        if (!isBot) {
+                            continue; // Skip branches not created by bot
+                        }
+
+                        const lastUpdated = new Date(commit.commit.committer.date).getTime();
+                        const daysSinceUpdate = (now - lastUpdated) / (1000 * 60 * 60 * 24);
+
+                        if (daysSinceUpdate > autoDeleteDays) {
+                            console.log(`AutoDeleteStaleBranchWorker: Deleting stale orphan branch ${branch.name} from ${repoFullName} (last updated ${daysSinceUpdate.toFixed(1)} days ago)...`);
+                            const deleted = await deleteBranch(repoFullName, branch.name);
+                            if (deleted) {
+                                deletedCount++;
                             }
                         }
+
+                    } catch (err) {
+                        console.error(`AutoDeleteStaleBranchWorker: Error checking branch ${branch.name} in ${repoFullName}:`, err);
                     }
                 }
+            } catch (repoErr) {
+                console.error(`AutoDeleteStaleBranchWorker: Error processing repo ${repoFullName}:`, repoErr);
             }
-        } while (nextPageToken);
+        }
 
-        console.log(`AutoDeleteStaleBranchWorker: Cycle complete. Processed ${processedCount} sessions, deleted ${deletedCount} branches.`);
+        console.log(`AutoDeleteStaleBranchWorker: Cycle complete. Deleted ${deletedCount} stale orphan branches.`);
 
     } catch (error) {
         console.error("AutoDeleteStaleBranchWorker: Error during check cycle:", error);
