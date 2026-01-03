@@ -2,9 +2,17 @@ FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
 WORKDIR /app
 
+ENV CI=true
+ENV JULES_API_KEY=mock-api-key
+
+# Copy package files
 COPY package.json package-lock.json ./
+
+# Install dependencies
 RUN npm ci
 
+# Copy source code
 COPY . .
 
+# Run E2E tests
 CMD ["npm", "run", "test:e2e"]
