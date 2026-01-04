@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text, primaryKey } from 'drizzle-orm/sqlite-core';
+import { integer, sqliteTable, text, primaryKey, index } from 'drizzle-orm/sqlite-core';
 import type { SourceContext, SessionOutput, AutomationMode } from '@/lib/types';
 
 export const profiles = sqliteTable('profiles', {
@@ -135,7 +135,11 @@ export const sessions = sqliteTable('sessions', {
   lastError: text('last_error'),
   lastInteractionAt: integer('last_interaction_at'),
   profileId: text('profile_id').references(() => profiles.id).notNull().default('default'),
-});
+}, (table) => ({
+  // Optimization: Add composite index on profileId and createTime to speed up session listing queries.
+  // This helps when filtering sessions by profile and sorting by creation time, which is a very common operation.
+  profileIdCreateTimeIdx: index('sessions_profile_id_create_time_idx').on(table.profileId, table.createTime),
+}));
 
 export const locks = sqliteTable('locks', {
   id: text('id').primaryKey(),
