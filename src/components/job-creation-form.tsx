@@ -66,6 +66,7 @@ export function JobCreationForm({
   const [sessionCount, setSessionCount] = useState(defaultSessionCount);
   const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
   
+  const [showValidation, setShowValidation] = useState(false);
   const [requirePlanApproval, setRequirePlanApproval] = useState(false);
   const [automationMode, setAutomationMode] = useState<AutomationMode>("AUTO_CREATE_PR");
   const [backgroundJob, setBackgroundJob] = useState(true);
@@ -230,8 +231,10 @@ export function JobCreationForm({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setShowValidation(true);
 
     if (!finalPrompt.trim()) {
+      // Inline validation will show the error, but we keep the toast as a secondary feedback
       toast({
         variant: "destructive",
         title: "No prompt entered",
@@ -527,7 +530,13 @@ export function JobCreationForm({
               }}
               disabled={isPending || disabled}
               aria-label="Session Prompts"
+              className={cn(showValidation && !finalPrompt.trim() && "border-destructive focus-visible:ring-destructive")}
             />
+             {showValidation && !finalPrompt.trim() && (
+                <p className="text-sm font-medium text-destructive mt-1">
+                  Please enter a prompt (or select a global/repo prompt).
+                </p>
+             )}
              <div className="grid grid-cols-2 items-center gap-4 pt-2">
               {isClient && (predefinedPrompts.length > 0 || historyPrompts.length > 0) && (
                 <div className="space-y-2">
@@ -661,7 +670,7 @@ export function JobCreationForm({
         <CardFooter className="flex justify-end">
           <Button
             type="submit"
-            disabled={isPending || disabled || !finalPrompt.trim()}
+            disabled={isPending || disabled}
             className="bg-accent text-accent-foreground hover:bg-accent/90"
           >
             {isPending ? (

@@ -49,6 +49,8 @@ export function CronJobForm({
   const [automationMode, setAutomationMode] = useState<AutomationMode>(initialValues?.automationMode || "AUTO_CREATE_PR");
   const [applyGlobalPrompt, setApplyGlobalPrompt] = useState(true);
 
+  const [showValidation, setShowValidation] = useState(false);
+
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, startRefreshTransition] = useTransition();
   const { toast } = useToast();
@@ -130,6 +132,7 @@ export function CronJobForm({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setShowValidation(true);
 
     if (!jobName.trim()) {
         toast({
@@ -334,7 +337,11 @@ export function CronJobForm({
                 value={jobName}
                 onChange={(e) => setJobName(e.target.value)}
                 disabled={isPending}
+                className={cn(showValidation && !jobName.trim() && "border-destructive focus-visible:ring-destructive")}
               />
+              {showValidation && !jobName.trim() && (
+                <p className="text-sm font-medium text-destructive">Job Name is required.</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="schedule">Schedule (Cron Expression)</Label>
@@ -345,10 +352,15 @@ export function CronJobForm({
                 onChange={(e) => setSchedule(e.target.value)}
                 disabled={isPending}
                 aria-describedby="schedule-help"
+                className={cn(showValidation && !schedule.trim() && "border-destructive focus-visible:ring-destructive")}
               />
-               <p id="schedule-help" className="text-xs text-muted-foreground">
-                Format: Minute Hour Day Month DayOfWeek
-              </p>
+               {showValidation && !schedule.trim() ? (
+                <p className="text-sm font-medium text-destructive">Schedule is required.</p>
+               ) : (
+                <p id="schedule-help" className="text-xs text-muted-foreground">
+                    Format: Minute Hour Day Month DayOfWeek
+                </p>
+               )}
             </div>
           </div>
 
@@ -380,7 +392,13 @@ export function CronJobForm({
               }}
               disabled={isPending}
               aria-label="Session Prompts"
+              className={cn(showValidation && !prompt.trim() && !initialValues && "border-destructive focus-visible:ring-destructive")}
             />
+             {showValidation && !prompt.trim() && !initialValues && (
+                <p className="text-sm font-medium text-destructive mt-1">
+                  Please enter a prompt (or select a global/repo prompt).
+                </p>
+             )}
              <div className="grid grid-cols-2 items-center gap-4 pt-2">
               {isClient && (predefinedPrompts.length > 0 || historyPrompts.length > 0) && (
                 <div className="space-y-2">
