@@ -171,7 +171,6 @@ ActivityFeed.displayName = 'ActivityFeed';
 
 
 function ActivityContent({ activity }: { activity: Activity }) {
-  const [lineClamp] = useLocalStorage<number>("jules-line-clamp", 1);
   const agentMessage = activity.agentMessaged?.agentMessage;
   const userMessage = activity.userMessaged?.userMessage;
 
