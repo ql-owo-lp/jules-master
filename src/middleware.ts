@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function secureCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
 export function middleware(req: NextRequest) {
   const basicAuthUser = process.env.BASIC_AUTH_USER;
   const basicAuthPassword = process.env.BASIC_AUTH_PASSWORD;
@@ -14,17 +26,11 @@ export function middleware(req: NextRequest) {
             throw new Error('Missing auth value');
         }
 
-        const decoded = atob(authValue);
-        const separatorIndex = decoded.indexOf(':');
+        // Create the expected Base64 string: "user:password"
+        // In Node/Next.js Edge, btoa is available.
+        const expectedValue = btoa(`${basicAuthUser}:${basicAuthPassword}`);
 
-        if (separatorIndex === -1) {
-             throw new Error('Invalid format');
-        }
-
-        const user = decoded.substring(0, separatorIndex);
-        const pwd = decoded.substring(separatorIndex + 1);
-
-        if (user === basicAuthUser && pwd === basicAuthPassword) {
+        if (secureCompare(authValue, expectedValue)) {
           return NextResponse.next();
         }
       } catch (e) {
