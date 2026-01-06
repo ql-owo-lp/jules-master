@@ -14,6 +14,7 @@ import { useEnv } from "@/components/env-provider";
 
 type PrStatusProps = {
   prUrl: string | null;
+  initialStatus?: PullRequestStatus | null;
 };
 
 type CachedStatus = {
@@ -21,7 +22,7 @@ type CachedStatus = {
   timestamp: number;
 };
 
-export function PrStatus({ prUrl }: PrStatusProps) {
+export function PrStatus({ prUrl, initialStatus }: PrStatusProps) {
   // We store the cached status object (with timestamp) in local storage
   // Key includes the PR URL to be unique
   const storageKey = prUrl ? `pr-status-${prUrl}` : "pr-status-null";
@@ -29,8 +30,20 @@ export function PrStatus({ prUrl }: PrStatusProps) {
   const [pollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
   const [debugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
 
-  // Displayed status is derived from cached data
-  const status = cachedData?.status;
+  // Update cache if initialStatus is provided and different/newer
+  useEffect(() => {
+    if (initialStatus && prUrl) {
+       setCachedData({
+          status: initialStatus,
+          timestamp: Date.now()
+       });
+    }
+  }, [initialStatus, prUrl, setCachedData]);
+
+  // Displayed status is derived from cached data or initialStatus
+  // Prefer cachedData if it's fresher or initialStatus is not provided?
+  // If initialStatus is provided, it came from parent batch fetch which should be fresh.
+  const status = initialStatus || cachedData?.status;
 
   const [isLoading, setIsLoading] = useState(false);
   const { hasGithubToken: hasEnvGithubToken } = useEnv();
@@ -39,6 +52,10 @@ export function PrStatus({ prUrl }: PrStatusProps) {
   useEffect(() => {
     async function fetchStatus() {
       if (!prUrl) return;
+
+      // If we got initialStatus, assume it's fresh enough for this render cycle
+      // The parent component controls the polling interval for batch fetching.
+      if (initialStatus !== undefined) return;
 
       const now = Date.now();
       const minUpdateIntervalMs = pollInterval * 1000;
@@ -80,7 +97,7 @@ export function PrStatus({ prUrl }: PrStatusProps) {
     }
     fetchStatus();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prUrl, githubToken]); // Removing cachedData from dependency to avoid loop if we update it.
+  }, [prUrl, githubToken, initialStatus]); // Removing cachedData from dependency to avoid loop if we update it.
   // Note: We should be careful not to loop.
   // fetchStatus depends on `cachedData` logic inside.
   // If we add `cachedData` to dependency, `setCachedData` will trigger effect again.

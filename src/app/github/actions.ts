@@ -144,3 +144,29 @@ const getPullRequestStatusFromApi = unstable_cache(
 export async function getPullRequestStatus(prUrl: string, token?: string | null): Promise<PullRequestStatus | null> {
     return getPullRequestStatusFromApi(prUrl, token);
 }
+
+export async function getPullRequestStatuses(prUrls: string[], token?: string | null): Promise<Record<string, PullRequestStatus | null>> {
+  if (!prUrls || prUrls.length === 0) {
+    return {};
+  }
+
+  // Deduplicate URLs
+  const uniqueUrls = Array.from(new Set(prUrls));
+
+  const results = await Promise.all(
+    uniqueUrls.map(async (url) => {
+      try {
+        const status = await getPullRequestStatusFromApi(url, token);
+        return { url, status };
+      } catch (e) {
+        console.error(`Failed to fetch status for ${url}`, e);
+        return { url, status: null };
+      }
+    })
+  );
+
+  return results.reduce((acc, { url, status }) => {
+    acc[url] = status;
+    return acc;
+  }, {} as Record<string, PullRequestStatus | null>);
+}
