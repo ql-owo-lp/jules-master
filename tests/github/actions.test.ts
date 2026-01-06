@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getPullRequestStatus } from '@/app/github/actions';
+import { getPullRequestStatus, getPullRequestStatuses } from '@/app/github/actions';
 
 // Mock next/cache
 vi.mock('next/cache', () => ({
@@ -84,5 +84,77 @@ describe('GitHub Actions', () => {
         expect(mockFetch).not.toHaveBeenCalled();
     });
 
+  });
+
+  describe('getPullRequestStatuses', () => {
+    beforeEach(() => {
+      mockFetch.mockClear();
+    });
+
+    it('should return empty object for empty input', async () => {
+      const statuses = await getPullRequestStatuses([], 'dummy-token');
+      expect(statuses).toEqual({});
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should return statuses for multiple PRs', async () => {
+      mockFetch.mockImplementation((url) => {
+        if (url.includes('/pulls/1')) {
+           return Promise.resolve(new Response(JSON.stringify({
+            state: 'open',
+            merged: false,
+            head: { sha: 'sha1', ref: 'branch-1' }
+          }), { status: 200 }));
+        }
+        if (url.includes('/commits/sha1/check-runs')) {
+            return Promise.resolve(new Response(JSON.stringify({
+              check_runs: []
+            }), { status: 200 }));
+        }
+        if (url.includes('/pulls/2')) {
+           return Promise.resolve(new Response(JSON.stringify({
+            state: 'closed',
+            merged: true,
+            head: { sha: 'sha2', ref: 'branch-2' }
+          }), { status: 200 }));
+        }
+        return Promise.resolve(new Response('Not Found', { status: 404 }));
+      });
+
+      const urls = [
+        'https://github.com/owner/repo/pull/1',
+        'https://github.com/owner/repo/pull/2'
+      ];
+
+      const statuses = await getPullRequestStatuses(urls, 'dummy-token');
+
+      expect(statuses[urls[0]]?.state).toBe('OPEN');
+      expect(statuses[urls[1]]?.state).toBe('MERGED');
+      // 2 calls for PR 1 (PR + Checks), 1 call for PR 2 (PR only)
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('should deduplicate URLs', async () => {
+      // Mock for PR 1
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+        state: 'open',
+        merged: false,
+        head: { sha: 'sha1', ref: 'branch-1' }
+      }), { status: 200 }));
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+        check_runs: []
+      }), { status: 200 }));
+
+      const urls = [
+        'https://github.com/owner/repo/pull/1',
+        'https://github.com/owner/repo/pull/1'
+      ];
+
+      const statuses = await getPullRequestStatuses(urls, 'dummy-token');
+
+      expect(statuses[urls[0]]?.state).toBe('OPEN');
+      // Should only fetch once for the unique URL
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
   });
 });

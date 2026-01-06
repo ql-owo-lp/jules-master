@@ -21,7 +21,11 @@ import { formatDistanceToNow } from "date-fns";
 import { JobStatusBadge } from "./job-status-badge";
 import { PrStatus } from "./pr-status";
 import { useRouter } from "next/navigation";
-import type { Session, PredefinedPrompt } from "@/lib/types";
+import type { Session, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
+import { useEffect, useState, useMemo } from "react";
+import { getPullRequestStatuses } from "@/app/github/actions";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useEnv } from "@/components/env-provider";
 
 interface SessionTableProps {
   sessions: Session[];
@@ -62,6 +66,54 @@ export function SessionTable({
     }
     return null;
   };
+
+  // State to hold batched PR statuses
+  const [prStatuses, setPrStatuses] = useState<Record<string, PullRequestStatus | null>>({});
+  const { hasGithubToken: hasEnvGithubToken } = useEnv();
+  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const [pollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
+
+  // Extract all unique PR URLs from sessions
+  const prUrls = useMemo(() => {
+    const urls = new Set<string>();
+    sessions.forEach(session => {
+        const url = getPullRequestUrl(session);
+        if (url) urls.add(url);
+    });
+    return Array.from(urls);
+  }, [sessions]);
+
+  // Batch fetch PR statuses
+  useEffect(() => {
+    if (prUrls.length === 0) return;
+
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    const fetchStatuses = async () => {
+        try {
+             // Pass null if using env token, so server action uses process.env
+            const results = await getPullRequestStatuses(prUrls, githubToken || (hasEnvGithubToken ? null : ""));
+            if (isMounted) {
+                setPrStatuses(prev => ({ ...prev, ...results }));
+            }
+        } catch (error) {
+            console.error("Failed to batch fetch PR statuses", error);
+        }
+    };
+
+    fetchStatuses();
+
+    // Poll for updates if interval > 0
+    if (pollInterval > 0) {
+        timeoutId = setInterval(fetchStatuses, pollInterval * 1000);
+    }
+
+    return () => {
+        isMounted = false;
+        if (timeoutId) clearInterval(timeoutId);
+    };
+  }, [prUrls, githubToken, hasEnvGithubToken, pollInterval]);
 
   const truncate = (str: string, length: number) => {
     if (!str) return '';
@@ -132,7 +184,7 @@ export function SessionTable({
                       )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <PrStatus prUrl={prUrl} />
+                    <PrStatus prUrl={prUrl} initialStatus={prUrl ? prStatuses[prUrl] : undefined} />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
