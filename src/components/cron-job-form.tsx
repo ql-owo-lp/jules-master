@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Combobox, ComboboxGroup } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import cronParser from "cron-parser";
+import { format } from "date-fns";
 
 type CronJobFormProps = {
   onCronJobCreated: () => void;
@@ -67,6 +68,23 @@ export function CronJobForm({
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
 
   const [isClient, setIsClient] = useState(false);
+  const [nextRun, setNextRun] = useState<Date | null>(null);
+
+  useEffect(() => {
+    if (!schedule) {
+      setNextRun(null);
+      return;
+    }
+    try {
+      // @ts-ignore
+      const parser = cronParser;
+      // @ts-ignore
+      const expression = parser.parseExpression ? parser.parseExpression(schedule) : parser.parse(schedule);
+      setNextRun(expression.next().toDate());
+    } catch (err) {
+      setNextRun(null);
+    }
+  }, [schedule]);
 
   useEffect(() => {
     setIsClient(true);
@@ -346,9 +364,16 @@ export function CronJobForm({
                 disabled={isPending}
                 aria-describedby="schedule-help"
               />
-               <p id="schedule-help" className="text-xs text-muted-foreground">
-                Format: Minute Hour Day Month DayOfWeek
-              </p>
+              <div className="flex justify-between items-start">
+                <p id="schedule-help" className="text-xs text-muted-foreground">
+                  Format: Minute Hour Day Month DayOfWeek
+                </p>
+                {nextRun && (
+                  <p className="text-xs text-green-600 font-medium animate-in fade-in slide-in-from-top-1">
+                    Next run: {format(nextRun, "PPpp")}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
