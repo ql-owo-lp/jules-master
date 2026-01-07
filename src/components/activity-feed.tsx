@@ -53,39 +53,51 @@ type ActivityFeedProps = {
   pollInterval: number;
 };
 
+// ActivityItem component handles the container and timestamp updates
+const ActivityItem = ({ activity, index, total }: { activity: Activity, index: number, total: number }) => {
+    return (
+        <div className="flex gap-4">
+            <div className="flex flex-col items-center">
+            <span
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
+            title={`Originated by: ${activity.originator}`}
+            >
+            {originatorIcons[activity.originator] || (
+                <MessageSquare className="h-5 w-5" />
+            )}
+            </span>
+            {index < total - 1 && (
+                <div className="flex-1 w-px bg-border my-2"></div>
+            )}
+        </div>
+        <div className="flex-1 space-y-1 min-w-0 pt-1">
+            <div className="flex justify-between items-start gap-4">
+            <p className="font-semibold text-sm break-words">{activity.description}</p>
+            <p className="text-xs text-muted-foreground whitespace-nowrap pl-4 pt-0.5">
+                {formatDistanceToNow(new Date(activity.createTime), {
+                addSuffix: true,
+                })}
+            </p>
+            </div>
+            <div className="text-sm text-muted-foreground">
+            <MemoizedActivityContent activity={activity} />
+            </div>
+        </div>
+        </div>
+    );
+};
+
 // Extracted and memoized list component
 const ActivityFeedList = memo(({ activities }: { activities: Activity[] }) => {
     return (
         <div className="space-y-8">
             {activities.map((activity, index) => (
-                <div key={activity.id} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                    <span
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
-                    title={`Originated by: ${activity.originator}`}
-                    >
-                    {originatorIcons[activity.originator] || (
-                        <MessageSquare className="h-5 w-5" />
-                    )}
-                    </span>
-                    {index < activities.length - 1 && (
-                       <div className="flex-1 w-px bg-border my-2"></div>
-                    )}
-                </div>
-                <div className="flex-1 space-y-1 min-w-0 pt-1">
-                    <div className="flex justify-between items-start gap-4">
-                    <p className="font-semibold text-sm break-words">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground whitespace-nowrap pl-4 pt-0.5">
-                        {formatDistanceToNow(new Date(activity.createTime), {
-                        addSuffix: true,
-                        })}
-                    </p>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                    <ActivityContent activity={activity} />
-                    </div>
-                </div>
-                </div>
+                <ActivityItem
+                    key={activity.id}
+                    activity={activity}
+                    index={index}
+                    total={activities.length}
+                />
             ))}
         </div>
     );
@@ -169,6 +181,18 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
 });
 ActivityFeed.displayName = 'ActivityFeed';
 
+// Memoized ActivityContent to prevent unnecessary re-renders of heavy content
+// when the parent list updates but the activity content itself hasn't changed.
+const MemoizedActivityContent = memo(ActivityContent, (prev, next) => {
+    // If references are same, fast path
+    if (prev.activity === next.activity) return true;
+    // If ID is same, check content with JSON stringify to be safe
+    // This is much faster than React re-rendering the whole subtree (Accordion, etc)
+    if (prev.activity.id === next.activity.id) {
+        return JSON.stringify(prev.activity) === JSON.stringify(next.activity);
+    }
+    return false;
+});
 
 function ActivityContent({ activity }: { activity: Activity }) {
   const agentMessage = activity.agentMessaged?.agentMessage;
