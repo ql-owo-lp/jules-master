@@ -16,37 +16,64 @@ export function middleware(req: NextRequest) {
   const basicAuthUser = process.env.BASIC_AUTH_USER;
   const basicAuthPassword = process.env.BASIC_AUTH_PASSWORD;
 
+  // Initialize response
+  let response = NextResponse.next();
+
   if (basicAuthUser && basicAuthPassword) {
     const authHeader = req.headers.get('authorization');
+
+    let authorized = false;
 
     if (authHeader) {
       try {
         const authValue = authHeader.split(' ')[1];
-        if (!authValue) {
-            throw new Error('Missing auth value');
-        }
+        if (authValue) {
+            // Create the expected Base64 string: "user:password"
+            // In Node/Next.js Edge, btoa is available.
+            const expectedValue = btoa(`${basicAuthUser}:${basicAuthPassword}`);
 
-        // Create the expected Base64 string: "user:password"
-        // In Node/Next.js Edge, btoa is available.
-        const expectedValue = btoa(`${basicAuthUser}:${basicAuthPassword}`);
-
-        if (secureCompare(authValue, expectedValue)) {
-          return NextResponse.next();
+            if (secureCompare(authValue, expectedValue)) {
+              authorized = true;
+            }
         }
       } catch (e) {
         console.error('Basic Auth error:', e);
       }
     }
 
-    return new NextResponse('Authentication required', {
-      status: 401,
-      headers: {
-        'WWW-Authenticate': 'Basic realm="Secure Area"',
-      },
-    });
+    if (!authorized) {
+        return new NextResponse('Authentication required', {
+            status: 401,
+            headers: {
+                'WWW-Authenticate': 'Basic realm="Secure Area"',
+            },
+        });
+    }
   }
 
-  return NextResponse.next();
+  // Security Headers
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Content Security Policy
+  // This is a starting point and might need adjustment based on the application's needs (e.g., specific scripts, images)
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: https:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  `.replace(/\s{2,}/g, ' ').trim();
+
+  response.headers.set('Content-Security-Policy', cspHeader);
+
+  return response;
 }
 
 export const config = {
