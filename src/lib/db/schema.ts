@@ -23,7 +23,11 @@ export const jobs = sqliteTable('jobs', {
   requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
   cronJobId: text('cron_job_id'),
   profileId: text('profile_id').references(() => profiles.id).notNull().default('default'),
-});
+}, (table) => ({
+  // Optimization: Add composite index on profileId and createdAt to speed up job listing queries.
+  // This helps when filtering jobs by profile and sorting by creation time.
+  profileIdCreatedAtIdx: index('jobs_profile_id_created_at_idx').on(table.profileId, table.createdAt),
+}));
 
 export const cronJobs = sqliteTable('cron_jobs', {
   id: text('id').primaryKey(),
@@ -41,7 +45,10 @@ export const cronJobs = sqliteTable('cron_jobs', {
   requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
   sessionCount: integer('session_count').default(1),
   profileId: text('profile_id').references(() => profiles.id).notNull().default('default'),
-});
+}, (table) => ({
+  // Optimization: Add composite index on profileId and createdAt for cron jobs listing.
+  profileIdCreatedAtIdx: index('cron_jobs_profile_id_created_at_idx').on(table.profileId, table.createdAt),
+}));
 
 export const predefinedPrompts = sqliteTable('predefined_prompts', {
   id: text('id').primaryKey(),
