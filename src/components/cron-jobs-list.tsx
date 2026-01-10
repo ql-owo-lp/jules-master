@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,10 +10,21 @@ import type { CronJob } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function CronJobsList() {
     const [cronJobs, setCronJobs] = useState<CronJob[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [jobToDelete, setJobToDelete] = useState<string | null>(null);
     const { toast } = useToast();
 
     const fetchCronJobs = async () => {
@@ -31,8 +41,8 @@ export function CronJobsList() {
                 const data = await response.json();
                 setCronJobs(data);
             }
-        } catch (error: any) {
-            console.error("Failed to fetch cron jobs:", error?.message || error);
+        } catch (error) {
+            console.error("Failed to fetch cron jobs:", error instanceof Error ? error.message : error);
         } finally {
             setIsLoading(false);
         }
@@ -42,10 +52,10 @@ export function CronJobsList() {
         fetchCronJobs();
     }, []);
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this cron job?")) return;
+    const confirmDelete = async () => {
+        if (!jobToDelete) return;
         try {
-            const response = await fetch(`/api/cron-jobs/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/cron-jobs/${jobToDelete}`, { method: 'DELETE' });
             if (response.ok) {
                 toast({ title: "Cron Job Deleted" });
                 fetchCronJobs();
@@ -54,6 +64,8 @@ export function CronJobsList() {
             }
         } catch (error) {
             console.error("Failed to delete cron job", error);
+        } finally {
+            setJobToDelete(null);
         }
     };
 
@@ -114,7 +126,7 @@ export function CronJobsList() {
                 {cronJobs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
                         <p className="font-semibold text-lg">No cron jobs yet</p>
-                        <p className="text-sm">Click "Add New Cron Job" to create your first scheduled job.</p>
+                        <p className="text-sm">Click &quot;Add New Cron Job&quot; to create your first scheduled job.</p>
                     </div>
                 ) : (
                     <div className="border rounded-lg">
@@ -162,7 +174,7 @@ export function CronJobsList() {
                                                     <DropdownMenuItem onClick={() => handleToggle(job.id, job.enabled)}>
                                                         {job.enabled ? <><PauseCircle className="mr-2 h-4 w-4" /> Disable</> : <><PlayCircle className="mr-2 h-4 w-4" /> Enable</>}
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleDelete(job.id)} className="text-destructive">
+                                                    <DropdownMenuItem onClick={() => setJobToDelete(job.id)} className="text-destructive">
                                                         <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
@@ -175,6 +187,23 @@ export function CronJobsList() {
                     </div>
                 )}
             </CardContent>
+
+            <AlertDialog open={!!jobToDelete} onOpenChange={(open) => !open && setJobToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the cron job.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Card>
     );
 }
