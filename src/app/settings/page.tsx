@@ -132,6 +132,7 @@ export default function SettingsPage() {
   // Auto-Close Stale PRs
   const [autoCloseStaleConflictedPrs, setAutoCloseStaleConflictedPrs] = useLocalStorage<boolean>("jules-auto-close-stale-conflicted-prs", false);
   const [staleConflictedPrsDurationDays, setStaleConflictedPrsDurationDays] = useLocalStorage<number>("jules-stale-conflicted-prs-duration-days", 3);
+  const [closePrOnConflictEnabled, setClosePrOnConflictEnabled] = useLocalStorage<boolean>("jules-close-pr-on-conflict-enabled", false);
 
   // Throttling Settings
   const [minSessionInteractionInterval, setMinSessionInteractionInterval] = useLocalStorage<number>("jules-min-session-interaction-interval", 60);
@@ -171,6 +172,7 @@ export default function SettingsPage() {
 
   const [autoCloseStaleConflictedPrsValue, setAutoCloseStaleConflictedPrsValue] = useState(autoCloseStaleConflictedPrs);
   const [staleConflictedPrsDurationDaysValue, setStaleConflictedPrsDurationDaysValue] = useState(staleConflictedPrsDurationDays);
+  const [closePrOnConflictEnabledValue, setClosePrOnConflictEnabledValue] = useState(closePrOnConflictEnabled);
 
   const [minSessionInteractionIntervalValue, setMinSessionInteractionIntervalValue] = useState(minSessionInteractionInterval);
   const [retryTimeoutValue, setRetryTimeoutValue] = useState(retryTimeout);
@@ -228,6 +230,7 @@ export default function SettingsPage() {
   useEffect(() => { setCheckFailingActionsThresholdValue(checkFailingActionsThreshold); }, [checkFailingActionsThreshold]);
   useEffect(() => { setAutoCloseStaleConflictedPrsValue(autoCloseStaleConflictedPrs); }, [autoCloseStaleConflictedPrs]);
   useEffect(() => { setStaleConflictedPrsDurationDaysValue(staleConflictedPrsDurationDays); }, [staleConflictedPrsDurationDays]);
+  useEffect(() => { setClosePrOnConflictEnabledValue(closePrOnConflictEnabled); }, [closePrOnConflictEnabled]);
   useEffect(() => { setMinSessionInteractionIntervalValue(minSessionInteractionInterval); }, [minSessionInteractionInterval]);
   useEffect(() => { setRetryTimeoutValue(retryTimeout); }, [retryTimeout]);
 
@@ -268,6 +271,7 @@ export default function SettingsPage() {
           setCheckFailingActionsThreshold(dbSettings.checkFailingActionsThreshold);
           setAutoCloseStaleConflictedPrs(dbSettings.autoCloseStaleConflictedPrs);
           setStaleConflictedPrsDurationDays(dbSettings.staleConflictedPrsDurationDays);
+          setClosePrOnConflictEnabled(dbSettings.closePrOnConflictEnabled);
           setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
           setRetryTimeout(dbSettings.retryTimeout);
 
@@ -346,6 +350,7 @@ export default function SettingsPage() {
     setCheckFailingActionsThreshold(checkFailingActionsThresholdValue);
     setAutoCloseStaleConflictedPrs(autoCloseStaleConflictedPrsValue);
     setStaleConflictedPrsDurationDays(staleConflictedPrsDurationDaysValue);
+    setClosePrOnConflictEnabled(closePrOnConflictEnabledValue);
     setMinSessionInteractionInterval(minSessionInteractionIntervalValue);
     setRetryTimeout(retryTimeoutValue);
 
@@ -391,6 +396,7 @@ export default function SettingsPage() {
                 checkFailingActionsThreshold: checkFailingActionsThresholdValue,
                 autoCloseStaleConflictedPrs: autoCloseStaleConflictedPrsValue,
                 staleConflictedPrsDurationDays: staleConflictedPrsDurationDaysValue,
+                closePrOnConflictEnabled: closePrOnConflictEnabledValue,
                 minSessionInteractionInterval: minSessionInteractionIntervalValue,
                 retryTimeout: retryTimeoutValue,
                 profileId: currentProfileId,
@@ -989,6 +995,14 @@ export default function SettingsPage() {
                              />
                         </div>
                     )}
+
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="close-pr-on-conflict-enabled">Close PR on Conflict</Label>
+                            <p className="text-xs text-muted-foreground">Automatically close PRs if merge conflicts are detected, instead of asking to rebase.</p>
+                        </div>
+                        <Switch id="close-pr-on-conflict-enabled" checked={closePrOnConflictEnabledValue ?? false} onCheckedChange={setClosePrOnConflictEnabledValue} />
+                    </div>
                 </CardContent>
                 <CardFooter>
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Automation Settings</Button>

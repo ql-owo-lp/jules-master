@@ -33,6 +33,7 @@ export const settingsSchema = z.object({
   checkFailingActionsThreshold: z.number().optional().default(10),
   autoCloseStaleConflictedPrs: z.boolean().optional().default(false),
   staleConflictedPrsDurationDays: z.number().optional().default(3),
+  closePrOnConflictEnabled: z.boolean().optional().default(false),
   profileId: z.string().optional(),
 });
 

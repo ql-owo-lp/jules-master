@@ -46,6 +46,7 @@ describe('pr-monitor-worker', () => {
             checkFailingActionsEnabled: true,
             checkFailingActionsInterval: 60,
             checkFailingActionsThreshold: 2, // Low threshold for testing
+            closePrOnConflictEnabled: false,
         } as any);
         vi.spyOn(sessionActions, 'listSources').mockResolvedValue([{
             githubRepo: { owner: 'test-owner', repo: 'test-repo' }
@@ -147,7 +148,7 @@ describe('pr-monitor-worker', () => {
         expect(githubService.createPullRequestComment).toHaveBeenCalledWith(
             'test-owner/test-repo',
             1,
-            expect.stringContaining('resolve merge conflicts')
+            expect.not.stringContaining('resolve merge conflicts')
         );
         // Auto-reaction removed
         expect(githubService.addReactionToIssueComment).not.toHaveBeenCalled();
@@ -344,6 +345,57 @@ describe('pr-monitor-worker', () => {
         await execution;
 
         expect(githubService.mergePullRequest).not.toHaveBeenCalled();
+    });
+
+    it('should close confused PRs immediately when closePrOnConflictEnabled is true', async () => {
+         vi.spyOn(sessionService, 'getSettings').mockResolvedValue({
+            checkFailingActionsEnabled: true,
+            closePrOnConflictEnabled: true,
+        } as any);
+
+        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
+            { number: 1, head: { sha: 'sha1' } } as any
+        ]);
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({ status: 'unknown' } as any);
+        
+        // Mock conflicted PR
+        vi.spyOn(githubService, 'getPullRequest').mockResolvedValue({
+            mergeable: false,
+        } as any);
+
+        const execution = runPrMonitor({ schedule: false });
+        await vi.runAllTimersAsync();
+        await execution;
+
+        expect(githubService.createPullRequestComment).toHaveBeenCalledWith(
+            'test-owner/test-repo',
+            1,
+            expect.stringContaining('automatically closed because it has merge conflicts')
+        );
+
+        expect(githubService.updatePullRequest).toHaveBeenCalledWith(
+            'test-owner/test-repo',
+            1,
+            { state: 'closed' }
+        );
+    });
+
+    it('should NOT comment if any check is pending', async () => {
+        vi.spyOn(githubService, 'listOpenPullRequests').mockResolvedValue([
+            { number: 1, head: { sha: 'sha1' } } as any
+        ]);
+        // Status failure but pending > 0
+        vi.spyOn(githubService, 'getPullRequestCheckStatus').mockResolvedValue({
+            status: 'failure',
+            pending: 1,
+            runs: [{ name: 'test-check', status: 'completed', conclusion: 'failure' }]
+        } as any);
+
+        const execution = runPrMonitor({ schedule: false });
+        await vi.runAllTimersAsync();
+        await execution;
+
+        expect(githubService.createPullRequestComment).not.toHaveBeenCalled();
     });
 
     it('should close stale conflicted PRs when enabled', async () => {
