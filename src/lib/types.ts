@@ -248,6 +248,7 @@ export type Settings = {
   autoRetryEnabled?: boolean;
   checkFailingActionsEnabled?: boolean;
   checkFailingActionsInterval?: number;
+  closePrOnConflictEnabled?: boolean;
   minSessionInteractionInterval?: number;
   retryTimeout?: number;
   profileId?: string;

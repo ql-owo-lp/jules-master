@@ -115,6 +115,8 @@ export const settings = sqliteTable('settings', {
   checkFailingActionsEnabled: integer('check_failing_actions_enabled', { mode: 'boolean' }).notNull().default(true),
   checkFailingActionsInterval: integer('check_failing_actions_interval').notNull().default(600), // 10 minutes default
   checkFailingActionsThreshold: integer('check_failing_actions_threshold').notNull().default(10),
+  // Auto-Close Conflicted PRs
+  closePrOnConflictEnabled: integer('close_pr_on_conflict_enabled', { mode: 'boolean' }).notNull().default(false),
   // Auto-Close Stale PRs
   autoCloseStaleConflictedPrs: integer('auto_close_stale_conflicted_prs', { mode: 'boolean' }).notNull().default(false),
   staleConflictedPrsDurationDays: integer('stale_conflicted_prs_duration_days').notNull().default(3),
