@@ -68,7 +68,7 @@ export async function runPrMonitor(options = { schedule: true }) {
         if (!hasLock) {
             // console.log("PrMonitorWorker: Could not acquire lock, another worker is running.");
         } else {
-             await processRepositories(apiKey, maxCommentsThreshold, autoCloseStaleConflictedPrs, staleConflictedPrsDurationDays);
+             await processRepositories(apiKey, maxCommentsThreshold, autoCloseStaleConflictedPrs, staleConflictedPrsDurationDays, currentSettings.closePrOnConflictEnabled ?? false);
         }
 
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -113,7 +113,7 @@ async function acquireLock(): Promise<boolean> {
     }
 }
 
-async function processRepositories(apiKey: string, maxCommentsThreshold: number, autoCloseStaleConflictedPrs: boolean, staleConflictedPrsDurationDays: number) {
+async function processRepositories(apiKey: string, maxCommentsThreshold: number, autoCloseStaleConflictedPrs: boolean, staleConflictedPrsDurationDays: number, closePrOnConflictEnabled: boolean) {
     console.log("PrMonitorWorker: Checking repositories...");
 
     let sources = [];
@@ -161,95 +161,108 @@ async function processRepositories(apiKey: string, maxCommentsThreshold: number,
                     }
                 }
 
-                // --- 1. Handle Failing Checks ---
-                if (checkStatus.status === 'failure') {
-                    const failingChecks = checkStatus.runs
-                        .filter(r => r.status === 'completed' && ['failure', 'timed_out', 'action_required', 'cancelled'].includes(r.conclusion || ''))
-                        .map(r => r.name);
-
-                    console.log(`PrMonitorWorker: PR #${pr.number} in ${repoFullName} has failing checks: ${failingChecks.join(', ')}`);
-
-                    // Check comments
-                    const comments = await getPullRequestComments(repoFullName, pr.number);
-
-                    // 1. Check Threshold
-                    const ourComments = comments.filter(c => c.body.includes(BOT_COMMENT_TAG));
-                    if (ourComments.length >= maxCommentsThreshold) {
-                         console.log(`PrMonitorWorker: PR #${pr.number} has reached comment threshold (${ourComments.length}/${maxCommentsThreshold}). Skipping.`);
-                         continue;
+                    // --- 1. Check for Conflict (Close if enabled) ---
+                    // Moved this check up to prioritize closing conflicted PRs over commenting on failures
+                    if (closePrOnConflictEnabled) {
+                        try {
+                            const prDetails = await getPullRequest(repoFullName, pr.number);
+                            if (prDetails && prDetails.mergeable === false) {
+                                console.log(`PrMonitorWorker: PR #${pr.number} has merge conflicts and auto-close is enabled. Closing.`);
+                                const commentBody = `This PR has been automatically closed because it has merge conflicts. Please resolve the conflicts and reopen the PR.`;
+                                await createPullRequestComment(repoFullName, pr.number, commentBody);
+                                await updatePullRequest(repoFullName, pr.number, { state: 'closed' });
+                                continue;
+                            }
+                        } catch (err) {
+                            console.error(`PrMonitorWorker: Error checking merge status for PR #${pr.number}:`, err);
+                        }
                     }
 
-                    // 2. Check if last comment is by us
-                    if (comments.length > 0) {
-                        const lastComment = comments[comments.length - 1];
-                        if (lastComment.body.includes(BOT_COMMENT_TAG) || lastComment.body.includes("@jules the git hub actions are failing")) {
-                             console.log(`PrMonitorWorker: Last comment already about failing actions. Skipping.`);
+                    // --- 2. Handle Failing Checks ---
+                    if (checkStatus.status === 'failure') {
+                         // Only comment if NO checks are pending
+                         if (checkStatus.pending > 0) {
+                             console.log(`PrMonitorWorker: PR #${pr.number} has failing checks but some are still pending. Waiting.`);
+                             continue;
+                         }
+
+                        const failingChecks = checkStatus.runs
+                            .filter(r => r.status === 'completed' && ['failure', 'timed_out', 'action_required', 'cancelled'].includes(r.conclusion || ''))
+                            .map(r => r.name);
+
+                        console.log(`PrMonitorWorker: PR #${pr.number} in ${repoFullName} has failing checks: ${failingChecks.join(', ')}`);
+
+                        // Check comments
+                        const comments = await getPullRequestComments(repoFullName, pr.number);
+
+                        // 1. Check Threshold
+                        const ourComments = comments.filter(c => c.body.includes(BOT_COMMENT_TAG));
+                        if (ourComments.length >= maxCommentsThreshold) {
+                             console.log(`PrMonitorWorker: PR #${pr.number} has reached comment threshold (${ourComments.length}/${maxCommentsThreshold}). Skipping.`);
                              continue;
                         }
-                    }
 
-                    // Check if we already commented on this commit using the commit SHA in the tag
-                    const alreadyCommentedOnSha = comments.some(c => {
-                        return c.body.includes(`${BOT_COMMENT_TAG_PREFIX} commit:${pr.head.sha} ${BOT_COMMENT_TAG_SUFFIX}`);
-                    });
+                        // 2. Check if last comment is by us
+                        if (comments.length > 0) {
+                            const lastComment = comments[comments.length - 1];
+                            if (lastComment.body.includes(BOT_COMMENT_TAG) || lastComment.body.includes("@jules the git hub actions are failing")) {
+                                 console.log(`PrMonitorWorker: Last comment already about failing actions. Skipping.`);
+                                 continue;
+                            }
+                        }
 
-                    if (alreadyCommentedOnSha) {
-                         console.log(`PrMonitorWorker: Already commented on commit ${pr.head.sha}. Skipping.`);
-                         continue;
-                    }
+                        // Check if we already commented on this commit using the commit SHA in the tag
+                        const alreadyCommentedOnSha = comments.some(c => {
+                            return c.body.includes(`${BOT_COMMENT_TAG_PREFIX} commit:${pr.head.sha} ${BOT_COMMENT_TAG_SUFFIX}`);
+                        });
 
-                    // Attempt to rerun failing jobs
-                    try {
-                        const failingRuns = await getFailingWorkflowRuns(repoFullName, pr.head.sha);
-                        if (failingRuns.length > 0) {
-                             console.log(`PrMonitorWorker: Triggering rerun for failing workflow runs: ${failingRuns.join(', ')}`);
-                             for (const runId of failingRuns) {
-                                 await rerunFailedJobs(repoFullName, runId);
+                        if (alreadyCommentedOnSha) {
+                             console.log(`PrMonitorWorker: Already commented on commit ${pr.head.sha}. Skipping.`);
+                             continue;
+                        }
+
+                        // Attempt to rerun failing jobs
+                        try {
+                            const failingRuns = await getFailingWorkflowRuns(repoFullName, pr.head.sha);
+                            if (failingRuns.length > 0) {
+                                 console.log(`PrMonitorWorker: Triggering rerun for failing workflow runs: ${failingRuns.join(', ')}`);
+                                 for (const runId of failingRuns) {
+                                     await rerunFailedJobs(repoFullName, runId);
+                                 }
+                            } else {
+                                console.log(`PrMonitorWorker: No failing workflow runs found for ${pr.head.sha} despite failing checks.`);
+                            }
+                        } catch (err) {
+                            console.error(`PrMonitorWorker: Error triggering reruns for PR #${pr.number}:`, err);
+                        }
+
+                        // Post comment
+                        const failingChecksList = failingChecks.map(name => `- ${name}`).join('\n');
+                        let commentBody = `@jules the git hub actions are failing. Failing GitHub actions:\n${failingChecksList}`;
+
+                        // Add CodeQL details
+                        const codeqlCheck = checkStatus.runs.find(c => c.name.toLowerCase().includes('codeql'));
+                        if (codeqlCheck && codeqlCheck.output) {
+                             if (codeqlCheck.output.summary) {
+                                 commentBody += `\n\n**CodeQL Summary:**\n${codeqlCheck.output.summary}`;
                              }
-                        } else {
-                            console.log(`PrMonitorWorker: No failing workflow runs found for ${pr.head.sha} despite failing checks.`);
                         }
-                    } catch (err) {
-                        console.error(`PrMonitorWorker: Error triggering reruns for PR #${pr.number}:`, err);
-                    }
 
-                    // Post comment
-                    const failingChecksList = failingChecks.map(name => `- ${name}`).join('\n');
-                    let commentBody = `@jules the git hub actions are failing. Failing GitHub actions:\n${failingChecksList}`;
+                        // Check for deleted test files
+                        try {
+                             const files = await listPullRequestFiles(repoFullName, pr.number);
+                             const deletedTestFiles = files.filter(f =>
+                                 f.status === 'removed' &&
+                                 isTestFile(f.filename)
+                             );
 
-                    // Add CodeQL details
-                    const codeqlCheck = checkStatus.runs.find(c => c.name.toLowerCase().includes('codeql'));
-                    if (codeqlCheck && codeqlCheck.output) {
-                         if (codeqlCheck.output.summary) {
-                             commentBody += `\n\n**CodeQL Summary:**\n${codeqlCheck.output.summary}`;
-                         }
-                    }
-
-                    // Check for merge conflicts
-                    try {
-                        const prDetails = await getPullRequest(repoFullName, pr.number);
-                        if (prDetails && prDetails.mergeable === false) {
-                            commentBody += `\n\nYou must rebase the branch on top of the latest target branch and resolve merge conflicts.`;
+                             if (deletedTestFiles.length > 0) {
+                                 console.log(`PrMonitorWorker: PR #${pr.number} deletes test files: ${deletedTestFiles.map(f => f.filename).join(', ')}`);
+                                 commentBody += `\n\nDeleting existing tests are not allowed, only refactor of these tests are allowed.`;
+                             }
+                        } catch (err) {
+                            console.error(`PrMonitorWorker: Error checking files for PR #${pr.number}:`, err);
                         }
-                    } catch (err) {
-                        console.error(`PrMonitorWorker: Error checking merge status for PR #${pr.number}:`, err);
-                    }
-
-                    // Check for deleted test files
-                    try {
-                         const files = await listPullRequestFiles(repoFullName, pr.number);
-                         const deletedTestFiles = files.filter(f =>
-                             f.status === 'removed' &&
-                             isTestFile(f.filename)
-                         );
-
-                         if (deletedTestFiles.length > 0) {
-                             console.log(`PrMonitorWorker: PR #${pr.number} deletes test files: ${deletedTestFiles.map(f => f.filename).join(', ')}`);
-                             commentBody += `\n\nDeleting existing tests are not allowed, only refactor of these tests are allowed.`;
-                         }
-                    } catch (err) {
-                        console.error(`PrMonitorWorker: Error checking files for PR #${pr.number}:`, err);
-                    }
 
 
                     // Append unique tag with commit SHA
