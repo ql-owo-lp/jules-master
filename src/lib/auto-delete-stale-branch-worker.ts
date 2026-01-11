@@ -3,6 +3,7 @@ import { settings } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { listSources } from '@/app/sessions/actions';
 import { deleteBranch, listBranches, listOpenPullRequests, getCommit } from './github-service';
+import { getSettings } from './session-service';
 
 let workerTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
@@ -24,9 +25,10 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
     try {
         console.log("AutoDeleteStaleBranchWorker: Starting check for stale branches...");
 
-        const settingsResult = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
-        // Use existing settings
-        if (settingsResult.length === 0 || !settingsResult[0].autoDeleteStaleBranches) {
+        // Use getSettings to ensure we get the correct profile settings (defaulting to 'default' profile)
+        const currentSettings = await getSettings('default');
+        
+        if (!currentSettings.autoDeleteStaleBranches) {
             console.log("AutoDeleteStaleBranchWorker: Auto-delete stale branches is disabled in settings. Skipping check.");
             isRunning = false;
             if (options.schedule) {
@@ -35,7 +37,7 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
             return;
         }
 
-        const autoDeleteDays = settingsResult[0].autoDeleteStaleBranchesAfterDays;
+        const autoDeleteDays = currentSettings.autoDeleteStaleBranchesAfterDays;
         const now = Date.now();
 
         // New Logic: Iterate all sources (repos) and check branches directly
@@ -60,7 +62,7 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
 
                 for (const branch of branches) {
                     if (branch.protected) continue;
-                    if (['main', 'master', 'develop'].includes(branch.name)) continue;
+                    if (['main', 'master', 'develop', 'staging'].includes(branch.name)) continue;
 
                     // 1. Check if branch has an open PR
                     if (openPrHeadRefs.has(branch.name)) {
@@ -76,9 +78,19 @@ export async function runAutoDeleteStaleBranchCheck(options = { schedule: true }
                         // 3. Check Author: Must be created by the bot
                         const author = commit.commit.author.name;
                         const committer = commit.commit.committer.name;
-                        const isBot = author === 'google-labs-jules' || committer === 'google-labs-jules';
+                        const authorEmail = commit.commit.author.email || "";
+                        
+                        const isBot = 
+                            author === 'google-labs-jules' || 
+                            committer === 'google-labs-jules' ||
+                            author.toLowerCase().includes('bot') ||
+                            committer.toLowerCase().includes('bot') ||
+                            authorEmail.includes('google-labs-jules') ||
+                            author === 'Jules' || 
+                            committer === 'Jules';
 
                         if (!isBot) {
+                            // console.log(`AutoDeleteStaleBranchWorker: Skipping ${branch.name} - Author '${author}' is not recognized as bot.`);
                             continue; // Skip branches not created by bot
                         }
 
@@ -121,9 +133,9 @@ function scheduleNextRun() {
         clearTimeout(workerTimeout);
     }
 
-    db.select().from(settings).where(eq(settings.id, 1)).limit(1)
-        .then(settingsResult => {
-            const intervalSeconds = settingsResult[0]?.autoDeleteStaleBranchesInterval ?? DEFAULT_INTERVAL_SECONDS;
+    getSettings('default')
+        .then(currentSettings => {
+            const intervalSeconds = currentSettings.autoDeleteStaleBranchesInterval ?? DEFAULT_INTERVAL_SECONDS;
             workerTimeout = setTimeout(() => {
                 runAutoDeleteStaleBranchCheck();
             }, intervalSeconds * 1000);
