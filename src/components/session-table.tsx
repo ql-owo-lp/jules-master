@@ -80,7 +80,7 @@ export function SessionTable({
         const url = getPullRequestUrl(session);
         if (url) urls.add(url);
     });
-    return Array.from(urls);
+    return Array.from(urls).sort();
   }, [sessions]);
 
   // Batch fetch PR statuses
@@ -113,7 +113,10 @@ export function SessionTable({
         isMounted = false;
         if (timeoutId) clearInterval(timeoutId);
     };
-  }, [prUrls, githubToken, hasEnvGithubToken, pollInterval]);
+  // We use prUrls.join(',') to prevent unnecessary re-runs when the array reference changes but content is same.
+  // This is safe because if content is same, using the old array reference in closure is fine.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prUrls.join(','), githubToken, hasEnvGithubToken, pollInterval]);
 
   const truncate = (str: string, length: number) => {
     if (!str) return '';
