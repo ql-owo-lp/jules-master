@@ -31,6 +31,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import cronParser from "cron-parser";
 import { format } from "date-fns";
 
+const cronPresets = [
+  { label: "Every Hour", value: "0 * * * *" },
+  { label: "Every Day (Midnight)", value: "0 0 * * *" },
+  { label: "Every Week (Sunday)", value: "0 0 * * 0" },
+  { label: "Every Month (1st)", value: "0 0 1 * *" },
+  { label: "Weekdays (Mon-Fri)", value: "0 0 * * 1-5" },
+];
+
 type CronJobFormProps = {
   onCronJobCreated: () => void;
   onCancel: () => void;
@@ -355,7 +363,26 @@ export function CronJobForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="schedule">Schedule (Cron Expression)</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="schedule">Schedule (Cron Expression)</Label>
+                <Select
+                  value={cronPresets.find((p) => p.value === schedule)?.value || ""}
+                  onValueChange={(value) => {
+                    if (value) setSchedule(value);
+                  }}
+                >
+                  <SelectTrigger className="w-[180px] h-8 text-xs" aria-label="Load Schedule Preset">
+                    <SelectValue placeholder="Load Preset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cronPresets.map((preset) => (
+                      <SelectItem key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Input
                 id="schedule"
                 placeholder="e.g., 0 0 * * 0 (Weekly)"
