@@ -40,7 +40,7 @@ oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 
 oci.pull(
     name = "distroless_nodejs",
-    image = "gcr.io/distroless/nodejs22-debian12",
+    image = "gcr.io/distroless/nodejs24-debian12",
     tag = "latest",
     platforms = [
         "linux/amd64",

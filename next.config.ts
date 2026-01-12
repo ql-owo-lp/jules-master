@@ -1,5 +1,6 @@
 
 import type {NextConfig} from 'next';
+import path from 'path';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -32,7 +33,8 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ['better-sqlite3'],
-  output: 'standalone',
+  // output: 'standalone',
+  // outputFileTracing: false,
 };
 
 export default nextConfig;

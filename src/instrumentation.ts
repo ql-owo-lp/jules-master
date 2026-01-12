@@ -1,8 +1,11 @@
 
-
-
 export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
+        // Skip side effects during build to prevent connection attempts
+        if (process.env.IS_BUILD) {
+            return;
+        }
+
         const { initLogger } = await import('./lib/logger');
         initLogger();
 

@@ -9,43 +9,44 @@ import fs from 'fs';
 import path from 'path';
 
 // Resolve database path (handle relative paths in DATABASE_URL or default)
-// Resolve database path (handle relative paths in DATABASE_URL or default)
 const isTest = process.env.NODE_ENV === 'test';
-const dbUrl = process.env.DATABASE_URL || (isTest ? ':memory:' : 'data/sqlite.db');
+// Force memory for build/test to avoid file I/O issues and side effects
+const isBuild = !!process.env.IS_BUILD;
+const dbUrl = isBuild || isTest ? ':memory:' : (process.env.DATABASE_URL || 'data/sqlite.db');
 
 let dbPath = dbUrl;
 if (dbUrl !== ':memory:') {
   dbPath = path.isAbsolute(dbUrl) ? dbUrl : path.join(process.cwd(), dbUrl);
-  const dbDir = path.dirname(dbPath);
+}
 
-  // Ensure the directory exists
-  if (!fs.existsSync(dbDir)) {
-    console.log(`Creating database directory: ${dbDir}`);
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-
-  // Check directory write permissions
-  try {
-    fs.accessSync(dbDir, fs.constants.W_OK);
-  } catch (error) {
-    console.error(`Error: Database directory '${dbDir}' is not writable.`);
-    throw error;
-  }
-
-  // Check file permissions if it exists, or log initialization if not
-  if (fs.existsSync(dbPath)) {
-    try {
-      fs.accessSync(dbPath, fs.constants.R_OK | fs.constants.W_OK);
-    } catch (error) {
-      console.error(`Error: Database file '${dbPath}' is not readable/writable.`);
-      throw error;
-    }
+let sqlite: any;
+try {
+  sqlite = new Database(dbPath);
+} catch (error) {
+  // If build, maybe we can survive with a mock?
+  if (isBuild) {
+      console.warn('Failed to load sqlite database during build, using mock:', error);
+      sqlite = {
+          exec: () => {},
+          prepare: () => ({ get: () => null, all: () => [], run: () => {} }),
+          transaction: (fn: any) => fn,
+      };
   } else {
-    console.log(`Initializing new database at: ${dbPath}`);
+      throw error;
   }
 }
 
-const sqlite = new Database(dbPath);
+const migrationsDir = path.join(process.cwd(), 'src/lib/db/migrations');
+
+if (isBuild && dbUrl === ':memory:') {
+  if (fs.existsSync(migrationsDir)) {
+      const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+      for (const file of files) {
+          const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+          sqlite.exec(sql);
+      }
+  }
+}
 export const db = drizzle(sqlite, { schema });
 
 // Generic DAO Interface

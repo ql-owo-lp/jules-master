@@ -24,6 +24,7 @@ bin.next(
     args = ["build"],
     env = {
         "NODE_ENV": "production",
+        "IS_BUILD": "true",
     },
     out_dirs = [".next"],
     visibility = ["//visibility:public"],
@@ -33,37 +34,34 @@ genrule(
     name = "app_bundle",
     srcs = [
         ":next_build",
+        "node_modules.tar",
         "start.js",
         "drizzle.config.ts",
+        "next.config.ts",
         "package.json",
-        "//src",
+        "src.tar",
     ],
     outs = ["app_bundle.tar"],
     cmd = """
-        mkdir -p app_bundle
+        mkdir -p app_bundle/app
+
+        # Copy Next.js build output (default output .next)
+        cp -RL $(location :next_build) app_bundle/app/.next
+
+        # Extract node_modules (pre-packaged tar)
+        tar -xf $(location node_modules.tar) -C app_bundle/app/
         
-        # Copy standalone build
-        # :next_build output is a directory ".next".
-        # standalone is at .next/standalone.
-        # We want to copy everything inside standalone to /app (app_bundle root).
-        cp -R $(location :next_build)/standalone/* app_bundle/
+        # Copy start.js, drizzle.config, package.json
+        cp $(location start.js) app_bundle/app/
+        cp $(location drizzle.config.ts) app_bundle/app/
+        cp $(location package.json) app_bundle/app/
+        cp $(location next.config.ts) app_bundle/app/
         
-        # Copy static assets to .next/static (required for standalone)
-        mkdir -p app_bundle/.next
-        cp -R $(location :next_build)/static app_bundle/.next/static
+        # Extract src (pre-packaged tar)
+        tar -xf $(location src.tar) -C app_bundle/app/
         
-        # Copy start.js, drizzle.config
-        cp $(location start.js) app_bundle/
-        cp $(location drizzle.config.ts) app_bundle/
-        cp $(location package.json) app_bundle/
-        
-        # Copy src (for db migrations)
-        if [ -d "src" ]; then
-            cp -R src app_bundle/
-        else
-            mkdir -p app_bundle/src
-            cp -R src/* app_bundle/src/ || true
-        fi
+        # Ensure permissions (read/execute for everyone, write for owner)
+        chmod -R 755 app_bundle/app/
         
         # Tar it up
         tar -C app_bundle -cf $@ .
