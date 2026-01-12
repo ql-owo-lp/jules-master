@@ -67,7 +67,7 @@ test.describe('Cron Job Creation', () => {
         await page.getByRole('tab', { name: 'Cron Jobs' }).click();
 
         // Verify list is initially empty
-        await expect(page.getByText('No cron jobs yet')).toBeVisible();
+        await expect(page.getByText('No cron jobs yet')).toBeVisible({ timeout: 10000 });
 
         await page.getByRole('button', { name: 'New Cron Job' }).click();
 

@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "worker",
+    srcs = [
+        "background_job.go",
+        "cron.go",
+        "monitor.go",
+    ],
+    importpath = "github.com/jules-org/jules/backend/pkg/worker",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/pkg/db",
+        "@com_github_jmoiron_sqlx//:sqlx",
+        "@com_github_rs_zerolog//log",
+    ],
+)

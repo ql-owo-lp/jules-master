@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "service",
+    srcs = [
+        "job_service.go",
+        "session_service.go",
+        "settings_service.go",
+    ],
+    importpath = "github.com/jules-org/jules/backend/pkg/service",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/pkg/db",
+        "//proto:jules",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

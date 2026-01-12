@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package jules;
+
+option go_package = "github.com/jules-org/jules/backend/pkg/proto/jules";
+
+message Job {
+  string id = 1;
+  string name = 2;
+  repeated string session_ids = 3;
+  string created_at = 4;
+  string repo = 5;
+  string branch = 6;
+  bool auto_approval = 7;
+  bool background = 8;
+  string prompt = 9;
+  int32 session_count = 10;
+  string status = 11;
+  string automation_mode = 12;
+  bool require_plan_approval = 13;
+  string cron_job_id = 14;
+  string profile_id = 15;
+}
+
+message Session {
+  string id = 1;
+  string name = 2;
+  string title = 3;
+  string prompt = 4;
+  string source_context = 5; // JSON string
+  string create_time = 6;
+  string update_time = 7;
+  string state = 8;
+  string url = 9;
+  string outputs = 10; // JSON string
+  bool require_plan_approval = 11;
+  string automation_mode = 12;
+  int64 last_updated = 13;
+  int32 retry_count = 14;
+  string last_error = 15;
+  int64 last_interaction_at = 16;
+  string profile_id = 17;
+}
+
+message Settings {
+  int32 id = 1;
+  int32 idle_poll_interval = 2;
+  int32 active_poll_interval = 3;
+  int32 title_truncate_length = 4;
+  int32 line_clamp = 5;
+  int32 session_items_per_page = 6;
+  int32 jobs_per_page = 7;
+  int32 default_session_count = 8;
+  int32 pr_status_poll_interval = 9;
+  string theme = 10;
+  int32 history_prompts_count = 11;
+  bool auto_approval_enabled = 12;
+  int32 auto_approval_interval = 13;
+  bool auto_retry_enabled = 14;
+  string auto_retry_message = 15;
+  bool auto_continue_enabled = 16;
+  string auto_continue_message = 17;
+  int32 session_cache_in_progress_interval = 18;
+  int32 session_cache_completed_no_pr_interval = 19;
+  int32 session_cache_pending_approval_interval = 20;
+  int32 session_cache_max_age_days = 21;
+  bool auto_delete_stale_branches = 22;
+  int32 auto_delete_stale_branches_after_days = 23;
+  int32 auto_delete_stale_branches_interval = 24;
+  bool check_failing_actions_enabled = 25;
+  int32 check_failing_actions_interval = 26;
+  int32 check_failing_actions_threshold = 27;
+  bool close_pr_on_conflict_enabled = 28;
+  bool auto_close_stale_conflicted_prs = 29;
+  int32 stale_conflicted_prs_duration_days = 30;
+  int32 min_session_interaction_interval = 31;
+  int32 retry_timeout = 32;
+  string profile_id = 100;
+}
+
+message ListJobsRequest {
+  string profile_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListJobsResponse {
+  repeated Job jobs = 1;
+  string next_page_token = 2;
+}
+
+message CreateJobRequest {
+  Job job = 1;
+}
+
+message GetJobRequest {
+  string id = 1;
+}
+
+message ListSessionsRequest {
+  string profile_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+  string next_page_token = 2;
+}
+
+message CreateSessionRequest {
+  Session session = 1;
+}
+
+message GetSessionRequest {
+  string id = 1;
+}
+
+message UpdateSessionRequest {
+  Session session = 1;
+  // Field mask/paths could be added here
+}
+
+message GetSettingsRequest {
+  string profile_id = 1;
+}
+
+message UpdateSettingsRequest {
+  Settings settings = 1;
+}

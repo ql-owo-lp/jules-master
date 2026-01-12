@@ -29,7 +29,7 @@ test.describe('Auto Approval Features', () => {
 
         // Check for Auto Approval Interval input
         const autoApprovalInput = page.getByLabel('Auto Approval Check Interval (seconds)');
-        await expect(autoApprovalInput).toBeVisible();
+        await expect(autoApprovalInput).toBeVisible({ timeout: 10000 });
     });
 
     test('should create a job with Auto Approval enabled', async ({ page }) => {

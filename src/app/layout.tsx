@@ -98,7 +98,7 @@ export default function RootLayout({
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                     <SidebarMenuItem>
+                    <SidebarMenuItem>
                       <SidebarMenuButton asChild>
                         <Link href="/system-log">
                           <Terminal />
@@ -106,6 +106,7 @@ export default function RootLayout({
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+
                      <SidebarMenuItem>
                       <SidebarMenuButton asChild>
                         <Link href="/settings">

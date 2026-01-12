@@ -7,7 +7,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     environment: 'jsdom',
-    exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**', 'tests/e2e/**'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**', 'tests/e2e/**', 'bazel-*/**'],
     fileParallelism: false,
     coverage: {
       provider: 'v8',

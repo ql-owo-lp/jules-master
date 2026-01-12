@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "db",
+    srcs = [
+        "db.go",
+        "schema.go",
+    ],
+    importpath = "github.com/jules-org/jules/backend/pkg/db",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_jmoiron_sqlx//:sqlx",
+        "@org_modernc_sqlite//:sqlite",
+    ],
+)

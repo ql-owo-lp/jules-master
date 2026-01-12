@@ -1,0 +1,103 @@
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+# Messages
+proto_library(
+    name = "messages_proto",
+    srcs = ["messages.proto"],
+    visibility = ["//visibility:public"],
+)
+
+go_proto_library(
+    name = "jules_go_proto",
+    compilers = ["@rules_go//proto:go_proto"],
+    importpath = "github.com/jules-org/jules/backend/pkg/proto/jules",
+    proto = ":messages_proto",
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "jules",
+    embed = [":jules_go_proto"],
+    importpath = "github.com/jules-org/jules/backend/pkg/proto/jules",
+    visibility = ["//visibility:public"],
+)
+
+# Services
+proto_library(
+    name = "services_proto",
+    srcs = ["services.proto"],
+    visibility = ["//visibility:public"],
+    deps = [":messages_proto"],
+)
+
+# 1. Generate services.pb.go (standard Go proto)
+go_proto_library(
+    name = "julesconnect_pb",
+    compilers = ["@rules_go//proto:go_proto"],
+    importpath = "github.com/jules-org/jules/backend/pkg/proto/jules/julesconnect",
+    proto = ":services_proto",
+    visibility = ["//visibility:public"],
+    deps = [":jules_go_proto"],
+)
+
+# 2. Generate services.connect.go manually using genrule
+genrule(
+    name = "julesconnect_gen",
+    srcs = [
+        "services.proto",
+        "messages.proto",
+    ],
+    outs = ["services.connect.go"],
+    cmd = """
+        $(location @protobuf//:protoc) \
+        --plugin=protoc-gen-connect-go=$(location @com_connectrpc_connect//cmd/protoc-gen-connect-go:protoc-gen-connect-go) \
+        --connect-go_out=$(RULEDIR) \
+        --connect-go_opt=paths=source_relative \
+        -I. \
+        $(location services.proto)
+
+        # Move the generated file to the expected output location
+        find $(RULEDIR) -name services.connect.go -exec mv {} $(location services.connect.go) \\;
+
+        # Fix package name to match julesconnect (so it merges with pb.go)
+        sed -i 's/package julesconnectconnect/package julesconnect/' $(location services.connect.go)
+
+        # Fix self-import (remove the import line and usage qualifier)
+        sed -i '/github.com\\/jules-org\\/jules\\/backend\\/pkg\\/proto\\/jules\\/julesconnect\"/d' $(location services.connect.go)
+        sed -i 's/julesconnect\\.File_proto_services_proto/File_proto_services_proto/g' $(location services.connect.go)
+    """,
+    tools = [
+        "@com_connectrpc_connect//cmd/protoc-gen-connect-go",
+        "@protobuf//:protoc",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+# 3. Merge them into one library
+go_library(
+    name = "julesconnect",
+    srcs = [":julesconnect_gen"],  # Compiled as part of this library
+    embed = [":julesconnect_pb"],  # Merged with PB definitions
+    importpath = "github.com/jules-org/jules/backend/pkg/proto/jules/julesconnect",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":jules",
+        "@com_connectrpc_connect//:connect",
+        # Explicitly add deps that might be needed by generated code
+    ],
+)
+
+# TypeScript generation temporarily commented out pending node toolchain config
+# genrule(
+#     name = "jules_ts_gen",
+# ...
+# )
+
+go_library(
+    name = "proto",
+    srcs = ["services.connect.go"],
+    importpath = "github.com/jules-org/jules/proto",
+    visibility = ["//visibility:public"],
+)

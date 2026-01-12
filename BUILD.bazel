@@ -1,0 +1,97 @@
+load("@gazelle//:def.bzl", "gazelle")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@npm//:next/package_json.bzl", "bin")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+
+# gazelle:prefix github.com/jules-org/jules
+# gazelle:proto disable_global
+gazelle(name = "gazelle")
+
+npm_link_all_packages(name = "node_modules")
+
+bin.next(
+    name = "next_build",
+    srcs = [
+        "next.config.ts",
+        "node_modules",
+        "package.json",
+        "postcss.config.mjs",
+        "tailwind.config.ts",
+        "tsconfig.json",
+        "//src",
+    ],
+    args = ["build"],
+    env = {
+        "NODE_ENV": "production",
+    },
+    out_dirs = [".next"],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "app_bundle",
+    srcs = [
+        ":next_build",
+        "start.js",
+        "drizzle.config.ts",
+        "package.json",
+        "//src",
+    ],
+    outs = ["app_bundle.tar"],
+    cmd = """
+        mkdir -p app_bundle
+        
+        # Copy standalone build
+        # :next_build output is a directory ".next".
+        # standalone is at .next/standalone.
+        # We want to copy everything inside standalone to /app (app_bundle root).
+        cp -R $(location :next_build)/standalone/* app_bundle/
+        
+        # Copy static assets to .next/static (required for standalone)
+        mkdir -p app_bundle/.next
+        cp -R $(location :next_build)/static app_bundle/.next/static
+        
+        # Copy start.js, drizzle.config
+        cp $(location start.js) app_bundle/
+        cp $(location drizzle.config.ts) app_bundle/
+        cp $(location package.json) app_bundle/
+        
+        # Copy src (for db migrations)
+        if [ -d "src" ]; then
+            cp -R src app_bundle/
+        else
+            mkdir -p app_bundle/src
+            cp -R src/* app_bundle/src/ || true
+        fi
+        
+        # Tar it up
+        tar -C app_bundle -cf $@ .
+    """,
+)
+
+oci_image(
+    name = "image",
+    base = "@distroless_nodejs",
+    entrypoint = [
+        "/nodejs/bin/node",
+        "start.js",
+    ],
+    env = {
+        "NODE_ENV": "production",
+        "DATABASE_URL": "/app/data/sqlite.db",
+        "NODE_OPTIONS": "--expose-gc",
+    },
+    tars = [
+        ":app_bundle",
+    ],
+    workdir = "/app",
+)
+
+oci_load(
+    name = "image_load",
+    image = ":image",
+    repo_tags = ["jules:bazel"],
+)
+
+exports_files(["node_modules/.bin/protoc-gen-ts_proto"])

@@ -13,6 +13,10 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
+vi.mock('@/lib/session-service', () => ({
+  updateSessionInteraction: vi.fn(),
+}));
+
 describe('Session [id] Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -44,3 +44,20 @@ next-env.d.ts
 *.db
 
 .[Jj]ules
+node_modules
+
+# Bazel
+bazel-*
+/bazel-bin
+/bazel-out
+/bazel-testlogs
+/bazel-jules-master
+user.bazelrc
+
+# Local build logs and artifacts
+build_log.txt
+test_output.txt
+next_build_error.txt
+protoc_bin/
+app_bundle/
+*.tar

@@ -61,6 +61,7 @@ test.describe('Background Jobs Progress', () => {
     // Click refresh button to be sure
     const refreshBtn = page.getByRole('button', { name: 'Refresh job list' });
     if (await refreshBtn.isVisible()) {
+        await expect(refreshBtn).toBeEnabled({ timeout: 5000 });
         await refreshBtn.click();
         await page.waitForTimeout(1000);
     }

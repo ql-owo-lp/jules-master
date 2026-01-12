@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package jules;
+
+option go_package = "github.com/jules-org/jules/backend/pkg/proto/jules/julesconnect";
+
+import "proto/messages.proto";
+
+service JobService {
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse);
+  rpc CreateJob(CreateJobRequest) returns (Job);
+  rpc GetJob(GetJobRequest) returns (Job);
+}
+
+service SessionService {
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  rpc CreateSession(CreateSessionRequest) returns (Session);
+  rpc GetSession(GetSessionRequest) returns (Session);
+  rpc UpdateSession(UpdateSessionRequest) returns (Session);
+}
+
+service SettingsService {
+  rpc GetSettings(GetSettingsRequest) returns (Settings);
+  rpc UpdateSettings(UpdateSettingsRequest) returns (Settings);
+}

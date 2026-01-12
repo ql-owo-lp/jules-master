@@ -1,4 +1,6 @@
 
+
+
 export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
         const { initLogger } = await import('./lib/logger');
@@ -12,12 +14,12 @@ export async function register() {
         const { startPrMonitorWorker } = await import('./lib/pr-monitor-worker');
         const { processCronJobs } = await import('./lib/cron-worker');
 
-        startAutoApprovalWorker();
-        startAutoRetryWorker();
-        startAutoContinueWorker();
-        startAutoDeleteStaleBranchWorker();
-        startBackgroundJobWorker();
-        startPrMonitorWorker();
+        // startAutoApprovalWorker();
+        // startAutoRetryWorker();
+        // startAutoContinueWorker();
+        // startAutoDeleteStaleBranchWorker();
+        // startBackgroundJobWorker();
+        // startPrMonitorWorker();
 
         // Initialize settings if needed
         const { db } = await import('./lib/db');

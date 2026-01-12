@@ -2,7 +2,8 @@ const { spawnSync } = require('child_process');
 const nodePath = process.execPath;
 
 // Run migration
-console.log('Running database migrations...');
+if (process.env.SKIP_MIGRATION !== 'true') {
+  console.log('Running database migrations...');
 const migrationResult = spawnSync(
   nodePath,
   [
@@ -22,6 +23,7 @@ if (migrationResult.status !== 0) {
   }
   console.error('Status:', migrationResult.status);
   process.exit(migrationResult.status || 1);
+}
 }
 
 // Start Next.js server
