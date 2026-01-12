@@ -48,8 +48,9 @@ export function useLocalStorage<T>(
         setStoredValue(valueToStore);
         if (typeof window !== "undefined") {
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
-          // Dispatch a custom event
-          storageEmitter.emit("change", { key, value: valueToStore });
+          // Dispatch a custom event scoped to this key
+          // This avoids notifying every single useLocalStorage hook in the app
+          storageEmitter.emit(`storage:${key}`, valueToStore);
         }
       } catch (error) {
         console.error(error);
@@ -60,16 +61,18 @@ export function useLocalStorage<T>(
   
   // Effect to listen for storage change events from other instances of the hook
   useEffect(() => {
-    const handleStorageChange = (event: { key: string, value: any }) => {
-        if (event.key === key && JSON.stringify(event.value) !== JSON.stringify(storedValueRef.current)) {
-            setStoredValue(event.value);
+    // The payload is now just the value, as the event is already scoped to the key
+    const handleStorageChange = (newValue: any) => {
+        if (JSON.stringify(newValue) !== JSON.stringify(storedValueRef.current)) {
+            setStoredValue(newValue);
         }
     };
 
-    storageEmitter.on("change", handleStorageChange);
+    const eventName = `storage:${key}`;
+    storageEmitter.on(eventName, handleStorageChange);
 
     return () => {
-        storageEmitter.off("change", handleStorageChange);
+        storageEmitter.off(eventName, handleStorageChange);
     };
   }, [key]);
 
