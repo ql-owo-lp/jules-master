@@ -62,7 +62,10 @@ export const historyPrompts = sqliteTable('history_prompts', {
   prompt: text('prompt').notNull(),
   lastUsedAt: text('last_used_at').notNull(),
   profileId: text('profile_id').references(() => profiles.id).notNull().default('default'),
-});
+}, (table) => ({
+  // Optimization: Add composite index on profileId and lastUsedAt for history listing.
+  profileIdLastUsedAtIdx: index('history_prompts_profile_id_last_used_at_idx').on(table.profileId, table.lastUsedAt),
+}));
 
 export const quickReplies = sqliteTable('quick_replies', {
   id: text('id').primaryKey(),

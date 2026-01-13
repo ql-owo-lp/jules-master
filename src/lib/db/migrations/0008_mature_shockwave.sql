@@ -1,0 +1,1 @@
+CREATE INDEX `history_prompts_profile_id_last_used_at_idx` ON `history_prompts` (`profile_id`,`last_used_at`);
