@@ -483,7 +483,11 @@ export function JobCreationForm({
                 value={jobName}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobName(e.target.value)}
                 disabled={isPending || disabled}
+                aria-describedby="job-name-help"
               />
+              <p id="job-name-help" className="text-xs text-muted-foreground">
+                If left blank, a title will be generated automatically.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="session-count">Number of sessions</Label>
@@ -494,7 +498,11 @@ export function JobCreationForm({
                 value={sessionCount}
                 onChange={(e) => setSessionCount(parseInt(e.target.value, 10))}
                 disabled={isPending || disabled}
+                aria-describedby="session-count-help"
               />
+              <p id="session-count-help" className="text-xs text-muted-foreground">
+                Run multiple parallel sessions for this job.
+              </p>
             </div>
           </div>
 
