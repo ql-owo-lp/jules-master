@@ -95,9 +95,4 @@ go_library(
 # ...
 # )
 
-go_library(
-    name = "proto",
-    srcs = ["services.connect.go"],
-    importpath = "github.com/jules-org/jules/proto",
-    visibility = ["//visibility:public"],
-)
+
