@@ -1,6 +1,6 @@
 
 import { db } from './db';
-import { sessions, settings } from './db/schema';
+import { sessions, settings, profiles } from './db/schema';
 import { eq, inArray, sql, lt, and, not } from 'drizzle-orm';
 import type { Session, State, SessionOutput } from '@/lib/types';
 import { fetchWithRetry } from './fetch-client';
@@ -18,6 +18,18 @@ export async function getSettings(profileId: string = 'default'): Promise<Settin
 
   if (existingSettings.length > 0) {
     return existingSettings[0];
+  }
+
+  // Ensure profile exists before creating settings
+  if (profileId === 'default') {
+      const existingProfile = await db.select().from(profiles).where(eq(profiles.id, 'default')).limit(1);
+      if (existingProfile.length === 0) {
+          await db.insert(profiles).values({
+              id: 'default',
+              name: 'Default',
+              createdAt: new Date().toISOString()
+          }).onConflictDoNothing();
+      }
   }
 
   // Create default settings if not found
