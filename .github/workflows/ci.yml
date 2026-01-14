@@ -35,6 +35,12 @@ jobs:
       - name: Run Frontend Unit Tests
         run: npm run test:unit
 
+      - name: Create tarballs for Bazel inputs
+        run: |
+          tar -cf node_modules.tar node_modules
+          tar -cf src.tar src
+          ls -lh node_modules.tar src.tar
+
       - name: Run Bazel Tests
         run: bazel test //...
 
