@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -10,8 +10,9 @@ import { Progress } from "@/components/ui/progress";
 import { MessageDialog } from "./message-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Clock, Loader2, CheckCircle2, Hand, MessageSquare, MessageSquareReply } from "lucide-react";
+import { Clock, Loader2, CheckCircle2, Hand, MessageSquare, MessageSquareReply, Clipboard, ClipboardCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 import { SessionTable } from "./session-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Job, Session, PredefinedPrompt } from "@/lib/types";
@@ -66,6 +67,27 @@ const JobAccordionItemComponent = ({
   jobIdParam
 }: JobAccordionItemProps) => {
   const router = useRouter();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPrompt = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!job.prompt) return;
+    navigator.clipboard.writeText(job.prompt)
+        .then(() => {
+            setCopied(true);
+            toast({ title: "Prompt copied to clipboard" });
+            setTimeout(() => setCopied(false), 2000);
+        })
+        .catch((err) => {
+            console.error("Failed to copy prompt:", err);
+            toast({
+                variant: "destructive",
+                title: "Failed to copy",
+                description: "Could not copy prompt to clipboard."
+            });
+        });
+  };
 
   const sessionsForJob = job.sessionIds
     .map(id => sessionMap.get(id))
@@ -183,6 +205,18 @@ const JobAccordionItemComponent = ({
              )}
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+             {job.prompt && (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={handleCopyPrompt} disabled={isActionPending} aria-label="Copy Prompt">
+                            {copied ? <ClipboardCheck className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Copy Prompt</p>
+                    </TooltipContent>
+                </Tooltip>
+             )}
              <MessageDialog
                 trigger={
                     <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
