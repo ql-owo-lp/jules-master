@@ -54,7 +54,7 @@ type ActivityFeedProps = {
 };
 
 // ActivityItem component handles the container and timestamp updates
-const ActivityItem = ({ activity, index, total }: { activity: Activity, index: number, total: number }) => {
+const ActivityItem = memo(({ activity, isLast }: { activity: Activity, isLast: boolean }) => {
     return (
         <div className="flex gap-4">
             <div className="flex flex-col items-center">
@@ -66,7 +66,7 @@ const ActivityItem = ({ activity, index, total }: { activity: Activity, index: n
                 <MessageSquare className="h-5 w-5" />
             )}
             </span>
-            {index < total - 1 && (
+            {!isLast && (
                 <div className="flex-1 w-px bg-border my-2"></div>
             )}
         </div>
@@ -85,7 +85,10 @@ const ActivityItem = ({ activity, index, total }: { activity: Activity, index: n
         </div>
         </div>
     );
-};
+}, (prev, next) => {
+    return prev.isLast === next.isLast && areActivitiesEqual(prev.activity, next.activity);
+});
+ActivityItem.displayName = 'ActivityItem';
 
 // Extracted and memoized list component
 const ActivityFeedList = memo(({ activities }: { activities: Activity[] }) => {
@@ -95,8 +98,7 @@ const ActivityFeedList = memo(({ activities }: { activities: Activity[] }) => {
                 <ActivityItem
                     key={activity.id}
                     activity={activity}
-                    index={index}
-                    total={activities.length}
+                    isLast={index === activities.length - 1}
                 />
             ))}
         </div>
@@ -190,6 +192,11 @@ const MemoizedActivityContent = memo(ActivityContent, (prev, next) => {
 function areActivitiesEqual(prev: Activity, next: Activity) {
   if (prev === next) return true;
   if (prev.id !== next.id) return false;
+
+  // Check basic fields
+  if (prev.description !== next.description) return false;
+  if (prev.createTime !== next.createTime) return false;
+  if (prev.originator !== next.originator) return false;
 
   // Check fields used in render
   if (prev.agentMessaged?.agentMessage !== next.agentMessaged?.agentMessage) return false;
