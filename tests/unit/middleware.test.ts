@@ -55,4 +55,18 @@ describe('Middleware Basic Auth', () => {
       const res = middleware(req);
       expect(res.status).toBe(401);
   });
+
+  it('should set security headers', () => {
+    const req = new NextRequest('http://localhost/', {
+      headers: {
+        authorization: 'Basic ' + btoa('admin:password123'),
+      },
+    });
+
+    const res = middleware(req);
+    expect(res.headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains');
+    expect(res.headers.get('Permissions-Policy')).toBe('camera=(), microphone=(), geolocation=(), browsing-topics=()');
+    expect(res.headers.get('Content-Security-Policy')).toContain("script-src 'self' 'unsafe-inline';");
+    expect(res.headers.get('Content-Security-Policy')).not.toContain("'unsafe-eval'");
+  });
 });
