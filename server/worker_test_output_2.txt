@@ -1,0 +1,69 @@
+=== RUN   TestAutoApprovalWorker_RunCheck
+    setup_test.go:121: Created table index 0
+    setup_test.go:121: Created table index 1
+    setup_test.go:121: Created table index 2
+    setup_test.go:121: Created table index 3
+    setup_test.go:121: Created table index 4
+[2026-01-14T20:32:30-08:00] info: AutoApprovalWorker: Found pending sessions: 1
+[2026-01-14T20:32:30-08:00] info: AutoApprovalWorker: Approving session 3fb7ca78-ba22-440a-9b42-845efdffc8b2
+--- PASS: TestAutoApprovalWorker_RunCheck (0.00s)
+=== RUN   TestAutoApprovalWorker_RunCheck_Disabled
+    setup_test.go:121: Created table index 0
+    setup_test.go:121: Created table index 1
+    setup_test.go:121: Created table index 2
+    setup_test.go:121: Created table index 3
+    setup_test.go:121: Created table index 4
+--- PASS: TestAutoApprovalWorker_RunCheck_Disabled (0.00s)
+=== RUN   TestAutoApprovalWorker_GetInterval
+    setup_test.go:121: Created table index 0
+    setup_test.go:121: Created table index 1
+    setup_test.go:121: Created table index 2
+    setup_test.go:121: Created table index 3
+    setup_test.go:121: Created table index 4
+--- PASS: TestAutoApprovalWorker_GetInterval (0.00s)
+=== RUN   TestAutoContinueWorker_GetInterval
+    setup_test.go:121: Created table index 0
+    setup_test.go:121: Created table index 1
+    setup_test.go:121: Created table index 2
+    setup_test.go:121: Created table index 3
+    setup_test.go:121: Created table index 4
+--- PASS: TestAutoContinueWorker_GetInterval (0.00s)
+=== RUN   TestAutoRetryWorker_GetInterval
+    setup_test.go:121: Created table index 0
+    setup_test.go:121: Created table index 1
+    setup_test.go:121: Created table index 2
+    setup_test.go:121: Created table index 3
+    setup_test.go:121: Created table index 4
+--- PASS: TestAutoRetryWorker_GetInterval (0.00s)
+=== RUN   TestBackgroundJobWorker_ProcessJob
+    setup_test.go:121: Created table index 0
+    setup_test.go:121: Created table index 1
+    setup_test.go:121: Created table index 2
+    setup_test.go:121: Created table index 3
+    setup_test.go:121: Created table index 4
+    background_job_test.go:58: Calling workerCtx.ProcessJobs
+    background_job_test.go:73: 
+        	Error Trace:	/home/kevin/jules-master/server/internal/worker/background_job_test.go:73
+        	Error:      	"[]" should have 2 item(s), but has 0
+        	Test:       	TestBackgroundJobWorker_ProcessJob
+--- FAIL: TestBackgroundJobWorker_ProcessJob (0.00s)
+=== RUN   TestBackgroundJobWorker_ProcessJob_Partial
+    setup_test.go:121: Created table index 0
+    setup_test.go:121: Created table index 1
+    setup_test.go:121: Created table index 2
+    setup_test.go:121: Created table index 3
+    setup_test.go:121: Created table index 4
+    background_job_test.go:102: Calling workerCtx.ProcessJobs in Partial test
+    background_job_test.go:109: 
+        	Error Trace:	/home/kevin/jules-master/server/internal/worker/background_job_test.go:109
+        	Error:      	"[sess-1]" should have 3 item(s), but has 1
+        	Test:       	TestBackgroundJobWorker_ProcessJob_Partial
+--- FAIL: TestBackgroundJobWorker_ProcessJob_Partial (0.00s)
+=== RUN   TestCronWorker_RunCheck
+    setup_test.go:121: Created table index 0
+    setup_test.go:121: Created table index 1
+    setup_test.go:121: Created table index 2
+    setup_test.go:121: Created table index 3
+    setup_test.go:121: Created table index 4
+[2026-01-14T20:32:30-08:00] info: Cron test-cron: LastRun 2026-01-14 20:30:30 -0800 PST, Next 2026-01-14 20:31:00 -0800 PST, Now 2026-01-14 20:32:30.861455653 -0800 PST m=+0.018470493
+[2026-01-14T20:32:30-08:00] info: CronWorker: Job test-cron (b4bc70bd-5554-43b2-b62d-f00b5fa214c6) is due (Next: 2026-01-14 20:31:00 -0800 PST, Now: 2026-01-14 20:32:30.861455653 -0800 PST m=+0.018470493)
