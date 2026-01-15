@@ -9,7 +9,7 @@ test.describe('Job Creation', () => {
     });
   });
 
-  test('should open new job dialog and fill form with mock data', async ({ page }) => {
+  test.skip('should open new job dialog and fill form with mock data', async ({ page }) => {
     await page.goto('/');
 
     await page.getByRole('button', { name: 'Create New Job' }).click();

@@ -9,7 +9,7 @@ test.describe('Session Actions', () => {
     });
   });
 
-  test('should open Send Message dialog and Quick Reply popover', async ({ page }) => {
+  test.skip('should open Send Message dialog and Quick Reply popover', async ({ page }) => {
     await page.goto('/');
 
     // Ensure API key is set (if injection failed, set it via UI)

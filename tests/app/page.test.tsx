@@ -21,6 +21,24 @@ vi.mock('@/components/env-provider', () => ({
 
 vi.mock('@/hooks/use-local-storage');
 
+vi.mock('@/app/sessions/actions', () => ({
+  listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+  cancelSessionRequest: vi.fn(),
+  refreshSession: vi.fn(),
+}));
+
+vi.mock('@/app/sessions/[id]/actions', () => ({
+  approvePlan: vi.fn(),
+  sendMessage: vi.fn(),
+}));
+
+vi.mock('@/app/config/actions', () => ({
+  getJobs: vi.fn().mockResolvedValue([]),
+  getQuickReplies: vi.fn().mockResolvedValue([]),
+  getPendingBackgroundWorkCount: vi.fn().mockResolvedValue({ pendingJobs: 0, retryingSessions: 0 }),
+}));
+
+
 const mockJobs = [
   { id: 'job1', name: 'Job 1', sessionIds: ['session1'], repo: 'repo1', createdAt: new Date().toISOString() },
   { id: 'job2', name: 'Job 2', sessionIds: ['session2'], repo: 'repo2', createdAt: new Date().toISOString() },

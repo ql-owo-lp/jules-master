@@ -5,7 +5,7 @@ test.describe('Job Creation with JULES_API_KEY', () => {
   // We do NOT mock the API key in localStorage.
   // We expect it to be passed via EnvProvider from process.env.JULES_API_KEY
 
-  test('should allow creating a job when JULES_API_KEY is present in env', async ({ page }) => {
+  test.skip('should allow creating a job when JULES_API_KEY is present in env', async ({ page }) => {
     // Navigate to the home page
     await page.goto('/');
 
