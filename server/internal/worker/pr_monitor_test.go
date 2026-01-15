@@ -17,6 +17,7 @@ type MockGitHubClient struct {
 	User           *github.User
 	CreatedComments []string
     CheckRuns      *github.ListCheckRunsResults
+	ClosePullRequestCalled bool
 }
 
 func (m *MockGitHubClient) GetCombinedStatus(ctx context.Context, owner, repo, ref string) (*github.CombinedStatus, error) {
@@ -50,6 +51,11 @@ func (m *MockGitHubClient) CreateComment(ctx context.Context, owner, repo string
 
 func (m *MockGitHubClient) GetUser(ctx context.Context, username string) (*github.User, error) {
 	return m.User, nil
+}
+
+func (m *MockGitHubClient) ClosePullRequest(ctx context.Context, owner, repo string, number int) (*github.PullRequest, error) {
+	m.ClosePullRequestCalled = true
+	return &github.PullRequest{State: github.String("closed")}, nil
 }
 
 type MockSessionFetcher struct {
@@ -322,4 +328,56 @@ func TestRunCheck_IgnoresInvalidUrls(t *testing.T) {
 	if err := worker.runCheck(context.Background()); err != nil {
 		t.Errorf("runCheck failed: %v", err)
 	}
+}
+
+func TestRunCheck_ClosesZeroChangePR(t *testing.T) {
+db := setupTestDB(t)
+settingsService := &service.SettingsServer{DB: db}
+sessionService := &service.SessionServer{DB: db}
+
+sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
+Name:      "test-session-zero-changes",
+ProfileId: "default",
+})
+if err != nil {
+t.Fatalf("failed to create session: %v", err)
+}
+nowMilli := time.Now().UnixMilli()
+db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+
+mockFetcher := &MockSessionFetcher{
+Session: &RemoteSession{
+Id:    sess.Id,
+State: "IN_PROGRESS",
+Outputs: []struct {
+PullRequest *struct {
+Url string `json:"url"`
+} `json:"pullRequest"`
+}{
+{PullRequest: &struct{ Url string `json:"url"` }{Url: "https://github.com/owner/repo/pull/5"}},
+},
+},
+}
+
+zero := 0
+mockGH := &MockGitHubClient{
+PullRequests: []*github.PullRequest{
+{
+State:        github.String("open"),
+ChangedFiles: &zero,
+Head: &github.PullRequestBranch{
+SHA: github.String("sha999"),
+},
+},
+},
+}
+
+worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
+if err := worker.runCheck(context.Background()); err != nil {
+t.Errorf("runCheck failed: %v", err)
+}
+
+if !mockGH.ClosePullRequestCalled {
+t.Error("expected ClosePullRequest to be called")
+}
 }

@@ -86,3 +86,10 @@ func (c *Client) GetUser(ctx context.Context, username string) (*github.User, er
 	user, _, err := c.client.Users.Get(ctx, username)
 	return user, err
 }
+
+func (c *Client) ClosePullRequest(ctx context.Context, owner, repo string, number int) (*github.PullRequest, error) {
+	// Edit PR state to "closed"
+	pr := &github.PullRequest{State: github.String("closed")}
+	ret, _, err := c.client.PullRequests.Edit(ctx, owner, repo, number, pr)
+	return ret, err
+}

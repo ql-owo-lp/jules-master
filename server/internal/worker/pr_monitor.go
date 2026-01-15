@@ -26,6 +26,7 @@ type GitHubClient interface {
 	ListComments(ctx context.Context, owner, repo string, number int) ([]*github.IssueComment, error)
 	CreateComment(ctx context.Context, owner, repo string, number int, body string) error
 	GetUser(ctx context.Context, username string) (*github.User, error)
+	ClosePullRequest(ctx context.Context, owner, repo string, number int) (*github.PullRequest, error)
 }
 
 type RemoteSession struct {
@@ -170,6 +171,15 @@ func (w *PRMonitorWorker) checkSession(ctx context.Context, id string) {
 	}
 
 	if pr.Head == nil || pr.Head.SHA == nil {
+		return
+	}
+
+	// Check if PR has changes
+	if pr.ChangedFiles != nil && *pr.ChangedFiles == 0 {
+		logger.Info("%s: PR %s has 0 changed files. Closing.", w.Name(), prUrl)
+		if _, err := w.githubClient.ClosePullRequest(ctx, owner, repo, number); err != nil {
+			logger.Error("%s: Failed to close PR %s: %v", w.Name(), prUrl, err)
+		}
 		return
 	}
 
