@@ -478,7 +478,7 @@ export default function SettingsPage() {
             if (data?.id) {
                 updatedPrompts = prompts.map((p) => p.id === data.id ? { ...p, title, prompt: promptText } : p);
             } else {
-                updatedPrompts = [...prompts, { id: crypto.randomUUID(), title, prompt: promptText }];
+                updatedPrompts = [...prompts, { id: crypto.randomUUID(), title, prompt: promptText, profileId: currentProfileId }];
             }
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
@@ -488,7 +488,7 @@ export default function SettingsPage() {
             if (data?.id) {
                 updatedReplies = quickReplies.map((r) => r.id === data.id ? { ...r, title, prompt: promptText } : r);
             } else {
-                updatedReplies = [...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText }];
+                updatedReplies = [...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText, profileId: currentProfileId }];
             }
             await saveQuickReplies(updatedReplies);
             setQuickReplies(updatedReplies);

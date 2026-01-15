@@ -63,6 +63,7 @@ func (w *CronWorker) runCheck(ctx context.Context) error {
     defer rows.Close()
     
     now := time.Now()
+    var jobsToTrigger []pb.CronJob
     
     for rows.Next() {
         var c pb.CronJob
@@ -105,8 +106,13 @@ func (w *CronWorker) runCheck(ctx context.Context) error {
         
         // If nextRun is in the past, it's due.
         if nextRun.Before(now) {
-            logger.Info("%s: Job %s (%s) is due (Next: %v, Now: %v)", w.Name(), c.Name, c.Id, nextRun, now)
-            
+             logger.Info("%s: Job %s (%s) is due (Next: %v, Now: %v)", w.Name(), c.Name, c.Id, nextRun, now)
+             jobsToTrigger = append(jobsToTrigger, c)
+        }
+    }
+    rows.Close()
+
+    for _, c := range jobsToTrigger {
             // Trigger Job
             newJobId := uuid.New().String()
             
@@ -124,8 +130,6 @@ func (w *CronWorker) runCheck(ctx context.Context) error {
                 CronJobId: c.Id,
                 ProfileId: c.ProfileId,
             }
-            // Handle AutomationMode mapping if needed
-            // jobReq.AutomationMode = ...
             
             _, err := w.jobService.CreateJob(ctx, jobReq)
             if err != nil {
@@ -140,7 +144,6 @@ func (w *CronWorker) runCheck(ctx context.Context) error {
             }
             
             logger.Info("%s: Triggered job %s for cron %s", w.Name(), newJobId, c.Id)
-        }
     }
     
     return nil

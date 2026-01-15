@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -10,6 +11,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+
+type MockSessionSyncer struct {
+	DB *sql.DB
+}
+
+func (m *MockSessionSyncer) SyncSession(ctx context.Context, id string) error {
+	// Mock sync by just updating last_updated to now
+	now := time.Now().UnixMilli()
+	_, err := m.DB.Exec("UPDATE sessions SET last_updated = ? WHERE id = ?", now, id)
+	return err
+}
+
 func TestSessionCacheWorker_RunCheck(t *testing.T) {
     db := setupTestDB(t)
     defer db.Close()
@@ -17,6 +30,10 @@ func TestSessionCacheWorker_RunCheck(t *testing.T) {
     settingsSvc := &service.SettingsServer{DB: db}
     sessionSvc := &service.SessionServer{DB: db}
     workerCtx := NewSessionCacheWorker(db, settingsSvc, sessionSvc)
+	
+	// Inject Mock Syncer
+	workerCtx.SetSyncer(&MockSessionSyncer{DB: db})
+
     ctx := context.Background()
 
     // 1. Setup Settings
@@ -33,12 +50,6 @@ func TestSessionCacheWorker_RunCheck(t *testing.T) {
     session, err := sessionSvc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "test-cache"})
     assert.NoError(t, err)
     
-    // Manually set state and last_updated
-    // Note: last_updated in DB is INTEGER (ms?) or string?
-    // In setups_test.go: "last_updated INTEGER"
-    // In session_cache.go: "w.db.ExecContext(ctx, "UPDATE sessions SET last_updated = ? WHERE id = ?", now.UnixMilli(), id)"
-    // So it is int64 millis.
-    
     oldTime := time.Now().Add(-1 * time.Minute).UnixMilli()
     _, err = db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_updated = ? WHERE id = ?", oldTime, session.Id)
     assert.NoError(t, err)
@@ -50,13 +61,11 @@ func TestSessionCacheWorker_RunCheck(t *testing.T) {
     assert.NoError(t, err)
     t.Logf("Pre-condition LastUpdated: %d", checkTime)
     
-    
-
     // 3. Run Check
     err = workerCtx.runCheck(ctx)
     assert.NoError(t, err)
     
-    // 4. Verify LastUpdated bumped (since we stubbed the update logic to just update timestamp)
+    // 4. Verify LastUpdated bumped
     var newLastUpdated int64
     err = db.QueryRow("SELECT last_updated FROM sessions WHERE id = ?", session.Id).Scan(&newLastUpdated)
     assert.NoError(t, err)

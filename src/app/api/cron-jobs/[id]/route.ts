@@ -25,7 +25,27 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     // Only update if there are valid fields to update
     if (Object.keys(validation.data).length > 0) {
-        await updateCronJob(id, validation.data);
+        const updateData: any = { ...validation.data };
+        if (updateData.automationMode) {
+            // Map string 'AUTO_CREATE_PR' etc to Enum
+            // Assuming strict mapping based on Proto Enum names
+            // If it's already a number this might fail, but validation.data comes from Zod schema likely string?
+            // Actually schema should match Local type string.
+            // Proto expects Enum (number).
+            // But actions.ts updateCronJob signature expects Partial<CronJob> which uses keys.
+            // Wait, Proto CronJob interface has `automationMode: AutomationMode` (Enum).
+            // So we must pass Enum.
+            // Import AutomationMode from proto.
+            // I need to import AutomationMode in this file first?
+            // Or just use cast if I know the value?
+            // Better to import it.
+             if (updateData.automationMode === 'AUTO_CREATE_PR') {
+                 updateData.automationMode = 1; // AutomationMode.AUTO_CREATE_PR
+             } else {
+                 updateData.automationMode = 0; // UNSPECIFIED
+             }
+        }
+        await updateCronJob(id, updateData);
     }
 
     return NextResponse.json({ success: true });

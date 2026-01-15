@@ -2,17 +2,24 @@
 
 import { jobClient, promptClient, sessionClient, settingsClient } from '@/lib/grpc-client';
 import { Job, PredefinedPrompt, HistoryPrompt, AutomationMode, Settings } from '../../../proto/gen/ts/jules';
+import { Job as LocalJob } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
 // --- Jobs ---
-export async function getJobs(profileId: string = 'default'): Promise<Job[]> {
+export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]> {
     return new Promise((resolve, reject) => {
         // ListJobs currently returns all, we might filter by profileId client-side
         // or update backend to support filtering.
         jobClient.listJobs({}, (err, response) => {
             if (err) return reject(err);
             const filtered = response.jobs.filter(j => j.profileId === profileId);
-            resolve(filtered);
+            // Map Proto Job to Local Job (fix enum vs string mismatch)
+            // Local Job expects automationMode as string union, Proto has Enum
+            const mapped = filtered.map(j => ({
+                ...j,
+                automationMode: AutomationMode[j.automationMode] as any
+            }));
+            resolve(mapped);
         });
     });
 }

@@ -114,7 +114,7 @@ export type PredefinedPrompt = {
   id: string;
   title: string;
   prompt: string;
-  profileId?: string;
+  profileId: string;
 };
 
 export type HistoryPrompt = {
