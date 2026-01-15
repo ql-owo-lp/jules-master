@@ -1,5 +1,5 @@
-import { logBuffer, LogEntry } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
+import { logClient } from '@/lib/grpc-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,16 +10,18 @@ export async function GET(req: NextRequest) {
   }
 
   const searchParams = req.nextUrl.searchParams;
-  const since = searchParams.get('since');
+  const since = searchParams.get('since') || new Date(0).toISOString();
 
-  let logsToSend = logBuffer;
-
-  if (since) {
-      const sinceTime = new Date(since).getTime();
-      if (!isNaN(sinceTime)) {
-          logsToSend = logBuffer.filter(log => new Date(log.timestamp).getTime() > sinceTime);
-      }
+  try {
+      const logs = await new Promise((resolve, reject) => {
+          logClient.getLogs({ since }, (err, res) => {
+              if (err) return reject(err);
+              resolve(res.logs);
+          });
+      });
+      return NextResponse.json(logs);
+  } catch (err) {
+      console.error("Failed to fetch logs from backend:", err);
+      return NextResponse.json({ error: "Failed to fetch logs" }, { status: 500 });
   }
-
-  return NextResponse.json(logsToSend);
 }

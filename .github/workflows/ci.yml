@@ -7,6 +7,20 @@ on:
     branches: [ main ]
 
 jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.1'
+
+      - name: Run Backend Tests
+        run: make test-backend
+
   test:
     timeout-minutes: 20
     runs-on: ubuntu-latest
@@ -68,6 +82,11 @@ jobs:
 
       - name: Run container and smoke test
         run: |
-          docker run -d -p 9002:9002 --name nextn-container nextn-app
+          # Run container with random port mapping
+          CONTAINER_ID=$(docker run -d -p 0:9002 --name nextn-container nextn-app)
           sleep 10
-          curl -f http://localhost:9002
+          # Get the assigned port
+          HOST_PORT=$(docker port $CONTAINER_ID 9002 | cut -d ':' -f 2)
+          echo "Container running on port $HOST_PORT"
+          # Verify health
+          curl -f "http://localhost:$HOST_PORT" 

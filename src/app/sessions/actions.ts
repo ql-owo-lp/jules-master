@@ -75,7 +75,8 @@ export async function cancelSessionRequest(requestId: string) {
 
 export async function listSessions(
   apiKey?: string | null,
-  pageSize: number = 50,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _pageSize: number = 50,
   requestId?: string,
   profileId: string = 'default'
 ): Promise<{ sessions: Session[], error?: string }> {
@@ -137,6 +138,7 @@ export async function listSessions(
 
     return { sessions };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error in listSessions:', error);
     return { sessions: [], error: error.message || 'Unknown error occurred in listSessions' };
@@ -220,6 +222,7 @@ export async function fetchSessionsPage(
 
         return { sessions, nextPageToken: data.nextPageToken };
 
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
      } catch (error: any) {
         console.error('Error fetching sessions page:', error);
         return { sessions: [], error: error.message || 'Unknown error fetching sessions' };

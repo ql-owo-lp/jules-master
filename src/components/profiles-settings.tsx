@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,11 +37,7 @@ export function ProfilesSettings({ currentProfileId, onProfileSelect }: Profiles
     const [newProfileName, setNewProfileName] = useState("");
     const [isCreating, setIsCreating] = useState(false);
 
-    useEffect(() => {
-        fetchProfiles();
-    }, []);
-
-    const fetchProfiles = async () => {
+    const fetchProfiles = useCallback(async () => {
         setIsLoading(true);
         try {
             const response = await fetch('/api/profiles');
@@ -59,7 +55,11 @@ export function ProfilesSettings({ currentProfileId, onProfileSelect }: Profiles
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        fetchProfiles();
+    }, [fetchProfiles]);
 
     const handleCreateProfile = async () => {
         if (!newProfileName.trim()) return;

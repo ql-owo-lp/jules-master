@@ -1,20 +1,19 @@
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { POST, GET } from '@/app/api/settings/route';
 import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
-import { settings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { settingsClient } from '@/lib/grpc-client';
+
+vi.mock('@/lib/grpc-client', () => ({
+  settingsClient: {
+    updateSettings: vi.fn(),
+    getSettings: vi.fn(),
+  },
+}));
 
 describe('Settings API', () => {
-  beforeAll(async () => {
-    // Clean up the settings table before each test run
-    await db.delete(settings).where(eq(settings.id, 1));
-  });
-
-  afterAll(async () => {
-    // Clean up the settings table after each test run
-    await db.delete(settings).where(eq(settings.id, 1));
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   it('should return 400 for invalid data', async () => {
@@ -55,8 +54,12 @@ describe('Settings API', () => {
       historyPromptsCount: 20,
       minSessionInteractionInterval: 300,
       retryTimeout: 1200,
-      autoDeleteStaleBranchesInterval: 1800,
     };
+
+    // Mock Update
+    (settingsClient.updateSettings as unknown as Mock).mockImplementation((req, callback) => {
+        callback(null, {});
+    });
 
     const postReq = new NextRequest('http://localhost/api/settings', {
       method: 'POST',
@@ -65,6 +68,11 @@ describe('Settings API', () => {
 
     const postResponse = await POST(postReq);
     expect(postResponse.status).toBe(200);
+
+    // Mock Get
+    (settingsClient.getSettings as unknown as Mock).mockImplementation((req, callback) => {
+        callback(null, { ...newSettings, id: '1', profileId: 'default' });
+    });
 
     const getResponse = await GET(new NextRequest('http://localhost/api/settings'));
     const retrievedSettings = await getResponse.json();

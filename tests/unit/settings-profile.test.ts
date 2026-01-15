@@ -1,35 +1,26 @@
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { POST, GET } from '@/app/api/settings/route';
 import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
-import { settings, profiles } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { settingsClient } from '@/lib/grpc-client';
+
+vi.mock('@/lib/grpc-client', () => ({
+  settingsClient: {
+      updateSettings: vi.fn(),
+      getSettings: vi.fn(),
+  }
+}));
 
 describe('Settings API - Profile Isolation', () => {
-  const profileIdA = '11111111-1111-1111-1111-111111111111';
-  const profileIdB = '22222222-2222-2222-2222-222222222222';
-
-  beforeAll(async () => {
-    // Ensure profiles exist
-    await db.insert(profiles).values({ id: profileIdA, name: 'Profile A', createdAt: new Date().toISOString() }).onConflictDoNothing();
-    await db.insert(profiles).values({ id: profileIdB, name: 'Profile B', createdAt: new Date().toISOString() }).onConflictDoNothing();
-  
-    // Clean up settings for these profiles
-    await db.delete(settings).where(eq(settings.profileId, profileIdA));
-    await db.delete(settings).where(eq(settings.profileId, profileIdB));
-  });
-
-  afterAll(async () => {
-    // Clean up
-    await db.delete(settings).where(eq(settings.profileId, profileIdA));
-    await db.delete(settings).where(eq(settings.profileId, profileIdB));
-    await db.delete(profiles).where(eq(profiles.id, profileIdA));
-    await db.delete(profiles).where(eq(profiles.id, profileIdB));
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   it('should save and retrieve distinct settings for different profiles', async () => {
     // 1. Save settings for Profile A
+    const profileIdA = '11111111-1111-1111-1111-111111111111';
+    const profileIdB = '22222222-2222-2222-2222-222222222222';
+
     const settingsA = {
       idlePollInterval: 100,
       activePollInterval: 30,
@@ -54,13 +45,20 @@ describe('Settings API - Profile Isolation', () => {
       historyPromptsCount: 10,
       minSessionInteractionInterval: 60,
       retryTimeout: 1200,
-      autoDeleteStaleBranchesInterval: 1800,
       profileId: profileIdA
     };
+
+    (settingsClient.updateSettings as unknown as Mock).mockImplementation((req, callback) => {
+        callback(null, {});
+    });
+
     const resPostA = await POST(new NextRequest('http://localhost/api/settings', {
       method: 'POST',
       body: JSON.stringify(settingsA),
     }));
+    if (resPostA.status !== 200) {
+        console.error('POST settings A failed:', await resPostA.json());
+    }
     expect(resPostA.status).toBe(200);
 
     // 2. Save different settings for Profile B
@@ -72,6 +70,17 @@ describe('Settings API - Profile Isolation', () => {
     expect(resPostB.status).toBe(200);
 
     // 3. Fetch settings for Profile A
+    (settingsClient.getSettings as unknown as Mock).mockImplementation((req, callback) => {
+        if (req.profileId === profileIdA) {
+            callback(null, { ...settingsA, id: '1', profileId: profileIdA });
+        } else if (req.profileId === profileIdB) {
+            callback(null, { ...settingsB, id: '2', profileId: profileIdB });
+        } else {
+             // Mock default returns
+            callback(null, { idlePollInterval: 120, id: '0' });
+        }
+    });
+
     const resA = await GET(new NextRequest(`http://localhost/api/settings?profileId=${profileIdA}`));
     const dataA = await resA.json();
     expect(dataA.idlePollInterval).toBe(100);
@@ -81,9 +90,9 @@ describe('Settings API - Profile Isolation', () => {
     const dataB = await resB.json();
     expect(dataB.idlePollInterval).toBe(200);
 
-    // 5. Fetch settings for non-existent profile (should return defaults)
+    // 5. Fetch settings for non-existent profile (should return defaults from mock)
     const resDefault = await GET(new NextRequest(`http://localhost/api/settings?profileId=non-existent`));
     const dataDefault = await resDefault.json();
-    expect(dataDefault.idlePollInterval).toBe(120); // Default value
+    expect(dataDefault.idlePollInterval).toBe(120); // Default value from mock
   });
 });

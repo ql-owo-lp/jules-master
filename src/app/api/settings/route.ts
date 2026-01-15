@@ -1,54 +1,22 @@
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { settings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { settingsClient } from '@/lib/grpc-client';
 import { settingsSchema } from '@/lib/validation';
-import { profileService } from '@/lib/profile-service';
+import { Settings } from '../../../../proto/gen/ts/jules';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const profileId = searchParams.get('profileId') || 'default';
 
-    const result = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
+    const settings = await new Promise<Settings>((resolve, reject) => {
+        settingsClient.getSettings({ profileId }, (err, res) => {
+            if (err) return reject(err);
+            resolve(res);
+        });
+    });
 
-    if (result.length === 0) {
-      // Return default settings if none exist in DB
-      return NextResponse.json({
-        idlePollInterval: 120,
-        activePollInterval: 30,
-        titleTruncateLength: 50,
-        lineClamp: 1,
-        sessionItemsPerPage: 10,
-        jobsPerPage: 5,
-        defaultSessionCount: 10,
-        prStatusPollInterval: 60,
-        theme: 'system',
-        autoApprovalInterval: 60,
-        autoRetryEnabled: true,
-        autoRetryMessage: "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution",
-        autoContinueEnabled: true,
-        autoContinueMessage: "Sounds good. Now go ahead finish the work",
-        sessionCacheInProgressInterval: 60,
-        sessionCacheCompletedNoPrInterval: 1800,
-        sessionCachePendingApprovalInterval: 300,
-        sessionCacheMaxAgeDays: 3,
-        autoDeleteStaleBranchesAfterDays: 3,
-        checkFailingActionsEnabled: true,
-        checkFailingActionsInterval: 600,
-        checkFailingActionsThreshold: 10,
-        autoCloseStaleConflictedPrs: false,
-        staleConflictedPrsDurationDays: 3,
-
-        historyPromptsCount: 10,
-        minSessionInteractionInterval: 60,
-        retryTimeout: 1200,
-        profileId: profileId
-      });
-    }
-
-    return NextResponse.json(result[0]);
+    return NextResponse.json(settings);
   } catch (error) {
     console.error('Error fetching settings:', error);
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -71,28 +39,24 @@ export async function POST(request: Request) {
 
     const profileId = validation.data.profileId || 'default';
 
-    if (profileId !== 'default') {
-      const profile = await profileService.getProfile(profileId);
-      if (!profile) {
-        return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
-      }
-    }
-
+    // Map validation data to Settings proto
+    // validation.data has fields matching Settings interface roughly
+    // Types might need casting or mapping
     const newSettings = {
       ...validation.data,
-      profileId
-    };
-    // Remove id from validation data if present, as we manage it differently or let it autoincrement
-    if ('id' in newSettings) delete (newSettings as any).id;
-
-
-    const existing = await db.select().from(settings).where(eq(settings.profileId, profileId)).limit(1);
-
-    if (existing.length > 0) {
-        await db.update(settings).set(newSettings).where(eq(settings.id, existing[0].id));
-    } else {
-        await db.insert(settings).values(newSettings);
-    }
+      profileId,
+      id: '0' // Default ID for proto
+    } as unknown as Settings;
+    
+    // Proto Settings has specific types.
+    // validation.data comes from zod which enforces types.
+    
+    await new Promise<void>((resolve, reject) => {
+        settingsClient.updateSettings({ settings: newSettings }, (err) => {
+             if (err) return reject(err);
+             resolve();
+        });
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

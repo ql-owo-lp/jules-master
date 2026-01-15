@@ -24,7 +24,7 @@ const parsePrUrl = (url: string) => {
         pull_number: parseInt(parts[4], 10),
       };
     }
-  } catch (e) {
+  } catch {
     console.error('Invalid PR URL', url);
   }
   return null;
@@ -80,7 +80,7 @@ export async function fetchPullRequestStatus(prUrl: string, token?: string | nul
       }
 
       // If not merged, get the CI check status for the head SHA
-      let checks: {
+      const checks: {
         status: 'unknown' | 'success' | 'failure' | 'pending';
         total: number;
         passed: number;
@@ -158,8 +158,8 @@ export async function getPullRequestStatuses(prUrls: string[], token?: string | 
       try {
         const status = await getPullRequestStatusFromApi(url, token);
         return { url, status };
-      } catch (e) {
-        console.error(`Failed to fetch status for ${url}`, e);
+      } catch {
+        console.error(`Failed to fetch status for ${url}`);
         return { url, status: null };
       }
     })

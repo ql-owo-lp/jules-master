@@ -42,7 +42,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
     DialogClose,
 } from "@/components/ui/dialog";
 import {
@@ -292,9 +291,9 @@ export default function SettingsPage() {
     const fetchMessages = async () => {
         setIsLoadingMessages(true);
         const [fetchedPrompts, fetchedReplies, fetchedGlobalPrompt] = await Promise.all([
-            getPredefinedPrompts(),
-            getQuickReplies(),
-            getGlobalPrompt()
+            getPredefinedPrompts(currentProfileId),
+            getQuickReplies(currentProfileId),
+            getGlobalPrompt(currentProfileId)
         ]);
         setPrompts(fetchedPrompts);
         setQuickReplies(fetchedReplies);
@@ -302,19 +301,19 @@ export default function SettingsPage() {
         setIsLoadingMessages(false);
     };
     if (isClient) fetchMessages();
-  }, [isClient]);
+  }, [isClient, currentProfileId]);
 
   useEffect(() => {
     if (selectedSource) {
         startFetchingRepoPrompt(async () => {
             const repoName = `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`;
-            const prompt = await getRepoPrompt(repoName);
+            const prompt = await getRepoPrompt(repoName, currentProfileId);
             setRepoPrompt(prompt);
         });
     } else {
         setRepoPrompt("");
     }
-  }, [selectedSource]);
+  }, [selectedSource, currentProfileId]);
 
 
   // --- Handlers for Settings ---
@@ -428,7 +427,7 @@ export default function SettingsPage() {
                 title: "Refreshed",
                 description: "The list of repositories has been updated.",
             });
-        } catch (error) {
+        } catch {
             toast({
                 variant: "destructive",
                 title: "Error",
@@ -478,7 +477,7 @@ export default function SettingsPage() {
             if (data?.id) {
                 updatedPrompts = prompts.map((p) => p.id === data.id ? { ...p, title, prompt: promptText } : p);
             } else {
-                updatedPrompts = [...prompts, { id: crypto.randomUUID(), title, prompt: promptText }];
+                updatedPrompts = [...prompts, { id: crypto.randomUUID(), title, prompt: promptText, profileId: currentProfileId }];
             }
             await savePredefinedPrompts(updatedPrompts);
             setPrompts(updatedPrompts);
@@ -488,7 +487,7 @@ export default function SettingsPage() {
             if (data?.id) {
                 updatedReplies = quickReplies.map((r) => r.id === data.id ? { ...r, title, prompt: promptText } : r);
             } else {
-                updatedReplies = [...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText }];
+                updatedReplies = [...quickReplies, { id: crypto.randomUUID(), title, prompt: promptText, profileId: currentProfileId }];
             }
             await saveQuickReplies(updatedReplies);
             setQuickReplies(updatedReplies);
@@ -529,7 +528,7 @@ export default function SettingsPage() {
     if (items.length === 0) return (
         <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
           <p className="font-semibold text-lg">No {plural} yet</p>
-          <p className="text-sm">Click "Add New" to create your first {singular}.</p>
+          <p className="text-sm">Click &quot;Add New&quot; to create your first {singular}.</p>
         </div>
     );
 

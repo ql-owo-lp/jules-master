@@ -2,7 +2,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { useLocalStorage } from "./use-local-storage";
 import { storageEmitter } from "@/lib/storage-event";
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe("useLocalStorage", () => {
   beforeEach(() => {

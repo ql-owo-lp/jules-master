@@ -54,7 +54,7 @@ test.describe('Comprehensive UI Tests', () => {
       // On mobile or if collapsed, the trigger might be in the header or sidebar.
       // We check if we need to open it.
       
-      const newJobButton = page.getByRole('button', { name: 'New Job' });
+      const newJobButton = page.getByRole('button', { name: 'New Job', exact: true });
       
       if (!await newJobButton.isVisible()) {
           // Try to click the toggle if visible (e.g. in header on mobile)
@@ -87,7 +87,7 @@ test.describe('Comprehensive UI Tests', () => {
   test.describe('New Job Page', () => {
     test('should open new job dialog and verify validation', async ({ page }) => {
       await page.goto('/');
-      await page.getByRole('button', { name: 'New Job' }).click();
+      await page.getByRole('button', { name: 'New Job', exact: true }).click();
 
       const dialog = page.getByRole('dialog', { name: 'Create a New Job' });
       await expect(dialog).toBeVisible();
@@ -116,7 +116,7 @@ test.describe('Comprehensive UI Tests', () => {
 
     test('should verify form elements presence', async ({ page }) => {
         await page.goto('/');
-        await page.getByRole('button', { name: 'New Job' }).click();
+        await page.getByRole('button', { name: 'New Job', exact: true }).click();
 
         const dialog = page.getByRole('dialog', { name: 'Create a New Job' });
 
@@ -136,7 +136,8 @@ test.describe('Comprehensive UI Tests', () => {
       await page.goto('/');
 
       // Verify "Jobs & Sessions" title - use getByText as getByRole might fail if it's not strictly a heading
-      await expect(page.getByText('Jobs & Sessions', { exact: true })).toBeVisible();
+      // Use getByRole heading if available, or .first()
+      await expect(page.getByRole('heading', { name: 'Jobs & Sessions' }).or(page.getByText('Jobs & Sessions').first())).toBeVisible();
 
       // Verify filters
       const filterArea = page.locator('main');
