@@ -1,7 +1,7 @@
 
 import { db } from './db';
 import { sessions, settings } from './db/schema';
-import { eq, inArray, sql, lt, and, not } from 'drizzle-orm';
+import { eq, inArray, sql, lt, and, not, gt } from 'drizzle-orm';
 import type { Session, State, SessionOutput } from '@/lib/types';
 import { fetchWithRetry } from './fetch-client';
 
@@ -188,8 +188,29 @@ export async function syncStaleSessions(apiKey: string) {
     
     // Simplification: Use default settings for thresholds.
     const settings = await getSettings('default');
-    const cachedSessions = await db.select().from(sessions);
-  const now = Date.now();
+
+    // Optimization: Select only necessary columns and filter by time in SQL
+    // to reduce memory usage and DB load.
+    const now = Date.now();
+    const cutoff = now - settings.sessionCacheInProgressInterval * 1000;
+
+    // We also don't need to check sessions older than max age (approx)
+    const maxAgeCutoff = now - settings.sessionCacheMaxAgeDays * 24 * 60 * 60 * 1000;
+    // createTime is string ISO. Comparison works if format is standard.
+    const maxAgeIso = new Date(maxAgeCutoff).toISOString();
+
+    const cachedSessions = await db.select({
+      id: sessions.id,
+      state: sessions.state,
+      lastUpdated: sessions.lastUpdated,
+      createTime: sessions.createTime,
+      outputs: sessions.outputs,
+    })
+    .from(sessions)
+    .where(and(
+      lt(sessions.lastUpdated, cutoff),
+      gt(sessions.createTime, maxAgeIso)
+    ));
 
   const sessionsToUpdate: string[] = [];
 

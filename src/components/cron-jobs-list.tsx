@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2, PlayCircle, PauseCircle, Clock } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, PlayCircle, PauseCircle, Clock, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { CronJobDialog } from "@/components/cron-job-dialog";
 import type { CronJob } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -149,9 +150,17 @@ export function CronJobsList() {
                                         <TableCell>{job.repo} ({job.branch})</TableCell>
                                         <TableCell>{job.lastRunAt ? new Date(job.lastRunAt).toLocaleString() : 'Never'}</TableCell>
                                         <TableCell>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${job.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                            <Badge
+                                                variant="outline"
+                                                className={`gap-1.5 ${
+                                                    job.enabled
+                                                        ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-950 dark:text-green-200 dark:border-green-800'
+                                                        : 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100 dark:bg-gray-950 dark:text-gray-200 dark:border-gray-800'
+                                                }`}
+                                            >
+                                                {job.enabled ? <CheckCircle2 className="h-3.5 w-3.5" /> : <PauseCircle className="h-3.5 w-3.5" />}
                                                 {job.enabled ? 'Active' : 'Paused'}
-                                            </span>
+                                            </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
