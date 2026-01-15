@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { settingsSchema } from '@/lib/validation';
+import { profileService } from '@/lib/profile-service';
 
 export async function GET(request: Request) {
   try {
@@ -69,6 +70,13 @@ export async function POST(request: Request) {
     }
 
     const profileId = validation.data.profileId || 'default';
+
+    if (profileId !== 'default') {
+      const profile = await profileService.getProfile(profileId);
+      if (!profile) {
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      }
+    }
 
     const newSettings = {
       ...validation.data,
