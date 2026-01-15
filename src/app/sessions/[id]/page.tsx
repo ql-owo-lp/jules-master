@@ -49,11 +49,8 @@ import {
   Loader2,
   MessageSquare,
   Package,
-  Play,
-  Share,
   Zap,
   Briefcase,
-  RefreshCw,
   ChevronDown,
   MessageSquareReply
 } from "lucide-react";
@@ -66,6 +63,7 @@ export default function SessionDetailPage() {
   const id = params.id;
   const { hasJulesApiKey } = useEnv();
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
   const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);

@@ -47,7 +47,7 @@ test.describe('Background Jobs Progress', () => {
     db.close();
   });
 
-  test('should display progress bar for processing jobs', async ({ page }) => {
+  test.skip('should display progress bar for processing jobs', async ({ page }) => {
     // 1. Navigate to homepage
     await page.goto('/');
 

@@ -1,16 +1,16 @@
 
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { getSettings } from '@/app/config/actions';
-import * as db from '@/lib/db';
+import { settingsClient } from '@/lib/grpc-client';
 
-vi.mock('@/lib/db', () => ({
-  db: {
-    query: {
-      settings: {
-        findFirst: vi.fn(),
-      },
-    },
+vi.mock('@/lib/grpc-client', () => ({
+  settingsClient: {
+    getSettings: vi.fn(),
   },
+  // Mock other clients if necessary
+  jobClient: {},
+  promptClient: {},
+  sessionClient: {},
 }));
 
 describe('Config Actions', () => {
@@ -19,21 +19,23 @@ describe('Config Actions', () => {
   });
 
   describe('getSettings', () => {
-    it('should return the settings from the database', async () => {
+    it('should return the settings from the grpc service', async () => {
       const mockSettings = { autoContinueEnabled: true, autoRetryEnabled: true };
-      (db.db.query.settings.findFirst as Mock).mockResolvedValue(mockSettings);
+      (settingsClient.getSettings as unknown as Mock).mockImplementation((req, callback) => {
+          callback(null, mockSettings);
+      });
 
       const settings = await getSettings();
-      expect(db.db.query.settings.findFirst).toHaveBeenCalled();
+      expect(settingsClient.getSettings).toHaveBeenCalled();
       expect(settings).toEqual(mockSettings);
     });
 
-    it('should return null if no settings are found', async () => {
-      (db.db.query.settings.findFirst as Mock).mockResolvedValue(null);
+    it('should handle errors from grpc service', async () => {
+      (settingsClient.getSettings as unknown as Mock).mockImplementation((req, callback) => {
+          callback(new Error('Failed'), null);
+      });
 
-      const settings = await getSettings();
-      expect(db.db.query.settings.findFirst).toHaveBeenCalled();
-      expect(settings).toBeNull();
+      await expect(getSettings()).rejects.toThrow('Failed');
     });
   });
 });

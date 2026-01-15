@@ -1,0 +1,454 @@
+syntax = "proto3";
+
+package jules;
+
+option go_package = "github.com/mcpany/jules/gen;jules";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// Common Enums
+
+enum Theme {
+  THEME_UNSPECIFIED = 0;
+  THEME_LIGHT = 1;
+  THEME_DARK = 2;
+  THEME_SYSTEM = 3;
+}
+
+enum AutomationMode {
+    AUTOMATION_MODE_UNSPECIFIED = 0;
+    AUTO_CREATE_PR = 1;
+}
+
+// ---------------------------------------------------------
+// Service Definitions
+// ---------------------------------------------------------
+
+service SettingsService {
+  rpc GetSettings(GetSettingsRequest) returns (Settings);
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
+}
+
+service ProfileService {
+  rpc ListProfiles(google.protobuf.Empty) returns (ListProfilesResponse);
+  rpc CreateProfile(CreateProfileRequest) returns (Profile);
+  rpc DeleteProfile(DeleteProfileRequest) returns (google.protobuf.Empty);
+}
+
+service LogService {
+  rpc GetLogs(GetLogsRequest) returns (GetLogsResponse);
+}
+
+service CronJobService {
+  rpc ListCronJobs(google.protobuf.Empty) returns (ListCronJobsResponse);
+  rpc CreateCronJob(CreateCronJobRequest) returns (CronJob);
+  rpc UpdateCronJob(UpdateCronJobRequest) returns (google.protobuf.Empty);
+  rpc DeleteCronJob(DeleteCronJobRequest) returns (google.protobuf.Empty);
+  rpc ExecuteCronJob(ExecuteCronJobRequest) returns (google.protobuf.Empty);
+  rpc ToggleCronJob(ToggleCronJobRequest) returns (google.protobuf.Empty);
+}
+
+service JobService {
+  rpc ListJobs(google.protobuf.Empty) returns (ListJobsResponse);
+  rpc GetJob(GetJobRequest) returns (Job);
+  rpc CreateJob(CreateJobRequest) returns (Job);
+  rpc CreateManyJobs(CreateManyJobsRequest) returns (google.protobuf.Empty);
+  rpc UpdateJob(UpdateJobRequest) returns (google.protobuf.Empty);
+  rpc DeleteJob(DeleteJobRequest) returns (google.protobuf.Empty);
+}
+
+service PromptService {
+  // Predefined Prompts
+  rpc ListPredefinedPrompts(google.protobuf.Empty) returns (ListPredefinedPromptsResponse);
+  rpc GetPredefinedPrompt(GetPromptRequest) returns (PredefinedPrompt);
+  rpc CreatePredefinedPrompt(CreatePromptRequest) returns (PredefinedPrompt);
+  rpc CreateManyPredefinedPrompts(CreateManyPromptsRequest) returns (google.protobuf.Empty);
+  rpc UpdatePredefinedPrompt(UpdatePromptRequest) returns (google.protobuf.Empty);
+  rpc DeletePredefinedPrompt(DeletePromptRequest) returns (google.protobuf.Empty);
+
+  // Quick Replies
+  rpc ListQuickReplies(google.protobuf.Empty) returns (ListPredefinedPromptsResponse);
+  rpc GetQuickReply(GetPromptRequest) returns (PredefinedPrompt);
+  rpc CreateQuickReply(CreatePromptRequest) returns (PredefinedPrompt);
+  rpc CreateManyQuickReplies(CreateManyPromptsRequest) returns (google.protobuf.Empty);
+  rpc UpdateQuickReply(UpdatePromptRequest) returns (google.protobuf.Empty);
+  rpc DeleteQuickReply(DeletePromptRequest) returns (google.protobuf.Empty);
+
+  // Global Prompt
+  rpc GetGlobalPrompt(google.protobuf.Empty) returns (GlobalPrompt);
+  rpc SaveGlobalPrompt(SaveGlobalPromptRequest) returns (google.protobuf.Empty);
+
+  // History Prompts
+  rpc ListHistoryPrompts(google.protobuf.Empty) returns (ListHistoryPromptsResponse);
+  rpc GetRecentHistoryPrompts(GetRecentRequest) returns (ListHistoryPromptsResponse);
+  rpc SaveHistoryPrompt(SaveHistoryPromptRequest) returns (google.protobuf.Empty);
+
+  // Repo Prompts
+  rpc GetRepoPrompt(GetRepoPromptRequest) returns (RepoPrompt);
+  rpc SaveRepoPrompt(SaveRepoPromptRequest) returns (google.protobuf.Empty);
+}
+
+service SessionService {
+    rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+    rpc GetSession(GetSessionRequest) returns (Session);
+    rpc CreateSession(CreateSessionRequest) returns (Session);
+    rpc UpdateSession(UpdateSessionRequest) returns (google.protobuf.Empty);
+    rpc DeleteSession(DeleteSessionRequest) returns (google.protobuf.Empty);
+    rpc ApprovePlan(ApprovePlanRequest) returns (google.protobuf.Empty);
+    rpc SendMessage(SendMessageRequest) returns (google.protobuf.Empty);
+}
+
+// ---------------------------------------------------------
+// Message Definitions
+// ---------------------------------------------------------
+
+// Settings
+
+message Settings {
+  int64 id = 1;
+  int32 idle_poll_interval = 2;
+  int32 active_poll_interval = 3;
+  int32 title_truncate_length = 4;
+  int32 line_clamp = 5;
+  int32 session_items_per_page = 6;
+  int32 jobs_per_page = 7;
+  int32 default_session_count = 8;
+  int32 pr_status_poll_interval = 9;
+  string theme = 10; 
+  int32 auto_approval_interval = 11;
+  bool auto_approval_enabled = 31;
+  bool auto_retry_enabled = 12;
+  string auto_retry_message = 13;
+  bool auto_continue_enabled = 14;
+  string auto_continue_message = 15;
+  int32 session_cache_in_progress_interval = 16;
+  int32 session_cache_completed_no_pr_interval = 17;
+  int32 session_cache_pending_approval_interval = 18;
+  int32 session_cache_max_age_days = 19;
+  bool auto_delete_stale_branches = 20;
+  int32 auto_delete_stale_branches_after_days = 21;
+  bool check_failing_actions_enabled = 22;
+  int32 check_failing_actions_interval = 23;
+  int32 check_failing_actions_threshold = 24;
+  bool auto_close_stale_conflicted_prs = 25;
+  int32 stale_conflicted_prs_duration_days = 26;
+  int32 history_prompts_count = 27;
+  int32 min_session_interaction_interval = 28;
+  int32 retry_timeout = 29;
+  string profile_id = 30;
+}
+
+message GetSettingsRequest {
+  string profile_id = 1;
+}
+
+message UpdateSettingsRequest {
+  Settings settings = 1;
+}
+
+message UpdateSettingsResponse {
+    bool success = 1;
+}
+
+// Profiles
+
+message Profile {
+  string id = 1;
+  string name = 2;
+  string created_at = 3; // Using string to match SQLite text/existing API behavior
+}
+
+message ListProfilesResponse {
+  repeated Profile profiles = 1;
+}
+
+message CreateProfileRequest {
+  string name = 1;
+}
+
+message DeleteProfileRequest {
+  string id = 1;
+}
+
+// Logs
+
+message LogEntry {
+  string timestamp = 1;
+  string level = 2; // "info", "warn", "error"
+  string message = 3;
+  // Ignoring meta for now as it can be complex ANY
+}
+
+message GetLogsRequest {
+    string since = 1; // ISO string
+}
+
+message GetLogsResponse {
+    repeated LogEntry logs = 1;
+}
+
+// Cron Jobs
+
+message CronJob {
+  string id = 1;
+  string name = 2;
+  string schedule = 3;
+  string prompt = 4;
+  string repo = 5;
+  string branch = 6;
+  bool auto_approval = 7;
+  AutomationMode automation_mode = 8;
+  bool require_plan_approval = 9;
+  int32 session_count = 10;
+  string profile_id = 11;
+  bool enabled = 12;
+  string created_at = 13;
+  string updated_at = 14;
+  string last_run_at = 15;
+}
+
+message ListCronJobsResponse {
+    repeated CronJob cron_jobs = 1;
+}
+
+message CreateCronJobRequest {
+  string name = 1;
+  string schedule = 2;
+  string prompt = 3;
+  string repo = 4;
+  string branch = 5;
+  bool auto_approval = 6;
+  AutomationMode automation_mode = 7;
+  bool require_plan_approval = 8;
+  int32 session_count = 9;
+  string profile_id = 10;
+}
+
+message UpdateCronJobRequest {
+  string id = 1;
+  // Using specific fields for partial updates or a mask would be better,
+  // but for simplicity mirroring the TS partial logic, we'll make fields optional/nullable
+  optional string name = 2;
+  optional string schedule = 3;
+  optional string prompt = 4;
+  optional string repo = 5;
+  optional string branch = 6;
+  optional bool auto_approval = 7;
+  optional AutomationMode automation_mode = 8;
+  optional bool require_plan_approval = 9;
+  optional int32 session_count = 10;
+  optional bool enabled = 11;
+}
+
+message DeleteCronJobRequest {
+    string id = 1;
+}
+
+message ExecuteCronJobRequest {
+    string id = 1;
+}
+
+message ToggleCronJobRequest {
+    string id = 1;
+    bool enabled = 2;
+}
+
+// Jobs
+
+message Job {
+  string id = 1;
+  string name = 2;
+  repeated string session_ids = 3;
+  string created_at = 4;
+  string repo = 5;
+  string branch = 6;
+  bool auto_approval = 7;
+  bool background = 8;
+  string prompt = 9;
+  int32 session_count = 10;
+  string status = 11; // 'PENDING', 'PROCESSING', 'COMPLETED'
+  AutomationMode automation_mode = 12;
+  bool require_plan_approval = 13;
+  string cron_job_id = 14;
+  string profile_id = 15;
+}
+
+message ListJobsResponse {
+    repeated Job jobs = 1;
+}
+
+message GetJobRequest {
+    string id = 1;
+}
+
+message CreateJobRequest {
+    string id = 1;
+    string name = 2;
+    repeated string session_ids = 3;
+    string created_at = 4;
+    string repo = 5;
+    string branch = 6;
+    bool auto_approval = 7;
+    bool background = 8;
+    string prompt = 9;
+    int32 session_count = 10;
+    string status = 11;
+    AutomationMode automation_mode = 12;
+    bool require_plan_approval = 13;
+    string cron_job_id = 14;
+    string profile_id = 15;
+}
+
+message CreateManyJobsRequest {
+    repeated CreateJobRequest jobs = 1;
+}
+
+message UpdateJobRequest {
+    string id = 1;
+    optional string name = 2;
+    optional string status = 3;
+    optional string repo = 4;
+    optional string branch = 5;
+}
+
+message DeleteJobRequest {
+    string id = 1;
+}
+
+// Prompts
+
+message PredefinedPrompt {
+    string id = 1;
+    string title = 2;
+    string prompt = 3;
+    string profile_id = 4;
+}
+
+message ListPredefinedPromptsResponse {
+    repeated PredefinedPrompt prompts = 1;
+}
+
+message GetPromptRequest {
+    string id = 1;
+}
+
+message CreatePromptRequest {
+    string id = 1;
+    string title = 2;
+    string prompt = 3;
+    string profile_id = 4;
+}
+
+message CreateManyPromptsRequest {
+    repeated CreatePromptRequest prompts = 1;
+}
+
+message UpdatePromptRequest {
+    string id = 1;
+    optional string title = 2;
+    optional string prompt = 3;
+}
+
+message DeletePromptRequest {
+    string id = 1;
+}
+
+// Global Prompt
+message GlobalPrompt {
+    string prompt = 1;
+}
+
+message SaveGlobalPromptRequest {
+    string prompt = 1;
+}
+
+// History Prompts
+message HistoryPrompt {
+    string id = 1;
+    string prompt = 2;
+    string last_used_at = 3;
+    string profile_id = 4;
+}
+
+message ListHistoryPromptsResponse {
+    repeated HistoryPrompt prompts = 1;
+}
+
+message GetRecentRequest {
+    int32 limit = 1;
+}
+
+message SaveHistoryPromptRequest {
+    string prompt = 1;
+}
+
+// Repo Prompt
+message RepoPrompt {
+    string repo = 1;
+    string prompt = 2;
+    string profile_id = 3;
+}
+
+message GetRepoPromptRequest {
+    string repo = 1;
+}
+
+message SaveRepoPromptRequest {
+    string repo = 1;
+    string prompt = 2;
+}
+
+// Sessions (Basic def for now to support Jobs)
+message Session {
+    string id = 1;
+    string name = 2;
+    string title = 3;
+    string prompt = 4;
+    string create_time = 5;
+    string update_time = 6;
+    string state = 7;
+    string url = 8;
+    // outputs skipped for brevity/complexity for now
+    bool require_plan_approval = 9;
+    AutomationMode automation_mode = 10;
+    int64 last_updated = 11;
+    int32 retry_count = 12;
+    string last_error = 13;
+    int64 last_interaction_at = 14;
+    string profile_id = 15;
+}
+
+message ListSessionsRequest {
+    string profile_id = 1; // Filter by profile
+}
+
+message ListSessionsResponse {
+    repeated Session sessions = 1;
+}
+
+message GetSessionRequest {
+    string id = 1;
+}
+
+message CreateSessionRequest {
+    string name = 1;
+}
+
+message UpdateSessionRequest {
+    string id = 1;
+}
+
+message DeleteSessionRequest {
+    string id = 1;
+}
+
+message ApprovePlanRequest {
+    string id = 1;
+}
+
+message SendMessageRequest {
+    string id = 1;
+    string message = 2;
+    bool force = 3; 
+}

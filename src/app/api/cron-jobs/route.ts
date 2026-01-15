@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const cronJobs = await getCronJobs();
     return NextResponse.json(cronJobs);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch cron jobs' }, { status: 500 });
   }
 }
@@ -23,9 +23,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    const newCronJob = await createCronJob(validation.data as any); // Cast as any because schema doesn't include all internal fields but matches required inputs
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newCronJob = await createCronJob(validation.data as unknown as any); // Cast as any because schema doesn't include all internal fields but matches required inputs
     return NextResponse.json(newCronJob);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to create cron job' }, { status: 500 });
   }
 }

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/popover"
 import { ScrollArea } from "./scroll-area"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ComboboxOption = { value: string; label: string; [key: string]: any };
 
 export type ComboboxGroup = {

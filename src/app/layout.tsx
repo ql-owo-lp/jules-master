@@ -22,7 +22,7 @@ import { Header } from '@/components/header';
 import { NewJobDialog } from '@/components/new-job-dialog';
 import { EnvProvider } from '@/components/env-provider';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Jules Master',
   description: 'A hub to manage your Jules API jobs.',
 };

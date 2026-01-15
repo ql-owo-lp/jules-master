@@ -12,6 +12,7 @@ export const settingsSchema = z.object({
   prStatusPollInterval: z.number(),
   theme: z.string(),
   autoApprovalInterval: z.number(),
+  autoApprovalEnabled: z.boolean().optional().default(false),
   autoRetryEnabled: z.boolean(),
   autoRetryMessage: z.string(),
   autoContinueEnabled: z.boolean(),
@@ -27,7 +28,7 @@ export const settingsSchema = z.object({
   }),
   minSessionInteractionInterval: z.number(),
   retryTimeout: z.number(),
-  autoDeleteStaleBranchesInterval: z.number(),
+  // autoDeleteStaleBranchesInterval: z.number(), // Removed
   checkFailingActionsEnabled: z.boolean().optional().default(true),
   checkFailingActionsInterval: z.number().optional().default(600),
   checkFailingActionsThreshold: z.number().optional().default(10),

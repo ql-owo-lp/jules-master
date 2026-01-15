@@ -114,7 +114,7 @@ export type PredefinedPrompt = {
   id: string;
   title: string;
   prompt: string;
-  profileId?: string;
+  profileId: string;
 };
 
 export type HistoryPrompt = {
@@ -175,7 +175,7 @@ export interface ProgressUpdated {
   description: string;
 }
 
-export interface SessionCompleted {}
+export type SessionCompleted = Record<string, never>;
 
 export interface SessionFailed {
   reason: string;

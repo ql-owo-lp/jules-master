@@ -4,20 +4,20 @@ export async function register() {
         const { initLogger } = await import('./lib/logger');
         initLogger();
 
-        const { startAutoApprovalWorker } = await import('./lib/auto-approval-worker');
-        const { startAutoRetryWorker } = await import('./lib/auto-retry-worker');
-        const { startAutoContinueWorker } = await import('./lib/auto-continue-worker');
-        const { startAutoDeleteStaleBranchWorker } = await import('./lib/auto-delete-stale-branch-worker');
-        const { startBackgroundJobWorker } = await import('./lib/background-job-worker');
-        const { startPrMonitorWorker } = await import('./lib/pr-monitor-worker');
-        const { processCronJobs } = await import('./lib/cron-worker');
+        // const { startAutoApprovalWorker } = await import('./lib/auto-approval-worker');
+        // const { startAutoRetryWorker } = await import('./lib/auto-retry-worker');
+        // const { startAutoContinueWorker } = await import('./lib/auto-continue-worker');
+        // const { startAutoDeleteStaleBranchWorker } = await import('./lib/auto-delete-stale-branch-worker');
+        // const { startBackgroundJobWorker } = await import('./lib/background-job-worker');
+        // const { startPrMonitorWorker } = await import('./lib/pr-monitor-worker');
+        // const { processCronJobs } = await import('./lib/cron-worker');
 
-        startAutoApprovalWorker();
-        startAutoRetryWorker();
-        startAutoContinueWorker();
-        startAutoDeleteStaleBranchWorker();
-        startBackgroundJobWorker();
-        startPrMonitorWorker();
+        // startAutoApprovalWorker();
+        // startAutoRetryWorker();
+        // startAutoContinueWorker();
+        // startAutoDeleteStaleBranchWorker();
+        // startBackgroundJobWorker();
+        // startPrMonitorWorker();
 
         // Initialize settings if needed
         const { db } = await import('./lib/db');
@@ -51,7 +51,7 @@ export async function register() {
         }
 
         // Run cron worker every minute
-        setInterval(processCronJobs, 60 * 1000);
+        // setInterval(processCronJobs, 60 * 1000);
 
         setInterval(() => {
             const used = process.memoryUsage();

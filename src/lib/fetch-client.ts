@@ -10,6 +10,7 @@ export interface FetchOptions extends RequestInit {
 type QueueItem = {
   fn: (signal: AbortSignal) => Promise<Response>;
   resolve: (value: Response | PromiseLike<Response>) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reject: (reason?: any) => void;
   controller?: AbortController; // Controlled by the queue for cancellation by ID
   externalSignal?: AbortSignal | null; // Passed from caller
@@ -206,15 +207,15 @@ class RequestQueue {
 const globalQueue = new RequestQueue();
 
 export function resetQueue() {
-  // @ts-ignore - Accessing private members for testing
+  // @ts-expect-error - Accessing private members for testing
   globalQueue.queue = [];
-  // @ts-ignore
+  // @ts-expect-error - Accessing private members for testing
   globalQueue.activeCount = 0;
-  // @ts-ignore
+  // @ts-expect-error - Accessing private members for testing
   globalQueue.activeRequests.clear();
-  // @ts-ignore
+  // @ts-expect-error - Accessing private members for testing
   globalQueue.lastRequestTime = 0;
-  // @ts-ignore
+  // @ts-expect-error - Accessing private members for testing
   globalQueue.backoffUntil = 0;
 }
 
@@ -306,6 +307,7 @@ export async function fetchWithRetry(
             }
           }
           return response;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
           if (error.name === 'AbortError') throw error;
 

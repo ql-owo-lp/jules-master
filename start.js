@@ -32,7 +32,7 @@ const appResult = spawnSync(
     './node_modules/next/dist/bin/next',
     'start',
     '-p',
-    '9002'
+    process.env.PORT || '9002'
   ],
   { stdio: 'inherit' }
 );

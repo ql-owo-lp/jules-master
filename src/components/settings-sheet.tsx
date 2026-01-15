@@ -21,8 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useEffect, useState } from "react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useEffect } from "react";
 
 
 export function SettingsSheet() {

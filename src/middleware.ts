@@ -17,7 +17,7 @@ export function middleware(req: NextRequest) {
   const basicAuthPassword = process.env.BASIC_AUTH_PASSWORD;
 
   // Initialize response
-  let response = NextResponse.next();
+  const response = NextResponse.next();
 
   if (basicAuthUser && basicAuthPassword) {
     const authHeader = req.headers.get('authorization');
