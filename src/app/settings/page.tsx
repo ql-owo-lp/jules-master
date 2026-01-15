@@ -292,9 +292,9 @@ export default function SettingsPage() {
     const fetchMessages = async () => {
         setIsLoadingMessages(true);
         const [fetchedPrompts, fetchedReplies, fetchedGlobalPrompt] = await Promise.all([
-            getPredefinedPrompts(),
-            getQuickReplies(),
-            getGlobalPrompt()
+            getPredefinedPrompts(currentProfileId),
+            getQuickReplies(currentProfileId),
+            getGlobalPrompt(currentProfileId)
         ]);
         setPrompts(fetchedPrompts);
         setQuickReplies(fetchedReplies);
@@ -302,19 +302,19 @@ export default function SettingsPage() {
         setIsLoadingMessages(false);
     };
     if (isClient) fetchMessages();
-  }, [isClient]);
+  }, [isClient, currentProfileId]);
 
   useEffect(() => {
     if (selectedSource) {
         startFetchingRepoPrompt(async () => {
             const repoName = `${selectedSource.githubRepo.owner}/${selectedSource.githubRepo.repo}`;
-            const prompt = await getRepoPrompt(repoName);
+            const prompt = await getRepoPrompt(repoName, currentProfileId);
             setRepoPrompt(prompt);
         });
     } else {
         setRepoPrompt("");
     }
-  }, [selectedSource]);
+  }, [selectedSource, currentProfileId]);
 
 
   // --- Handlers for Settings ---

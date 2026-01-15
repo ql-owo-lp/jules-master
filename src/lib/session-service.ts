@@ -61,7 +61,7 @@ export async function upsertSession(session: Session) {
   // If we have a profileId in the object (or merged from arg), we perform full upsert including it.
   // If not, we perform upsert but exclude profileId from SET clause to preserve existing association.
 
-  const safeSessionData = { ...sessionData };
+
   // Drizzle needs explicit handling.
   // If we are inserting and profileId is missing, it uses default.
   // If updating and profileId is missing in `values` object, Drizzle doesn't touch it?
@@ -70,11 +70,11 @@ export async function upsertSession(session: Session) {
   // Actually, we can just filter the object for the SET clause.
   const setPayload = { ...sessionData };
   if (!sessionData.profileId) {
-      delete (setPayload as any).profileId;
+      delete (setPayload as Record<string, unknown>).profileId;
   }
 
   await db.insert(sessions)
-    .values(sessionData as any) // Type assertion might be needed if dynamic keys
+    .values(sessionData)
     .onConflictDoUpdate({
       target: sessions.id,
       set: setPayload,
@@ -245,7 +245,7 @@ export async function syncStaleSessions(apiKey: string) {
         break;
 
       case 'COMPLETED':
-        if (isPrMerged(session as any)) {
+          if (isPrMerged(session as unknown as Session)) {
           break;
         }
         // If completed and PR is not merged, update every 30 mins.

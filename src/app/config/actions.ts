@@ -206,7 +206,7 @@ export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<voi
 // --- Global Prompt ---
 export async function getGlobalPrompt(_profileId: string = 'default'): Promise<string> {
     console.log(`[actions] getGlobalPrompt profile=${_profileId}`);
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         promptClient.getGlobalPrompt({}, (err, res) => {
             if (err) return resolve(""); // Handle error as empty?
             resolve(res.prompt);
@@ -227,7 +227,7 @@ export async function saveGlobalPrompt(prompt: string, _profileId: string = 'def
 
 // --- Repo Prompt ---
 export async function getRepoPrompt(repo: string, profileId: string = 'default'): Promise<string> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         promptClient.getRepoPrompt({ repo }, (err, res) => {
              if (err) return resolve("");
              if (res.profileId !== profileId && res.profileId !== 'default' && res.profileId !== '') return resolve(""); // strict profile check?
