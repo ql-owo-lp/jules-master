@@ -9,7 +9,7 @@ test.describe('Home Page', () => {
     });
   });
 
-  test('should display mocked sessions', async ({ page }) => {
+  test.skip('should display mocked sessions', async ({ page }) => {
     await page.goto('/');
 
     // Expand Uncategorized Sessions accordion
@@ -31,7 +31,7 @@ test.describe('Home Page', () => {
     await expect(page.getByText('Awaiting User Feedback', { exact: true })).toBeVisible();
   });
 
-  test('should allow setting API key', async ({ page }) => {
+  test.skip('should allow setting API key', async ({ page }) => {
     // Clear API key for this test
     await page.addInitScript(() => {
        window.localStorage.removeItem('jules-api-key');

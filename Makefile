@@ -31,3 +31,14 @@ server-init:
 .PHONY: server-run
 server-run:
 	cd server && go run cmd/server/main.go
+
+.PHONY: test
+test: test-backend test-frontend
+
+.PHONY: test-backend
+test-backend:
+	cd server && go test ./...
+
+.PHONY: test-frontend
+test-frontend:
+	npm run test
