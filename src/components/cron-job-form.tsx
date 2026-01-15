@@ -73,6 +73,7 @@ export function CronJobForm({
       return;
     }
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const parser = cronParser as any;
       const expression = parser.parseExpression ? parser.parseExpression(schedule) : parser.parse(schedule);
       setNextRun(expression.next().toDate());

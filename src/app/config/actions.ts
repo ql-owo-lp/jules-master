@@ -5,9 +5,28 @@ import { Job, PredefinedPrompt, HistoryPrompt, AutomationMode, Settings, Session
 import { Job as LocalJob } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
+const MOCK_JOBS: LocalJob[] = [];
+const MOCK_SETTINGS: Settings = {
+    defaultSessionCount: 20,
+    idlePollInterval: 120,
+    activePollInterval: 30,
+    historyPromptsCount: 10,
+    autoDeleteStaleBranches: false,
+    autoApprovalInterval: 60
+};
+const MOCK_PREDEFINED_PROMPTS: PredefinedPrompt[] = [
+    { id: '1', title: 'Fix Lint', prompt: 'Fix lint errors', profileId: 'default' }
+];
+const MOCK_QUICK_REPLIES: PredefinedPrompt[] = [
+    { id: '1', title: 'LGTM', prompt: 'Looks good to me', profileId: 'default' }
+];
+
 // --- Jobs ---
 export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]> {
     return new Promise((resolve, reject) => {
+        if (process.env.MOCK_API === 'true') {
+             return resolve(MOCK_JOBS);
+        }
         // ListJobs currently returns all, we might filter by profileId client-side
         // or update backend to support filtering.
         jobClient.listJobs({}, (err, response) => {
@@ -26,6 +45,9 @@ export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]
 
 export async function addJob(job: LocalJob): Promise<void> {
     return new Promise((resolve, reject) => {
+        if (process.env.MOCK_API === 'true') {
+             return resolve();
+        }
         const req = {
             ...job,
             profileId: job.profileId || 'default',
@@ -90,6 +112,9 @@ export async function getPendingBackgroundWorkCount(profileId: string = 'default
 // --- Predefined Prompts ---
 export async function getPredefinedPrompts(profileId: string = 'default'): Promise<PredefinedPrompt[]> {
     return new Promise((resolve, reject) => {
+        if (process.env.MOCK_API === 'true') {
+             return resolve(MOCK_PREDEFINED_PROMPTS.filter(p => p.profileId === profileId));
+        }
         promptClient.listPredefinedPrompts({}, (err, res) => {
              if (err) return reject(err);
              resolve(res.prompts.filter(p => p.profileId === profileId));
@@ -110,6 +135,8 @@ export async function savePredefinedPrompts(prompts: PredefinedPrompt[]): Promis
     // Or I can add a `ReplacePredefinedPrompts` RPC.
     // For now, I'll fetch and delete then create.
     
+    if (process.env.MOCK_API === 'true') return;
+
     try {
         const existing = await getPredefinedPrompts(profileId);
         // Delete all
@@ -142,6 +169,8 @@ export async function getHistoryPrompts(profileId: string = 'default'): Promise<
     // I should fetch settings first.
     
     try {
+        if (process.env.MOCK_API === 'true') return [];
+
         const settings = await new Promise<Settings>((resolve, reject) => {
             settingsClient.getSettings({ profileId }, (err, res) => err ? reject(err) : resolve(res));
         });
@@ -163,6 +192,7 @@ export async function saveHistoryPrompt(promptText: string, _profileId: string =
     if (!promptText.trim()) return;
     console.log(`[actions] saveHistoryPrompt profile=${_profileId}`); 
     return new Promise((resolve, reject) => {
+        if (process.env.MOCK_API === 'true') return resolve();
         promptClient.saveHistoryPrompt({ prompt: promptText }, (err) => {
             if (err) return reject(err);
             revalidatePath('/');
@@ -174,6 +204,9 @@ export async function saveHistoryPrompt(promptText: string, _profileId: string =
 // --- Quick Replies ---
 export async function getQuickReplies(profileId: string = 'default'): Promise<PredefinedPrompt[]> {
     return new Promise((resolve, reject) => {
+        if (process.env.MOCK_API === 'true') {
+             return resolve(MOCK_QUICK_REPLIES.filter(p => p.profileId === profileId));
+        }
          promptClient.listQuickReplies({}, (err, res) => {
               if (err) return reject(err);
               resolve(res.prompts.filter(p => p.profileId === profileId));
@@ -183,6 +216,8 @@ export async function getQuickReplies(profileId: string = 'default'): Promise<Pr
 
 export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<void> {
     const profileId = replies.length > 0 ? replies[0].profileId || 'default' : 'default';
+     if (process.env.MOCK_API === 'true') return;
+
      try {
         const existing = await getQuickReplies(profileId);
         
@@ -207,6 +242,7 @@ export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<voi
 export async function getGlobalPrompt(_profileId: string = 'default'): Promise<string> {
     console.log(`[actions] getGlobalPrompt profile=${_profileId}`);
     return new Promise((resolve) => {
+        if (process.env.MOCK_API === 'true') return resolve("");
         promptClient.getGlobalPrompt({}, (err, res) => {
             if (err) return resolve(""); // Handle error as empty?
             resolve(res.prompt);
@@ -217,6 +253,7 @@ export async function getGlobalPrompt(_profileId: string = 'default'): Promise<s
 export async function saveGlobalPrompt(prompt: string, _profileId: string = 'default'): Promise<void> {
     console.log(`[actions] saveGlobalPrompt profile=${_profileId}`);
     return new Promise((resolve, reject) => {
+        if (process.env.MOCK_API === 'true') return resolve();
          promptClient.saveGlobalPrompt({ prompt }, (err) => {
              if (err) return reject(err);
              revalidatePath('/settings');
@@ -228,6 +265,7 @@ export async function saveGlobalPrompt(prompt: string, _profileId: string = 'def
 // --- Repo Prompt ---
 export async function getRepoPrompt(repo: string, profileId: string = 'default'): Promise<string> {
     return new Promise((resolve) => {
+        if (process.env.MOCK_API === 'true') return resolve("");
         promptClient.getRepoPrompt({ repo }, (err, res) => {
              if (err) return resolve("");
              if (res.profileId !== profileId && res.profileId !== 'default' && res.profileId !== '') return resolve(""); // strict profile check?
@@ -239,6 +277,7 @@ export async function getRepoPrompt(repo: string, profileId: string = 'default')
 export async function saveRepoPrompt(repo: string, prompt: string, _profileId: string = 'default'): Promise<void> {
     console.log(`[actions] saveRepoPrompt profile=${_profileId}`);
     return new Promise((resolve, reject) => {
+        if (process.env.MOCK_API === 'true') return resolve();
         promptClient.saveRepoPrompt({ repo, prompt }, (err) => {
             if (err) return reject(err);
             revalidatePath('/settings');
@@ -250,6 +289,9 @@ export async function saveRepoPrompt(repo: string, prompt: string, _profileId: s
 // --- Settings ---
 export async function getSettings(profileId: string = 'default'): Promise<Settings | undefined> {
      return new Promise((resolve, reject) => {
+         if (process.env.MOCK_API === 'true') {
+             return resolve(MOCK_SETTINGS);
+         }
          settingsClient.getSettings({ profileId }, (err, res) => {
              if (err) return reject(err);
              resolve(res);

@@ -111,7 +111,7 @@ export function JobCreationForm({
         setSettings(settings || null);
     }
     fetchData();
-  }, []);
+  }, [currentProfileId]);
 
   useEffect(() => {
     if (initialValues) {

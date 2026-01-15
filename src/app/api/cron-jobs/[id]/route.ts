@@ -25,6 +25,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     // Only update if there are valid fields to update
     if (Object.keys(validation.data).length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: any = { ...validation.data };
         if (updateData.automationMode) {
             // Map string 'AUTO_CREATE_PR' etc to Enum

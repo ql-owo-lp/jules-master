@@ -38,6 +38,7 @@ export function initLogger() {
 
 
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function emitLog(type: LogType, ...args: any[]) {
     try {
       const message = args
@@ -78,21 +79,25 @@ function emitLog(type: LogType, ...args: any[]) {
     }
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   console.log = (...args: any[]) => {
     emitLog('log', ...args);
     originalLog.apply(console, [new Date().toISOString(), ...args]);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   console.error = (...args: any[]) => {
     emitLog('error', ...args);
     originalError.apply(console, [new Date().toISOString(), ...args]);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   console.warn = (...args: any[]) => {
     emitLog('warn', ...args);
     originalWarn.apply(console, [new Date().toISOString(), ...args]);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   console.info = (...args: any[]) => {
     emitLog('info', ...args);
     originalInfo.apply(console, [new Date().toISOString(), ...args]);

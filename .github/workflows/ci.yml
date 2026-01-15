@@ -82,6 +82,11 @@ jobs:
 
       - name: Run container and smoke test
         run: |
-          docker run -d -p 9002:9002 --name nextn-container nextn-app
+          # Run container with random port mapping
+          CONTAINER_ID=$(docker run -d -p 0:9002 --name nextn-container nextn-app)
           sleep 10
-          curl -f http://localhost:9002
+          # Get the assigned port
+          HOST_PORT=$(docker port $CONTAINER_ID 9002 | cut -d ':' -f 2)
+          echo "Container running on port $HOST_PORT"
+          # Verify health
+          curl -f "http://localhost:$HOST_PORT" 

@@ -13,6 +13,7 @@ export async function getCronJobs(): Promise<CronJob[]> {
 // Omit generated fields for creation
 // Need to map frontend type to Proto type manually if strictly typed or use Partial
 // The proto generated interface for request `CreateCronJobRequest` matches mostly.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function createCronJob(data: any): Promise<CronJob> {
   return new Promise((resolve, reject) => {
     // Map data to request

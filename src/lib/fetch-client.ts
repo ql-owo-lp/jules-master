@@ -10,6 +10,7 @@ export interface FetchOptions extends RequestInit {
 type QueueItem = {
   fn: (signal: AbortSignal) => Promise<Response>;
   resolve: (value: Response | PromiseLike<Response>) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reject: (reason?: any) => void;
   controller?: AbortController; // Controlled by the queue for cancellation by ID
   externalSignal?: AbortSignal | null; // Passed from caller
@@ -306,6 +307,7 @@ export async function fetchWithRetry(
             }
           }
           return response;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
           if (error.name === 'AbortError') throw error;
 

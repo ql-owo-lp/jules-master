@@ -18,6 +18,9 @@ describe('Settings API - Profile Isolation', () => {
 
   it('should save and retrieve distinct settings for different profiles', async () => {
     // 1. Save settings for Profile A
+    const profileIdA = '11111111-1111-1111-1111-111111111111';
+    const profileIdB = '22222222-2222-2222-2222-222222222222';
+
     const settingsA = {
       idlePollInterval: 100,
       activePollInterval: 30,
@@ -42,8 +45,7 @@ describe('Settings API - Profile Isolation', () => {
       historyPromptsCount: 10,
       minSessionInteractionInterval: 60,
       retryTimeout: 1200,
-      autoDeleteStaleBranchesInterval: 1800,
-      profileId: 'profile-a'
+      profileId: profileIdA
     };
 
     (settingsClient.updateSettings as unknown as Mock).mockImplementation((req, callback) => {
@@ -54,10 +56,13 @@ describe('Settings API - Profile Isolation', () => {
       method: 'POST',
       body: JSON.stringify(settingsA),
     }));
+    if (resPostA.status !== 200) {
+        console.error('POST settings A failed:', await resPostA.json());
+    }
     expect(resPostA.status).toBe(200);
 
     // 2. Save different settings for Profile B
-    const settingsB = { ...settingsA, idlePollInterval: 200, profileId: 'profile-b' };
+    const settingsB = { ...settingsA, idlePollInterval: 200, profileId: profileIdB };
     const resPostB = await POST(new NextRequest('http://localhost/api/settings', {
       method: 'POST',
       body: JSON.stringify(settingsB),
@@ -66,22 +71,22 @@ describe('Settings API - Profile Isolation', () => {
 
     // 3. Fetch settings for Profile A
     (settingsClient.getSettings as unknown as Mock).mockImplementation((req, callback) => {
-        if (req.profileId === 'profile-a') {
-            callback(null, { ...settingsA, id: '1' });
-        } else if (req.profileId === 'profile-b') {
-            callback(null, { ...settingsB, id: '2' });
+        if (req.profileId === profileIdA) {
+            callback(null, { ...settingsA, id: '1', profileId: profileIdA });
+        } else if (req.profileId === profileIdB) {
+            callback(null, { ...settingsB, id: '2', profileId: profileIdB });
         } else {
              // Mock default returns
             callback(null, { idlePollInterval: 120, id: '0' });
         }
     });
 
-    const resA = await GET(new NextRequest(`http://localhost/api/settings?profileId=profile-a`));
+    const resA = await GET(new NextRequest(`http://localhost/api/settings?profileId=${profileIdA}`));
     const dataA = await resA.json();
     expect(dataA.idlePollInterval).toBe(100);
 
     // 4. Fetch settings for Profile B
-    const resB = await GET(new NextRequest(`http://localhost/api/settings?profileId=profile-b`));
+    const resB = await GET(new NextRequest(`http://localhost/api/settings?profileId=${profileIdB}`));
     const dataB = await resB.json();
     expect(dataB.idlePollInterval).toBe(200);
 

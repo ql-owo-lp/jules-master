@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       ...validation.data,
       profileId,
       id: '0' // Default ID for proto
-    } as any as Settings;
+    } as unknown as Settings;
     
     // Proto Settings has specific types.
     // validation.data comes from zod which enforces types.
