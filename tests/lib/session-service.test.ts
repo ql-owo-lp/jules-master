@@ -142,7 +142,11 @@ describe('Session Service', () => {
           };
         }
         if (table === sessions) {
-          return Promise.resolve([mergedSession]);
+          const mockQuery = {
+            where: vi.fn().mockReturnThis(),
+            then: (resolve: any) => resolve([mergedSession]),
+          };
+          return mockQuery;
         }
         return Promise.resolve([]);
       });
