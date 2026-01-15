@@ -7,6 +7,8 @@ const createProfileSchema = z.object({
   name: z.string().min(1).max(100),
 });
 
+const uuidSchema = z.string().uuid();
+
 export async function GET() {
   try {
     const profiles = await profileService.getProfiles();
@@ -41,6 +43,14 @@ export async function DELETE(request: Request) {
 
         if (!id) {
             return NextResponse.json({ error: 'Profile ID is required' }, { status: 400 });
+        }
+
+        if (id === 'default') {
+            return NextResponse.json({ error: 'Cannot delete default profile' }, { status: 400 });
+        }
+
+        if (!uuidSchema.safeParse(id).success) {
+            return NextResponse.json({ error: 'Invalid Profile ID format' }, { status: 400 });
         }
 
         await profileService.deleteProfile(id);
