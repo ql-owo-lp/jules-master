@@ -63,7 +63,7 @@ func (w *CronWorker) runCheck(ctx context.Context) error {
     defer rows.Close()
     
     now := time.Now()
-    var jobsToTrigger []pb.CronJob
+    var jobsToTrigger []*pb.CronJob
     
     for rows.Next() {
         var c pb.CronJob
@@ -107,7 +107,7 @@ func (w *CronWorker) runCheck(ctx context.Context) error {
         // If nextRun is in the past, it's due.
         if nextRun.Before(now) {
              logger.Info("%s: Job %s (%s) is due (Next: %v, Now: %v)", w.Name(), c.Name, c.Id, nextRun, now)
-             jobsToTrigger = append(jobsToTrigger, c)
+             jobsToTrigger = append(jobsToTrigger, &c)
         }
     }
     rows.Close()

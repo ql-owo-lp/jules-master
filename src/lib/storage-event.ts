@@ -1,20 +1,20 @@
 
 // A simple event emitter
 class EventEmitter {
-  private events: { [key: string]: Function[] };
+  private events: { [key: string]: ((...args: any[]) => void)[] };
 
   constructor() {
     this.events = {};
   }
 
-  on(event: string, listener: Function) {
+  on(event: string, listener: (...args: any[]) => void) {
     if (!this.events[event]) {
       this.events[event] = [];
     }
     this.events[event].push(listener);
   }
 
-  off(event: string, listener: Function) {
+  off(event: string, listener: (...args: any[]) => void) {
     if (!this.events[event]) return;
     this.events[event] = this.events[event].filter(l => l !== listener);
   }

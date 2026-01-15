@@ -21,7 +21,8 @@ export default function SystemLogPage() {
 
   useEffect(() => {
     let lastTimestamp = '';
-    let intervalId: NodeJS.Timeout;
+    let intervalId: NodeJS.Timeout | null = null;
+
 
     const fetchLogs = async () => {
         try {
@@ -71,6 +72,12 @@ export default function SystemLogPage() {
     };
   }, []); // Empty dependency array means run once on mount
 
+  useEffect(() => {
+    if (bottomRef.current) {
+        bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
+
   if (error) {
       return (
         <div className="container mx-auto py-6">
@@ -82,11 +89,7 @@ export default function SystemLogPage() {
       );
   }
 
-  useEffect(() => {
-    if (bottomRef.current) {
-        bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [logs]);
+
 
 
   const clearLogs = () => {

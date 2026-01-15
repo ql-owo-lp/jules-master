@@ -158,8 +158,8 @@ export async function getPullRequestStatuses(prUrls: string[], token?: string | 
       try {
         const status = await getPullRequestStatusFromApi(url, token);
         return { url, status };
-      } catch (e) {
-        console.error(`Failed to fetch status for ${url}`, e);
+      } catch {
+        console.error(`Failed to fetch status for ${url}`);
         return { url, status: null };
       }
     })

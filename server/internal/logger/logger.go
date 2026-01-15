@@ -11,19 +11,19 @@ import (
 const BufferSize = 1000
 
 var (
-	buffer []pb.LogEntry
+	buffer []*pb.LogEntry
 	mu     sync.Mutex
 )
 
 func init() {
-	buffer = make([]pb.LogEntry, 0, BufferSize)
+	buffer = make([]*pb.LogEntry, 0, BufferSize)
 }
 
 func Add(level, message string) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	entry := pb.LogEntry{
+	entry := &pb.LogEntry{
 		Timestamp: time.Now().Format(time.RFC3339),
 		Level:     level,
 		Message:   message,
@@ -73,10 +73,10 @@ func Get(since string) ([]*pb.LogEntry, error) {
 		if since != "" {
 			t, err := time.Parse(time.RFC3339, entry.Timestamp)
 			if err == nil && t.After(sinceTime) {
-				result = append(result, &entry)
+				result = append(result, entry)
 			}
 		} else {
-			result = append(result, &entry)
+			result = append(result, entry)
 		}
 	}
 	return result, nil

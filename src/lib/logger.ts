@@ -48,7 +48,7 @@ function emitLog(type: LogType, ...args: any[]) {
               // Filter empty object logs
               if (str === '{}') return '';
               return str;
-            } catch (e) {
+            } catch {
               return String(arg);
             }
           }

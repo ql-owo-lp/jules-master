@@ -4,7 +4,6 @@ import Database from 'better-sqlite3';
 import * as schema from './schema';
 import { Job, PredefinedPrompt, HistoryPrompt } from '../types';
 import { eq, desc } from 'drizzle-orm';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'fs';
 import path from 'path';
 
@@ -79,11 +78,14 @@ class AppDatabase {
         }
         return undefined;
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     create: async (job) => { await db.insert(schema.jobs).values(job as any) },
     createMany: async (jobs) => { 
       if (jobs.length === 0) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await db.insert(schema.jobs).values(jobs as any);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     update: async (id, job) => { await db.update(schema.jobs).set(job as any).where(eq(schema.jobs.id, id)) },
     delete: async (id) => { await db.delete(schema.jobs).where(eq(schema.jobs.id, id)) },
   };

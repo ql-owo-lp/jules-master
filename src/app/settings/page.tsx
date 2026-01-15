@@ -42,7 +42,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
     DialogClose,
 } from "@/components/ui/dialog";
 import {
@@ -428,7 +427,7 @@ export default function SettingsPage() {
                 title: "Refreshed",
                 description: "The list of repositories has been updated.",
             });
-        } catch (error) {
+        } catch {
             toast({
                 variant: "destructive",
                 title: "Error",
@@ -529,7 +528,7 @@ export default function SettingsPage() {
     if (items.length === 0) return (
         <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
           <p className="font-semibold text-lg">No {plural} yet</p>
-          <p className="text-sm">Click "Add New" to create your first {singular}.</p>
+          <p className="text-sm">Click &quot;Add New&quot; to create your first {singular}.</p>
         </div>
     );
 

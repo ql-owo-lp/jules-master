@@ -5,7 +5,7 @@ import React, { useState, useEffect, useTransition, useCallback, Suspense, useMe
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { AutomationMode, Job, PredefinedPrompt, Session, State } from '@/lib/types';
+import { Job, PredefinedPrompt, Session, State } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, X, Briefcase, GitMerge, Activity, Wand2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -77,7 +77,7 @@ function HomePageContent() {
 
   const { filteredJobs, unknownSessions } = useMemo(() => {
     const allJobSessionIds = new Set(jobs.flatMap(j => j.sessionIds));
-    let unknown = sessions.filter(s => !allJobSessionIds.has(s.id));
+    const unknown = sessions.filter(s => !allJobSessionIds.has(s.id));
 
     // Logic to extract job name from prompt and group unknown sessions
     const { groupedSessions, remainingUnknown } = groupSessionsByTopic(unknown);
@@ -152,7 +152,7 @@ function HomePageContent() {
         setPendingBackgroundWork(fetchedPendingWork);
         setLastUpdatedAt(Date.now());
         setCountdown(sessionListPollInterval);
-      } catch (e) {
+      } catch {
           // Ignore abort errors
       } finally {
         if (activeRequestId.current === requestId) {
@@ -293,7 +293,7 @@ function HomePageContent() {
 
         // Refresh data to reflect new states
         fetchAllData();
-      } catch (error) {
+      } catch {
           toast({
               variant: "destructive",
               title: "Bulk Approval Failed",
@@ -360,7 +360,7 @@ function HomePageContent() {
                 description: `Successfully sent message to ${successfulMessages} of ${sessionIds.length} sessions.`,
             });
             fetchAllData();
-        } catch (error) {
+        } catch {
             toast({
                 variant: "destructive",
                 title: "Bulk Message Failed",
