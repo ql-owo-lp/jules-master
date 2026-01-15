@@ -37,13 +37,17 @@ func (s *JobServer) ListJobs(ctx context.Context, _ *emptypb.Empty) (*pb.ListJob
         var automationMode sql.NullString
         var cronJobId, profileId sql.NullString
 
+        var requirePlanApproval sql.NullBool
 		if err := rows.Scan(
 			&j.Id, &j.Name, &sessionIdsJSON, &j.CreatedAt, &j.Repo, &j.Branch, &j.AutoApproval,
             &j.Background, &j.Prompt, &j.SessionCount, &j.Status, &automationMode,
-            &j.RequirePlanApproval, &cronJobId, &profileId,
+            &requirePlanApproval, &cronJobId, &profileId,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan job: %w", err)
 		}
+        if requirePlanApproval.Valid {
+            j.RequirePlanApproval = requirePlanApproval.Bool
+        }
         
         if err := json.Unmarshal([]byte(sessionIdsJSON), &j.SessionIds); err != nil {
              // If manual string or empty
@@ -74,17 +78,21 @@ func (s *JobServer) GetJob(ctx context.Context, req *pb.GetJobRequest) (*pb.Job,
     var automationMode sql.NullString
     var cronJobId, profileId sql.NullString
 
+    var requirePlanApproval sql.NullBool
     err := s.DB.QueryRow(`
         SELECT id, name, session_ids, created_at, repo, branch, auto_approval, 
-               background, prompt, session_count, status, automation_mode, 
-               require_plan_approval, cron_job_id, profile_id
+        background, prompt, session_count, status, automation_mode, 
+        require_plan_approval, cron_job_id, profile_id
         FROM jobs 
         WHERE id = ?
     `, req.Id).Scan(
         &j.Id, &j.Name, &sessionIdsJSON, &j.CreatedAt, &j.Repo, &j.Branch, &j.AutoApproval,
         &j.Background, &j.Prompt, &j.SessionCount, &j.Status, &automationMode,
-        &j.RequirePlanApproval, &cronJobId, &profileId,
+        &requirePlanApproval, &cronJobId, &profileId,
     )
+    if requirePlanApproval.Valid {
+        j.RequirePlanApproval = requirePlanApproval.Bool
+    }
     
     if err == sql.ErrNoRows {
         return nil, fmt.Errorf("job not found")
@@ -231,4 +239,3 @@ func (s *JobServer) DeleteJob(ctx context.Context, req *pb.DeleteJobRequest) (*e
 	}
 	return &emptypb.Empty{}, nil
 }
-

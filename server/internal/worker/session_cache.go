@@ -3,6 +3,11 @@ package worker
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"time"
 
 	pb "github.com/mcpany/jules/gen"
@@ -119,24 +124,125 @@ func (w *SessionCacheWorker) runCheck(ctx context.Context) error {
         }
     }
     
-    // Update sessions
-    // In a real implementation we would call upstream API. 
-    // Since we ARE the server, and the upstream is "Jules API" (Google?), 
-    // We assume we are proxying?
-    // If we are replacing the Node backend which proxied to Google, then YES we need to proxy.
-    // But `fetch-client` in Node hits `jules.googleapis.com`.
-    // My Go backend doesn't have a Google API client yet.
-    // Creating one is out of scope for "porting worker tests" unless I am porting the worker functionality entirely.
-    // I am porting functionality.
-    // So I need a way to fetch from upstream.
-    // I'll leave a TODO or simple log for now as I don't have the API key or client setup here.
-    // Actually, `AutoContinue` uses `SendMessage` which likely hits Upstream.
+	"fmt"
+	"net/http"
+	"os"
+	"encoding/json"
+	"io"
+)
+
+// ... existing imports ...
+
+// ... existing struct/New ...
+
+func (w *SessionCacheWorker) syncSession(ctx context.Context, id string) error {
+	apiKey := os.Getenv("JULES_API_KEY")
+	if apiKey == "" {
+		// Log once or assume managed elsewhere if missing?
+		// For now, fail silently or log warn?
+		return fmt.Errorf("JULES_API_KEY not set")
+	}
+
+	url := fmt.Sprintf("https://jules.googleapis.com/v1alpha/sessions/%s", id)
+	client := &http.Client{Timeout: 30 * time.Second}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil { return err }
+
+	req.Header.Set("X-Goog-Api-Key", apiKey)
+
+	resp, err := client.Do(req)
+	if err != nil { return err }
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("remote sync failed %d: %s", resp.StatusCode, string(b))
+	}
+
+	var remoteSess struct {
+		State      string `json:"state"`
+		UpdateTime string `json:"updateTime"`
+		// Add other fields if needed
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&remoteSess); err != nil {
+		return err
+	}
+
+	// Update DB
+	// We update state, update_time, and last_updated (to now, so we don't sync again immediately)
+	now := time.Now().UnixMilli()
+	
+	_, err = w.db.ExecContext(ctx, "UPDATE sessions SET state = ?, update_time = ?, last_updated = ? WHERE id = ?", 
+		remoteSess.State, remoteSess.UpdateTime, now, id)
+	
+	return err
+}
+
+func (w *SessionCacheWorker) runCheck(ctx context.Context) error {
+	settings, err := w.settingsService.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
+	if err != nil {
+		return err
+	}
+
+    // ... (fetch logic same as before) ...
+    rows, err := w.db.QueryContext(ctx, "SELECT id, state, last_updated, create_time FROM sessions")
+    if err != nil { return err }
+    defer rows.Close()
     
+    now := time.Now()
+    var sessionsToUpdate []string
+    
+    for rows.Next() {
+        var id, state string
+        var lastUpdated int64
+        var createTime string
+        
+        if err := rows.Scan(&id, &state, &lastUpdated, &createTime); err != nil {
+             logger.Error("Scan failed: %v", err)
+             continue
+        }
+        
+        lastUpdate := time.UnixMilli(lastUpdated)
+        age := now.Sub(lastUpdate)
+        
+        // Creation Time parsing
+        ctime, _ := time.Parse(time.RFC3339, createTime)
+        daysSinceCreation := now.Sub(ctime).Hours() / 24
+        
+        if daysSinceCreation > float64(settings.SessionCacheMaxAgeDays) {
+            continue
+        }
+        
+        shouldUpdate := false
+        interval := settings.SessionCachePendingApprovalInterval
+        
+        switch state {
+        case "IN_PROGRESS", "PLANNING", "QUEUED":
+             interval = settings.SessionCacheInProgressInterval
+        case "AWAITING_PLAN_APPROVAL", "AWAITING_USER_FEEDBACK":
+             interval = settings.SessionCachePendingApprovalInterval
+        case "COMPLETED":
+             interval = settings.SessionCacheCompletedNoPrInterval
+        }
+        
+        if age > time.Duration(interval)*time.Second {
+             shouldUpdate = true
+        }
+        
+        if shouldUpdate {
+            sessionsToUpdate = append(sessionsToUpdate, id)
+        }
+    }
+    rows.Close() 
+
     if len(sessionsToUpdate) > 0 {
-        logger.Info("%s: Identified %d sessions to sync (stubbed)", w.Name(), len(sessionsToUpdate))
-        // Stub: Update last_updated to prevent loop
+        logger.Info("%s: Syncing %d sessions", w.Name(), len(sessionsToUpdate))
         for _, id := range sessionsToUpdate {
-             w.db.ExecContext(ctx, "UPDATE sessions SET last_updated = ? WHERE id = ?", now.UnixMilli(), id)
+             if err := w.syncSession(ctx, id); err != nil {
+                 logger.Error("%s: Failed to sync session %s: %s", w.Name(), id, err.Error())
+             } else {
+                 logger.Info("%s: Successfully synced session %s", w.Name(), id)
+             }
         }
     }
     

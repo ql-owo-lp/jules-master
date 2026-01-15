@@ -32,7 +32,7 @@ const appResult = spawnSync(
     './node_modules/next/dist/bin/next',
     'start',
     '-p',
-    '9002'
+    '9005'
   ],
   { stdio: 'inherit' }
 );

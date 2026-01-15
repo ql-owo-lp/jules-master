@@ -93,21 +93,29 @@ func (w *BackgroundJobWorker) processJob(ctx context.Context, jobID string, sess
          return
     }
 
+    // Fetch job details first
+    job, err := w.jobService.GetJob(ctx, &pb.GetJobRequest{Id: jobID})
+    if err != nil {
+         logger.Error("%s: Failed to fetch job %s: %s", w.Name(), jobID, err.Error())
+         return
+    }
+
     // Create sessions
     var sessionIDs []string
     success := true 
-    
-    // Logic: create sessions based on sessionCount.
-    // In original code, createSession logic might create 1 session or N sessions.
-    // Assuming simple loop here.
     
     for i := 0; i < sessionCount; i++ {
         // Create session
         sess, err := w.sessionService.CreateSession(ctx, &pb.CreateSessionRequest{
             Name: "", // will be auto generated
+            Prompt: job.Prompt,
+            Repo: job.Repo,
+            Branch: job.Branch,
+            ProfileId: job.ProfileId,
         })
         if err != nil {
             logger.Error("%s: Failed to create session for job %s: %s", w.Name(), jobID, err.Error())
+            logger.Error("Job prompt: %s, Profile: %s", job.Prompt, job.ProfileId) 
             success = false
             break
         }
