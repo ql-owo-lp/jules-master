@@ -1,28 +1,26 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 describe('Cron Jobs API and Actions', () => {
-  const mockDb = {
-    update: vi.fn().mockReturnThis(),
-    set: vi.fn().mockReturnThis(),
-    where: vi.fn().mockResolvedValue(undefined),
+    
+  const mockCronJobClient = {
+      listCronJobs: vi.fn(),
+      toggleCronJob: vi.fn(),
   };
 
   beforeAll(() => {
-    vi.doMock('@/lib/db', () => ({
-      db: mockDb,
+    vi.doMock('@/lib/grpc-client', () => ({
+      cronJobClient: mockCronJobClient,
     }));
+  });
+  
+  afterAll(() => {
+      vi.resetModules();
   });
 
   it('should return a 500 error when getCronJobs fails', async () => {
-    vi.resetModules();
-    const errorMessage = 'Database error';
-
-    vi.doMock('@/app/settings/actions', async (importOriginal) => {
-      const actual = await importOriginal();
-      return {
-        ...(actual as any),
-        getCronJobs: vi.fn().mockRejectedValue(new Error(errorMessage)),
-      };
+    // Mock failure
+    mockCronJobClient.listCronJobs.mockImplementation((req: any, callback: any) => {
+        callback(new Error('gRPC error'), null);
     });
 
     const { GET } = await import('@/app/api/cron-jobs/route');
@@ -34,22 +32,22 @@ describe('Cron Jobs API and Actions', () => {
     expect(json).toEqual({ error: 'Failed to fetch cron jobs' });
   });
 
-  it('should update updatedAt field when toggleCronJob is called', async () => {
-    vi.resetModules();
+  it('should call toggleCronJob via gRPC', async () => {
     const cronJobId = '123';
     const enabled = false;
+    
+    mockCronJobClient.toggleCronJob.mockImplementation((req: any, callback: any) => {
+        callback(null, {});
+    });
 
     const { toggleCronJob } = await import('@/app/settings/actions');
 
     await toggleCronJob(cronJobId, enabled);
 
-    expect(mockDb.update).toHaveBeenCalledTimes(1);
-    expect(mockDb.set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        enabled,
-        updatedAt: expect.any(String),
-      })
+    expect(mockCronJobClient.toggleCronJob).toHaveBeenCalledTimes(1);
+    expect(mockCronJobClient.toggleCronJob).toHaveBeenCalledWith(
+        expect.objectContaining({ id: cronJobId, enabled }),
+        expect.any(Function)
     );
-    expect(mockDb.where).toHaveBeenCalledTimes(1);
   });
 });

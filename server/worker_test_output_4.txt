@@ -1,0 +1,4 @@
+# github.com/mcpany/jules/internal/worker
+internal/worker/background_job_test.go:81:1: expected declaration, found '}'
+FAIL	github.com/mcpany/jules/internal/worker [setup failed]
+FAIL

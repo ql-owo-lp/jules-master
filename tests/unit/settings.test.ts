@@ -55,7 +55,7 @@ describe('Settings API', () => {
       historyPromptsCount: 20,
       minSessionInteractionInterval: 300,
       retryTimeout: 1200,
-      autoDeleteStaleBranchesInterval: 1800,
+      // autoDeleteStaleBranchesInterval: 1800, // Removed
     };
 
     const postReq = new NextRequest('http://localhost/api/settings', {

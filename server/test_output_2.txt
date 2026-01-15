@@ -1,0 +1,37 @@
+=== RUN   TestCronWorker_RunCheck
+    setup_test.go:120: Created table index 0
+    setup_test.go:120: Created table index 1
+    setup_test.go:120: Created table index 2
+    setup_test.go:120: Created table index 3
+    setup_test.go:120: Created table index 4
+[2026-01-14T20:24:01-08:00] info: Cron test-cron: LastRun 2026-01-14 20:22:01 -0800 PST, Next 2026-01-14 20:23:00 -0800 PST, Now 2026-01-14 20:24:01.455253177 -0800 PST m=+0.003257098
+[2026-01-14T20:24:01-08:00] info: CronWorker: Job test-cron (7167e65b-18e1-4574-bb6f-502051916323) is due (Next: 2026-01-14 20:23:00 -0800 PST, Now: 2026-01-14 20:24:01.455253177 -0800 PST m=+0.003257098)
+[2026-01-14T20:24:01-08:00] error: CronWorker: Failed to create job for cron 7167e65b-18e1-4574-bb6f-502051916323: failed to create job: no such table: jobs
+    cron_test.go:61: 
+        	Error Trace:	/home/kevin/jules-master/server/internal/worker/cron_test.go:61
+        	Error:      	Should be true
+        	Test:       	TestCronWorker_RunCheck
+        	Messages:   	Job should have been created from cron
+--- FAIL: TestCronWorker_RunCheck (0.00s)
+=== RUN   TestSessionCacheWorker_RunCheck
+    setup_test.go:120: Created table index 0
+    setup_test.go:120: Created table index 1
+    setup_test.go:120: Created table index 2
+    setup_test.go:120: Created table index 3
+    setup_test.go:120: Created table index 4
+    session_cache_test.go:50: Pre-condition LastUpdated: 1768450981456
+    session_cache_test.go:57: Existing table: settings
+    session_cache_test.go:57: Existing table: profiles
+    session_cache_test.go:57: Existing table: jobs
+    session_cache_test.go:57: Existing table: cron_jobs
+    session_cache_test.go:57: Existing table: sessions
+    session_cache_test.go:64: Session rows: 1
+    session_cache_test.go:75: 
+        	Error Trace:	/home/kevin/jules-master/server/internal/worker/session_cache_test.go:75
+        	Error:      	"1768450981456" is not greater than "1768450981456"
+        	Test:       	TestSessionCacheWorker_RunCheck
+        	Messages:   	LastUpdated should be updated
+--- FAIL: TestSessionCacheWorker_RunCheck (0.00s)
+FAIL
+FAIL	github.com/mcpany/jules/internal/worker	0.011s
+FAIL

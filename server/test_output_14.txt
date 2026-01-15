@@ -1,0 +1,15 @@
+=== RUN   TestCronWorker_RunCheck
+    setup_test.go:121: Created table index 0
+    setup_test.go:121: Created table index 1
+    setup_test.go:121: Created table index 2
+    setup_test.go:121: Created table index 3
+    setup_test.go:121: Created table index 4
+    cron_test.go:18: Test DB Pointer: 0xc0001c5ba0
+    cron_test.go:56: Existing table in Cron: settings
+    cron_test.go:56: Existing table in Cron: profiles
+    cron_test.go:56: Existing table in Cron: jobs
+    cron_test.go:56: Existing table in Cron: cron_jobs
+    cron_test.go:56: Existing table in Cron: sessions
+[2026-01-14T20:30:07-08:00] info: Cron test-cron: LastRun 2026-01-14 20:28:07 -0800 PST, Next 2026-01-14 20:29:00 -0800 PST, Now 2026-01-14 20:30:07.937726225 -0800 PST m=+0.004899311
+[2026-01-14T20:30:07-08:00] info: CronWorker: Job test-cron (ee907549-0def-47ec-9314-d3300ae2a4bc) is due (Next: 2026-01-14 20:29:00 -0800 PST, Now: 2026-01-14 20:30:07.937726225 -0800 PST m=+0.004899311)
+JobServer DB Pointer: 0xc0001c5ba0

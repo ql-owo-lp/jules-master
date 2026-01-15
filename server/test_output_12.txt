@@ -1,0 +1,41 @@
+=== RUN   TestCronWorker_RunCheck
+    setup_test.go:120: Created table index 0
+    setup_test.go:120: Created table index 1
+    setup_test.go:120: Created table index 2
+    setup_test.go:120: Created table index 3
+    setup_test.go:120: Created table index 4
+    cron_test.go:18: Test DB Pointer: 0xc0001b7ba0
+    cron_test.go:56: Existing table in Cron: settings
+    cron_test.go:56: Existing table in Cron: profiles
+    cron_test.go:56: Existing table in Cron: jobs
+    cron_test.go:56: Existing table in Cron: cron_jobs
+    cron_test.go:56: Existing table in Cron: sessions
+[2026-01-14T20:29:37-08:00] info: Cron test-cron: LastRun 2026-01-14 20:27:37 -0800 PST, Next 2026-01-14 20:28:00 -0800 PST, Now 2026-01-14 20:29:37.088596706 -0800 PST m=+0.005033333
+[2026-01-14T20:29:37-08:00] info: CronWorker: Job test-cron (bbacf8e8-f0de-4853-a11b-0a7970c583b2) is due (Next: 2026-01-14 20:28:00 -0800 PST, Now: 2026-01-14 20:29:37.088596706 -0800 PST m=+0.005033333)
+JobServer DB Pointer: 0xc0001b7ba0
+[2026-01-14T20:29:37-08:00] error: CronWorker: Failed to create job for cron bbacf8e8-f0de-4853-a11b-0a7970c583b2: failed to create job: no such table: jobs
+    cron_test.go:79: 
+        	Error Trace:	/home/kevin/jules-master/server/internal/worker/cron_test.go:79
+        	Error:      	Should be true
+        	Test:       	TestCronWorker_RunCheck
+        	Messages:   	Job should have been created from cron
+--- FAIL: TestCronWorker_RunCheck (0.00s)
+=== RUN   TestSessionCacheWorker_RunCheck
+    setup_test.go:120: Created table index 0
+    setup_test.go:120: Created table index 1
+    setup_test.go:120: Created table index 2
+    setup_test.go:120: Created table index 3
+    setup_test.go:120: Created table index 4
+    session_cache_test.go:51: Pre-condition LastUpdated: 1768451317091
+    session_cache_test.go:58: Existing table: settings
+    session_cache_test.go:58: Existing table: profiles
+    session_cache_test.go:58: Existing table: jobs
+    session_cache_test.go:58: Existing table: cron_jobs
+    session_cache_test.go:58: Existing table: sessions
+    session_cache_test.go:65: Session rows: 1
+[2026-01-14T20:29:37-08:00] info: Session 6b1f9bfd-1c12-4b6b-a25d-75e0375452b3: Age 60.00s, Interval 1, State IN_PROGRESS -> Update: true
+[2026-01-14T20:29:37-08:00] info: SessionCacheWorker: Identified 1 sessions to sync (stubbed)
+--- PASS: TestSessionCacheWorker_RunCheck (0.00s)
+FAIL
+FAIL	github.com/mcpany/jules/internal/worker	0.017s
+FAIL
