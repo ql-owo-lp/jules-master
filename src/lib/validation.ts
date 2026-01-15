@@ -34,7 +34,7 @@ export const settingsSchema = z.object({
   autoCloseStaleConflictedPrs: z.boolean().optional().default(false),
   staleConflictedPrsDurationDays: z.number().optional().default(3),
   closePrOnConflictEnabled: z.boolean().optional().default(false),
-  profileId: z.string().optional(),
+  profileId: z.union([z.string().uuid(), z.literal('default')]).optional(),
 });
 
 export const cronJobSchema = z.object({
@@ -47,5 +47,5 @@ export const cronJobSchema = z.object({
   automationMode: z.enum(['AUTOMATION_MODE_UNSPECIFIED', 'AUTO_CREATE_PR']).optional(),
   requirePlanApproval: z.boolean().optional(),
   sessionCount: z.number().int().min(1).optional(),
-  profileId: z.string().optional(),
+  profileId: z.union([z.string().uuid(), z.literal('default')]).optional(),
 });

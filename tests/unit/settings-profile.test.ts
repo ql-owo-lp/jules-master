@@ -7,8 +7,8 @@ import { settings, profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('Settings API - Profile Isolation', () => {
-  const profileIdA = 'profile-a';
-  const profileIdB = 'profile-b';
+  const profileIdA = '11111111-1111-1111-1111-111111111111';
+  const profileIdB = '22222222-2222-2222-2222-222222222222';
 
   beforeAll(async () => {
     // Ensure profiles exist
