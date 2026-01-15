@@ -175,7 +175,7 @@ export interface ProgressUpdated {
   description: string;
 }
 
-export interface SessionCompleted {}
+export type SessionCompleted = Record<string, never>;
 
 export interface SessionFailed {
   reason: string;

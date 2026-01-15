@@ -1,7 +1,7 @@
 'use server';
 
 import { jobClient, promptClient, sessionClient, settingsClient } from '@/lib/grpc-client';
-import { Job, PredefinedPrompt, HistoryPrompt, AutomationMode, Settings } from '../../../proto/gen/ts/jules';
+import { Job, PredefinedPrompt, HistoryPrompt, AutomationMode, Settings, Session } from '../../../proto/gen/ts/jules';
 import { Job as LocalJob } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -17,21 +17,28 @@ export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]
             // Local Job expects automationMode as string union, Proto has Enum
             const mapped = filtered.map(j => ({
                 ...j,
-                automationMode: AutomationMode[j.automationMode] as any
+                automationMode: AutomationMode[j.automationMode] as LocalJob['automationMode']
             }));
             resolve(mapped);
         });
     });
 }
 
-export async function addJob(job: any): Promise<void> {
+export async function addJob(job: LocalJob): Promise<void> {
     return new Promise((resolve, reject) => {
         const req = {
             ...job,
             profileId: job.profileId || 'default',
             // Default generated fields handling if missing
             sessionIds: job.sessionIds || [],
-            automationMode: job.automationMode === 'AUTO_CREATE_PR' ? AutomationMode.AUTO_CREATE_PR : AutomationMode.AUTOMATION_MODE_UNSPECIFIED
+            automationMode: job.automationMode === 'AUTO_CREATE_PR' ? AutomationMode.AUTO_CREATE_PR : AutomationMode.AUTOMATION_MODE_UNSPECIFIED,
+            autoApproval: job.autoApproval ?? false,
+            background: job.background ?? false,
+            requirePlanApproval: job.requirePlanApproval ?? false,
+            sessionCount: job.sessionCount ?? 0,
+            status: job.status ?? 'PENDING',
+            cronJobId: job.cronJobId || '',
+            prompt: job.prompt || ''
         };
         jobClient.createJob(req, (err) => {
             if (err) return reject(err);
@@ -49,7 +56,7 @@ export async function getPendingBackgroundWorkCount(profileId: string = 'default
         const jobsPromise = new Promise<Job[]>((resolve, reject) => {
              jobClient.listJobs({}, (err, res) => err ? reject(err) : resolve(res.jobs));
         });
-        const sessionsPromise = new Promise<any[]>((resolve, reject) => {
+        const sessionsPromise = new Promise<Session[]>((resolve, reject) => {
              sessionClient.listSessions({ profileId }, (err, res) => err ? reject(err) : resolve(res.sessions));
         });
 
@@ -62,8 +69,6 @@ export async function getPendingBackgroundWorkCount(profileId: string = 'default
 
         let retryingSessions = 0;
         for (const session of sessions) {
-             // Matching logic from original actions.ts
-             // session in Proto matches structure?
              if (session.profileId === profileId && session.state === 'FAILED') {
                  const errorReason = session.lastError || "";
                  const isRateLimit = errorReason.toLowerCase().includes("too many requests") || errorReason.includes("429");
@@ -154,8 +159,9 @@ export async function getHistoryPrompts(profileId: string = 'default'): Promise<
     }
 }
 
-export async function saveHistoryPrompt(promptText: string, profileId: string = 'default'): Promise<void> {
+export async function saveHistoryPrompt(promptText: string, _profileId: string = 'default'): Promise<void> {
     if (!promptText.trim()) return;
+    console.log(`[actions] saveHistoryPrompt profile=${_profileId}`); 
     return new Promise((resolve, reject) => {
         promptClient.saveHistoryPrompt({ prompt: promptText }, (err) => {
             if (err) return reject(err);
@@ -198,7 +204,8 @@ export async function saveQuickReplies(replies: PredefinedPrompt[]): Promise<voi
 }
 
 // --- Global Prompt ---
-export async function getGlobalPrompt(profileId: string = 'default'): Promise<string> {
+export async function getGlobalPrompt(_profileId: string = 'default'): Promise<string> {
+    console.log(`[actions] getGlobalPrompt profile=${_profileId}`);
     return new Promise((resolve, reject) => {
         promptClient.getGlobalPrompt({}, (err, res) => {
             if (err) return resolve(""); // Handle error as empty?
@@ -207,7 +214,8 @@ export async function getGlobalPrompt(profileId: string = 'default'): Promise<st
     });
 }
 
-export async function saveGlobalPrompt(prompt: string, profileId: string = 'default'): Promise<void> {
+export async function saveGlobalPrompt(prompt: string, _profileId: string = 'default'): Promise<void> {
+    console.log(`[actions] saveGlobalPrompt profile=${_profileId}`);
     return new Promise((resolve, reject) => {
          promptClient.saveGlobalPrompt({ prompt }, (err) => {
              if (err) return reject(err);
@@ -228,7 +236,8 @@ export async function getRepoPrompt(repo: string, profileId: string = 'default')
     });
 }
 
-export async function saveRepoPrompt(repo: string, prompt: string, profileId: string = 'default'): Promise<void> {
+export async function saveRepoPrompt(repo: string, prompt: string, _profileId: string = 'default'): Promise<void> {
+    console.log(`[actions] saveRepoPrompt profile=${_profileId}`);
     return new Promise((resolve, reject) => {
         promptClient.saveRepoPrompt({ repo, prompt }, (err) => {
             if (err) return reject(err);

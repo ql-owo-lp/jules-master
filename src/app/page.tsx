@@ -5,7 +5,7 @@ import React, { useState, useEffect, useTransition, useCallback, Suspense, useMe
 import { useSearchParams } from "next/navigation";
 import { SessionList } from "@/components/session-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { Session, Job, State, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
+import { AutomationMode, Job, PredefinedPrompt, Session, State } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, X, Briefcase, GitMerge, Activity, Wand2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
