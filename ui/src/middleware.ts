@@ -17,7 +17,7 @@ export function middleware(req: NextRequest) {
   const basicAuthPassword = process.env.BASIC_AUTH_PASSWORD;
 
   // Initialize response
-  const response = NextResponse.next();
+  let response = NextResponse.next();
 
   if (basicAuthUser && basicAuthPassword) {
     const authHeader = req.headers.get('authorization');
@@ -42,7 +42,7 @@ export function middleware(req: NextRequest) {
     }
 
     if (!authorized) {
-        return new NextResponse('Authentication required', {
+        response = new NextResponse('Authentication required', {
             status: 401,
             headers: {
                 'WWW-Authenticate': 'Basic realm="Secure Area"',
