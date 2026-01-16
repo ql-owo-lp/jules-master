@@ -1,0 +1,2 @@
+CREATE INDEX `cron_jobs_profile_id_created_at_idx` ON `cron_jobs` (`profile_id`,`created_at`);--> statement-breakpoint
+CREATE INDEX `jobs_profile_id_created_at_idx` ON `jobs` (`profile_id`,`created_at`);

@@ -1,1 +1,0 @@
-ALTER TABLE `settings` ADD `close_pr_on_conflict_enabled` integer DEFAULT false NOT NULL;

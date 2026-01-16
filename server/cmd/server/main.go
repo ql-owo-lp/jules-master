@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/mcpany/jules/gen"
 	"github.com/mcpany/jules/internal/db"
+	gclient "github.com/mcpany/jules/internal/github"
 	"github.com/mcpany/jules/internal/service"
 	"github.com/mcpany/jules/internal/worker"
 
@@ -47,7 +48,9 @@ func main() {
 	workerManager.Register(worker.NewBackgroundJobWorker(dbConn, jobService, sessionService))
 	workerManager.Register(worker.NewAutoDeleteStaleBranchWorker(dbConn, settingsService))
 	workerManager.Register(worker.NewAutoContinueWorker(dbConn, settingsService, sessionService))
-	workerManager.Register(worker.NewPRMonitorWorker(dbConn, settingsService, sessionService))
+	ghClient := gclient.NewClient(os.Getenv("GITHUB_TOKEN"))
+	fetcher := worker.NewRetryableRemoteSessionFetcher()
+	workerManager.Register(worker.NewPRMonitorWorker(dbConn, settingsService, sessionService, ghClient, fetcher, os.Getenv("JULES_API_KEY")))
 	workerManager.Register(worker.NewAutoRetryWorker(dbConn, settingsService, sessionService))
 	workerManager.Register(worker.NewCronWorker(dbConn, cronService, jobService))
 	workerManager.Register(worker.NewSessionCacheWorker(dbConn, settingsService, sessionService))

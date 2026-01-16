@@ -1,1 +1,0 @@
-ALTER TABLE `settings` ADD `min_session_interaction_interval` integer DEFAULT 60 NOT NULL;

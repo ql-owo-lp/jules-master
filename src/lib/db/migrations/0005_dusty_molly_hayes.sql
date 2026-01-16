@@ -1,1 +1,0 @@
-CREATE INDEX `sessions_profile_id_create_time_idx` ON `sessions` (`profile_id`,`create_time`);
