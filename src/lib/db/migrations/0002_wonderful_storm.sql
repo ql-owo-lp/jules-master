@@ -1,2 +1,0 @@
-ALTER TABLE `settings` ADD `check_failing_actions_enabled` integer DEFAULT true NOT NULL;--> statement-breakpoint
-ALTER TABLE `settings` ADD `check_failing_actions_interval` integer DEFAULT 60 NOT NULL;

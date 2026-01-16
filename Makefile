@@ -15,8 +15,8 @@ proto-gen:
 	protoc --go_out=server/gen --go_opt=paths=source_relative \
 		--go-grpc_out=server/gen --go-grpc_opt=paths=source_relative \
 		--proto_path=proto proto/*.proto
-	protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto \
-		--ts_proto_out=proto/gen/ts \
+	protoc --plugin=./ui/node_modules/.bin/protoc-gen-ts_proto \
+		--ts_proto_out=ui/src/proto/gen/ts \
 		--ts_proto_opt=esModuleInterop=true \
 		--ts_proto_opt=outputServices=grpc-js \
 		--proto_path=proto proto/*.proto
@@ -39,6 +39,10 @@ test: test-backend test-frontend
 test-backend:
 	cd server && go test ./...
 
+.PHONY: lint
+lint:
+	cd ui && npm run lint
+
 .PHONY: test-frontend
 test-frontend:
-	npm run test
+	cd ui && npm run test
