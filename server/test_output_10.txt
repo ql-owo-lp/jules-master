@@ -1,5 +1,0 @@
-# github.com/mcpany/jules/internal/service
-internal/service/job.go:118:5: declared and not used: sessionIdsJSON
-internal/service/job.go:121:5: declared and not used: automationModeStr
-FAIL	github.com/mcpany/jules/internal/worker [build failed]
-FAIL

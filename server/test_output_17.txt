@@ -1,8 +1,0 @@
-=== RUN   TestCronWorker_RunCheck
-    setup_test.go:121: Created table index 0
-    setup_test.go:121: Created table index 1
-    setup_test.go:121: Created table index 2
-    setup_test.go:121: Created table index 3
-    setup_test.go:121: Created table index 4
-[2026-01-14T20:31:28-08:00] info: Cron test-cron: LastRun 2026-01-14 20:29:28 -0800 PST, Next 2026-01-14 20:30:00 -0800 PST, Now 2026-01-14 20:31:28.749461007 -0800 PST m=+0.003251260
-[2026-01-14T20:31:28-08:00] info: CronWorker: Job test-cron (aa5b8cd9-f5f8-45f3-a07a-f1866850bac1) is due (Next: 2026-01-14 20:30:00 -0800 PST, Now: 2026-01-14 20:31:28.749461007 -0800 PST m=+0.003251260)
