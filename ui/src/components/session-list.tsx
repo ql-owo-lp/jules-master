@@ -312,7 +312,12 @@ export function SessionList({
                       <div className="flex items-center gap-4 text-sm text-muted-foreground ml-auto px-4">
                           <Tooltip>
                               <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-1">
+                                  <div
+                                    className="flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                                    tabIndex={0}
+                                    role="status"
+                                    aria-label={`${unknownSessionsDetails.completed} completed sessions`}
+                                  >
                                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                                   <span>{unknownSessionsDetails.completed}</span>
                                   </div>
@@ -323,7 +328,12 @@ export function SessionList({
                           </Tooltip>
                           <Tooltip>
                               <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-1">
+                                  <div
+                                    className="flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                                    tabIndex={0}
+                                    role="status"
+                                    aria-label={`${unknownSessionsDetails.working} sessions in progress`}
+                                  >
                                   <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
                                   <span>{unknownSessionsDetails.working}</span>
                                   </div>
