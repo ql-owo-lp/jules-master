@@ -72,6 +72,9 @@ export async function addJob(job: LocalJob): Promise<void> {
 }
 
 export async function getPendingBackgroundWorkCount(profileId: string = 'default'): Promise<{ pendingJobs: number, retryingSessions: number }> {
+    if (process.env.MOCK_API === 'true') {
+        return { pendingJobs: 0, retryingSessions: 0 };
+    }
     // Fetch all jobs and sessions and filter.
     // Ideally backend should provide this.
     try {
