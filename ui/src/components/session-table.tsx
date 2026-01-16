@@ -174,11 +174,11 @@ export function SessionTable({
                       {session.url && (
                           <Tooltip>
                               <TooltipTrigger asChild>
-                                  <a href={session.url} target="_blank" rel="noopener noreferrer">
-                                      <Button variant="ghost" size="icon" aria-label="View Session on Jules UI">
+                                  <Button variant="ghost" size="icon" asChild>
+                                      <a href={session.url} target="_blank" rel="noopener noreferrer" aria-label="View Session on Jules UI">
                                           <Bot className="h-5 w-5 text-primary" />
-                                      </Button>
-                                  </a>
+                                      </a>
+                                  </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                   <p>View on Jules UI</p>
