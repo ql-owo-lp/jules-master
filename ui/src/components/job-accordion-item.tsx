@@ -137,9 +137,14 @@ const JobAccordionItemComponent = ({
                   {job.cronJobId && (
                      <Tooltip>
                         <TooltipTrigger asChild>
-                            <div onClick={(e) => { e.stopPropagation(); router.push('/settings'); }}>
-                                <Clock className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground" />
-                            </div>
+                            <button
+                                type="button"
+                                className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                                onClick={(e) => { e.stopPropagation(); router.push('/settings'); }}
+                                aria-label="Created by Cron Job, go to settings"
+                            >
+                                <Clock className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                            </button>
                         </TooltipTrigger>
                         <TooltipContent><p>Created by Cron Job</p></TooltipContent>
                      </Tooltip>
@@ -151,7 +156,12 @@ const JobAccordionItemComponent = ({
         <div className="flex items-center gap-4 text-sm text-muted-foreground ml-auto px-4" >
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1">
+                    <div
+                        className="flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                        tabIndex={0}
+                        role="status"
+                        aria-label={`${details?.completed || 0} completed sessions`}
+                    >
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                     <span>{details?.completed || 0}</span>
                     </div>
@@ -162,7 +172,12 @@ const JobAccordionItemComponent = ({
             </Tooltip>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1">
+                    <div
+                        className="flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                        tabIndex={0}
+                        role="status"
+                        aria-label={`${details?.working || 0} sessions in progress`}
+                    >
                     <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
                     <span>{details?.working || 0}</span>
                     </div>
