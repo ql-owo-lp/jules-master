@@ -53,26 +53,7 @@ export async function register() {
         // Run cron worker every minute
         // setInterval(processCronJobs, 60 * 1000);
 
-        setInterval(() => {
-            const used = process.memoryUsage();
-            const rssMb = used.rss / 1024 / 1024;
-            // Default to 90MB if not set, but allow override
-            const threshold = parseInt(process.env.GC_THRESHOLD_MB || '1024', 10);
-            
-            console.log(`[MEMORY] RSS: ${rssMb.toFixed(2)} MB, Heap: ${(used.heapUsed / 1024 / 1024).toFixed(2)} MB, Threshold: ${threshold} MB`);
-            
-            // Trigger GC if RSS > Threshold and GC is exposed
-            if (rssMb > threshold) {
-                if (global.gc) {
-                    console.log('[MEMORY] Threshold reached. Forcing GC...');
-                    global.gc();
-                    const after = process.memoryUsage();
-                    console.log(`[MEMORY] Post-GC RSS: ${(after.rss / 1024 / 1024).toFixed(2)} MB`);
-                } else {
-                    console.warn('[MEMORY] Threshold reached but global.gc is not available. Run with --expose-gc.');
-                }
-            }
-        }, 5000);
+
 
         const shutdown = (signal: string) => {
             console.log(`Received ${signal}. Shutting down...`);

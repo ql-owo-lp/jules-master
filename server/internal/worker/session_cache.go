@@ -96,9 +96,14 @@ func (w *SessionCacheWorker) Start(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(interval):
+			status := "Success"
 			if err := w.runCheck(ctx); err != nil {
 				logger.Error("%s check failed: %s", w.Name(), err.Error())
+				status = "Failed"
 			}
+			nextInterval := w.getInterval(ctx)
+			nextRun := time.Now().Add(nextInterval)
+			logger.Info("%s task completed. Status: %s. Next run at %s", w.Name(), status, nextRun.Format(time.RFC3339))
 		}
 	}
 }
@@ -121,25 +126,25 @@ func (w *SessionCacheWorker) runCheck(ctx context.Context) error {
     now := time.Now()
     var sessionsToUpdate []string
     
-    for rows.Next() {
-        var id, state string
-        var lastUpdated int64
-        var createTime string
-        
-        if err := rows.Scan(&id, &state, &lastUpdated, &createTime); err != nil {
-             logger.Error("Scan failed: %v", err)
-             continue
-        }
-        
-        lastUpdate := time.UnixMilli(lastUpdated)
-        age := now.Sub(lastUpdate)
-        
-        ctime, _ := time.Parse(time.RFC3339, createTime)
-        daysSinceCreation := now.Sub(ctime).Hours() / 24
-        
-        if daysSinceCreation > float64(settings.SessionCacheMaxAgeDays) {
-            continue
-        }
+	for rows.Next() {
+		var id, state string
+		var lastUpdated int64
+		var createTime sql.NullString
+
+		if err := rows.Scan(&id, &state, &lastUpdated, &createTime); err != nil {
+			logger.Error("Scan failed: %v", err)
+			continue
+		}
+
+		lastUpdate := time.UnixMilli(lastUpdated)
+		age := now.Sub(lastUpdate)
+
+		ctime, _ := time.Parse(time.RFC3339, createTime.String)
+		daysSinceCreation := now.Sub(ctime).Hours() / 24
+
+		if daysSinceCreation > float64(settings.SessionCacheMaxAgeDays) {
+			continue
+		}
         
         shouldUpdate := false
         interval := settings.SessionCachePendingApprovalInterval
@@ -157,7 +162,7 @@ func (w *SessionCacheWorker) runCheck(ctx context.Context) error {
              shouldUpdate = true
         }
         
-        logger.Info("Session %s: Age %.2fs, Interval %d, State %s -> Update: %v", id, age.Seconds(), interval, state, shouldUpdate)
+
         
         if shouldUpdate {
             sessionsToUpdate = append(sessionsToUpdate, id)

@@ -18,6 +18,7 @@ type MockGitHubClient struct {
 	CreatedComments []string
     CheckRuns      *github.ListCheckRunsResults
 	ClosePullRequestCalled bool
+	UpdateBranchCalled     bool
 }
 
 func (m *MockGitHubClient) GetCombinedStatus(ctx context.Context, owner, repo, ref string) (*github.CombinedStatus, error) {
@@ -58,6 +59,11 @@ func (m *MockGitHubClient) ClosePullRequest(ctx context.Context, owner, repo str
 	return &github.PullRequest{State: github.String("closed")}, nil
 }
 
+func (m *MockGitHubClient) UpdateBranch(ctx context.Context, owner, repo string, number int) error {
+	m.UpdateBranchCalled = true
+	return nil
+}
+
 type MockSessionFetcher struct {
 	Session *RemoteSession
     Err     error
@@ -75,7 +81,7 @@ func TestRunCheck_CommentsOnFailure(t *testing.T) {
 	// Create a session in DB
 	sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
 		Name:      "test-session",
-		ProfileId: "default",
+
 	})
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
@@ -86,6 +92,10 @@ func TestRunCheck_CommentsOnFailure(t *testing.T) {
     if err != nil {
         t.Fatalf("failed to update session: %v", err)
     }
+	_, err = db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-1", "owner/repo", "test-job", time.Now(), "main", "test prompt")
+	if err != nil {
+		t.Fatalf("failed to insert job: %v", err)
+	}
 
 	// Mock Remote Session with PR output
 	prUrl := "https://github.com/owner/repo/pull/1"
@@ -109,28 +119,29 @@ func TestRunCheck_CommentsOnFailure(t *testing.T) {
 		},
 	}
     
-    // Mock GitHub Client
-    mockGH := &MockGitHubClient{
-        CombinedStatus: &github.CombinedStatus{
-            State: github.String("failure"),
-        },
-        CheckRuns: &github.ListCheckRunsResults{
-            CheckRuns: []*github.CheckRun{
-                {Status: github.String("completed"), Conclusion: github.String("failure")},
-            },
-        },
-        PullRequests: []*github.PullRequest{
-            {
-                State: github.String("open"),
-                Head: &github.PullRequestBranch{
-                    SHA: github.String("sha123"),
+	mockGH := &MockGitHubClient{
+		CombinedStatus: &github.CombinedStatus{
+			State: github.String("failure"),
+		},
+		CheckRuns: &github.ListCheckRunsResults{
+			CheckRuns: []*github.CheckRun{
+				{Status: github.String("completed"), Conclusion: github.String("failure")},
+			},
+		},
+		PullRequests: []*github.PullRequest{
+			{
+				State:   github.String("open"),
+				Number:  github.Int(1),
+				HTMLURL: github.String("https://github.com/owner/repo/pull/1"),
+				Head: &github.PullRequestBranch{
+					SHA: github.String("sha123"),
 					Ref: github.String("branch-name"),
-                },
-            },
-        },
-        User: &github.User{
-            Login: github.String("jules-bot"),
-        },
+				},
+				User: &github.User{
+					Login: github.String("google-labs-jules"),
+				},
+			},
+		},
     }
 
 	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
@@ -151,7 +162,7 @@ func TestRunCheck_CommentsOnFailure(t *testing.T) {
     // Update MockGH to return the comment we just "created"
     mockGH.Comments = []*github.IssueComment{
         {
-            User: &github.User{Login: github.String("jules-bot")},
+			User: &github.User{Login: github.String("google-labs-jules")},
             Body: github.String("Checks failed"), // or whatever message we choose
         },
     }
@@ -174,7 +185,7 @@ func TestRunCheck_SkipsIfPending(t *testing.T) {
     // Create a session in DB
     sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
         Name:      "test-session-pending",
-        ProfileId: "default",
+        
     })
     if err != nil {
         t.Fatalf("failed to create session: %v", err)
@@ -184,6 +195,10 @@ func TestRunCheck_SkipsIfPending(t *testing.T) {
     if err != nil {
         t.Fatalf("failed to update session: %v", err)
     }
+	_, err = db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-2", "owner/repo", "test-job", time.Now(), "main", "test prompt")
+	if err != nil {
+		t.Fatalf("failed to insert job: %v", err)
+	}
 
     mockFetcher := &MockSessionFetcher{
         Session: &RemoteSession{
@@ -217,12 +232,20 @@ func TestRunCheck_SkipsIfPending(t *testing.T) {
         },
         PullRequests: []*github.PullRequest{
             {
-                State: github.String("open"),
+                State:   github.String("open"),
+                Number:  github.Int(2),
+                HTMLURL: github.String("https://github.com/owner/repo/pull/2"),
                 Head: &github.PullRequestBranch{
                     SHA: github.String("sha456"),
                     Ref: github.String("branch-2"),
                 },
+				User: &github.User{
+					Login: github.String("google-labs-jules"),
+				},
             },
+        },
+        User: &github.User{
+            Login: github.String("google-labs-jules"),
         },
     }
 
@@ -246,13 +269,14 @@ func TestRunCheck_NoCommentIfPassing(t *testing.T) {
 
 	sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
 		Name:      "test-session-passing",
-		ProfileId: "default",
+
 	})
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
 	}
 	nowMilli := time.Now().UnixMilli()
 	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-3", "owner/repo", "test-job", time.Now(), "main", "test prompt")
 
 	mockFetcher := &MockSessionFetcher{
 		Session: &RemoteSession{
@@ -274,10 +298,15 @@ func TestRunCheck_NoCommentIfPassing(t *testing.T) {
 		},
 		PullRequests: []*github.PullRequest{
 			{
-				State: github.String("open"),
+				State:   github.String("open"),
+				Number:  github.Int(3),
+				HTMLURL: github.String("https://github.com/owner/repo/pull/3"),
 				Head: &github.PullRequestBranch{
 					SHA: github.String("sha789"),
 					Ref: github.String("branch-3"),
+				},
+				User: &github.User{
+					Login: github.String("google-labs-jules"),
 				},
 			},
 		},
@@ -300,13 +329,14 @@ func TestRunCheck_IgnoresInvalidUrls(t *testing.T) {
 
 	sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
 		Name:      "test-session-invalid",
-		ProfileId: "default",
+
 	})
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
 	}
 	nowMilli := time.Now().UnixMilli()
 	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-4", "owner/repo", "test-job", time.Now(), "main", "test prompt")
 
 	mockFetcher := &MockSessionFetcher{
 		Session: &RemoteSession{
@@ -331,53 +361,123 @@ func TestRunCheck_IgnoresInvalidUrls(t *testing.T) {
 }
 
 func TestRunCheck_ClosesZeroChangePR(t *testing.T) {
-db := setupTestDB(t)
-settingsService := &service.SettingsServer{DB: db}
-sessionService := &service.SessionServer{DB: db}
+	db := setupTestDB(t)
+	settingsService := &service.SettingsServer{DB: db}
+	sessionService := &service.SessionServer{DB: db}
 
-sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
-Name:      "test-session-zero-changes",
-ProfileId: "default",
-})
-if err != nil {
-t.Fatalf("failed to create session: %v", err)
-}
-nowMilli := time.Now().UnixMilli()
-db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+	sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
+		Name:      "test-session-zero-changes",
 
-mockFetcher := &MockSessionFetcher{
-Session: &RemoteSession{
-Id:    sess.Id,
-State: "IN_PROGRESS",
-Outputs: []struct {
-PullRequest *struct {
-Url string `json:"url"`
-} `json:"pullRequest"`
-}{
-{PullRequest: &struct{ Url string `json:"url"` }{Url: "https://github.com/owner/repo/pull/5"}},
-},
-},
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+	nowMilli := time.Now().UnixMilli()
+	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-5", "owner/repo", "test-job", time.Now(), "main", "test prompt")
+
+	mockFetcher := &MockSessionFetcher{
+		Session: &RemoteSession{
+			Id:    sess.Id,
+			State: "IN_PROGRESS",
+			Outputs: []struct {
+				PullRequest *struct {
+					Url string `json:"url"`
+				} `json:"pullRequest"`
+			}{
+				{PullRequest: &struct{ Url string `json:"url"` }{Url: "https://github.com/owner/repo/pull/5"}},
+			},
+		},
+	}
+
+	zero := 0
+	mockGH := &MockGitHubClient{
+		CombinedStatus: &github.CombinedStatus{
+			State: github.String("success"),
+		},
+		PullRequests: []*github.PullRequest{
+			{
+				State:        github.String("open"),
+				Number:       github.Int(5),
+				HTMLURL:      github.String("https://github.com/owner/repo/pull/5"),
+				ChangedFiles: &zero,
+				Head: &github.PullRequestBranch{
+					SHA: github.String("sha999"),
+				},
+				User: &github.User{
+					Login: github.String("google-labs-jules"),
+				},
+			},
+		},
+	}
+
+	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
+	if err := worker.runCheck(context.Background()); err != nil {
+		t.Errorf("runCheck failed: %v", err)
+	}
+
+	if !mockGH.ClosePullRequestCalled {
+		t.Error("expected ClosePullRequest to be called")
+	}
 }
 
-zero := 0
-mockGH := &MockGitHubClient{
-PullRequests: []*github.PullRequest{
-{
-State:        github.String("open"),
-ChangedFiles: &zero,
-Head: &github.PullRequestBranch{
-SHA: github.String("sha999"),
-},
-},
-},
-}
+func TestRunCheck_UpdatesBranchIfBehind(t *testing.T) {
+	db := setupTestDB(t)
+	settingsService := &service.SettingsServer{DB: db}
+	sessionService := &service.SessionServer{DB: db}
 
-worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
-if err := worker.runCheck(context.Background()); err != nil {
-t.Errorf("runCheck failed: %v", err)
-}
+	sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
+		Name:      "test-session-behind",
 
-if !mockGH.ClosePullRequestCalled {
-t.Error("expected ClosePullRequest to be called")
-}
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+	nowMilli := time.Now().UnixMilli()
+	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-6", "owner/repo", "test-job", time.Now(), "main", "test prompt")
+
+	mockFetcher := &MockSessionFetcher{
+		Session: &RemoteSession{
+			Id:    sess.Id,
+			State: "IN_PROGRESS",
+			Outputs: []struct {
+				PullRequest *struct {
+					Url string `json:"url"`
+				} `json:"pullRequest"`
+			}{
+				{PullRequest: &struct{ Url string `json:"url"` }{Url: "https://github.com/owner/repo/pull/6"}},
+			},
+		},
+	}
+
+	mockGH := &MockGitHubClient{
+		CombinedStatus: &github.CombinedStatus{
+			State: github.String("failure"),
+		},
+		PullRequests: []*github.PullRequest{
+			{
+				State:          github.String("open"),
+				Number:         github.Int(6),
+				HTMLURL:        github.String("https://github.com/owner/repo/pull/6"),
+				Head: &github.PullRequestBranch{
+					SHA: github.String("sha-behind"),
+					Ref: github.String("branch-behind"),
+				},
+				MergeableState: github.String("behind"),
+				User: &github.User{
+					Login: github.String("google-labs-jules"),
+				},
+			},
+		},
+	}
+
+	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
+	if err := worker.runCheck(context.Background()); err != nil {
+		t.Errorf("runCheck failed: %v", err)
+	}
+
+	if !mockGH.UpdateBranchCalled {
+		t.Error("expected UpdateBranch to be called")
+	}
 }

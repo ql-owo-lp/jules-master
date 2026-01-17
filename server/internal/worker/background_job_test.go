@@ -2,10 +2,8 @@ package worker
 
 import (
 	"context"
-	"testing"
-
-	// "time"
 	"encoding/json"
+	"testing"
 
 	pb "github.com/mcpany/jules/gen"
 	"github.com/mcpany/jules/internal/service"
@@ -37,24 +35,6 @@ func TestBackgroundJobWorker_ProcessJob(t *testing.T) {
     if err != nil { t.Fatalf("create job failed: %v", err) }
 
     // 2. Run ProcessJob directly (or runCheck equivalent)
-    // BackgroundJobWorker has 'processJobs' which calls 'processJob'
-    // processJobs is private? Let's check background_job.go
-    // If private, we test 'processJobs' via exported method if available or use 'Start' but unrelated.
-    // Assuming processJob is private, we can try to invoke the public loop logic or just test side effects if we export it or use 'Start' briefly?
-    // Wait, I can make 'processJobs' public or test 'Start' with a short timeout?
-    // Better: Refactor worker to allow testing 'processOne' or similar.
-    // Or just call the worker loop function if it is exposed.
-    // Checking previous implementation: `Start` calls `processJobs`. `processJobs` is private in Go usually.
-    // I can't call private methods from test package if test is `package worker_test`.
-    // But I am in `package worker`, so I CAN call private methods (processJob).
-    
-    // err = workerCtx.processJob(ctx, job) // processJob takes *pb.Job?
-    // I need to check signature. 
-    // Assuming: processJob(ctx context.Context, job *image of job struct?)
-    
-    // Let's assume processJobs queries for pending jobs.
-    // So if we just call processJobs(), it should pick it up.
-    
     t.Log("Calling workerCtx.ProcessJobs")
     if workerCtx == nil { t.Fatal("workerCtx is nil") }
     err = workerCtx.ProcessJobs(ctx)
@@ -108,4 +88,41 @@ func TestBackgroundJobWorker_ProcessJob_Partial(t *testing.T) {
     if err != nil { t.Fatalf("GetJob failed: %v", err) }
     assert.Len(t, updatedJob.SessionIds, 3) 
     // assert.Equal(t, "sess-1", updatedJob.SessionIds[0]) // Worker overwrites IDs for clean run
+}
+
+func TestBackgroundJobWorker_ScheduleAndProcess(t *testing.T) {
+    // Verifies that a scheduled job (PENDING) is picked up and processed
+    db := setupTestDB(t)
+    defer db.Close()
+
+    jobSvc := &service.JobServer{DB: db}
+    sessionSvc := &service.SessionServer{DB: db}
+    workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc)
+    ctx := context.Background()
+
+    // 1. Create a job that looks like it was scheduled
+    job, err := jobSvc.CreateJob(ctx, &pb.CreateJobRequest{
+        Name: "scheduled-job",
+        Status: "PENDING",
+        SessionCount: 1,
+        Repo: "test/repo-sched",
+        Branch: "main",
+        Prompt: "scheduled prompt",
+    })
+    if err != nil { t.Fatalf("create job failed: %v", err) }
+
+    // 2. Call ProcessJobs - simulating the scheduling tick
+    err = workerCtx.ProcessJobs(ctx)
+    if err != nil { t.Fatalf("ProcessJobs failed: %v", err) }
+
+    // 3. Verify it was processed
+    updatedJob, err := jobSvc.GetJob(ctx, &pb.GetJobRequest{Id: job.Id})
+    assert.NoError(t, err)
+    assert.Equal(t, "Succeeded", updatedJob.Status) // Assuming "Succeeded" based on previous logs
+    assert.Len(t, updatedJob.SessionIds, 1)
+
+    // Verify session
+    s, err := sessionSvc.GetSession(ctx, &pb.GetSessionRequest{Id: updatedJob.SessionIds[0]})
+    assert.NoError(t, err)
+    assert.Equal(t, "QUEUED", s.State)
 }
