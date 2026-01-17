@@ -93,3 +93,7 @@ func (c *Client) ClosePullRequest(ctx context.Context, owner, repo string, numbe
 	ret, _, err := c.client.PullRequests.Edit(ctx, owner, repo, number, pr)
 	return ret, err
 }
+func (c *Client) UpdateBranch(ctx context.Context, owner, repo string, number int) error {
+	_, _, err := c.client.PullRequests.UpdateBranch(ctx, owner, repo, number, nil)
+	return err
+}

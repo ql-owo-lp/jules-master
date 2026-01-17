@@ -35,15 +35,19 @@ func (s *SessionServer) ListSessions(ctx context.Context, req *pb.ListSessionsRe
     if err != nil { return nil, err }
     defer rows.Close()
     
-    var sessions []*pb.Session
-    for rows.Next() {
-        var sess pb.Session
-        // Handling NULLs might be needed if schema allows, assuming strictly string for now based on Proto
-        if err := rows.Scan(&sess.Id, &sess.Name, &sess.Title, &sess.Prompt, &sess.CreateTime, &sess.State, &sess.ProfileId); err != nil {
-            return nil, err
-        }
-        sessions = append(sessions, &sess)
-    }
+	var sessions []*pb.Session
+	for rows.Next() {
+		var sess pb.Session
+		var createTime sql.NullString
+		// Handling NULLs might be needed if schema allows, assuming strictly string for now based on Proto
+		if err := rows.Scan(&sess.Id, &sess.Name, &sess.Title, &sess.Prompt, &createTime, &sess.State, &sess.ProfileId); err != nil {
+			return nil, err
+		}
+		if createTime.Valid {
+			sess.CreateTime = createTime.String
+		}
+		sessions = append(sessions, &sess)
+	}
     return &pb.ListSessionsResponse{Sessions: sessions}, nil
 }
 
@@ -56,7 +60,7 @@ func (s *SessionServer) ApprovePlan(ctx context.Context, req *pb.ApprovePlanRequ
 		return nil, fmt.Errorf("remote approval failed: %w", err)
 	}
 
-    res, err := s.DB.Exec("UPDATE sessions SET state = 'IN_PROGRESS', update_time = datetime('now') WHERE id = ? AND state = 'AWAITING_PLAN_APPROVAL'", req.Id)
+    res, err := s.DB.Exec("UPDATE sessions SET state = 'IN_PROGRESS', update_time = datetime('now'), last_updated = ? WHERE id = ? AND state = 'AWAITING_PLAN_APPROVAL'", time.Now().UnixMilli(), req.Id)
     if err != nil {
         return nil, err
     }
@@ -70,16 +74,20 @@ func (s *SessionServer) ApprovePlan(ctx context.Context, req *pb.ApprovePlanRequ
 }
 
 func (s *SessionServer) GetSession(ctx context.Context, req *pb.GetSessionRequest) (*pb.Session, error) {
-    var sess pb.Session
-    err := s.DB.QueryRow("SELECT id, name, title, prompt, create_time, state, profile_id FROM sessions WHERE id = ?", req.Id).Scan(
-        &sess.Id, &sess.Name, &sess.Title, &sess.Prompt, &sess.CreateTime, &sess.State, &sess.ProfileId,
-    )
-    if err == sql.ErrNoRows {
-        return nil, fmt.Errorf("session not found")
-    } else if err != nil {
-        return nil, err
-    }
-    return &sess, nil
+	var sess pb.Session
+	var createTime sql.NullString
+	err := s.DB.QueryRow("SELECT id, name, title, prompt, create_time, state, profile_id FROM sessions WHERE id = ?", req.Id).Scan(
+		&sess.Id, &sess.Name, &sess.Title, &sess.Prompt, &createTime, &sess.State, &sess.ProfileId,
+	)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("session not found")
+	} else if err != nil {
+		return nil, err
+	}
+	if createTime.Valid {
+		sess.CreateTime = createTime.String
+	}
+	return &sess, nil
 }
 
 func (s *SessionServer) CreateSession(ctx context.Context, req *pb.CreateSessionRequest) (*pb.Session, error) {

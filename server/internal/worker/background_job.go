@@ -40,9 +40,13 @@ func (w *BackgroundJobWorker) Start(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(w.Interval):
+			status := "Success"
 			if err := w.ProcessJobs(ctx); err != nil {
 				logger.Error("Worker %s failed: %s", w.Name(), err.Error())
+				status = "Failed"
 			}
+			nextRun := time.Now().Add(w.Interval)
+			logger.Info("%s task completed. Status: %s. Next run at %s", w.Name(), status, nextRun.Format(time.RFC3339))
 		}
 	}
 }
@@ -130,10 +134,10 @@ func (w *BackgroundJobWorker) processJob(ctx context.Context, jobID string, sess
 
     sessionIDsJSON, _ := json.Marshal(sessionIDs)
     
-    _, err = w.db.Exec("UPDATE jobs SET status = ?, session_ids = ? WHERE id = ?", status, string(sessionIDsJSON), jobID)
-    if err != nil {
-         logger.Error("%s: Failed to update job %s to %s: %s", w.Name(), jobID, status, err.Error())
-    } else {
-         logger.Info("%s: Job %s completed with status %s", w.Name(), jobID, status)
-    }
+	_, err = w.db.Exec("UPDATE jobs SET status = ?, session_ids = ? WHERE id = ?", status, string(sessionIDsJSON), jobID)
+	if err != nil {
+		logger.Error("%s: Failed to update job %s to %s: %s", w.Name(), jobID, status, err.Error())
+	} else {
+		logger.Info("%s: Job %s completed with status %s. Created sessions: %v", w.Name(), jobID, status, sessionIDs)
+	}
 }

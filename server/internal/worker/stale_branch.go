@@ -42,9 +42,14 @@ func (w *AutoDeleteStaleBranchWorker) Start(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(interval):
+			status := "Success"
 			if err := w.runCheck(ctx); err != nil {
 				logger.Error("%s check failed: %s", w.Name(), err.Error())
+				status = "Failed"
 			}
+			nextInterval := w.getInterval(ctx)
+			nextRun := time.Now().Add(nextInterval)
+			logger.Info("%s task completed. Status: %s. Next run at %s", w.Name(), status, nextRun.Format(time.RFC3339))
 		}
 	}
 }

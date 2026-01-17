@@ -36,8 +36,19 @@ func NewRetryableRemoteSessionFetcher() *RetryableRemoteSessionFetcher {
 	}
 }
 
+// RemoteSession defines the structure of a remote session response
+type RemoteSession struct {
+	Id      string `json:"id"`
+	State   string `json:"state"`
+	Outputs []struct {
+		PullRequest *struct {
+			Url string `json:"url"`
+		} `json:"pullRequest"`
+	} `json:"outputs"`
+}
+
 func (f *RetryableRemoteSessionFetcher) GetSession(ctx context.Context, id, apiKey string) (*RemoteSession, error) {
-	url := fmt.Sprintf("https://jules.googleapis.com/v1/sessions/%s", id)
+	url := fmt.Sprintf("https://jules.googleapis.com/v1alpha/sessions/%s", id)
 	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err

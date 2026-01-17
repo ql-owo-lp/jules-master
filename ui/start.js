@@ -24,6 +24,35 @@ if (migrationResult.status !== 0) {
   process.exit(migrationResult.status || 1);
 }
 
+// Start Go Backend
+console.log('Starting Go backend...');
+const { spawn } = require('child_process');
+const backend = spawn('/app/server', [], {
+  stdio: 'inherit',
+  env: { ...process.env } // Pass through env vars
+});
+
+backend.on('error', (err) => {
+  console.error('Failed to start backend:', err);
+});
+
+backend.on('close', (code) => {
+  if (code !== 0 && code !== null) {
+      console.error(`Backend process exited with code ${code}`);
+  }
+});
+
+// Ensure backend is killed when this process exits
+const cleanup = () => {
+    if (backend && !backend.killed) {
+        console.log('Stopping Go backend...');
+        backend.kill('SIGTERM');
+    }
+};
+process.on('exit', cleanup);
+process.on('SIGINT', () => { cleanup(); process.exit(); });
+process.on('SIGTERM', () => { cleanup(); process.exit(); });
+
 // Start Next.js server
 console.log('Starting Next.js application...');
 const appResult = spawnSync(
