@@ -77,4 +77,20 @@ describe("Combobox", () => {
       expect(item.getAttribute("data-value")).toBe(options[index].value);
     });
   });
+
+  it("should pass the id prop to the button", () => {
+    render(
+      <Combobox
+        options={options}
+        selectedValue={null}
+        onValueChange={() => {}}
+        placeholder="Select an option"
+        searchPlaceholder="Search..."
+        id="my-unique-combobox-id"
+      />
+    );
+
+    const button = screen.getByRole("combobox");
+    expect(button).toHaveAttribute("id", "my-unique-combobox-id");
+  });
 });

@@ -28,6 +28,7 @@ export function BranchSelection({ branches, selectedValue, onBranchSelected, dis
     <div className="grid w-full items-center gap-2">
       <Label htmlFor="branch">Branch</Label>
       <Combobox 
+        id="branch"
         options={options}
         selectedValue={selectedValue}
         onValueChange={handleValueChange}
