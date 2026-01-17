@@ -584,6 +584,7 @@ export function JobCreationForm({
                     </Tooltip>
                 </div>
                 <SourceSelection 
+                    id="repository"
                     onSourceSelected={setSelectedSource} 
                     disabled={disabled || isPending}
                     selectedValue={selectedSource}

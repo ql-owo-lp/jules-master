@@ -15,9 +15,10 @@ type SourceSelectionProps = {
   selectedValue?: Source | null;
   sources: Source[];
   onSourcesLoaded: (sources: Source[]) => void;
+  id?: string;
 };
 
-export function SourceSelection({ onSourceSelected, disabled, selectedValue, sources, onSourcesLoaded }: SourceSelectionProps) {
+export function SourceSelection({ onSourceSelected, disabled, selectedValue, sources, onSourcesLoaded, id }: SourceSelectionProps) {
   const [isFetching, startFetching] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
@@ -47,7 +48,7 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue, sou
   if (isFetching && sources.length === 0) {
     return (
       <div className="space-y-2">
-        <Skeleton id="repository-skeleton" className="h-10 w-full" />
+        <Skeleton id={id || "repository-skeleton"} className="h-10 w-full" />
       </div>
     );
   }
@@ -76,6 +77,7 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue, sou
   return (
     <div className="grid w-full items-center gap-2">
       <Combobox 
+        id={id}
         options={options}
         selectedValue={selectedValue?.name}
         onValueChange={handleSourceSelected}
