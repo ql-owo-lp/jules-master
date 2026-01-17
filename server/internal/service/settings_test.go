@@ -29,3 +29,29 @@ func TestSettingsService_GetUpdate(t *testing.T) {
     assert.NoError(t, err)
     assert.Equal(t, int32(300), got.IdlePollInterval)
 }
+
+func TestSettingsService_Validation(t *testing.T) {
+    db := setupTestDB(t)
+    defer db.Close()
+    svc := &SettingsServer{DB: db}
+    ctx := context.Background()
+
+    // Get default
+    def, err := svc.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
+    assert.NoError(t, err)
+
+    // Invalid IdlePollInterval
+    def.IdlePollInterval = 0
+    _, err = svc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{Settings: def})
+    assert.Error(t, err)
+    assert.Contains(t, err.Error(), "idle_poll_interval must be positive")
+
+    // Reset
+    def.IdlePollInterval = 120
+
+    // Invalid Theme
+    def.Theme = "hacker-green"
+    _, err = svc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{Settings: def})
+    assert.Error(t, err)
+    assert.Contains(t, err.Error(), "invalid theme")
+}

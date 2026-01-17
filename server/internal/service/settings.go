@@ -94,6 +94,23 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 		return nil, fmt.Errorf("settings are required")
 	}
 
+	// Input Validation
+	if newSettings.IdlePollInterval < 1 {
+		return nil, fmt.Errorf("idle_poll_interval must be positive")
+	}
+	if newSettings.ActivePollInterval < 1 {
+		return nil, fmt.Errorf("active_poll_interval must be positive")
+	}
+	if newSettings.PrStatusPollInterval < 1 {
+		return nil, fmt.Errorf("pr_status_poll_interval must be positive")
+	}
+
+	validThemes := map[string]bool{"light": true, "dark": true, "system": true}
+	if newSettings.Theme != "" && !validThemes[newSettings.Theme] {
+		// Fallback or error? Let's error to be strict
+		return nil, fmt.Errorf("invalid theme: %s", newSettings.Theme)
+	}
+
 	profileId := newSettings.ProfileId
 	if profileId == "" {
 		profileId = "default"
