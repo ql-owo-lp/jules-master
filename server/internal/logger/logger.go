@@ -10,26 +10,37 @@ import (
 
 const BufferSize = 1000
 
+type LogItem struct {
+	Entry *pb.LogEntry
+	Time  time.Time
+}
+
 var (
-	buffer []*pb.LogEntry
+	buffer []LogItem
 	mu     sync.Mutex
 )
 
 func init() {
-	buffer = make([]*pb.LogEntry, 0, BufferSize)
+	buffer = make([]LogItem, 0, BufferSize)
 }
 
 func Add(level, message string) {
 	mu.Lock()
 	defer mu.Unlock()
 
+	now := time.Now()
 	entry := &pb.LogEntry{
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: now.Format(time.RFC3339),
 		Level:     level,
 		Message:   message,
 	}
 
-	buffer = append(buffer, entry)
+	item := LogItem{
+		Entry: entry,
+		Time:  now,
+	}
+
+	buffer = append(buffer, item)
 	if len(buffer) > BufferSize {
 		// Remove oldest
 		buffer = buffer[1:]
@@ -67,16 +78,15 @@ func Get(since string) ([]*pb.LogEntry, error) {
 	}
 
 	for i := range buffer {
-		// Copy iteration variable
-		entry := buffer[i] 
+		item := buffer[i]
 		
 		if since != "" {
-			t, err := time.Parse(time.RFC3339, entry.Timestamp)
-			if err == nil && t.After(sinceTime) {
-				result = append(result, entry)
+			// Compare stored high-precision time with requested time
+			if item.Time.After(sinceTime) {
+				result = append(result, item.Entry)
 			}
 		} else {
-			result = append(result, entry)
+			result = append(result, item.Entry)
 		}
 	}
 	return result, nil
