@@ -154,15 +154,21 @@ export default function SessionDetailPage() {
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (activityFeedRef.current) {
-        activityFeedRef.current.scrollTo({ top: activityFeedRef.current.scrollHeight, behavior });
+        const viewport = activityFeedRef.current.querySelector('[data-radix-scroll-area-viewport]') || activityFeedRef.current;
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior });
     }
   };
 
   const handleScroll = useCallback(() => {
     if (activityFeedRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = activityFeedRef.current;
-      // Show button if user is not at the bottom
-      setShowScroll(scrollTop < scrollHeight - clientHeight - 100);
+      // We need to find the actual scrollable viewport inside Radix ScrollArea
+      // Radix ScrollArea Viewport has [data-radix-scroll-area-viewport] attribute
+      const viewport = activityFeedRef.current.querySelector('[data-radix-scroll-area-viewport]') || activityFeedRef.current;
+      const { scrollTop, scrollHeight, clientHeight } = viewport;
+      
+      // If user is within 20px of bottom, consider it "at bottom"
+      const isAtBottom = scrollTop >= scrollHeight - clientHeight - 20;
+      setShowScroll(!isAtBottom);
     }
   }, []);
 
@@ -170,13 +176,17 @@ export default function SessionDetailPage() {
   useEffect(() => {
     const currentRef = activityFeedRef.current;
     if (currentRef) {
+        const viewport = currentRef.querySelector('[data-radix-scroll-area-viewport]') || currentRef;
+        
         // Auto-scroll on new activities, but only if user isn't trying to scroll up
-        if (!showScroll) {
+        // AND not selecting text
+        const hasSelection = window.getSelection()?.toString() !== "";
+        if (!showScroll && !hasSelection) {
           scrollToBottom('auto');
         }
         
-        currentRef.addEventListener('scroll', handleScroll);
-        return () => currentRef.removeEventListener('scroll', handleScroll);
+        viewport.addEventListener('scroll', handleScroll);
+        return () => viewport.removeEventListener('scroll', handleScroll);
     }
   }, [activities, showScroll, handleScroll]);
 

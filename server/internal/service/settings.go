@@ -29,7 +29,8 @@ func (s *SettingsServer) GetSettings(ctx context.Context, req *pb.GetSettingsReq
 			session_cache_max_age_days, auto_delete_stale_branches, auto_delete_stale_branches_after_days, 
 			check_failing_actions_enabled, check_failing_actions_interval, check_failing_actions_threshold, 
 			auto_close_stale_conflicted_prs, stale_conflicted_prs_duration_days, history_prompts_count, 
-			min_session_interaction_interval, retry_timeout, profile_id, auto_approval_enabled
+			min_session_interaction_interval, retry_timeout, profile_id, auto_approval_enabled,
+			max_concurrent_background_workers
 		FROM settings 
 		WHERE profile_id = ? 
 		LIMIT 1
@@ -46,6 +47,7 @@ func (s *SettingsServer) GetSettings(ctx context.Context, req *pb.GetSettingsReq
 		&settings.CheckFailingActionsEnabled, &settings.CheckFailingActionsInterval, &settings.CheckFailingActionsThreshold,
 		&settings.AutoCloseStaleConflictedPrs, &settings.StaleConflictedPrsDurationDays, &settings.HistoryPromptsCount,
 		&settings.MinSessionInteractionInterval, &settings.RetryTimeout, &settings.ProfileId, &settings.AutoApprovalEnabled,
+		&settings.MaxConcurrentBackgroundWorkers,
 	)
 
 	if err == sql.ErrNoRows {
@@ -80,6 +82,7 @@ func (s *SettingsServer) GetSettings(ctx context.Context, req *pb.GetSettingsReq
 			MinSessionInteractionInterval:       60,
 			RetryTimeout:                        1200,
 			ProfileId:                           profileId,
+			MaxConcurrentBackgroundWorkers:      5,
 		}, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to scan settings: %w", err)
@@ -116,8 +119,9 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 				session_cache_max_age_days, auto_delete_stale_branches, auto_delete_stale_branches_after_days, 
 				check_failing_actions_enabled, check_failing_actions_interval, check_failing_actions_threshold, 
 				auto_close_stale_conflicted_prs, stale_conflicted_prs_duration_days, history_prompts_count, 
-				min_session_interaction_interval, retry_timeout, profile_id, auto_approval_enabled
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				min_session_interaction_interval, retry_timeout, profile_id, auto_approval_enabled,
+				max_concurrent_background_workers
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`,
 			newSettings.IdlePollInterval, newSettings.ActivePollInterval, newSettings.TitleTruncateLength, newSettings.LineClamp,
 			newSettings.SessionItemsPerPage, newSettings.JobsPerPage, newSettings.DefaultSessionCount, newSettings.PrStatusPollInterval,
@@ -128,6 +132,7 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 			newSettings.CheckFailingActionsEnabled, newSettings.CheckFailingActionsInterval, newSettings.CheckFailingActionsThreshold,
 			newSettings.AutoCloseStaleConflictedPrs, newSettings.StaleConflictedPrsDurationDays, newSettings.HistoryPromptsCount,
 			newSettings.MinSessionInteractionInterval, newSettings.RetryTimeout, newSettings.ProfileId, newSettings.AutoApprovalEnabled,
+			newSettings.MaxConcurrentBackgroundWorkers,
 		)
 	} else if err == nil {
 		// Update
@@ -141,7 +146,8 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 				session_cache_max_age_days=?, auto_delete_stale_branches=?, auto_delete_stale_branches_after_days=?, 
 				check_failing_actions_enabled=?, check_failing_actions_interval=?, check_failing_actions_threshold=?, 
 				auto_close_stale_conflicted_prs=?, stale_conflicted_prs_duration_days=?, history_prompts_count=?, 
-				min_session_interaction_interval=?, retry_timeout=?, auto_approval_enabled=?
+				min_session_interaction_interval=?, retry_timeout=?, auto_approval_enabled=?,
+				max_concurrent_background_workers=?
 			WHERE id = ?
 		`,
 			newSettings.IdlePollInterval, newSettings.ActivePollInterval, newSettings.TitleTruncateLength, newSettings.LineClamp,
@@ -153,6 +159,7 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 			newSettings.CheckFailingActionsEnabled, newSettings.CheckFailingActionsInterval, newSettings.CheckFailingActionsThreshold,
 			newSettings.AutoCloseStaleConflictedPrs, newSettings.StaleConflictedPrsDurationDays, newSettings.HistoryPromptsCount,
 			newSettings.MinSessionInteractionInterval, newSettings.RetryTimeout, newSettings.AutoApprovalEnabled,
+			newSettings.MaxConcurrentBackgroundWorkers,
 			existingId,
 		)
 	}
