@@ -14,6 +14,7 @@ import (
 
 type CronWorker struct {
 	BaseWorker
+	id             string
 	db             *sql.DB
 	cronJobService *service.CronJobServer
 	jobService     *service.JobServer
@@ -26,6 +27,7 @@ func NewCronWorker(database *sql.DB, cronJobService *service.CronJobServer, jobS
 			NameStr:  "CronWorker",
 			Interval: 60 * time.Second,
 		},
+		id:             uuid.New().String()[:8],
 		db:             database,
 		cronJobService: cronJobService,
 		jobService:     jobService,
@@ -34,7 +36,7 @@ func NewCronWorker(database *sql.DB, cronJobService *service.CronJobServer, jobS
 }
 
 func (w *CronWorker) Start(ctx context.Context) error {
-	logger.Info("%s starting...", w.Name())
+	logger.Info("%s [%s] starting...", w.Name(), w.id)
 
 	for {
 		interval := w.Interval
@@ -44,11 +46,11 @@ func (w *CronWorker) Start(ctx context.Context) error {
 		case <-time.After(interval):
 			status := "Success"
 			if err := w.runCheck(ctx); err != nil {
-				logger.Error("%s check failed: %s", w.Name(), err.Error())
+				logger.Error("%s [%s] check failed: %s", w.Name(), w.id, err.Error())
 				status = "Failed"
 			}
 			nextRun := time.Now().Add(interval)
-			logger.Info("%s task completed. Status: %s. Next run at %s", w.Name(), status, nextRun.Format(time.RFC3339))
+			logger.Info("%s [%s] task completed. Status: %s. Next run at %s", w.Name(), w.id, status, nextRun.Format(time.RFC3339))
 		}
 	}
 }
@@ -86,14 +88,14 @@ func (w *CronWorker) runCheck(ctx context.Context) error {
 			&c.RequirePlanApproval, &c.SessionCount, &c.ProfileId,
 		)
 		if err != nil {
-			logger.Error("%s: scan error: %v", w.Name(), err)
+			logger.Error("%s [%s]: scan error: %v", w.Name(), w.id, err)
 			continue
 		}
 
 		// Parse Schedule
 		schedule, err := w.parser.Parse(c.Schedule)
 		if err != nil {
-			logger.Error("%s: invalid schedule for job %s: %v", w.Name(), c.Id, err)
+			logger.Error("%s [%s]: invalid schedule for job %s: %v", w.Name(), w.id, c.Id, err)
 			continue
 		}
 
@@ -107,12 +109,11 @@ func (w *CronWorker) runCheck(ctx context.Context) error {
 
 		// Calculate next run time from last run
 		nextRun := schedule.Next(lastRunTime)
-
-		logger.Info("Cron %s: LastRun %v, Next %v, Now %v", c.Name, lastRunTime, nextRun, now)
+		logger.Info("%s [%s]: Cron %s: LastRun %v, Next %v, Now %v", w.Name(), w.id, c.Name, lastRunTime, nextRun, now)
 
 		// If nextRun is in the past, it's due.
 		if nextRun.Before(now) {
-			logger.Info("%s: Job %s (%s) is due (Next: %v, Now: %v)", w.Name(), c.Name, c.Id, nextRun, now)
+			logger.Info("%s [%s]: Job %s (%s) is due (Next: %v, Now: %v)", w.Name(), w.id, c.Name, c.Id, nextRun, now)
 			jobsToTrigger = append(jobsToTrigger, &c)
 		}
 	}
@@ -139,17 +140,17 @@ func (w *CronWorker) runCheck(ctx context.Context) error {
 
 		_, err := w.jobService.CreateJob(ctx, jobReq)
 		if err != nil {
-			logger.Error("%s: Failed to create job for cron %s: %v", w.Name(), c.Id, err)
+			logger.Error("%s [%s]: Failed to create job for cron %s: %v", w.Name(), w.id, c.Id, err)
 			continue
 		}
 
 		// Update LastRunAt
 		_, err = w.db.ExecContext(ctx, "UPDATE cron_jobs SET last_run_at = ? WHERE id = ?", now.Format(time.RFC3339), c.Id)
 		if err != nil {
-			logger.Error("%s: Failed to update last_run_at for cron %s: %v", w.Name(), c.Id, err)
+			logger.Error("%s [%s]: Failed to update last_run_at for cron %s: %v", w.Name(), w.id, c.Id, err)
 		}
 
-		logger.Info("%s: Triggered job %s for cron %s", w.Name(), newJobId, c.Id)
+		logger.Info("%s [%s]: Triggered job %s for cron %s", w.Name(), w.id, newJobId, c.Id)
 	}
 
 	return nil

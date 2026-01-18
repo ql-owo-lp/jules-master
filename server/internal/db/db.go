@@ -54,5 +54,8 @@ func Connect() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
+	// Lazy Migrations
+	_, _ = db.Exec("ALTER TABLE settings ADD COLUMN max_concurrent_background_workers INTEGER DEFAULT 5")
+
 	return db, nil
 }

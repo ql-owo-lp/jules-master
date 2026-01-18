@@ -18,6 +18,8 @@ type Manager struct {
 	wg      sync.WaitGroup
 	ctx     context.Context
 	cancel  context.CancelFunc
+	mu      sync.Mutex
+	started bool
 }
 
 func NewManager() *Manager {
@@ -33,6 +35,15 @@ func (m *Manager) Register(w Worker) {
 }
 
 func (m *Manager) Start() {
+	m.mu.Lock()
+	if m.started {
+		m.mu.Unlock()
+		logger.Warn("Manager already started, ignoring Start() call")
+		return
+	}
+	m.started = true
+	m.mu.Unlock()
+
 	for _, w := range m.workers {
 		m.wg.Add(1)
 		go func(w Worker) {

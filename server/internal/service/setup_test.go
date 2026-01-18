@@ -59,7 +59,8 @@ func createTables(t *testing.T, conn *sql.DB) {
             history_prompts_count INTEGER DEFAULT 10,
             min_session_interaction_interval INTEGER DEFAULT 60,
             retry_timeout INTEGER DEFAULT 1200,
-            profile_id TEXT DEFAULT 'default'
+            profile_id TEXT DEFAULT 'default',
+            max_concurrent_background_workers INTEGER DEFAULT 5
         );`,
 		`CREATE TABLE profiles (
             id TEXT PRIMARY KEY,

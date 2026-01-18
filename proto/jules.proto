@@ -137,6 +137,7 @@ message Settings {
   int32 min_session_interaction_interval = 28;
   int32 retry_timeout = 29;
   string profile_id = 30;
+  int32 max_concurrent_background_workers = 32;
 }
 
 message GetSettingsRequest {
@@ -433,6 +434,10 @@ message GetSessionRequest {
 
 message CreateSessionRequest {
     string name = 1;
+    string prompt = 2;
+    string repo = 3;
+    string branch = 4;
+    string profile_id = 5;
 }
 
 message UpdateSessionRequest {
