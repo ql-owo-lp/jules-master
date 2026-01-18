@@ -49,9 +49,27 @@ type ActivityFeedProps = {
   lastUpdatedAt: Date | null;
   onRefresh: () => void;
   isRefreshing?: boolean;
-  countdown: number;
   pollInterval: number;
 };
+
+// Isolates the countdown timer to avoid re-rendering the entire parent component every second
+function PollCountdown({ pollInterval, lastUpdatedAt }: { pollInterval: number, lastUpdatedAt: Date | null }) {
+  const [secondsLeft, setSecondsLeft] = useState(pollInterval);
+
+  useEffect(() => {
+    setSecondsLeft(pollInterval);
+  }, [lastUpdatedAt, pollInterval]);
+
+  useEffect(() => {
+    if (pollInterval <= 0) return;
+    const timer = setInterval(() => {
+      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [pollInterval]);
+
+  return <>{secondsLeft}</>;
+}
 
 // ActivityItem component handles the container and timestamp updates
 const ActivityItem = memo(({ activity, isLast }: { activity: Activity, isLast: boolean }) => {
@@ -111,7 +129,6 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
     lastUpdatedAt,
     onRefresh,
     isRefreshing,
-    countdown,
     pollInterval
 }, ref) => {
   const [debugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
@@ -165,7 +182,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
                         </div>
                         {pollInterval > 0 && (
                             <div>
-                            Next poll in: {countdown}s
+                            Next poll in: <PollCountdown pollInterval={pollInterval} lastUpdatedAt={lastUpdatedAt} />s
                             </div>
                         )}
                     </div>
