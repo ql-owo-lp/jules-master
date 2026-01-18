@@ -61,9 +61,9 @@ func (s *ProfileServer) DeleteProfile(ctx context.Context, req *pb.DeleteProfile
 	}
 
 	// In logic, default profile might be protected, mirroring typical app logic?
-    // Node.js implementation:
-    // await profileService.deleteProfile(id);
-    // Let's assume database constraints handle it or logic is simple.
+	// Node.js implementation:
+	// await profileService.deleteProfile(id);
+	// Let's assume database constraints handle it or logic is simple.
 
 	_, err := s.DB.Exec("DELETE FROM profiles WHERE id = ?", req.Id)
 	if err != nil {

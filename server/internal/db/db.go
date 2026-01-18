@@ -27,21 +27,21 @@ func Connect() (*sql.DB, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failed to get current working directory: %w", err)
 			}
-            // Assuming we run from server/ or project root involved. 
-            // If running from server/ root, data/ is ../data/
-            // But let's assume the user runs from project root via make server-run or similar, 
-            // or sets CWD appropriately.
-            // Adjusting logic: if we are in server/ subdir, we might need to go up.
-            // But standard practice: configure path relative to CWD.
+			// Assuming we run from server/ or project root involved.
+			// If running from server/ root, data/ is ../data/
+			// But let's assume the user runs from project root via make server-run or similar,
+			// or sets CWD appropriately.
+			// Adjusting logic: if we are in server/ subdir, we might need to go up.
+			// But standard practice: configure path relative to CWD.
 			dbPath = filepath.Join(cwd, dbUrl)
-            
-            // Hack for dev: if file not found, try going up one level if we are in server subdir
-            if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-                 parentPath := filepath.Join(cwd, "..", dbUrl)
-                 if _, err := os.Stat(parentPath); err == nil {
-                     dbPath = parentPath
-                 }
-            }
+
+			// Hack for dev: if file not found, try going up one level if we are in server subdir
+			if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+				parentPath := filepath.Join(cwd, "..", dbUrl)
+				if _, err := os.Stat(parentPath); err == nil {
+					dbPath = parentPath
+				}
+			}
 		}
 	}
 

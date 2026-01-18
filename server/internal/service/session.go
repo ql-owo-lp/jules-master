@@ -23,18 +23,20 @@ type SessionServer struct {
 }
 
 func (s *SessionServer) ListSessions(ctx context.Context, req *pb.ListSessionsRequest) (*pb.ListSessionsResponse, error) {
-    query := "SELECT id, name, title, prompt, create_time, state, profile_id FROM sessions"
-    var args []interface{}
-    if req.ProfileId != "" && req.ProfileId != "default" {
-        query += " WHERE profile_id = ?"
-        args = append(args, req.ProfileId)
-    }
-    query += " ORDER BY create_time DESC"
+	query := "SELECT id, name, title, prompt, create_time, state, profile_id FROM sessions"
+	var args []interface{}
+	if req.ProfileId != "" && req.ProfileId != "default" {
+		query += " WHERE profile_id = ?"
+		args = append(args, req.ProfileId)
+	}
+	query += " ORDER BY create_time DESC"
 
-    rows, err := s.DB.Query(query, args...)
-    if err != nil { return nil, err }
-    defer rows.Close()
-    
+	rows, err := s.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
 	var sessions []*pb.Session
 	for rows.Next() {
 		var sess pb.Session
@@ -48,7 +50,7 @@ func (s *SessionServer) ListSessions(ctx context.Context, req *pb.ListSessionsRe
 		}
 		sessions = append(sessions, &sess)
 	}
-    return &pb.ListSessionsResponse{Sessions: sessions}, nil
+	return &pb.ListSessionsResponse{Sessions: sessions}, nil
 }
 
 func (s *SessionServer) ApprovePlan(ctx context.Context, req *pb.ApprovePlanRequest) (*emptypb.Empty, error) {
@@ -60,17 +62,17 @@ func (s *SessionServer) ApprovePlan(ctx context.Context, req *pb.ApprovePlanRequ
 		return nil, fmt.Errorf("remote approval failed: %w", err)
 	}
 
-    res, err := s.DB.Exec("UPDATE sessions SET state = 'IN_PROGRESS', update_time = datetime('now'), last_updated = ? WHERE id = ? AND state = 'AWAITING_PLAN_APPROVAL'", time.Now().UnixMilli(), req.Id)
-    if err != nil {
-        return nil, err
-    }
-    affected, _ := res.RowsAffected()
-    if affected == 0 {
-         // Maybe it wasn't in correct state or didn't exist.
-         // For idling check, we might just ignore, but better to check.
-    }
-    
-    return &emptypb.Empty{}, nil
+	res, err := s.DB.Exec("UPDATE sessions SET state = 'IN_PROGRESS', update_time = datetime('now'), last_updated = ? WHERE id = ? AND state = 'AWAITING_PLAN_APPROVAL'", time.Now().UnixMilli(), req.Id)
+	if err != nil {
+		return nil, err
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		// Maybe it wasn't in correct state or didn't exist.
+		// For idling check, we might just ignore, but better to check.
+	}
+
+	return &emptypb.Empty{}, nil
 }
 
 func (s *SessionServer) GetSession(ctx context.Context, req *pb.GetSessionRequest) (*pb.Session, error) {
@@ -97,9 +99,9 @@ func (s *SessionServer) CreateSession(ctx context.Context, req *pb.CreateSession
 		return nil, err
 	}
 
-    id := uuid.New().String()
-    createTime := time.Now().Format(time.RFC3339)
-    name := req.Name
+	id := uuid.New().String()
+	createTime := time.Now().Format(time.RFC3339)
+	name := req.Name
 	state := "QUEUED"
 	title := "New Session"
 
@@ -110,43 +112,51 @@ func (s *SessionServer) CreateSession(ctx context.Context, req *pb.CreateSession
 		createTime = remoteSess.CreateTime
 		state = remoteSess.State
 		// Title might be generated remotely or default
-		if remoteSess.Title != "" { title = remoteSess.Title }
+		if remoteSess.Title != "" {
+			title = remoteSess.Title
+		}
 	}
 
-    if name == "" {
-        name = "sessions/" + id
-    }
-    
-    if req.Name != "" { title = req.Name } 
-    
-    if req.ProfileId == "" { req.ProfileId = "default" }
-    lastUpdated := time.Now().UnixMilli()
+	if name == "" {
+		name = "sessions/" + id
+	}
 
-    _, err = s.DB.Exec(`
+	if req.Name != "" {
+		title = req.Name
+	}
+
+	if req.ProfileId == "" {
+		req.ProfileId = "default"
+	}
+	lastUpdated := time.Now().UnixMilli()
+
+	_, err = s.DB.Exec(`
         INSERT INTO sessions (id, name, title, create_time, state, update_time, prompt, profile_id, last_updated)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, id, name, title, createTime, state, createTime, req.Prompt, req.ProfileId, lastUpdated)
-    
-    if err != nil {
-        return nil, fmt.Errorf("failed to create session: %w", err)
-    }
-    
-    return &pb.Session{
-        Id: id,
-        Name: name,
-        Title: title,
-        CreateTime: createTime,
-        State: state,
-    }, nil
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	return &pb.Session{
+		Id:         id,
+		Name:       name,
+		Title:      title,
+		CreateTime: createTime,
+		State:      state,
+	}, nil
 }
 
 func (s *SessionServer) UpdateSession(ctx context.Context, req *pb.UpdateSessionRequest) (*emptypb.Empty, error) {
-    return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (s *SessionServer) DeleteSession(ctx context.Context, req *pb.DeleteSessionRequest) (*emptypb.Empty, error) {
 	_, err := s.DB.Exec("DELETE FROM sessions WHERE id = ?", req.Id)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	return &emptypb.Empty{}, nil
 }
 
@@ -157,16 +167,18 @@ func (s *SessionServer) getAPIKey() string {
 
 func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.Session, error) {
 	apiKey := s.getAPIKey()
-	if apiKey == "" { return nil, nil }
+	if apiKey == "" {
+		return nil, nil
+	}
 
 	url := "https://jules.googleapis.com/v1alpha/sessions"
-	
+
 	// Map fields to JSON body
 	body := map[string]interface{}{
 		"prompt": req.Prompt,
 		// "sourceContext": ... if needed, complicated mapping
 	}
-	
+
 	if req.Repo != "" && req.Branch != "" {
 		body["sourceContext"] = map[string]interface{}{
 			"source": fmt.Sprintf("sources/github/%s", req.Repo),
@@ -177,17 +189,23 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 	}
 
 	jsonBody, err := json.Marshal(body)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	r, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("X-Goog-Api-Key", apiKey)
 
 	resp, err := client.Do(r)
-	if err != nil { return nil, fmt.Errorf("remote create failed: %w", err) }
+	if err != nil {
+		return nil, fmt.Errorf("remote create failed: %w", err)
+	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -205,7 +223,7 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 	if err := json.NewDecoder(resp.Body).Decode(&remoteSess); err != nil {
 		return nil, err
 	}
-	
+
 	// Extract ID if missing (API usually returns full resource name)
 	id := remoteSess.Id
 	if id == "" && remoteSess.Name != "" {
@@ -226,20 +244,26 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 
 func (s *SessionServer) approveRemotePlan(id string) error {
 	apiKey := s.getAPIKey()
-	if apiKey == "" { return nil }
+	if apiKey == "" {
+		return nil
+	}
 
 	url := fmt.Sprintf("https://jules.googleapis.com/v1alpha/sessions/%s:approvePlan", id)
 	client := &http.Client{Timeout: 30 * time.Second}
 	r, err := http.NewRequest("POST", url, nil) // Empty body for approvePlan action?
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	r.Header.Set("X-Goog-Api-Key", apiKey)
 	r.Header.Set("Content-Type", "application/json") // standard
 
 	resp, err := client.Do(r)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("remote approve failed %d: %s", resp.StatusCode, string(b))

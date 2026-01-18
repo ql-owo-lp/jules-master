@@ -8,20 +8,20 @@ import (
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
-    conn, err := sql.Open("sqlite3", ":memory:")
-    if err != nil {
-        t.Fatalf("failed to open db: %v", err)
-    }
-    conn.SetMaxOpenConns(1)
-    
-    createTables(t, conn)
-    
-    return conn
+	conn, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open db: %v", err)
+	}
+	conn.SetMaxOpenConns(1)
+
+	createTables(t, conn)
+
+	return conn
 }
 
 func createTables(t *testing.T, conn *sql.DB) {
-    queries := []string{
-        `CREATE TABLE settings (
+	queries := []string{
+		`CREATE TABLE settings (
             id INTEGER PRIMARY KEY,
             idle_poll_interval INTEGER DEFAULT 120,
             active_poll_interval INTEGER DEFAULT 30,
@@ -54,12 +54,12 @@ func createTables(t *testing.T, conn *sql.DB) {
             retry_timeout INTEGER DEFAULT 1200,
             profile_id TEXT DEFAULT 'default'
         );`,
-        `CREATE TABLE profiles (
+		`CREATE TABLE profiles (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             created_at TEXT NOT NULL
         );`,
-        `CREATE TABLE jobs (
+		`CREATE TABLE jobs (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             session_ids TEXT,
@@ -76,7 +76,7 @@ func createTables(t *testing.T, conn *sql.DB) {
             cron_job_id TEXT,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-        `CREATE TABLE cron_jobs (
+		`CREATE TABLE cron_jobs (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             schedule TEXT NOT NULL,
@@ -93,7 +93,7 @@ func createTables(t *testing.T, conn *sql.DB) {
             session_count INTEGER DEFAULT 1,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-        `CREATE TABLE sessions (
+		`CREATE TABLE sessions (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             title TEXT,
@@ -111,13 +111,13 @@ func createTables(t *testing.T, conn *sql.DB) {
             outputs TEXT,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-    }
-    
-    for i, q := range queries {
-        _, err := conn.Exec(q)
-        if err != nil {
-            t.Fatalf("failed to create table index %d: %v\nQuery: %s", i, err, q)
-        }
-        t.Logf("Created table index %d", i)
-    }
+	}
+
+	for i, q := range queries {
+		_, err := conn.Exec(q)
+		if err != nil {
+			t.Fatalf("failed to create table index %d: %v\nQuery: %s", i, err, q)
+		}
+		t.Logf("Created table index %d", i)
+	}
 }

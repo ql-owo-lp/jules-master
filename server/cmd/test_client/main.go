@@ -29,12 +29,12 @@ func main() {
 		log.Fatalf("could not get settings: %v", err)
 	}
 	fmt.Printf("GetSettings Result: %+v\n", r)
-    
-    // Test CronJob list
-    cronClient := pb.NewCronJobServiceClient(conn)
-    cronList, err := cronClient.ListCronJobs(ctx, &emptypb.Empty{}) 
-    if err != nil {
-        log.Fatalf("could not list cron jobs: %v", err)
-    }
-    fmt.Printf("ListCronJobs Result: %+v\n", cronList)
+
+	// Test CronJob list
+	cronClient := pb.NewCronJobServiceClient(conn)
+	cronList, err := cronClient.ListCronJobs(ctx, &emptypb.Empty{})
+	if err != nil {
+		log.Fatalf("could not list cron jobs: %v", err)
+	}
+	fmt.Printf("ListCronJobs Result: %+v\n", cronList)
 }
