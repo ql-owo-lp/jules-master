@@ -16,12 +16,12 @@ func (s *LogServer) GetLogs(ctx context.Context, req *pb.GetLogsRequest) (*pb.Ge
 	if err != nil {
 		return nil, err
 	}
-    
-    // Dereference pointers for response
-    var respLogs []*pb.LogEntry
-    for _, l := range logs {
-        respLogs = append(respLogs, l)
-    }
+
+	// Dereference pointers for response
+	var respLogs []*pb.LogEntry
+	for _, l := range logs {
+		respLogs = append(respLogs, l)
+	}
 
 	return &pb.GetLogsResponse{Logs: respLogs}, nil
 }

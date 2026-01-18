@@ -8,27 +8,27 @@ import (
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
-    // Determine path to schema
-    // Assuming running from server/internal/service
-    // Schema is at ../../../src/lib/db/schema.ts (Drizzle) 
-    // Wait, Drizzle schema is TS. I need to apply SQL schema.
-    // I don't have a SQL schema file. SQLite creates file on connect but empty tables.
-    // I need to create tables.
-    
-    // I will use a helper to create tables equivalent to Drizzle schema.
-    conn, err := sql.Open("sqlite3", ":memory:")
-    if err != nil {
-        t.Fatalf("failed to open db: %v", err)
-    }
-    
-    createTables(t, conn)
-    
-    return conn
+	// Determine path to schema
+	// Assuming running from server/internal/service
+	// Schema is at ../../../src/lib/db/schema.ts (Drizzle)
+	// Wait, Drizzle schema is TS. I need to apply SQL schema.
+	// I don't have a SQL schema file. SQLite creates file on connect but empty tables.
+	// I need to create tables.
+
+	// I will use a helper to create tables equivalent to Drizzle schema.
+	conn, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open db: %v", err)
+	}
+
+	createTables(t, conn)
+
+	return conn
 }
 
 func createTables(t *testing.T, conn *sql.DB) {
-    queries := []string{
-        `CREATE TABLE settings (
+	queries := []string{
+		`CREATE TABLE settings (
             id INTEGER PRIMARY KEY,
             idle_poll_interval INTEGER DEFAULT 120,
             active_poll_interval INTEGER DEFAULT 30,
@@ -61,12 +61,12 @@ func createTables(t *testing.T, conn *sql.DB) {
             retry_timeout INTEGER DEFAULT 1200,
             profile_id TEXT DEFAULT 'default'
         );`,
-        `CREATE TABLE profiles (
+		`CREATE TABLE profiles (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             created_at TEXT NOT NULL
         );`,
-        `CREATE TABLE jobs (
+		`CREATE TABLE jobs (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             session_ids TEXT, -- JSON array
@@ -83,7 +83,7 @@ func createTables(t *testing.T, conn *sql.DB) {
             cron_job_id TEXT,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-        `CREATE TABLE cron_jobs (
+		`CREATE TABLE cron_jobs (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             schedule TEXT NOT NULL,
@@ -100,34 +100,34 @@ func createTables(t *testing.T, conn *sql.DB) {
             session_count INTEGER DEFAULT 1,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-        `CREATE TABLE predefined_prompts (
+		`CREATE TABLE predefined_prompts (
             id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
             prompt TEXT NOT NULL,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-         `CREATE TABLE quick_replies (
+		`CREATE TABLE quick_replies (
             id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
             prompt TEXT NOT NULL,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-        `CREATE TABLE global_prompt (
+		`CREATE TABLE global_prompt (
             id INTEGER PRIMARY KEY,
             prompt TEXT NOT NULL
         );`,
-        `CREATE TABLE history_prompts (
+		`CREATE TABLE history_prompts (
             id TEXT PRIMARY KEY,
             prompt TEXT NOT NULL,
             last_used_at TEXT NOT NULL,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-        `CREATE TABLE repo_prompts (
+		`CREATE TABLE repo_prompts (
             repo TEXT PRIMARY KEY,
             prompt TEXT NOT NULL,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-        `CREATE TABLE sessions (
+		`CREATE TABLE sessions (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             title TEXT,
@@ -144,12 +144,12 @@ func createTables(t *testing.T, conn *sql.DB) {
             last_interaction_at INTEGER,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-    }
-    
-    for _, q := range queries {
-        _, err := conn.Exec(q)
-        if err != nil {
-            t.Fatalf("failed to create table: %v\nQuery: %s", err, q)
-        }
-    }
+	}
+
+	for _, q := range queries {
+		_, err := conn.Exec(q)
+		if err != nil {
+			t.Fatalf("failed to create table: %v\nQuery: %s", err, q)
+		}
+	}
 }

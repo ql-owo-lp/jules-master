@@ -53,8 +53,8 @@ func (m *Manager) Stop() {
 
 // BaseWorker provides common functionality
 type BaseWorker struct {
-	NameStr string
-    Interval time.Duration
+	NameStr  string
+	Interval time.Duration
 }
 
 func (b *BaseWorker) Name() string {

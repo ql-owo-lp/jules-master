@@ -51,35 +51,35 @@ func (s *SettingsServer) GetSettings(ctx context.Context, req *pb.GetSettingsReq
 	if err == sql.ErrNoRows {
 		// Return default settings if not found (matching Node.js behavior)
 		return &pb.Settings{
-			IdlePollInterval:                 120,
-			ActivePollInterval:               30,
-			TitleTruncateLength:              50,
-			LineClamp:                        1,
-			SessionItemsPerPage:              10,
-			JobsPerPage:                      5,
-			DefaultSessionCount:              10,
-			PrStatusPollInterval:             60,
-			Theme:                            "system",
-			AutoApprovalInterval:             60,
-			AutoRetryEnabled:                 true,
-			AutoRetryMessage:                 "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution",
-			AutoContinueEnabled:              true,
-			AutoContinueMessage:              "Sounds good. Now go ahead finish the work",
-			SessionCacheInProgressInterval:   60,
-			SessionCacheCompletedNoPrInterval: 1800,
+			IdlePollInterval:                    120,
+			ActivePollInterval:                  30,
+			TitleTruncateLength:                 50,
+			LineClamp:                           1,
+			SessionItemsPerPage:                 10,
+			JobsPerPage:                         5,
+			DefaultSessionCount:                 10,
+			PrStatusPollInterval:                300,
+			Theme:                               "system",
+			AutoApprovalInterval:                60,
+			AutoRetryEnabled:                    true,
+			AutoRetryMessage:                    "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution",
+			AutoContinueEnabled:                 true,
+			AutoContinueMessage:                 "Sounds good. Now go ahead finish the work",
+			SessionCacheInProgressInterval:      60,
+			SessionCacheCompletedNoPrInterval:   1800,
 			SessionCachePendingApprovalInterval: 300,
-			SessionCacheMaxAgeDays:           3,
-			AutoDeleteStaleBranches:          false,
-			AutoDeleteStaleBranchesAfterDays: 3,
-			CheckFailingActionsEnabled:       true,
-			CheckFailingActionsInterval:      600,
-			CheckFailingActionsThreshold:     10,
-			AutoCloseStaleConflictedPrs:      false,
-			StaleConflictedPrsDurationDays:   3,
-			HistoryPromptsCount:              10,
-			MinSessionInteractionInterval:    60,
-			RetryTimeout:                     1200,
-			ProfileId:                        profileId,
+			SessionCacheMaxAgeDays:              3,
+			AutoDeleteStaleBranches:             false,
+			AutoDeleteStaleBranchesAfterDays:    3,
+			CheckFailingActionsEnabled:          true,
+			CheckFailingActionsInterval:         600,
+			CheckFailingActionsThreshold:        10,
+			AutoCloseStaleConflictedPrs:         false,
+			StaleConflictedPrsDurationDays:      3,
+			HistoryPromptsCount:                 10,
+			MinSessionInteractionInterval:       60,
+			RetryTimeout:                        1200,
+			ProfileId:                           profileId,
 		}, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to scan settings: %w", err)
@@ -103,7 +103,7 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 	// Check if exists
 	var existingId int64
 	err := s.DB.QueryRow("SELECT id FROM settings WHERE profile_id = ?", profileId).Scan(&existingId)
-	
+
 	if err == sql.ErrNoRows {
 		// Insert
 		_, err = s.DB.Exec(`

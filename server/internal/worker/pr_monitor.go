@@ -14,6 +14,8 @@ import (
 	"github.com/mcpany/jules/internal/service"
 )
 
+const failureCommentPrefix = "The following github action checks are failing. Please review the code and fix the program or the test."
+
 type GitHubClient interface {
 	GetCombinedStatus(ctx context.Context, owner, repo, ref string) (*github.CombinedStatus, error)
 	ListPullRequests(ctx context.Context, owner, repo string, opts *github.PullRequestListOptions) ([]*github.PullRequest, error)
@@ -40,7 +42,7 @@ func NewPRMonitorWorker(database *sql.DB, settingsService *service.SettingsServe
 	return &PRMonitorWorker{
 		BaseWorker: BaseWorker{
 			NameStr:  "PRMonitorWorker",
-			Interval: 60 * time.Second,
+			Interval: 300 * time.Second,
 		},
 		db:              database,
 		settingsService: settingsService,
@@ -78,7 +80,7 @@ func (w *PRMonitorWorker) getInterval(ctx context.Context) time.Duration {
 			return time.Duration(s.PrStatusPollInterval) * time.Second
 		}
 	}
-	return 60 * time.Second
+	return 300 * time.Second
 }
 
 func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
@@ -121,7 +123,7 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 		repoFullName := r
 		w.pool.Submit(func() {
 			defer wg.Done()
-			w.checkRepo(ctx, repoFullName)
+			w.checkRepo(ctx, repoFullName, s)
 		})
 	}
 
@@ -129,7 +131,7 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 	return nil
 }
 
-func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string) {
+func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s *pb.Settings) {
 	parts := strings.Split(repoFullName, "/")
 	if len(parts) != 2 {
 		logger.Error("%s: Invalid repo name %s", w.Name(), repoFullName)
@@ -173,11 +175,11 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string) {
 			continue
 		}
 
-		w.checkPR(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr.Head)
+		w.checkPR(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr.Head, s)
 	}
 }
 
-func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, number int, prUrl string, head *github.PullRequestBranch) {
+func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, number int, prUrl string, head *github.PullRequestBranch, s *pb.Settings) {
 	if head == nil || head.SHA == nil {
 		logger.Error("%s: PR %s has no Head/SHA", w.Name(), prUrl)
 		return
@@ -203,12 +205,42 @@ func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, numbe
 	// Detailed logging as requested
 	logger.Info("%s: Checked PR %s (author: google-labs-jules). Status: %s", w.Name(), prUrl, *combinedStatus.State)
 
-	if *combinedStatus.State == "failure" {
+	// If status is failure OR pending, we check deeper.
+	// Pending checks might have individual failed runs (fail fast).
+	if *combinedStatus.State == "failure" || *combinedStatus.State == "pending" {
+
 		// Check if ANY check run is pending/in_progress.
 		checkRuns, _, err := w.githubClient.ListCheckRunsForRef(ctx, owner, repo, *head.SHA, nil)
 		if err != nil {
 			logger.Error("%s: Failed to list check runs for %s: %v", w.Name(), prUrl, err)
 			return
+		}
+
+		if checkRuns != nil {
+			for _, run := range checkRuns.CheckRuns {
+				if run.Status != nil && (*run.Status == "queued" || *run.Status == "in_progress") {
+					logger.Info("%s: PR %s has pending check run: %s (%s). Waiting.", w.Name(), prUrl, run.GetName(), *run.Status)
+					return
+				}
+			}
+		}
+
+		// If pending, ensure we only proceed if there is an actual failure
+		if *combinedStatus.State == "pending" {
+			hasFailure := false
+			if checkRuns != nil {
+				for _, run := range checkRuns.CheckRuns {
+					if run.Conclusion != nil && *run.Conclusion == "failure" {
+						hasFailure = true
+						break
+					}
+				}
+			}
+			if !hasFailure {
+				// No individual failure found, so it's genuinely pending.
+				return
+			}
+			logger.Info("%s: PR %s is pending but has failed check runs. Treating as failure.", w.Name(), prUrl)
 		}
 
 		// Check if rebase/update is needed
@@ -228,21 +260,6 @@ func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, numbe
 			}
 		}
 
-		anyPending := false
-		if checkRuns != nil {
-			for _, run := range checkRuns.CheckRuns {
-				if run.Status != nil && (*run.Status == "queued" || *run.Status == "in_progress") {
-					anyPending = true
-					logger.Info("%s: PR %s has pending check run: %s (%s). Skipping.", w.Name(), prUrl, run.GetName(), *run.Status)
-					break
-				}
-			}
-		}
-
-		if anyPending {
-			return
-		}
-
 		// Check last comment
 		comments, err := w.githubClient.ListComments(ctx, owner, repo, number)
 		if err != nil {
@@ -253,14 +270,36 @@ func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, numbe
 		shouldComment := true
 		if len(comments) > 0 {
 			lastComment := comments[len(comments)-1]
-			if lastComment.Body != nil && strings.Contains(*lastComment.Body, "Checks failed") {
-				shouldComment = false
-				logger.Info("%s: PR %s already has failure comment. Skipping.", w.Name(), prUrl)
+			if lastComment.User != nil && lastComment.User.Login != nil && strings.Contains(*lastComment.User.Login, "google-labs-jules") {
+				if lastComment.Body != nil && strings.Contains(*lastComment.Body, failureCommentPrefix) {
+					shouldComment = false
+					logger.Info("%s: PR %s already has failure comment as last comment. Skipping.", w.Name(), prUrl)
+				}
 			}
 		}
 
 		if shouldComment {
-			msg := "Checks failed. Please review the failures."
+			var failingCheckNames []string
+			if checkRuns != nil {
+				for _, run := range checkRuns.CheckRuns {
+					if run.Conclusion != nil && *run.Conclusion == "failure" {
+						failingCheckNames = append(failingCheckNames, run.GetName())
+					}
+				}
+			}
+
+			// Also check combined status for legacy status checks if any
+			for _, status := range combinedStatus.Statuses {
+				if status.State != nil && *status.State == "failure" {
+					failingCheckNames = append(failingCheckNames, status.GetContext())
+				}
+			}
+
+			msg := failureCommentPrefix
+			for _, name := range failingCheckNames {
+				msg += "\n- " + name
+			}
+
 			if err := w.githubClient.CreateComment(ctx, owner, repo, number, msg); err != nil {
 				logger.Error("%s: Failed to create comment on %s: %v", w.Name(), prUrl, err)
 			} else {

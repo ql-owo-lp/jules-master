@@ -33,12 +33,16 @@ func (s *HTTPSessionSyncer) SyncSession(ctx context.Context, id string) error {
 	url := fmt.Sprintf("https://jules.googleapis.com/v1alpha/sessions/%s", id)
 	client := &http.Client{Timeout: 30 * time.Second}
 	req, err := http.NewRequest("GET", url, nil)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	req.Header.Set("X-Goog-Api-Key", apiKey)
 
 	resp, err := client.Do(req)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -56,9 +60,9 @@ func (s *HTTPSessionSyncer) SyncSession(ctx context.Context, id string) error {
 
 	// Update DB
 	now := time.Now().UnixMilli()
-	_, err = s.DB.ExecContext(ctx, "UPDATE sessions SET state = ?, update_time = ?, last_updated = ? WHERE id = ?", 
+	_, err = s.DB.ExecContext(ctx, "UPDATE sessions SET state = ?, update_time = ?, last_updated = ? WHERE id = ?",
 		remoteSess.State, remoteSess.UpdateTime, now, id)
-	
+
 	return err
 }
 
@@ -109,23 +113,25 @@ func (w *SessionCacheWorker) Start(ctx context.Context) error {
 }
 
 func (w *SessionCacheWorker) getInterval(ctx context.Context) time.Duration {
-    return 60 * time.Second
+	return 60 * time.Second
 }
 
 func (w *SessionCacheWorker) runCheck(ctx context.Context) error {
-    // ... logic remains same, just calls w.syncer.SyncSession(ctx, id) ...
+	// ... logic remains same, just calls w.syncer.SyncSession(ctx, id) ...
 	settings, err := w.settingsService.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
 	if err != nil {
 		return err
 	}
 
-    rows, err := w.db.QueryContext(ctx, "SELECT id, state, last_updated, create_time FROM sessions")
-    if err != nil { return err }
-    defer rows.Close()
-    
-    now := time.Now()
-    var sessionsToUpdate []string
-    
+	rows, err := w.db.QueryContext(ctx, "SELECT id, state, last_updated, create_time FROM sessions")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	now := time.Now()
+	var sessionsToUpdate []string
+
 	for rows.Next() {
 		var id, state string
 		var lastUpdated int64
@@ -145,44 +151,41 @@ func (w *SessionCacheWorker) runCheck(ctx context.Context) error {
 		if daysSinceCreation > float64(settings.SessionCacheMaxAgeDays) {
 			continue
 		}
-        
-        shouldUpdate := false
-        interval := settings.SessionCachePendingApprovalInterval
-        
-        switch state {
-        case "IN_PROGRESS", "PLANNING", "QUEUED":
-             interval = settings.SessionCacheInProgressInterval
-        case "AWAITING_PLAN_APPROVAL", "AWAITING_USER_FEEDBACK":
-             interval = settings.SessionCachePendingApprovalInterval
-        case "COMPLETED":
-             interval = settings.SessionCacheCompletedNoPrInterval
-        }
-        
-        if age > time.Duration(interval)*time.Second {
-             shouldUpdate = true
-        }
-        
 
-        
-        if shouldUpdate {
-            sessionsToUpdate = append(sessionsToUpdate, id)
-        }
-    }
-    rows.Close()
+		shouldUpdate := false
+		interval := settings.SessionCachePendingApprovalInterval
 
-    if len(sessionsToUpdate) > 0 {
-        logger.Info("%s: Syncing %d sessions", w.Name(), len(sessionsToUpdate))
-        for _, id := range sessionsToUpdate {
-             if err := w.syncer.SyncSession(ctx, id); err != nil {
-                 logger.Error("%s: Failed to sync session %s: %s", w.Name(), id, err.Error())
-             } else {
-                 logger.Info("%s: Successfully synced session %s", w.Name(), id)
-             }
-        }
-    }
-    
+		switch state {
+		case "IN_PROGRESS", "PLANNING", "QUEUED":
+			interval = settings.SessionCacheInProgressInterval
+		case "AWAITING_PLAN_APPROVAL", "AWAITING_USER_FEEDBACK":
+			interval = settings.SessionCachePendingApprovalInterval
+		case "COMPLETED":
+			interval = settings.SessionCacheCompletedNoPrInterval
+		}
+
+		if age > time.Duration(interval)*time.Second {
+			shouldUpdate = true
+		}
+
+		if shouldUpdate {
+			sessionsToUpdate = append(sessionsToUpdate, id)
+		}
+	}
+	rows.Close()
+
+	if len(sessionsToUpdate) > 0 {
+		logger.Info("%s: Syncing %d sessions", w.Name(), len(sessionsToUpdate))
+		for _, id := range sessionsToUpdate {
+			if err := w.syncer.SyncSession(ctx, id); err != nil {
+				logger.Error("%s: Failed to sync session %s: %s", w.Name(), id, err.Error())
+			} else {
+				logger.Info("%s: Successfully synced session %s", w.Name(), id)
+			}
+		}
+	}
+
 	return nil
 }
 
 // Remove old syncSession method since functionality is moved to HTTPSessionSyncer
-

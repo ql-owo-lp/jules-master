@@ -45,7 +45,7 @@ func Add(level, message string) {
 		// Remove oldest
 		buffer = buffer[1:]
 	}
-	
+
 	// Also print to stdout
 	fmt.Printf("[%s] %s: %s\n", entry.Timestamp, level, message)
 }
@@ -79,7 +79,7 @@ func Get(since string) ([]*pb.LogEntry, error) {
 
 	for i := range buffer {
 		item := buffer[i]
-		
+
 		if since != "" {
 			// Compare stored high-precision time with requested time
 			if item.Time.After(sinceTime) {
