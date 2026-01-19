@@ -1,7 +1,6 @@
-
 "use client";
 
-import React from "react";
+import React, { memo, useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -22,7 +21,6 @@ import { JobStatusBadge } from "./job-status-badge";
 import { PrStatus } from "./pr-status";
 import { useRouter } from "next/navigation";
 import type { Session, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
-import { useEffect, useState, useMemo } from "react";
 import { getPullRequestStatuses } from "@/app/github/actions";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useEnv } from "@/components/env-provider";
@@ -41,6 +39,175 @@ interface SessionTableProps {
   jobIdParam: string | null;
 }
 
+const getPullRequestUrl = (session: Session): string | null => {
+  if (session.outputs && session.outputs.length > 0) {
+    for (const output of session.outputs) {
+      if (output.pullRequest?.url) {
+        return output.pullRequest.url;
+      }
+    }
+  }
+  return null;
+};
+
+const truncate = (str: string, length: number) => {
+  if (!str) return '';
+  return str.length > length ? str.substring(0, length) + "..." : str;
+};
+
+interface SessionRowProps {
+  session: Session;
+  isUncategorized: boolean;
+  jobId?: string;
+  isSelected: boolean;
+  onSelectRow: (sessionId: string, checked: boolean) => void;
+  titleTruncateLength: number;
+  isActionPending?: boolean;
+  onApprovePlan: (sessionIds: string[]) => void;
+  onSendMessage: (sessionId: string, message: string) => void;
+  quickReplies: PredefinedPrompt[];
+  jobIdParam: string | null;
+  prStatus?: PullRequestStatus | null;
+}
+
+const SessionRowComponent = ({
+  session,
+  isUncategorized,
+  jobId,
+  isSelected,
+  onSelectRow,
+  titleTruncateLength,
+  isActionPending,
+  onApprovePlan,
+  onSendMessage,
+  quickReplies,
+  jobIdParam,
+  prStatus
+}: SessionRowProps) => {
+  const router = useRouter();
+  const prUrl = getPullRequestUrl(session);
+  const backPath = isUncategorized ? '' : `?jobId=${jobId || jobIdParam}`;
+
+  const quickReplyOptions = useMemo(() => quickReplies.map(reply => ({
+    value: reply.id,
+    label: reply.title,
+    content: reply.prompt,
+  })), [quickReplies]);
+
+  return (
+    <TableRow
+      className="cursor-pointer"
+      onClick={() => router.push(`/sessions/${session.id}${backPath}`)}
+      data-state={isSelected ? "selected" : undefined}
+    >
+        <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(checked) => onSelectRow(session.id, !!checked)}
+            aria-label={`Select session ${session.id}`}
+          />
+        </TableCell>
+        <TableCell className="font-medium truncate" title={session.title}>
+            {truncate(session.title, titleTruncateLength)}
+          </TableCell>
+          <TableCell>
+            <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
+          </TableCell>
+          <TableCell className="text-sm text-muted-foreground">
+            {session.createTime ? formatDistanceToNow(new Date(session.createTime), { addSuffix: true }) : 'N/A'}
+          </TableCell>
+          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+              {session.url && (
+                  <Tooltip>
+                      <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" asChild>
+                              <a href={session.url} target="_blank" rel="noopener noreferrer" aria-label="View Session on Jules UI">
+                                  <Bot className="h-5 w-5 text-primary" />
+                              </a>
+                          </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                          <p>View on Jules UI</p>
+                      </TooltipContent>
+                  </Tooltip>
+              )}
+          </TableCell>
+          <TableCell className="text-center">
+            <PrStatus prUrl={prUrl} initialStatus={prStatus} />
+          </TableCell>
+          <TableCell className="text-right">
+            <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                  {session.state === 'AWAITING_PLAN_APPROVAL' && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onApprovePlan([session.id])}
+                          disabled={isActionPending}
+                          aria-label="Approve Plan"
+                        >
+                          {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Approve Plan</p></TooltipContent>
+                    </Tooltip>
+                  )}
+                   <MessageDialog
+                      trigger={
+                          <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                      }
+                      tooltip="Send Message"
+                      storageKey={`jules-session-message-${session.id}`}
+                      onSendMessage={(message) => onSendMessage(session.id, message)}
+                      dialogTitle={`Send Message to Session`}
+                      dialogDescription={truncate(session.title, titleTruncateLength)}
+                      isActionPending={isActionPending}
+                      quickReplies={quickReplies}
+                  />
+                  <Popover>
+                     <Tooltip>
+                        <TooltipTrigger asChild>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" disabled={isActionPending} onClick={(e) => e.stopPropagation()}>
+                              <MessageSquareReply className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Send Quick Reply</p></TooltipContent>
+                      </Tooltip>
+                    <PopoverContent className="p-0 w-60" onClick={(e) => e.stopPropagation()}>
+                      <Command>
+                        <CommandInput placeholder="Search replies..." />
+                        <CommandList>
+                          <CommandEmpty>No replies found.</CommandEmpty>
+                          <CommandGroup>
+                            {quickReplyOptions.map((option) => (
+                              <CommandItem
+                                key={option.value}
+                                onSelect={() => {
+                                  onSendMessage(session.id, option.content);
+                                  document.body.click(); // Close popover
+                                }}
+                              >
+                                <span className="truncate" title={option.content}>
+                                  {option.label}
+                                </span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+          </TableCell>
+    </TableRow>
+  );
+};
+
+const SessionRow = memo(SessionRowComponent);
+
 export function SessionTable({
   sessions,
   isUncategorized,
@@ -54,19 +221,6 @@ export function SessionTable({
   quickReplies,
   jobIdParam
 }: SessionTableProps) {
-  const router = useRouter();
-
-  const getPullRequestUrl = (session: Session): string | null => {
-    if (session.outputs && session.outputs.length > 0) {
-      for (const output of session.outputs) {
-        if (output.pullRequest?.url) {
-          return output.pullRequest.url;
-        }
-      }
-    }
-    return null;
-  };
-
   // State to hold batched PR statuses
   const [prStatuses, setPrStatuses] = useState<Record<string, PullRequestStatus | null>>({});
   const { hasGithubToken: hasEnvGithubToken } = useEnv();
@@ -118,17 +272,6 @@ export function SessionTable({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prUrls.join(','), githubToken, hasEnvGithubToken, pollInterval]);
 
-  const truncate = (str: string, length: number) => {
-    if (!str) return '';
-    return str.length > length ? str.substring(0, length) + "..." : str;
-  };
-
-  const quickReplyOptions = quickReplies.map(reply => ({
-    value: reply.id,
-    label: reply.title,
-    content: reply.prompt,
-  }));
-
   return (
     <Table>
       <TableHeader>
@@ -145,119 +288,23 @@ export function SessionTable({
       <TableBody>
         {sessions.map(session => {
           const prUrl = getPullRequestUrl(session);
-          const backPath = isUncategorized ? '' : `?jobId=${jobId || jobIdParam}`;
-
           return (
-            <TableRow
+            <SessionRow
               key={session.id}
-              className="cursor-pointer"
-              onClick={() => router.push(`/sessions/${session.id}${backPath}`)}
-              data-state={selectedSessionIds.includes(session.id) ? "selected" : undefined}
-            >
-                <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
-                  <Checkbox
-                    checked={selectedSessionIds.includes(session.id)}
-                    onCheckedChange={(checked) => onSelectRow(session.id, !!checked)}
-                    aria-label={`Select session ${session.id}`}
-                  />
-                </TableCell>
-                <TableCell className="font-medium truncate" title={session.title}>
-                    {truncate(session.title, titleTruncateLength)}
-                  </TableCell>
-                  <TableCell>
-                    <JobStatusBadge status={session.state || 'STATE_UNSPECIFIED'} />
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {session.createTime ? formatDistanceToNow(new Date(session.createTime), { addSuffix: true }) : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                      {session.url && (
-                          <Tooltip>
-                              <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" asChild>
-                                      <a href={session.url} target="_blank" rel="noopener noreferrer" aria-label="View Session on Jules UI">
-                                          <Bot className="h-5 w-5 text-primary" />
-                                      </a>
-                                  </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                  <p>View on Jules UI</p>
-                              </TooltipContent>
-                          </Tooltip>
-                      )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <PrStatus prUrl={prUrl} initialStatus={prUrl ? prStatuses[prUrl] : undefined} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          {session.state === 'AWAITING_PLAN_APPROVAL' && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => onApprovePlan([session.id])}
-                                  disabled={isActionPending}
-                                  aria-label="Approve Plan"
-                                >
-                                  {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Approve Plan</p></TooltipContent>
-                            </Tooltip>
-                          )}
-                           <MessageDialog
-                              trigger={
-                                  <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
-                              }
-                              tooltip="Send Message"
-                              storageKey={`jules-session-message-${session.id}`}
-                              onSendMessage={(message) => onSendMessage(session.id, message)}
-                              dialogTitle={`Send Message to Session`}
-                              dialogDescription={truncate(session.title, titleTruncateLength)}
-                              isActionPending={isActionPending}
-                              quickReplies={quickReplies}
-                          />
-                          <Popover>
-                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <PopoverTrigger asChild>
-                                    <Button variant="ghost" size="icon" disabled={isActionPending} onClick={(e) => e.stopPropagation()}>
-                                      <MessageSquareReply className="h-4 w-4" />
-                                    </Button>
-                                  </PopoverTrigger>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Send Quick Reply</p></TooltipContent>
-                              </Tooltip>
-                            <PopoverContent className="p-0 w-60" onClick={(e) => e.stopPropagation()}>
-                              <Command>
-                                <CommandInput placeholder="Search replies..." />
-                                <CommandList>
-                                  <CommandEmpty>No replies found.</CommandEmpty>
-                                  <CommandGroup>
-                                    {quickReplyOptions.map((option) => (
-                                      <CommandItem
-                                        key={option.value}
-                                        onSelect={() => {
-                                          onSendMessage(session.id, option.content);
-                                          document.body.click(); // Close popover
-                                        }}
-                                      >
-                                        <span className="truncate" title={option.content}>
-                                          {option.label}
-                                        </span>
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                  </TableCell>
-            </TableRow>
-          )
+              session={session}
+              isUncategorized={isUncategorized}
+              jobId={jobId}
+              isSelected={selectedSessionIds.includes(session.id)}
+              onSelectRow={onSelectRow}
+              titleTruncateLength={titleTruncateLength}
+              isActionPending={isActionPending}
+              onApprovePlan={onApprovePlan}
+              onSendMessage={onSendMessage}
+              quickReplies={quickReplies}
+              jobIdParam={jobIdParam}
+              prStatus={prUrl ? prStatuses[prUrl] : undefined}
+            />
+          );
         })}
       </TableBody>
     </Table>
