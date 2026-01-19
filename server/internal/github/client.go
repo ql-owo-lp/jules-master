@@ -97,3 +97,14 @@ func (c *Client) UpdateBranch(ctx context.Context, owner, repo string, number in
 	_, _, err := c.client.PullRequests.UpdateBranch(ctx, owner, repo, number, nil)
 	return err
 }
+
+func (c *Client) MarkPullRequestReadyForReview(ctx context.Context, owner, repo string, number int) (*github.PullRequest, error) {
+	pr := &github.PullRequest{Draft: github.Bool(false)}
+	ret, _, err := c.client.PullRequests.Edit(ctx, owner, repo, number, pr)
+	return ret, err
+}
+
+func (c *Client) ListFiles(ctx context.Context, owner, repo string, number int, opts *github.ListOptions) ([]*github.CommitFile, error) {
+	files, _, err := c.client.PullRequests.ListFiles(ctx, owner, repo, number, opts)
+	return files, err
+}
