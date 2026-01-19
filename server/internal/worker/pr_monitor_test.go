@@ -605,6 +605,8 @@ func TestRunCheck_MarksReadyForReview(t *testing.T) {
 	}
 	nowMilli := time.Now().UnixMilli()
 	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-ready", "owner/repo", "test-job", time.Now(), "main", "test prompt")
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-ready", "owner/repo", "test-job", time.Now(), "main", "test prompt")
 
 	mockFetcher := &MockSessionFetcher{
 		Session: &RemoteSession{
@@ -628,11 +630,16 @@ func TestRunCheck_MarksReadyForReview(t *testing.T) {
 		},
 		PullRequests: []*github.PullRequest{
 			{
+				Number:    github.Int(6),
+				HTMLURL:   github.String("https://github.com/owner/repo/pull/6"),
 				State:     github.String("open"),
 				Draft:     github.Bool(true),
 				Mergeable: github.Bool(true),
 				Head: &github.PullRequestBranch{
 					SHA: github.String("sha-ready"),
+				},
+				User: &github.User{
+					Login: github.String("test-user"),
 				},
 			},
 		},
@@ -669,6 +676,7 @@ func TestRunCheck_CommentsOnTestDeletion(t *testing.T) {
 	}
 	nowMilli := time.Now().UnixMilli()
 	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-deletion", "owner/repo", "test-job", time.Now(), "main", "test prompt")
 
 	mockFetcher := &MockSessionFetcher{
 		Session: &RemoteSession{
@@ -692,11 +700,16 @@ func TestRunCheck_CommentsOnTestDeletion(t *testing.T) {
 		},
 		PullRequests: []*github.PullRequest{
 			{
+				Number:    github.Int(7),
+				HTMLURL:   github.String("https://github.com/owner/repo/pull/7"),
 				State:     github.String("open"),
 				Draft:     github.Bool(true),
 				Mergeable: github.Bool(true),
 				Head: &github.PullRequestBranch{
 					SHA: github.String("sha-deletion"),
+				},
+				User: &github.User{
+					Login: github.String("test-user"),
 				},
 			},
 		},

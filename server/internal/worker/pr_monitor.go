@@ -160,6 +160,15 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 			continue
 		}
 
+		// 0. Check for zero changes
+		if pr.ChangedFiles != nil && *pr.ChangedFiles == 0 {
+			logger.Info("%s: Closing PR %s because it has 0 changed files", w.Name(), *pr.HTMLURL)
+			if _, err := w.githubClient.ClosePullRequest(ctx, owner, repo, *pr.Number); err != nil {
+				logger.Error("%s: Failed to close PR %s: %v", w.Name(), *pr.HTMLURL, err)
+			}
+			continue
+		}
+
 		// 1. Check for test file deletions (Applies to everyone)
 		deleted, err := w.checkTestDeletion(ctx, owner, repo, *pr.Number, *pr.HTMLURL)
 		if err != nil {
@@ -242,7 +251,7 @@ func (w *PRMonitorWorker) checkAutoReady(ctx context.Context, owner, repo string
 		logger.Error("%s: Failed to get status for %s: %v", w.Name(), prUrl, err)
 		return
 	}
-
+	
 	if combinedStatus != nil && combinedStatus.State != nil && *combinedStatus.State == "success" {
 		if pr.Mergeable != nil && *pr.Mergeable && pr.Draft != nil && *pr.Draft {
 			logger.Info("%s: PR %s is passed and mergeable. Marking ready for review.", w.Name(), prUrl)
