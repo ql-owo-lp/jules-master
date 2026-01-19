@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
-	"sync" // Added sync
+	"sync"
 	"time"
 
 	"github.com/gammazero/workerpool"
@@ -26,6 +26,8 @@ type GitHubClient interface {
 	GetUser(ctx context.Context, username string) (*github.User, error)
 	ClosePullRequest(ctx context.Context, owner, repo string, number int) (*github.PullRequest, error)
 	UpdateBranch(ctx context.Context, owner, repo string, number int) error
+	MarkPullRequestReadyForReview(ctx context.Context, owner, repo string, number int) (*github.PullRequest, error)
+	ListFiles(ctx context.Context, owner, repo string, number int, opts *github.ListOptions) ([]*github.CommitFile, error)
 }
 
 type PRMonitorWorker struct {
@@ -94,7 +96,6 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 	}
 
 	// List distinct repos from jobs
-	// This ensures we only check repos we are actively working on / have worked on.
 	rows, err := w.db.QueryContext(ctx, "SELECT DISTINCT repo FROM jobs WHERE repo IS NOT NULL AND repo != ''")
 	if err != nil {
 		return err
@@ -155,61 +156,123 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 	logger.Info("%s: Found %d open PRs in %s", w.Name(), len(prs), repoFullName)
 
 	for _, pr := range prs {
-		if pr == nil || pr.Number == nil || pr.HTMLURL == nil {
+		if pr == nil || pr.Number == nil || pr.HTMLURL == nil || pr.User == nil || pr.User.Login == nil {
 			continue
 		}
 
-		// Filter by author "google-labs-jules" (checking prefix to handle [bot] suffix)
-		if pr.User == nil || pr.User.Login == nil || !strings.Contains(*pr.User.Login, "google-labs-jules") {
-			// Uncomment for verbose debugging if needed, but keeping it quiet for now to avoid spam
-			// logger.Info("%s: Skipping PR %s by author %s", w.Name(), *pr.HTMLURL, *pr.User.Login)
+		// 1. Check for test file deletions (Applies to everyone)
+		deleted, err := w.checkTestDeletion(ctx, owner, repo, *pr.Number, *pr.HTMLURL)
+		if err != nil {
+			logger.Error("%s: Failed to check test deletion for %s: %v", w.Name(), *pr.HTMLURL, err)
+		}
+		if deleted {
+			// If we detected deletion, we skip other checks (fail fast) or proceed?
+			// Proceeding might be okay, but we definitely block auto-ready logic if valid.
+			// Actually checkTestDeletion comments on the PR.
 			continue
 		}
 
-		// Close empty PRs
-		if pr.ChangedFiles != nil && *pr.ChangedFiles == 0 {
-			logger.Info("%s: Closing PR %s because it has 0 changed files", w.Name(), *pr.HTMLURL)
-			if _, err := w.githubClient.ClosePullRequest(ctx, owner, repo, *pr.Number); err != nil {
-				logger.Error("%s: Failed to close PR %s: %v", w.Name(), *pr.HTMLURL, err)
-			}
-			continue
-		}
+		isBot := strings.Contains(*pr.User.Login, "google-labs-jules")
 
-		w.checkPR(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr.Head, s)
+		// 2. Check for Auto-Ready (Applicable if checks passed)
+		// We only do this if it's NOT a bot? Or for bots too?
+		// User requirement "Auto-Mark PR Ready for Review" didn't specify bot-only.
+		// Assuming for everyone for now (or at least for humans).
+		w.checkAutoReady(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr)
+
+		// 3. Bot-Specific Logic (Update Branch, Status Checks that trigger update)
+		// HEAD had filter here. We apply it for the heavy logic.
+		if isBot {
+			w.checkBotPR(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr.Head)
+		}
 	}
 }
 
-func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, number int, prUrl string, head *github.PullRequestBranch, s *pb.Settings) {
-	if head == nil || head.SHA == nil {
-		logger.Error("%s: PR %s has no Head/SHA", w.Name(), prUrl)
+func (w *PRMonitorWorker) checkTestDeletion(ctx context.Context, owner, repo string, number int, prUrl string) (bool, error) {
+	files, err := w.githubClient.ListFiles(ctx, owner, repo, number, nil)
+	if err != nil {
+		return false, err
+	}
+
+	for _, file := range files {
+		if file.Status != nil && *file.Status == "removed" && file.Filename != nil {
+			name := *file.Filename
+			if strings.HasSuffix(name, "_test.go") ||
+				strings.HasSuffix(name, ".test.ts") ||
+				strings.HasSuffix(name, ".spec.ts") ||
+				strings.Contains(name, "/tests/") ||
+				strings.HasPrefix(name, "tests/") {
+
+				msg := "Deletion of existing test cases are NOT ALLOWED. Only refactoring and move of these test cases are allowed"
+				logger.Info("%s: Found deleted test file %s in %s. Commenting.", w.Name(), name, prUrl)
+
+				// Check for duplicates
+				comments, err := w.githubClient.ListComments(ctx, owner, repo, number)
+				if err != nil {
+					return true, err
+				}
+
+				alreadyCommented := false
+				if len(comments) > 0 {
+					lastComment := comments[len(comments)-1]
+					if lastComment.Body != nil && strings.Contains(*lastComment.Body, "Deletion of existing test cases are NOT ALLOWED") {
+						alreadyCommented = true
+					}
+				}
+
+				if !alreadyCommented {
+					if err := w.githubClient.CreateComment(ctx, owner, repo, number, msg); err != nil {
+						logger.Error("%s: Failed to create test deletion comment on %s: %v", w.Name(), prUrl, err)
+					}
+				}
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
+func (w *PRMonitorWorker) checkAutoReady(ctx context.Context, owner, repo string, number int, prUrl string, pr *github.PullRequest) {
+	if pr.Head == nil || pr.Head.SHA == nil {
+		return
+	}
+	// Check Status
+	combinedStatus, err := w.githubClient.GetCombinedStatus(ctx, owner, repo, *pr.Head.SHA)
+	if err != nil {
+		logger.Error("%s: Failed to get status for %s: %v", w.Name(), prUrl, err)
 		return
 	}
 
-	// Check Status
+	if combinedStatus != nil && combinedStatus.State != nil && *combinedStatus.State == "success" {
+		if pr.Mergeable != nil && *pr.Mergeable && pr.Draft != nil && *pr.Draft {
+			logger.Info("%s: PR %s is passed and mergeable. Marking ready for review.", w.Name(), prUrl)
+			if _, err := w.githubClient.MarkPullRequestReadyForReview(ctx, owner, repo, number); err != nil {
+				logger.Error("%s: Failed to mark PR %s ready for review: %v", w.Name(), prUrl, err)
+			}
+		}
+	}
+}
+
+func (w *PRMonitorWorker) checkBotPR(ctx context.Context, owner, repo string, number int, prUrl string, head *github.PullRequestBranch) {
+	if head == nil || head.SHA == nil {
+		return
+	}
+
 	combinedStatus, err := w.githubClient.GetCombinedStatus(ctx, owner, repo, *head.SHA)
 	if err != nil {
 		logger.Error("%s: Failed to get status for %s: %v", w.Name(), prUrl, err)
 		return
 	}
-	if combinedStatus == nil {
-		logger.Error("%s: Combined status is nil for %s", w.Name(), prUrl)
-		return
-	}
 
-	if combinedStatus.State == nil {
+	if combinedStatus == nil {
 		logger.Info("%s: PR %s status state is nil", w.Name(), prUrl)
 		return
 	}
 
-	// Detailed logging as requested
-	// Detailed logging as requested
-	logger.Info("%s: Checked PR %s (author: google-labs-jules). Status: %s", w.Name(), prUrl, *combinedStatus.State)
+	logger.Info("%s: Checked Bot PR %s. Status: %s", w.Name(), prUrl, *combinedStatus.State)
 
-	// If status is failure OR pending, we check deeper.
-	// Pending checks might have individual failed runs (fail fast).
 	if *combinedStatus.State == "failure" || *combinedStatus.State == "pending" {
-
-		// Check if ANY check run is pending/in_progress.
+		// Check for pending check runs
 		checkRuns, _, err := w.githubClient.ListCheckRunsForRef(ctx, owner, repo, *head.SHA, nil)
 		if err != nil {
 			logger.Error("%s: Failed to list check runs for %s: %v", w.Name(), prUrl, err)
@@ -225,7 +288,7 @@ func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, numbe
 			}
 		}
 
-		// If pending, ensure we only proceed if there is an actual failure
+		// If pending, check if there is an actual failure
 		if *combinedStatus.State == "pending" {
 			hasFailure := false
 			if checkRuns != nil {
@@ -237,12 +300,11 @@ func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, numbe
 				}
 			}
 			if !hasFailure {
-				// No individual failure found, so it's genuinely pending.
 				return
 			}
-			logger.Info("%s: PR %s is pending but has failed check runs. Treating as failure.", w.Name(), prUrl)
 		}
 
+		// Update Branch logic
 		// Check if rebase/update is needed
 		fullPR, _, err := w.githubClient.GetPullRequest(ctx, owner, repo, number)
 		if err != nil {
@@ -254,13 +316,12 @@ func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, numbe
 					logger.Error("%s: Failed to update branch for %s: %v", w.Name(), prUrl, err)
 				} else {
 					logger.Info("%s: Successfully triggered branch update for %s", w.Name(), prUrl)
-					// Return here because update triggers new checks
-					return
+					return // update triggered
 				}
 			}
 		}
 
-		// Check last comment
+		// Comment on failure
 		comments, err := w.githubClient.ListComments(ctx, owner, repo, number)
 		if err != nil {
 			logger.Error("%s: Failed to list comments for %s: %v", w.Name(), prUrl, err)
@@ -270,10 +331,11 @@ func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, numbe
 		shouldComment := true
 		if len(comments) > 0 {
 			lastComment := comments[len(comments)-1]
+			// We skip "google-labs-jules" check here because we are only checking Bot PRs anyway?
+			// Actually best to strictly check if last comment is ours/failure comment.
 			if lastComment.User != nil && lastComment.User.Login != nil && strings.Contains(*lastComment.User.Login, "google-labs-jules") {
 				if lastComment.Body != nil && strings.Contains(*lastComment.Body, failureCommentPrefix) {
 					shouldComment = false
-					logger.Info("%s: PR %s already has failure comment as last comment. Skipping.", w.Name(), prUrl)
 				}
 			}
 		}
@@ -287,8 +349,6 @@ func (w *PRMonitorWorker) checkPR(ctx context.Context, owner, repo string, numbe
 					}
 				}
 			}
-
-			// Also check combined status for legacy status checks if any
 			for _, status := range combinedStatus.Statuses {
 				if status.State != nil && *status.State == "failure" {
 					failingCheckNames = append(failingCheckNames, status.GetContext())

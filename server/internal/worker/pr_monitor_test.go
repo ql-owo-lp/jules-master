@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ type MockGitHubClient struct {
 	CheckRuns              *github.ListCheckRunsResults
 	ClosePullRequestCalled bool
 	UpdateBranchCalled     bool
+	Files                  []*github.CommitFile
 }
 
 func (m *MockGitHubClient) GetCombinedStatus(ctx context.Context, owner, repo, ref string) (*github.CombinedStatus, error) {
@@ -62,6 +64,16 @@ func (m *MockGitHubClient) ClosePullRequest(ctx context.Context, owner, repo str
 func (m *MockGitHubClient) UpdateBranch(ctx context.Context, owner, repo string, number int) error {
 	m.UpdateBranchCalled = true
 	return nil
+}
+
+func (m *MockGitHubClient) ListFiles(ctx context.Context, owner, repo string, number int, opts *github.ListOptions) ([]*github.CommitFile, error) {
+	return m.Files, nil
+}
+
+func (m *MockGitHubClient) MarkPullRequestReadyForReview(ctx context.Context, owner, repo string, number int) (*github.PullRequest, error) {
+	// In a real mock we might track this call
+	m.CreatedComments = append(m.CreatedComments, "MARKED_READY_FOR_REVIEW")
+	return &github.PullRequest{Draft: github.Bool(false)}, nil
 }
 
 type MockSessionFetcher struct {
@@ -576,5 +588,146 @@ func TestRunCheck_UpdatesBranchIfBehind(t *testing.T) {
 
 	if !mockGH.UpdateBranchCalled {
 		t.Error("expected UpdateBranch to be called")
+	}
+}
+
+func TestRunCheck_MarksReadyForReview(t *testing.T) {
+	db := setupTestDB(t)
+	settingsService := &service.SettingsServer{DB: db}
+	sessionService := &service.SessionServer{DB: db}
+
+	sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
+		Name:      "test-session-ready",
+		ProfileId: "default",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+	nowMilli := time.Now().UnixMilli()
+	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+
+	mockFetcher := &MockSessionFetcher{
+		Session: &RemoteSession{
+			Id:    sess.Id,
+			State: "IN_PROGRESS",
+			Outputs: []struct {
+				PullRequest *struct {
+					Url string `json:"url"`
+				} `json:"pullRequest"`
+			}{
+				{PullRequest: &struct {
+					Url string `json:"url"`
+				}{Url: "https://github.com/owner/repo/pull/6"}},
+			},
+		},
+	}
+
+	mockGH := &MockGitHubClient{
+		CombinedStatus: &github.CombinedStatus{
+			State: github.String("success"),
+		},
+		PullRequests: []*github.PullRequest{
+			{
+				State:     github.String("open"),
+				Draft:     github.Bool(true),
+				Mergeable: github.Bool(true),
+				Head: &github.PullRequestBranch{
+					SHA: github.String("sha-ready"),
+				},
+			},
+		},
+	}
+
+	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
+	if err := worker.runCheck(context.Background()); err != nil {
+		t.Errorf("runCheck failed: %v", err)
+	}
+
+	found := false
+	for _, c := range mockGH.CreatedComments {
+		if c == "MARKED_READY_FOR_REVIEW" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected MarkPullRequestReadyForReview to be called (simulated by comment)")
+	}
+}
+
+func TestRunCheck_CommentsOnTestDeletion(t *testing.T) {
+	db := setupTestDB(t)
+	settingsService := &service.SettingsServer{DB: db}
+	sessionService := &service.SessionServer{DB: db}
+
+	sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
+		Name:      "test-session-deletion",
+		ProfileId: "default",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+	nowMilli := time.Now().UnixMilli()
+	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+
+	mockFetcher := &MockSessionFetcher{
+		Session: &RemoteSession{
+			Id:    sess.Id,
+			State: "IN_PROGRESS",
+			Outputs: []struct {
+				PullRequest *struct {
+					Url string `json:"url"`
+				} `json:"pullRequest"`
+			}{
+				{PullRequest: &struct {
+					Url string `json:"url"`
+				}{Url: "https://github.com/owner/repo/pull/7"}},
+			},
+		},
+	}
+
+	mockGH := &MockGitHubClient{
+		CombinedStatus: &github.CombinedStatus{
+			State: github.String("success"),
+		},
+		PullRequests: []*github.PullRequest{
+			{
+				State:     github.String("open"),
+				Draft:     github.Bool(true),
+				Mergeable: github.Bool(true),
+				Head: &github.PullRequestBranch{
+					SHA: github.String("sha-deletion"),
+				},
+			},
+		},
+		Files: []*github.CommitFile{
+			{
+				Filename: github.String("server/internal/worker/pr_monitor_test.go"),
+				Status:   github.String("removed"),
+			},
+		},
+	}
+
+	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
+	if err := worker.runCheck(context.Background()); err != nil {
+		t.Errorf("runCheck failed: %v", err)
+	}
+
+	found := false
+	for _, c := range mockGH.CreatedComments {
+		if strings.Contains(c, "Deletion of existing test cases are NOT ALLOWED") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected comment about test deletion")
+	}
+
+	// Ensure it was NOT marked ready for review
+	for _, c := range mockGH.CreatedComments {
+		if c == "MARKED_READY_FOR_REVIEW" {
+			t.Error("should NOT be marked ready for review if test files are deleted")
+		}
 	}
 }
