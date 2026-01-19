@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	pb "github.com/mcpany/jules/gen"
@@ -126,4 +127,44 @@ func TestPromptService_RepoPrompts(t *testing.T) {
 
 	got, _ = svc.GetRepoPrompt(ctx, &pb.GetRepoPromptRequest{Repo: "user/repo1"})
 	assert.Equal(t, "P2", got.Prompt)
+}
+
+func TestPromptService_Validation(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	svc := &PromptServer{DB: db}
+	ctx := context.Background()
+
+	longPrompt := strings.Repeat("a", 50001)
+	longTitle := strings.Repeat("a", 256)
+
+	// CreatePredefinedPrompt
+	_, err := svc.CreatePredefinedPrompt(ctx, &pb.CreatePromptRequest{Id: "v1", Title: "Valid", Prompt: longPrompt})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "prompt is too long")
+
+	_, err = svc.CreatePredefinedPrompt(ctx, &pb.CreatePromptRequest{Id: "v2", Title: longTitle, Prompt: "Valid"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "title is too long")
+
+	// CreateQuickReply
+	_, err = svc.CreateQuickReply(ctx, &pb.CreatePromptRequest{Id: "v3", Title: "Valid", Prompt: longPrompt})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "prompt is too long")
+
+	// SaveGlobalPrompt
+	_, err = svc.SaveGlobalPrompt(ctx, &pb.SaveGlobalPromptRequest{Prompt: longPrompt})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "prompt is too long")
+
+	// SaveRepoPrompt
+	_, err = svc.SaveRepoPrompt(ctx, &pb.SaveRepoPromptRequest{Repo: "user/repo2", Prompt: longPrompt})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "prompt is too long")
+
+	// UpdatePredefinedPrompt
+	title := "Valid"
+	_, err = svc.UpdatePredefinedPrompt(ctx, &pb.UpdatePromptRequest{Id: "p1", Title: &title, Prompt: &longPrompt})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "prompt is too long")
 }

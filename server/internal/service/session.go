@@ -93,6 +93,14 @@ func (s *SessionServer) GetSession(ctx context.Context, req *pb.GetSessionReques
 }
 
 func (s *SessionServer) CreateSession(ctx context.Context, req *pb.CreateSessionRequest) (*pb.Session, error) {
+	// Validate input length
+	if len(req.Name) > 255 {
+		return nil, fmt.Errorf("name is too long (max 255 characters)")
+	}
+	if len(req.Prompt) > 50000 {
+		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+	}
+
 	// Try remote creation first
 	remoteSess, err := s.createRemoteSession(req)
 	if err != nil {
