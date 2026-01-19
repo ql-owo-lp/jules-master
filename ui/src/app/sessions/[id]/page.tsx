@@ -90,7 +90,6 @@ export default function SessionDetailPage() {
   // Determine current poll interval
   const isSessionDone = session?.state === 'COMPLETED' || session?.state === 'FAILED';
   const currentPollInterval = isSessionDone ? idlePollInterval : (isPollingActive ? activePollInterval : idlePollInterval);
-  const [countdown, setCountdown] = useState(currentPollInterval);
   
   useEffect(() => {
     setIsClient(true);
@@ -124,9 +123,6 @@ export default function SessionDetailPage() {
             setIsPollingActive(false);
         }
 
-        const newInterval = isNowDone ? idlePollInterval : (isPollingActive ? activePollInterval : idlePollInterval);
-        setCountdown(newInterval);
-        
       } else {
         // If fetch fails, we don't call notFound(), we rely on the cached version if it exists.
         // We could show a toast here to indicate the fetch failed but we're showing cached data.
@@ -155,14 +151,6 @@ export default function SessionDetailPage() {
     }
   }, [apiKey, hasJulesApiKey, currentPollInterval, fetchSessionData]);
 
-  // Countdown timer
-  useEffect(() => {
-    if (!(apiKey || hasJulesApiKey) || currentPollInterval <= 0) return;
-    const timer = setInterval(() => {
-      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [apiKey, hasJulesApiKey, currentPollInterval, lastUpdatedAt]);
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (activityFeedRef.current) {
@@ -200,7 +188,6 @@ export default function SessionDetailPage() {
       if (result) {
         setSession(result);
         setIsPollingActive(true); // Start active polling
-        setCountdown(activePollInterval); // Reset timer immediately
         toast({ title: "Plan Approved", description: "The session will now proceed." });
       } else {
         toast({
@@ -222,7 +209,6 @@ export default function SessionDetailPage() {
         // Activate faster polling and refresh data immediately
         setIsPollingActive(true);
         fetchSessionData();
-        setCountdown(activePollInterval);
 
       } else {
         toast({
@@ -518,7 +504,6 @@ export default function SessionDetailPage() {
                         lastUpdatedAt={lastUpdatedAt}
                         onRefresh={() => fetchSessionData({ showToast: true })}
                         isRefreshing={isFetching}
-                        countdown={countdown}
                         pollInterval={currentPollInterval}
                     />
 
