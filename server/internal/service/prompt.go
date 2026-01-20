@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,6 +45,12 @@ func (s *PromptServer) GetPredefinedPrompt(ctx context.Context, req *pb.GetPromp
 }
 
 func (s *PromptServer) CreatePredefinedPrompt(ctx context.Context, req *pb.CreatePromptRequest) (*pb.PredefinedPrompt, error) {
+	if len(req.Title) > 255 {
+		return nil, fmt.Errorf("title is too long (max 255 characters)")
+	}
+	if len(req.Prompt) > 50000 {
+		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+	}
 	_, err := s.DB.Exec("INSERT INTO predefined_prompts (id, title, prompt, profile_id) VALUES (?, ?, ?, ?)", req.Id, req.Title, req.Prompt, req.ProfileId)
 	if err != nil {
 		return nil, err
@@ -65,6 +72,12 @@ func (s *PromptServer) CreateManyPredefinedPrompts(ctx context.Context, req *pb.
 	defer stmt.Close()
 
 	for _, p := range req.Prompts {
+		if len(p.Title) > 255 {
+			return nil, fmt.Errorf("title is too long (max 255 characters)")
+		}
+		if len(p.Prompt) > 50000 {
+			return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+		}
 		if _, err := stmt.Exec(p.Id, p.Title, p.Prompt, p.ProfileId); err != nil {
 			return nil, err
 		}
@@ -73,6 +86,12 @@ func (s *PromptServer) CreateManyPredefinedPrompts(ctx context.Context, req *pb.
 }
 
 func (s *PromptServer) UpdatePredefinedPrompt(ctx context.Context, req *pb.UpdatePromptRequest) (*emptypb.Empty, error) {
+	if req.Title != nil && len(*req.Title) > 255 {
+		return nil, fmt.Errorf("title is too long (max 255 characters)")
+	}
+	if req.Prompt != nil && len(*req.Prompt) > 50000 {
+		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+	}
 	_, err := s.DB.Exec("UPDATE predefined_prompts SET title = ?, prompt = ? WHERE id = ?", req.Title, req.Prompt, req.Id)
 	if err != nil {
 		return nil, err
@@ -117,6 +136,12 @@ func (s *PromptServer) GetQuickReply(ctx context.Context, req *pb.GetPromptReque
 }
 
 func (s *PromptServer) CreateQuickReply(ctx context.Context, req *pb.CreatePromptRequest) (*pb.PredefinedPrompt, error) {
+	if len(req.Title) > 255 {
+		return nil, fmt.Errorf("title is too long (max 255 characters)")
+	}
+	if len(req.Prompt) > 50000 {
+		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+	}
 	_, err := s.DB.Exec("INSERT INTO quick_replies (id, title, prompt, profile_id) VALUES (?, ?, ?, ?)", req.Id, req.Title, req.Prompt, req.ProfileId)
 	if err != nil {
 		return nil, err
@@ -138,6 +163,12 @@ func (s *PromptServer) CreateManyQuickReplies(ctx context.Context, req *pb.Creat
 	defer stmt.Close()
 
 	for _, p := range req.Prompts {
+		if len(p.Title) > 255 {
+			return nil, fmt.Errorf("title is too long (max 255 characters)")
+		}
+		if len(p.Prompt) > 50000 {
+			return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+		}
 		if _, err := stmt.Exec(p.Id, p.Title, p.Prompt, p.ProfileId); err != nil {
 			return nil, err
 		}
@@ -146,6 +177,12 @@ func (s *PromptServer) CreateManyQuickReplies(ctx context.Context, req *pb.Creat
 }
 
 func (s *PromptServer) UpdateQuickReply(ctx context.Context, req *pb.UpdatePromptRequest) (*emptypb.Empty, error) {
+	if req.Title != nil && len(*req.Title) > 255 {
+		return nil, fmt.Errorf("title is too long (max 255 characters)")
+	}
+	if req.Prompt != nil && len(*req.Prompt) > 50000 {
+		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+	}
 	_, err := s.DB.Exec("UPDATE quick_replies SET title = ?, prompt = ? WHERE id = ?", req.Title, req.Prompt, req.Id)
 	if err != nil {
 		return nil, err
@@ -174,6 +211,9 @@ func (s *PromptServer) GetGlobalPrompt(ctx context.Context, _ *emptypb.Empty) (*
 }
 
 func (s *PromptServer) SaveGlobalPrompt(ctx context.Context, req *pb.SaveGlobalPromptRequest) (*emptypb.Empty, error) {
+	if len(req.Prompt) > 50000 {
+		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+	}
 	// Check if exists
 	var id int
 	err := s.DB.QueryRow("SELECT id FROM global_prompt LIMIT 1").Scan(&id)
@@ -226,6 +266,10 @@ func (s *PromptServer) GetRecentHistoryPrompts(ctx context.Context, req *pb.GetR
 }
 
 func (s *PromptServer) SaveHistoryPrompt(ctx context.Context, req *pb.SaveHistoryPromptRequest) (*emptypb.Empty, error) {
+	if len(req.Prompt) > 50000 {
+		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+	}
+
 	// Check duplication (Node logic: don't save duplicate)
 	// Actually Node logic: does it check? tests say "should not save duplicate".
 	// Let's implement de-dupe.
@@ -269,6 +313,9 @@ func (s *PromptServer) GetRepoPrompt(ctx context.Context, req *pb.GetRepoPromptR
 }
 
 func (s *PromptServer) SaveRepoPrompt(ctx context.Context, req *pb.SaveRepoPromptRequest) (*emptypb.Empty, error) {
+	if len(req.Prompt) > 50000 {
+		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+	}
 	// Upsert
 	var exists int
 	err := s.DB.QueryRow("SELECT 1 FROM repo_prompts WHERE repo = ? LIMIT 1", req.Repo).Scan(&exists)

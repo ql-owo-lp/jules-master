@@ -123,6 +123,13 @@ func (s *JobServer) GetJob(ctx context.Context, req *pb.GetJobRequest) (*pb.Job,
 }
 
 func (s *JobServer) CreateJob(ctx context.Context, req *pb.CreateJobRequest) (*pb.Job, error) {
+	if len(req.Name) > 255 {
+		return nil, fmt.Errorf("name is too long (max 255 characters)")
+	}
+	if len(req.Prompt) > 50000 {
+		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+	}
+
 	id := req.Id
 	if id == "" {
 		id = uuid.New().String()
@@ -196,6 +203,13 @@ func (s *JobServer) CreateManyJobs(ctx context.Context, req *pb.CreateManyJobsRe
 	defer stmt.Close()
 
 	for _, j := range req.Jobs {
+		if len(j.Name) > 255 {
+			return nil, fmt.Errorf("name is too long (max 255 characters)")
+		}
+		if len(j.Prompt) > 50000 {
+			return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+		}
+
 		sessionIdsJSON, _ := json.Marshal(j.SessionIds)
 		if j.SessionIds == nil {
 			sessionIdsJSON = []byte("[]")
@@ -234,6 +248,9 @@ func (s *JobServer) UpdateJob(ctx context.Context, req *pb.UpdateJobRequest) (*e
 	updates := false
 
 	if req.Name != nil {
+		if len(*req.Name) > 255 {
+			return nil, fmt.Errorf("name is too long (max 255 characters)")
+		}
 		query += "name = ?, "
 		args = append(args, *req.Name)
 		updates = true

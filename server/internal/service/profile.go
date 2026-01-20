@@ -39,6 +39,9 @@ func (s *ProfileServer) CreateProfile(ctx context.Context, req *pb.CreateProfile
 	if req.Name == "" {
 		return nil, fmt.Errorf("name is required")
 	}
+	if len(req.Name) > 255 {
+		return nil, fmt.Errorf("name is too long (max 255 characters)")
+	}
 
 	id := uuid.New().String()
 	createdAt := time.Now().Format(time.RFC3339)

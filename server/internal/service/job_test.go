@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -86,4 +87,36 @@ func TestJobService_Delete(t *testing.T) {
 
 	_, err = svc.GetJob(ctx, &pb.GetJobRequest{Id: "5"})
 	assert.Error(t, err)
+}
+
+func TestJobService_Validation(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	svc := &JobServer{DB: db}
+	ctx := context.Background()
+
+	longPrompt := strings.Repeat("a", 50001)
+	longName := strings.Repeat("a", 256)
+
+	// CreateJob
+	_, err := svc.CreateJob(ctx, &pb.CreateJobRequest{Name: "Valid", Repo: "repo", Branch: "main", Prompt: longPrompt})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "prompt is too long")
+
+	_, err = svc.CreateJob(ctx, &pb.CreateJobRequest{Name: longName, Repo: "repo", Branch: "main", Prompt: "Valid"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "name is too long")
+
+	// CreateManyJobs
+	_, err = svc.CreateManyJobs(ctx, &pb.CreateManyJobsRequest{Jobs: []*pb.CreateJobRequest{
+		{Name: "Valid", Repo: "repo", Branch: "main", Prompt: longPrompt},
+	}})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "prompt is too long")
+
+	// UpdateJob
+	svc.CreateJob(ctx, &pb.CreateJobRequest{Id: "v1", Name: "Initial", Repo: "repo", Branch: "main"})
+	_, err = svc.UpdateJob(ctx, &pb.UpdateJobRequest{Id: "v1", Name: &longName})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "name is too long")
 }
