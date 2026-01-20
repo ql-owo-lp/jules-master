@@ -290,31 +290,38 @@ func (w *PRMonitorWorker) checkBotPR(ctx context.Context, owner, repo string, nu
 	logger.Info("%s [%s]: Checked PR %s (author: google-labs-jules). Status: %s", w.Name(), w.id, prUrl, *combinedStatus.State)
 
 	if *combinedStatus.State == "failure" || *combinedStatus.State == "pending" {
-		// Check for pending check runs
-		checkRuns, _, err := w.githubClient.ListCheckRunsForRef(ctx, owner, repo, *head.SHA, nil)
-		if err != nil {
-			logger.Error("%s [%s]: Failed to list check runs for %s: %v", w.Name(), w.id, prUrl, err)
-			return
+		// Check if ANY check run is pending/in_progress.
+		opts := &github.ListCheckRunsOptions{ListOptions: github.ListOptions{PerPage: 100}}
+		var allCheckRuns []*github.CheckRun
+		for {
+			runs, resp, err := w.githubClient.ListCheckRunsForRef(ctx, owner, repo, *head.SHA, opts)
+			if err != nil {
+				logger.Error("%s [%s]: Failed to list check runs for %s: %v", w.Name(), w.id, prUrl, err)
+				return
+			}
+			if runs != nil {
+				allCheckRuns = append(allCheckRuns, runs.CheckRuns...)
+			}
+			if resp.NextPage == 0 {
+				break
+			}
+			opts.Page = resp.NextPage
 		}
 
-		if checkRuns != nil {
-			for _, run := range checkRuns.CheckRuns {
-				if run.Status != nil && (*run.Status == "queued" || *run.Status == "in_progress") {
-					logger.Info("%s [%s]: PR %s has pending check run: %s (%s). Waiting.", w.Name(), w.id, prUrl, run.GetName(), *run.Status)
-					return
-				}
+		for _, run := range allCheckRuns {
+			if run.Status != nil && (*run.Status == "queued" || *run.Status == "in_progress") {
+				logger.Info("%s [%s]: PR %s has pending check run: %s (%s). Waiting.", w.Name(), w.id, prUrl, run.GetName(), *run.Status)
+				return
 			}
 		}
 
 		// If pending, check if there is an actual failure
 		if *combinedStatus.State == "pending" {
 			hasFailure := false
-			if checkRuns != nil {
-				for _, run := range checkRuns.CheckRuns {
-					if run.Conclusion != nil && *run.Conclusion == "failure" {
-						hasFailure = true
-						break
-					}
+			for _, run := range allCheckRuns {
+				if run.Conclusion != nil && *run.Conclusion == "failure" {
+					hasFailure = true
+					break
 				}
 			}
 			if !hasFailure {
@@ -363,11 +370,9 @@ func (w *PRMonitorWorker) checkBotPR(ctx context.Context, owner, repo string, nu
 
 		if shouldComment {
 			var failingCheckNames []string
-			if checkRuns != nil {
-				for _, run := range checkRuns.CheckRuns {
-					if run.Conclusion != nil && *run.Conclusion == "failure" {
-						failingCheckNames = append(failingCheckNames, run.GetName())
-					}
+			for _, run := range allCheckRuns {
+				if run.Conclusion != nil && *run.Conclusion == "failure" {
+					failingCheckNames = append(failingCheckNames, run.GetName())
 				}
 			}
 			for _, status := range combinedStatus.Statuses {

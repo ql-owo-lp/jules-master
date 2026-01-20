@@ -40,7 +40,39 @@ func (m *MockGitHubClient) GetPullRequest(ctx context.Context, owner, repo strin
 }
 
 func (m *MockGitHubClient) ListCheckRunsForRef(ctx context.Context, owner, repo, ref string, opts *github.ListCheckRunsOptions) (*github.ListCheckRunsResults, *github.Response, error) {
-	return m.CheckRuns, nil, nil
+	// Default values
+	page := 1
+	perPage := 30
+	
+	if opts != nil {
+		if opts.Page > 0 {
+			page = opts.Page
+		}
+		if opts.PerPage > 0 {
+			perPage = opts.PerPage
+		}
+	}
+
+	start := (page - 1) * perPage
+	if start >= len(m.CheckRuns.CheckRuns) {
+		return &github.ListCheckRunsResults{CheckRuns: []*github.CheckRun{}}, &github.Response{}, nil
+	}
+	end := start + perPage
+	if end > len(m.CheckRuns.CheckRuns) {
+		end = len(m.CheckRuns.CheckRuns)
+	}
+	
+	resp := &github.Response{}
+	if end < len(m.CheckRuns.CheckRuns) {
+		resp.NextPage = page + 1
+	} else {
+        resp.NextPage = 0
+    }
+	
+	return &github.ListCheckRunsResults{
+		CheckRuns: m.CheckRuns.CheckRuns[start:end],
+		Total:     m.CheckRuns.Total, // Should be set in mock setup
+	}, resp, nil
 }
 
 func (m *MockGitHubClient) ListComments(ctx context.Context, owner, repo string, number int) ([]*github.IssueComment, error) {
