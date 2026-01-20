@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -27,6 +27,14 @@ import { Combobox, ComboboxGroup } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import cronParser from "cron-parser";
 import { format } from "date-fns";
+
+const CRON_PRESETS = [
+    { label: "Every Hour", value: "0 * * * *" },
+    { label: "Every Day", value: "0 0 * * *" },
+    { label: "Every Week", value: "0 0 * * 0" },
+    { label: "Every Month", value: "0 0 1 * *" },
+    { label: "Weekdays", value: "0 0 * * 1-5" },
+];
 
 type CronJobFormProps = {
   onCronJobCreated: () => void;
@@ -351,7 +359,27 @@ export function CronJobForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="schedule">Schedule (Cron Expression)</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="schedule">Schedule (Cron Expression)</Label>
+                <Select
+                  value={CRON_PRESETS.find(p => p.value === schedule)?.value || ""}
+                  onValueChange={(val) => {
+                    if (val) setSchedule(val);
+                  }}
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="w-[140px] h-8 text-xs" aria-label="Schedule Presets">
+                    <SelectValue placeholder="Presets" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CRON_PRESETS.map((preset) => (
+                      <SelectItem key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Input
                 id="schedule"
                 placeholder="e.g., 0 0 * * 0 (Weekly)"

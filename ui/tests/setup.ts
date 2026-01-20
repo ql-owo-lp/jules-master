@@ -1,6 +1,27 @@
 
 import '@testing-library/jest-dom';
 import { vi, beforeEach } from 'vitest';
+
+vi.mock('better-sqlite3', () => {
+  return {
+    default: class {
+      prepare = vi.fn().mockReturnValue({
+        run: vi.fn(),
+        get: vi.fn(),
+        all: vi.fn(),
+      });
+      exec = vi.fn();
+      pragma = vi.fn();
+      function = vi.fn();
+      transaction = vi.fn().mockReturnValue((cb: any) => cb);
+    },
+  };
+});
+
+vi.mock('drizzle-orm/better-sqlite3/migrator', () => ({
+  migrate: vi.fn(),
+}));
+
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { db } from '../src/lib/db';
 
