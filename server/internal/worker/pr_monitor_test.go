@@ -44,6 +44,10 @@ func (m *MockGitHubClient) ListCheckRunsForRef(ctx context.Context, owner, repo,
 	page := 1
 	perPage := 30
 	
+	if m.CheckRuns == nil {
+		return &github.ListCheckRunsResults{CheckRuns: []*github.CheckRun{}}, &github.Response{}, nil
+	}
+
 	if opts != nil {
 		if opts.Page > 0 {
 			page = opts.Page
