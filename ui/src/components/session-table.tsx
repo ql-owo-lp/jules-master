@@ -206,7 +206,50 @@ const SessionRowComponent = ({
   );
 };
 
-const SessionRow = memo(SessionRowComponent);
+const areSessionPropsEqual = (prev: SessionRowProps, next: SessionRowProps) => {
+  const isSessionEqual =
+    prev.session.id === next.session.id &&
+    prev.session.title === next.session.title &&
+    prev.session.state === next.session.state &&
+    prev.session.createTime === next.session.createTime &&
+    prev.session.url === next.session.url &&
+    getPullRequestUrl(prev.session) === getPullRequestUrl(next.session);
+
+  if (!isSessionEqual) return false;
+
+  // Check quickReplies (array of objects)
+  // We can do a deep check if reference changed.
+  let isQuickRepliesEqual = prev.quickReplies === next.quickReplies;
+  if (!isQuickRepliesEqual) {
+    if (prev.quickReplies.length === next.quickReplies.length) {
+      isQuickRepliesEqual = true;
+      for (let i = 0; i < prev.quickReplies.length; i++) {
+        if (prev.quickReplies[i].id !== next.quickReplies[i].id ||
+          prev.quickReplies[i].title !== next.quickReplies[i].title ||
+          prev.quickReplies[i].prompt !== next.quickReplies[i].prompt) {
+          isQuickRepliesEqual = false;
+          break;
+        }
+      }
+    }
+  }
+  if (!isQuickRepliesEqual) return false;
+
+  return (
+    prev.isUncategorized === next.isUncategorized &&
+    prev.jobId === next.jobId &&
+    prev.isSelected === next.isSelected &&
+    prev.onSelectRow === next.onSelectRow &&
+    prev.titleTruncateLength === next.titleTruncateLength &&
+    prev.isActionPending === next.isActionPending &&
+    prev.onApprovePlan === next.onApprovePlan &&
+    prev.onSendMessage === next.onSendMessage &&
+    prev.jobIdParam === next.jobIdParam &&
+    prev.prStatus === next.prStatus
+  );
+};
+
+const SessionRow = memo(SessionRowComponent, areSessionPropsEqual);
 
 export function SessionTable({
   sessions,
