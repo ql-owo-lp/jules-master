@@ -248,7 +248,14 @@ func (s *PromptServer) ListHistoryPrompts(ctx context.Context, _ *emptypb.Empty)
 }
 
 func (s *PromptServer) GetRecentHistoryPrompts(ctx context.Context, req *pb.GetRecentRequest) (*pb.ListHistoryPromptsResponse, error) {
-	rows, err := s.DB.Query("SELECT id, prompt, last_used_at, profile_id FROM history_prompts ORDER BY last_used_at DESC LIMIT ?", req.Limit)
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	rows, err := s.DB.Query("SELECT id, prompt, last_used_at, profile_id FROM history_prompts ORDER BY last_used_at DESC LIMIT ?", limit)
 	if err != nil {
 		return nil, err
 	}
