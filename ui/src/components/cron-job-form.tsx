@@ -356,6 +356,7 @@ export function CronJobForm({
                 value={jobName}
                 onChange={(e) => setJobName(e.target.value)}
                 disabled={isPending}
+                required
               />
             </div>
             <div className="space-y-2">
@@ -387,6 +388,7 @@ export function CronJobForm({
                 onChange={(e) => setSchedule(e.target.value)}
                 disabled={isPending}
                 aria-describedby="schedule-help"
+                required
               />
               <div className="flex justify-between items-start">
                 <p id="schedule-help" className="text-xs text-muted-foreground">
@@ -505,7 +507,11 @@ export function CronJobForm({
                 value={sessionCount}
                 onChange={(e) => setSessionCount(parseInt(e.target.value, 10))}
                 disabled={isPending}
+                aria-describedby="session-count-help"
               />
+              <p id="session-count-help" className="text-xs text-muted-foreground">
+                Run multiple parallel sessions for this job.
+              </p>
             </div>
             <div className="flex items-center space-x-2">
               <Switch
