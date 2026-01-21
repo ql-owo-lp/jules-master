@@ -8,6 +8,7 @@ import { updateSessionInteraction } from "@/lib/session-service";
 import { db } from "@/lib/db";
 import { sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { MAX_PROMPT_LENGTH } from "@/lib/security";
 
 type ListActivitiesResponse = {
   activities: Activity[];
@@ -154,6 +155,14 @@ export async function sendMessage(
     console.error("Jules API key is not configured.");
     return null;
   }
+
+  if (message.length > MAX_PROMPT_LENGTH) {
+    console.error(
+      `Message too long: ${message.length} chars (max ${MAX_PROMPT_LENGTH})`
+    );
+    return null;
+  }
+
   try {
     const response = await fetchWithRetry(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}:sendMessage`,

@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { getSession, listActivities, approvePlan, sendMessage } from '@/app/sessions/[id]/actions';
 import * as fetchClient from '@/lib/fetch-client';
+import { MAX_PROMPT_LENGTH } from '@/lib/security';
 
 // Mock the fetch-client module
 vi.mock('@/lib/fetch-client', () => ({
@@ -86,6 +87,13 @@ describe('Session [id] Actions', () => {
         expect.any(Object)
       );
       expect(session).toEqual(mockSession);
+    });
+
+    it('should return null if message is too long', async () => {
+      const longMessage = 'a'.repeat(MAX_PROMPT_LENGTH + 1);
+      const session = await sendMessage('123', longMessage);
+      expect(session).toBeNull();
+      expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
     });
   });
 });

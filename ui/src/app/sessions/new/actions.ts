@@ -3,6 +3,7 @@
 
 import type { Session, AutomationMode } from "@/lib/types";
 import { fetchWithRetry } from "@/lib/fetch-client";
+import { MAX_PROMPT_LENGTH, MAX_TITLE_LENGTH } from "@/lib/security";
 
 // The partial session type for the create request body
 type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
@@ -21,6 +22,19 @@ export async function createSession(
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
+    return null;
+  }
+
+  if (sessionData.prompt && sessionData.prompt.length > MAX_PROMPT_LENGTH) {
+    console.error(
+      `Prompt too long: ${sessionData.prompt.length} chars (max ${MAX_PROMPT_LENGTH})`
+    );
+    return null;
+  }
+  if (sessionData.title && sessionData.title.length > MAX_TITLE_LENGTH) {
+    console.error(
+      `Title too long: ${sessionData.title.length} chars (max ${MAX_TITLE_LENGTH})`
+    );
     return null;
   }
   

@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createSession } from '@/app/sessions/new/actions';
 import * as fetchClient from '@/lib/fetch-client';
+import { MAX_PROMPT_LENGTH, MAX_TITLE_LENGTH } from '@/lib/security';
 
 // Mock the fetch-client module
 vi.mock('@/lib/fetch-client', () => ({
@@ -76,6 +77,24 @@ describe('Session New Actions', () => {
 
       const session = await createSession(sessionData);
       expect(session).toBeNull();
+    });
+
+    it('should return null if prompt is too long', async () => {
+      const longPrompt = 'a'.repeat(MAX_PROMPT_LENGTH + 1);
+      const sessionDataWithLongPrompt = { ...sessionData, prompt: longPrompt };
+
+      const session = await createSession(sessionDataWithLongPrompt);
+      expect(session).toBeNull();
+      expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
+    });
+
+    it('should return null if title is too long', async () => {
+      const longTitle = 'a'.repeat(MAX_TITLE_LENGTH + 1);
+      const sessionDataWithLongTitle = { ...sessionData, title: longTitle };
+
+      const session = await createSession(sessionDataWithLongTitle);
+      expect(session).toBeNull();
+      expect(fetchClient.fetchWithRetry).not.toHaveBeenCalled();
     });
 
     it('should not include autoRetryEnabled and autoContinueEnabled even if they are true', async () => {
