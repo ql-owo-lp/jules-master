@@ -73,3 +73,20 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
       };
     });
 }
+
+export function hasDataChanged<T extends { id: string }>(
+  prev: T[],
+  next: T[]
+): boolean {
+  if (prev.length !== next.length) return true;
+
+  const prevMap = new Map(prev.map(item => [item.id, item]));
+
+  for (const item of next) {
+    const prevItem = prevMap.get(item.id);
+    if (!prevItem) return true;
+    if (JSON.stringify(prevItem) !== JSON.stringify(item)) return true;
+  }
+
+  return false;
+}

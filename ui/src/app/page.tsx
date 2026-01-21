@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
-import { groupSessionsByTopic, createDynamicJobs } from "@/lib/utils";
+import { groupSessionsByTopic, createDynamicJobs, hasDataChanged } from "@/lib/utils";
 import { useEnv } from "@/components/env-provider";
 import { FloatingProgressBar } from "@/components/floating-progress-bar";
 import { NewJobDialog } from "@/components/new-job-dialog";
@@ -146,10 +146,18 @@ function HomePageContent() {
           setError(null);
         }
         const validSessions = (fetchedSessionsResult.sessions || []).filter(s => s);
-        setSessions(validSessions);
-        setJobs(fetchedJobs);
-        setQuickReplies(fetchedQuickReplies);
-        setPendingBackgroundWork(fetchedPendingWork);
+        if (hasDataChanged(sessions, validSessions)) {
+          setSessions(validSessions);
+        }
+        if (hasDataChanged(jobs, fetchedJobs)) {
+          setJobs(fetchedJobs);
+        }
+        if (hasDataChanged(quickReplies, fetchedQuickReplies)) {
+          setQuickReplies(fetchedQuickReplies);
+        }
+        if (JSON.stringify(pendingBackgroundWork) !== JSON.stringify(fetchedPendingWork)) {
+          setPendingBackgroundWork(fetchedPendingWork);
+        }
         setLastUpdatedAt(Date.now());
         setCountdown(sessionListPollInterval);
       } catch {
