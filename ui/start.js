@@ -29,7 +29,7 @@ console.log('Starting Go backend...');
 const { spawn } = require('child_process');
 const backend = spawn('/app/server', [], {
   stdio: 'inherit',
-  env: { ...process.env } // Pass through env vars
+  env: { ...process.env, PORT: '50051' } // Force backend to internal port, avoiding conflict with frontend
 });
 
 backend.on('error', (err) => {

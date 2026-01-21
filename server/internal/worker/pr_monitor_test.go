@@ -565,6 +565,79 @@ func TestRunCheck_ClosesZeroChangePR(t *testing.T) {
 	}
 }
 
+func TestRunCheck_ClosesConflictPR(t *testing.T) {
+	db := setupTestDB(t)
+	settingsService := &service.SettingsServer{DB: db}
+	sessionService := &service.SessionServer{DB: db}
+
+	sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
+		Name: "test-session-conflict",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+	nowMilli := time.Now().UnixMilli()
+	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-conflict", "owner/repo", "test-job", time.Now(), "main", "test prompt")
+
+	mockFetcher := &MockSessionFetcher{
+		Session: &RemoteSession{
+			Id:    sess.Id,
+			State: "IN_PROGRESS",
+			Outputs: []struct {
+				PullRequest *struct {
+					Url string `json:"url"`
+				} `json:"pullRequest"`
+			}{
+				{PullRequest: &struct {
+					Url string `json:"url"`
+				}{Url: "https://github.com/owner/repo/pull/55"}},
+			},
+		},
+	}
+
+	mockGH := &MockGitHubClient{
+		CombinedStatus: &github.CombinedStatus{
+			State: github.String("success"),
+		},
+		PullRequests: []*github.PullRequest{
+			{
+				State:     github.String("open"),
+				Number:    github.Int(55),
+				HTMLURL:   github.String("https://github.com/owner/repo/pull/55"),
+				Mergeable: github.Bool(false), // Conflicting!
+				Head: &github.PullRequestBranch{
+					SHA: github.String("sha-conflict"),
+				},
+				User: &github.User{
+					Login: github.String("google-labs-jules"),
+				},
+			},
+		},
+	}
+
+	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
+	if err := worker.runCheck(context.Background()); err != nil {
+		t.Errorf("runCheck failed: %v", err)
+	}
+
+	if !mockGH.ClosePullRequestCalled {
+		t.Error("expected ClosePullRequest to be called for conflicting PR")
+	}
+
+	// Verify comment
+	foundComment := false
+	for _, c := range mockGH.CreatedComments {
+		if strings.Contains(c, "merge conflicts") {
+			foundComment = true
+			break
+		}
+	}
+	if !foundComment {
+		t.Error("expected comment explaining merge conflicts")
+	}
+}
+
 func TestRunCheck_UpdatesBranchIfBehind(t *testing.T) {
 	db := setupTestDB(t)
 	settingsService := &service.SettingsServer{DB: db}
