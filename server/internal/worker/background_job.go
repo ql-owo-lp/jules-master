@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/google/uuid"
 	pb "github.com/mcpany/jules/gen"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
@@ -13,47 +14,67 @@ import (
 
 type BackgroundJobWorker struct {
 	BaseWorker
+	id             string
 	db             *sql.DB
 	jobService     *service.JobServer
 	sessionService *service.SessionServer
+	settingsSvc    *service.SettingsServer
 }
 
-func NewBackgroundJobWorker(database *sql.DB, jobService *service.JobServer, sessionService *service.SessionServer) *BackgroundJobWorker {
+func NewBackgroundJobWorker(database *sql.DB, jobService *service.JobServer, sessionService *service.SessionServer, settingsSvc *service.SettingsServer) *BackgroundJobWorker {
 	return &BackgroundJobWorker{
 		BaseWorker: BaseWorker{
 			NameStr:  "BackgroundJobWorker",
-			Interval: 10 * time.Second, // Poll frequently
+			Interval: 300 * time.Second, // Default to 5 minutes
 		},
+		id:             uuid.New().String()[:8],
 		db:             database,
 		jobService:     jobService,
 		sessionService: sessionService,
+		settingsSvc:    settingsSvc,
 	}
 }
 
 func (w *BackgroundJobWorker) Start(ctx context.Context) error {
-	logger.Info("Starting worker: %s", w.Name())
-
-	// Ensure we don't start immediately to avoid startup clashes? No, it's fine.
+	logger.Info("Starting worker: %s [%s]", w.Name(), w.id)
 
 	for {
+		interval := w.getInterval(ctx)
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(w.Interval):
+		case <-time.After(interval):
 			status := "Success"
 			if err := w.ProcessJobs(ctx); err != nil {
-				logger.Error("Worker %s failed: %s", w.Name(), err.Error())
+				logger.Error("Worker %s [%s] failed: %s", w.Name(), w.id, err.Error())
 				status = "Failed"
 			}
-			nextRun := time.Now().Add(w.Interval)
-			logger.Info("%s task completed. Status: %s. Next run at %s", w.Name(), status, nextRun.Format(time.RFC3339))
+			nextRun := time.Now().Add(interval)
+			logger.Info("%s [%s] task completed. Status: %s. Next run at %s", w.Name(), w.id, status, nextRun.Format(time.RFC3339))
 		}
 	}
 }
 
+func (w *BackgroundJobWorker) getInterval(ctx context.Context) time.Duration {
+	s, err := w.settingsSvc.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
+	if err == nil && s.IdlePollInterval > 0 {
+		return time.Duration(s.IdlePollInterval) * time.Second
+	}
+	return w.Interval
+}
+
+func (w *BackgroundJobWorker) getMaxConcurrentWorkers(ctx context.Context) int32 {
+	s, err := w.settingsSvc.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
+	if err == nil && s.MaxConcurrentBackgroundWorkers > 0 {
+		return s.MaxConcurrentBackgroundWorkers
+	}
+	return 5 // Default
+}
+
 func (w *BackgroundJobWorker) ProcessJobs(ctx context.Context) error {
+	limit := w.getMaxConcurrentWorkers(ctx)
 	// Find PENDING jobs
-	rows, err := w.db.QueryContext(ctx, "SELECT id, session_count FROM jobs WHERE status = 'PENDING' LIMIT 5") // Limit concurrency
+	rows, err := w.db.QueryContext(ctx, "SELECT id, session_count FROM jobs WHERE status = 'PENDING' LIMIT ?", limit)
 	if err != nil {
 		return err
 	}
@@ -78,7 +99,7 @@ func (w *BackgroundJobWorker) ProcessJobs(ctx context.Context) error {
 		return nil
 	}
 
-	logger.Info("%s: Found %d pending jobs", w.Name(), len(jobs))
+	logger.Info("%s [%s]: Found %d pending jobs", w.Name(), w.id, len(jobs))
 
 	for _, job := range jobs {
 		w.processJob(ctx, job.ID, job.SessionCount)
@@ -88,7 +109,7 @@ func (w *BackgroundJobWorker) ProcessJobs(ctx context.Context) error {
 }
 
 func (w *BackgroundJobWorker) processJob(ctx context.Context, jobID string, sessionCount int) {
-	logger.Info("%s: Processing job %s", w.Name(), jobID)
+	logger.Info("%s [%s]: Processing job %s", w.Name(), w.id, jobID)
 
 	// Mark as running
 	_, err := w.db.Exec("UPDATE jobs SET status = 'Running' WHERE id = ?", jobID)
@@ -138,6 +159,6 @@ func (w *BackgroundJobWorker) processJob(ctx context.Context, jobID string, sess
 	if err != nil {
 		logger.Error("%s: Failed to update job %s to %s: %s", w.Name(), jobID, status, err.Error())
 	} else {
-		logger.Info("%s: Job %s completed with status %s. Created sessions: %v", w.Name(), jobID, status, sessionIDs)
+		logger.Info("%s [%s]: Job %s completed with status %s. Created sessions: %v", w.Name(), w.id, jobID, status, sessionIDs)
 	}
 }

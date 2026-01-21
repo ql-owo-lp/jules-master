@@ -8,6 +8,7 @@ import (
 
 	"os"
 
+	"github.com/google/uuid"
 	pb "github.com/mcpany/jules/gen"
 	gclient "github.com/mcpany/jules/internal/github"
 	"github.com/mcpany/jules/internal/logger"
@@ -19,6 +20,7 @@ type AutoRetryWorker struct {
 	db              *sql.DB
 	settingsService *service.SettingsServer
 	sessionService  *service.SessionServer
+	id              string
 }
 
 func NewAutoRetryWorker(database *sql.DB, settingsService *service.SettingsServer, sessionService *service.SessionServer) *AutoRetryWorker {
@@ -30,11 +32,12 @@ func NewAutoRetryWorker(database *sql.DB, settingsService *service.SettingsServe
 		db:              database,
 		settingsService: settingsService,
 		sessionService:  sessionService,
+		id:              uuid.New().String()[:8],
 	}
 }
 
 func (w *AutoRetryWorker) Start(ctx context.Context) error {
-	logger.Info("%s starting...", w.Name())
+	logger.Info("%s [%s] starting...", w.Name(), w.id)
 
 	for {
 		interval := w.getInterval(ctx)
@@ -44,12 +47,12 @@ func (w *AutoRetryWorker) Start(ctx context.Context) error {
 		case <-time.After(interval):
 			status := "Success"
 			if err := w.runCheck(ctx); err != nil {
-				logger.Error("%s check failed: %s", w.Name(), err.Error())
+				logger.Error("%s [%s] check failed: %s", w.Name(), w.id, err.Error())
 				status = "Failed"
 			}
 			nextInterval := w.getInterval(ctx)
 			nextRun := time.Now().Add(nextInterval)
-			logger.Info("%s task completed. Status: %s. Next run at %s", w.Name(), status, nextRun.Format(time.RFC3339))
+			logger.Info("%s [%s] task completed. Status: %s. Next run at %s", w.Name(), w.id, status, nextRun.Format(time.RFC3339))
 		}
 	}
 }

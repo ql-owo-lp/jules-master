@@ -7,14 +7,13 @@
 package jules
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	_ "google.golang.org/protobuf/types/known/timestamppb"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -155,6 +154,7 @@ type Settings struct {
 	MinSessionInteractionInterval       int32                  `protobuf:"varint,28,opt,name=min_session_interaction_interval,json=minSessionInteractionInterval,proto3" json:"min_session_interaction_interval,omitempty"`
 	RetryTimeout                        int32                  `protobuf:"varint,29,opt,name=retry_timeout,json=retryTimeout,proto3" json:"retry_timeout,omitempty"`
 	ProfileId                           string                 `protobuf:"bytes,30,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	MaxConcurrentBackgroundWorkers      int32                  `protobuf:"varint,32,opt,name=max_concurrent_background_workers,json=maxConcurrentBackgroundWorkers,proto3" json:"max_concurrent_background_workers,omitempty"`
 	unknownFields                       protoimpl.UnknownFields
 	sizeCache                           protoimpl.SizeCache
 }
@@ -404,6 +404,13 @@ func (x *Settings) GetProfileId() string {
 		return x.ProfileId
 	}
 	return ""
+}
+
+func (x *Settings) GetMaxConcurrentBackgroundWorkers() int32 {
+	if x != nil {
+		return x.MaxConcurrentBackgroundWorkers
+	}
+	return 0
 }
 
 type GetSettingsRequest struct {
@@ -3181,6 +3188,34 @@ func (x *CreateSessionRequest) GetName() string {
 	return ""
 }
 
+func (x *CreateSessionRequest) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *CreateSessionRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *CreateSessionRequest) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
+}
+
+func (x *CreateSessionRequest) GetProfileId() string {
+	if x != nil {
+		return x.ProfileId
+	}
+	return ""
+}
+
 type UpdateSessionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -3377,7 +3412,7 @@ var File_jules_proto protoreflect.FileDescriptor
 
 const file_jules_proto_rawDesc = "" +
 	"\n" +
-	"\vjules.proto\x12\x05jules\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xb6\r\n" +
+	"\vjules.proto\x12\x05jules\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x81\x0e\n" +
 	"\bSettings\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12,\n" +
 	"\x12idle_poll_interval\x18\x02 \x01(\x05R\x10idlePollInterval\x120\n" +
@@ -3412,7 +3447,8 @@ const file_jules_proto_rawDesc = "" +
 	" min_session_interaction_interval\x18\x1c \x01(\x05R\x1dminSessionInteractionInterval\x12#\n" +
 	"\rretry_timeout\x18\x1d \x01(\x05R\fretryTimeout\x12\x1d\n" +
 	"\n" +
-	"profile_id\x18\x1e \x01(\tR\tprofileId\"3\n" +
+	"profile_id\x18\x1e \x01(\tR\tprofileId\x12I\n" +
+	"!max_concurrent_background_workers\x18  \x01(\x05R\x1emaxConcurrentBackgroundWorkers\"3\n" +
 	"\x12GetSettingsRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\"D\n" +
@@ -3650,9 +3686,14 @@ const file_jules_proto_rawDesc = "" +
 	"\x14ListSessionsResponse\x12*\n" +
 	"\bsessions\x18\x01 \x03(\v2\x0e.jules.SessionR\bsessions\"#\n" +
 	"\x11GetSessionRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"*\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x8d\x01\n" +
 	"\x14CreateSessionRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"&\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
+	"\x06prompt\x18\x02 \x01(\tR\x06prompt\x12\x12\n" +
+	"\x04repo\x18\x03 \x01(\tR\x04repo\x12\x16\n" +
+	"\x06branch\x18\x04 \x01(\tR\x06branch\x12\x1d\n" +
+	"\n" +
+	"profile_id\x18\x05 \x01(\tR\tprofileId\"&\n" +
 	"\x14UpdateSessionRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"&\n" +
 	"\x14DeleteSessionRequest\x12\x0e\n" +
