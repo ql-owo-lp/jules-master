@@ -172,6 +172,24 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 			continue
 		}
 
+		// 0.5 Check for merge conflicts
+		// Note: The requirement was "more than 3 merge conflict files".
+		// However, GitHub API doesn't easily give "number of conflicting files" without an expensive dry-run merge.
+		// As per approved plan, we close ANY PR that is not mergeable, as manual intervention is needed anyway.
+		if pr.Mergeable != nil && !*pr.Mergeable {
+			logger.Info("%s [%s]: Closing PR %s because it has merge conflicts", w.Name(), w.id, *pr.HTMLURL)
+			// Optional: We could comment explaining why.
+			msg := "Closing PR because it has merge conflicts. Please resolve conflicts and reopen."
+			if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
+				logger.Error("%s [%s]: Failed to comment on conflicting PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+			}
+
+			if _, err := w.githubClient.ClosePullRequest(ctx, owner, repo, *pr.Number); err != nil {
+				logger.Error("%s [%s]: Failed to close PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+			}
+			continue
+		}
+
 		// 1. Check for test file deletions (Applies to everyone)
 		deleted, err := w.checkTestDeletion(ctx, owner, repo, *pr.Number, *pr.HTMLURL)
 		if err != nil {
