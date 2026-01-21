@@ -45,7 +45,7 @@ func main() {
 	// Initialize Worker Manager
 	workerManager := worker.NewManager()
 	workerManager.Register(worker.NewAutoApprovalWorker(dbConn, settingsService, sessionService))
-	workerManager.Register(worker.NewBackgroundJobWorker(dbConn, jobService, sessionService))
+	workerManager.Register(worker.NewBackgroundJobWorker(dbConn, jobService, sessionService, settingsService))
 	workerManager.Register(worker.NewAutoDeleteStaleBranchWorker(dbConn, settingsService))
 	workerManager.Register(worker.NewAutoContinueWorker(dbConn, settingsService, sessionService))
 	ghClient := gclient.NewClient(os.Getenv("GITHUB_TOKEN"))

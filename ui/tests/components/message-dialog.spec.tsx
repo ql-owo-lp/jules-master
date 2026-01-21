@@ -15,6 +15,12 @@ vi.mock('@/hooks/use-local-storage', () => ({
   },
 }));
 
+// Mock actions to avoid network calls
+vi.mock('@/app/config/actions', () => ({
+  getPredefinedPrompts: vi.fn().mockResolvedValue([]),
+  getQuickReplies: vi.fn().mockResolvedValue([]),
+}));
+
 describe('MessageDialog', () => {
   const trigger = <Button>Open Dialog</Button>;
 

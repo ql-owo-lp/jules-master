@@ -16,7 +16,7 @@ func TestBackgroundJobWorker_ProcessJob(t *testing.T) {
 
 	jobSvc := &service.JobServer{DB: db}
 	sessionSvc := &service.SessionServer{DB: db}
-	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc)
+	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc, &service.SettingsServer{DB: db})
 	ctx := context.Background()
 
 	// Ensure sessionSvc has DB (it does)
@@ -68,12 +68,12 @@ func TestBackgroundJobWorker_ProcessJob(t *testing.T) {
 }
 
 func TestBackgroundJobWorker_ProcessJob_Partial(t *testing.T) {
-	// Test resuming a job that already has some sessions?
 	db := setupTestDB(t)
 	defer db.Close()
 	jobSvc := &service.JobServer{DB: db}
 	sessionSvc := &service.SessionServer{DB: db}
-	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc)
+	settingsSvc := &service.SettingsServer{DB: db}
+	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc, settingsSvc)
 	ctx := context.Background()
 
 	// Manually insert a job with partial sessions
@@ -107,7 +107,7 @@ func TestBackgroundJobWorker_ScheduleAndProcess(t *testing.T) {
 
 	jobSvc := &service.JobServer{DB: db}
 	sessionSvc := &service.SessionServer{DB: db}
-	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc)
+	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc, &service.SettingsServer{DB: db})
 	ctx := context.Background()
 
 	// 1. Create a job that looks like it was scheduled

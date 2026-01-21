@@ -132,6 +132,7 @@ export interface Settings {
   minSessionInteractionInterval: number;
   retryTimeout: number;
   profileId: string;
+  maxConcurrentBackgroundWorkers: number;
 }
 
 export interface GetSettingsRequest {
@@ -425,6 +426,10 @@ export interface GetSessionRequest {
 
 export interface CreateSessionRequest {
   name: string;
+  prompt: string;
+  repo: string;
+  branch: string;
+  profileId: string;
 }
 
 export interface UpdateSessionRequest {
@@ -478,6 +483,7 @@ function createBaseSettings(): Settings {
     minSessionInteractionInterval: 0,
     retryTimeout: 0,
     profileId: "",
+    maxConcurrentBackgroundWorkers: 0,
   };
 }
 
@@ -575,6 +581,9 @@ export const Settings: MessageFns<Settings> = {
     }
     if (message.profileId !== "") {
       writer.uint32(242).string(message.profileId);
+    }
+    if (message.maxConcurrentBackgroundWorkers !== 0) {
+      writer.uint32(256).int32(message.maxConcurrentBackgroundWorkers);
     }
     return writer;
   },
@@ -834,6 +843,14 @@ export const Settings: MessageFns<Settings> = {
           message.profileId = reader.string();
           continue;
         }
+        case 32: {
+          if (tag !== 256) {
+            break;
+          }
+
+          message.maxConcurrentBackgroundWorkers = reader.int32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -992,6 +1009,11 @@ export const Settings: MessageFns<Settings> = {
         : isSet(object.profile_id)
         ? globalThis.String(object.profile_id)
         : "",
+      maxConcurrentBackgroundWorkers: isSet(object.maxConcurrentBackgroundWorkers)
+        ? globalThis.Number(object.maxConcurrentBackgroundWorkers)
+        : isSet(object.max_concurrent_background_workers)
+        ? globalThis.Number(object.max_concurrent_background_workers)
+        : 0,
     };
   },
 
@@ -1090,6 +1112,9 @@ export const Settings: MessageFns<Settings> = {
     if (message.profileId !== "") {
       obj.profileId = message.profileId;
     }
+    if (message.maxConcurrentBackgroundWorkers !== 0) {
+      obj.maxConcurrentBackgroundWorkers = Math.round(message.maxConcurrentBackgroundWorkers);
+    }
     return obj;
   },
 
@@ -1129,6 +1154,7 @@ export const Settings: MessageFns<Settings> = {
     message.minSessionInteractionInterval = object.minSessionInteractionInterval ?? 0;
     message.retryTimeout = object.retryTimeout ?? 0;
     message.profileId = object.profileId ?? "";
+    message.maxConcurrentBackgroundWorkers = object.maxConcurrentBackgroundWorkers ?? 0;
     return message;
   },
 };
@@ -5605,13 +5631,25 @@ export const GetSessionRequest: MessageFns<GetSessionRequest> = {
 };
 
 function createBaseCreateSessionRequest(): CreateSessionRequest {
-  return { name: "" };
+  return { name: "", prompt: "", repo: "", branch: "", profileId: "" };
 }
 
 export const CreateSessionRequest: MessageFns<CreateSessionRequest> = {
   encode(message: CreateSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.name !== "") {
       writer.uint32(10).string(message.name);
+    }
+    if (message.prompt !== "") {
+      writer.uint32(18).string(message.prompt);
+    }
+    if (message.repo !== "") {
+      writer.uint32(26).string(message.repo);
+    }
+    if (message.branch !== "") {
+      writer.uint32(34).string(message.branch);
+    }
+    if (message.profileId !== "") {
+      writer.uint32(42).string(message.profileId);
     }
     return writer;
   },
@@ -5631,6 +5669,38 @@ export const CreateSessionRequest: MessageFns<CreateSessionRequest> = {
           message.name = reader.string();
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.prompt = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.repo = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.branch = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.profileId = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5641,13 +5711,35 @@ export const CreateSessionRequest: MessageFns<CreateSessionRequest> = {
   },
 
   fromJSON(object: any): CreateSessionRequest {
-    return { name: isSet(object.name) ? globalThis.String(object.name) : "" };
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      prompt: isSet(object.prompt) ? globalThis.String(object.prompt) : "",
+      repo: isSet(object.repo) ? globalThis.String(object.repo) : "",
+      branch: isSet(object.branch) ? globalThis.String(object.branch) : "",
+      profileId: isSet(object.profileId)
+        ? globalThis.String(object.profileId)
+        : isSet(object.profile_id)
+        ? globalThis.String(object.profile_id)
+        : "",
+    };
   },
 
   toJSON(message: CreateSessionRequest): unknown {
     const obj: any = {};
     if (message.name !== "") {
       obj.name = message.name;
+    }
+    if (message.prompt !== "") {
+      obj.prompt = message.prompt;
+    }
+    if (message.repo !== "") {
+      obj.repo = message.repo;
+    }
+    if (message.branch !== "") {
+      obj.branch = message.branch;
+    }
+    if (message.profileId !== "") {
+      obj.profileId = message.profileId;
     }
     return obj;
   },
@@ -5658,6 +5750,10 @@ export const CreateSessionRequest: MessageFns<CreateSessionRequest> = {
   fromPartial<I extends Exact<DeepPartial<CreateSessionRequest>, I>>(object: I): CreateSessionRequest {
     const message = createBaseCreateSessionRequest();
     message.name = object.name ?? "";
+    message.prompt = object.prompt ?? "";
+    message.repo = object.repo ?? "";
+    message.branch = object.branch ?? "";
+    message.profileId = object.profileId ?? "";
     return message;
   },
 };
