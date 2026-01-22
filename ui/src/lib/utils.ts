@@ -49,14 +49,27 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
       const sortedSessionIds = sessions.map(s => s.id).sort();
 
       // Combine job name and sorted session IDs to create a stable hash
-      const idSource = `${jobName}-${sortedSessionIds.join('-')}`;
-
-      // Basic hash function for uniqueness
+      // Optimized to avoid creating a large string allocation
       let hash = 0;
-      for (let i = 0; i < idSource.length; i++) {
-        const char = idSource.charCodeAt(i);
+
+      // Hash jobName
+      for (let i = 0; i < jobName.length; i++) {
+        const char = jobName.charCodeAt(i);
         hash = ((hash << 5) - hash) + char;
-        hash |= 0; // Convert to 32bit integer
+        hash |= 0;
+      }
+
+      // Hash sortedSessionIds incrementally
+      for (const id of sortedSessionIds) {
+        // Add separator '-'
+        hash = ((hash << 5) - hash) + 45; // 45 is char code for '-'
+        hash |= 0;
+
+        for (let i = 0; i < id.length; i++) {
+          const char = id.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash |= 0;
+        }
       }
 
       let slug = jobName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
