@@ -75,7 +75,12 @@ function HomePageContent() {
     setJobFilter(jobIdParam);
   }, [jobIdParam]);
 
-  const { filteredJobs, unknownSessions } = useMemo(() => {
+  const sessionMap = useMemo(() => {
+    return new Map(sessions.map(s => [s.id, s]));
+  }, [sessions]);
+
+  // Separate heavy data processing from filtering
+  const { allJobs, unknownSessions } = useMemo(() => {
     const allJobSessionIds = new Set(jobs.flatMap(j => j.sessionIds));
     const unknown = sessions.filter(s => !allJobSessionIds.has(s.id));
 
@@ -83,7 +88,14 @@ function HomePageContent() {
     const { groupedSessions, remainingUnknown } = groupSessionsByTopic(unknown);
     const dynamicJobs = createDynamicJobs(groupedSessions);
 
-    let j = [...jobs, ...dynamicJobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const allJobs = [...jobs, ...dynamicJobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return { allJobs, unknownSessions: remainingUnknown };
+  }, [jobs, sessions]);
+
+  // Fast filtering using pre-processed data
+  const filteredJobs = useMemo(() => {
+    let j = allJobs;
 
     if (jobFilter) {
       j = j.filter(job => job.id === jobFilter);
@@ -92,14 +104,13 @@ function HomePageContent() {
       j = j.filter(job => job.repo === repoFilter);
     }
     if (statusFilter !== 'all') {
-      const sessionMap = new Map(sessions.map(s => [s.id, s]));
       j = j.filter(job => job.sessionIds.some(sessionId => {
         const session = sessionMap.get(sessionId);
         return session && session.state === statusFilter;
       }));
     }
-    return { filteredJobs: j, unknownSessions: remainingUnknown };
-  }, [jobs, sessions, jobFilter, repoFilter, statusFilter]);
+    return j;
+  }, [allJobs, sessionMap, jobFilter, repoFilter, statusFilter]);
 
   const totalJobPages = Math.ceil(filteredJobs.length / jobsPerPage);
   const paginatedJobs = filteredJobs.slice((jobPage - 1) * jobsPerPage, jobPage * jobsPerPage);
