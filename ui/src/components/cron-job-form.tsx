@@ -74,8 +74,10 @@ export function CronJobForm({
 
   const [isClient, setIsClient] = useState(false);
   const [nextRun, setNextRun] = useState<Date | null>(null);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
 
   useEffect(() => {
+    setScheduleError(null);
     if (!schedule) {
       setNextRun(null);
       return;
@@ -87,6 +89,7 @@ export function CronJobForm({
       setNextRun(expression.next().toDate());
     } catch {
       setNextRun(null);
+      setScheduleError("Invalid cron expression");
     }
   }, [schedule]);
 
@@ -389,12 +392,17 @@ export function CronJobForm({
                 disabled={isPending}
                 aria-describedby="schedule-help"
                 required
+                aria-invalid={!!scheduleError}
               />
               <div className="flex justify-between items-start">
                 <p id="schedule-help" className="text-xs text-muted-foreground">
                   Format: Minute Hour Day Month DayOfWeek
                 </p>
-                {nextRun && (
+                {scheduleError ? (
+                  <p className="text-xs text-destructive font-medium animate-in fade-in slide-in-from-top-1">
+                    {scheduleError}
+                  </p>
+                ) : nextRun && (
                   <p className="text-xs text-green-600 font-medium animate-in fade-in slide-in-from-top-1">
                     Next run: {format(nextRun, "PPpp")}
                   </p>
