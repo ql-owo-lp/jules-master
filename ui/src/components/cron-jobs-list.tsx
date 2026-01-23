@@ -165,7 +165,7 @@ export function CronJobsList() {
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" aria-label="Open menu">
+                                                    <Button variant="ghost" size="icon" aria-label={`Open menu for ${job.name}`}>
                                                         <MoreHorizontal className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>

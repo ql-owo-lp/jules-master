@@ -104,7 +104,7 @@ const SessionRowComponent = ({
           <Checkbox
             checked={isSelected}
             onCheckedChange={(checked) => onSelectRow(session.id, !!checked)}
-            aria-label={`Select session ${session.id}`}
+            aria-label={`Select session ${session.title}`}
           />
         </TableCell>
         <TableCell className="font-medium truncate" title={session.title}>
@@ -145,7 +145,7 @@ const SessionRowComponent = ({
                           size="icon"
                           onClick={() => onApprovePlan([session.id])}
                           disabled={isActionPending}
-                          aria-label="Approve Plan"
+                          aria-label={`Approve Plan for ${session.title}`}
                         >
                           {isActionPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hand className="h-4 w-4" />}
                         </Button>
@@ -155,7 +155,7 @@ const SessionRowComponent = ({
                   )}
                    <MessageDialog
                       trigger={
-                          <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" disabled={isActionPending} aria-label={`Send message to ${session.title}`}><MessageSquare className="h-4 w-4" /></Button>
                       }
                       tooltip="Send Message"
                       storageKey={`jules-session-message-${session.id}`}
@@ -169,7 +169,7 @@ const SessionRowComponent = ({
                      <Tooltip>
                         <TooltipTrigger asChild>
                           <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={isActionPending} onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" disabled={isActionPending} onClick={(e) => e.stopPropagation()} aria-label={`Send quick reply to ${session.title}`}>
                               <MessageSquareReply className="h-4 w-4" />
                             </Button>
                           </PopoverTrigger>
