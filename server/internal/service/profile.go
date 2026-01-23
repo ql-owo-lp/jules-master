@@ -63,10 +63,9 @@ func (s *ProfileServer) DeleteProfile(ctx context.Context, req *pb.DeleteProfile
 		return nil, fmt.Errorf("id is required")
 	}
 
-	// In logic, default profile might be protected, mirroring typical app logic?
-	// Node.js implementation:
-	// await profileService.deleteProfile(id);
-	// Let's assume database constraints handle it or logic is simple.
+	if req.Id == "default" {
+		return nil, fmt.Errorf("cannot delete default profile")
+	}
 
 	_, err := s.DB.Exec("DELETE FROM profiles WHERE id = ?", req.Id)
 	if err != nil {
