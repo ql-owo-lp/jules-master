@@ -117,4 +117,30 @@ describe('CronJobForm', () => {
            expect(trigger).toHaveTextContent('Presets');
       });
   });
+
+  it('shows error message for invalid cron expression', async () => {
+    const user = userEvent.setup();
+    const onCronJobCreated = vi.fn();
+    const onCancel = vi.fn();
+    render(<CronJobForm onCronJobCreated={onCronJobCreated} onCancel={onCancel} />);
+
+    const scheduleInput = screen.getByLabelText('Schedule (Cron Expression)');
+
+    // Type invalid cron
+    await user.clear(scheduleInput);
+    await user.type(scheduleInput, 'invalid cron');
+
+    await waitFor(() => {
+      expect(screen.getByText('Invalid cron expression')).toBeInTheDocument();
+    });
+
+    // Type valid cron
+    await user.clear(scheduleInput);
+    await user.type(scheduleInput, '0 0 * * *');
+
+    await waitFor(() => {
+      expect(screen.queryByText('Invalid cron expression')).not.toBeInTheDocument();
+      expect(screen.getByText(/Next run:/)).toBeInTheDocument();
+    });
+  });
 });
