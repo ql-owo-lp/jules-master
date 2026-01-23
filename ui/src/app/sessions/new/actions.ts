@@ -3,6 +3,7 @@
 
 import type { Session, AutomationMode } from "@/lib/types";
 import { fetchWithRetry } from "@/lib/fetch-client";
+import { createSessionSchema } from "@/lib/validation";
 
 // The partial session type for the create request body
 type CreateSessionBody = Pick<Session, "prompt" | "sourceContext"> & {
@@ -23,9 +24,22 @@ export async function createSession(
     console.error("Jules API key is not configured.");
     return null;
   }
+
+  const validation = createSessionSchema.safeParse(sessionData);
+
+  if (!validation.success) {
+    console.error("Invalid session data:", validation.error);
+    return null;
+  }
+
+  const validatedData = validation.data;
   
-  const body: Partial<CreateSessionBody> = { ...sessionData };
-  if (!sessionData.requirePlanApproval) {
+  // Cast validatedData to match CreateSessionBody type mostly for TS happiness,
+  // though Zod ensures runtime correctness.
+  // We use validatedData to construct the body.
+  const body: Partial<CreateSessionBody> = { ...validatedData } as unknown as Partial<CreateSessionBody>;
+
+  if (!validatedData.requirePlanApproval) {
     delete body.requirePlanApproval;
   }
   // Delete these fields as they are not supported by the Jules API
