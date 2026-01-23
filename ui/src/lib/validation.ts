@@ -50,3 +50,19 @@ export const cronJobSchema = z.object({
   sessionCount: z.number().int().min(1).optional(),
   profileId: z.union([z.string().uuid(), z.literal('default')]).optional(),
 });
+
+export const createSessionSchema = z.object({
+  title: z.string().optional(),
+  prompt: z.string().min(1, "Prompt is required"),
+  sourceContext: z.object({
+    source: z.string().min(1, "Source is required"),
+    githubRepoContext: z.object({
+        startingBranch: z.string().min(1, "Starting branch is required"),
+        branch: z.string().optional()
+    }).optional()
+  }),
+  requirePlanApproval: z.boolean().optional(),
+  automationMode: z.enum(['AUTOMATION_MODE_UNSPECIFIED', 'AUTO_CREATE_PR']).optional(),
+  autoContinueEnabled: z.boolean().optional(),
+  autoRetryEnabled: z.boolean().optional(),
+});

@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
-import { settingsSchema } from '../src/lib/validation';
+import { settingsSchema, createSessionSchema } from '../src/lib/validation';
 
 describe('Validation Schemas', () => {
   const minimalSettings = {
@@ -57,6 +57,59 @@ describe('Validation Schemas', () => {
       if (!result.success) {
           expect(result.error.issues[0].path).toContain('profileId');
       }
+    });
+  });
+
+  describe('createSessionSchema', () => {
+    it('should validate valid session data', () => {
+      const validData = {
+        prompt: 'test prompt',
+        sourceContext: {
+          source: 'test-source',
+          githubRepoContext: {
+            startingBranch: 'main'
+          }
+        }
+      };
+      const result = createSessionSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+    });
+
+    it('should fail if prompt is missing', () => {
+      const invalidData = {
+        sourceContext: {
+            source: 'test-source'
+        }
+      };
+      const result = createSessionSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
+
+    it('should fail if sourceContext is missing', () => {
+        const invalidData = {
+            prompt: 'test prompt'
+        };
+        const result = createSessionSchema.safeParse(invalidData);
+        expect(result.success).toBe(false);
+    });
+
+    it('should strip extra fields', () => {
+        const dataWithExtra = {
+            prompt: 'test prompt',
+            sourceContext: {
+                source: 'test-source',
+                githubRepoContext: {
+                    startingBranch: 'main'
+                }
+            },
+            extraField: 'should go away'
+        };
+        const result = createSessionSchema.safeParse(dataWithExtra);
+        expect(result.success).toBe(true);
+        if (result.success) {
+            // @ts-expect-error - testing stripped field
+            expect(result.data.extraField).toBeUndefined();
+        }
     });
   });
 });

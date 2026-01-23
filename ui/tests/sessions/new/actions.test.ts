@@ -34,9 +34,12 @@ describe('Session New Actions', () => {
         'https://jules.googleapis.com/v1alpha/sessions',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify(sessionData),
         })
       );
+
+      const calls = (fetchClient.fetchWithRetry as Mock).mock.calls;
+      const body = JSON.parse(calls[0][1].body);
+      expect(body).toEqual(sessionData);
       expect(session).toEqual(mockSession);
     });
 
@@ -55,9 +58,12 @@ describe('Session New Actions', () => {
       expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
         'https://jules.googleapis.com/v1alpha/sessions',
         expect.objectContaining({
-          body: JSON.stringify(expectedBody),
+            method: 'POST',
         })
       );
+      const calls = (fetchClient.fetchWithRetry as Mock).mock.calls;
+      const body = JSON.parse(calls[0][1].body);
+      expect(body).toEqual(expectedBody);
     });
 
     it('should return null if API key is missing', async () => {
@@ -94,9 +100,12 @@ describe('Session New Actions', () => {
         expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
             'https://jules.googleapis.com/v1alpha/sessions',
             expect.objectContaining({
-                body: JSON.stringify(expectedBody),
+                method: 'POST',
             })
         );
+        const calls = (fetchClient.fetchWithRetry as Mock).mock.calls;
+        const body = JSON.parse(calls[0][1].body);
+        expect(body).toEqual(expectedBody);
     });
 
     it('should not include autoRetryEnabled or autoContinueEnabled if they are false', async () => {
@@ -113,9 +122,12 @@ describe('Session New Actions', () => {
         expect(fetchClient.fetchWithRetry).toHaveBeenCalledWith(
             'https://jules.googleapis.com/v1alpha/sessions',
             expect.objectContaining({
-                body: JSON.stringify(expectedBody),
+                method: 'POST',
             })
         );
+        const calls = (fetchClient.fetchWithRetry as Mock).mock.calls;
+        const body = JSON.parse(calls[0][1].body);
+        expect(body).toEqual(expectedBody);
     });
   });
 });
