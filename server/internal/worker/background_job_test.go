@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	pb "github.com/mcpany/jules/gen"
+	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/service"
 	"github.com/stretchr/testify/assert"
 )

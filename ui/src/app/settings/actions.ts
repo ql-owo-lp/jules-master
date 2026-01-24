@@ -1,5 +1,5 @@
 import { cronJobClient } from "@/lib/grpc-client";
-import { CronJob, AutomationMode } from "@/proto/gen/ts/jules";
+import { CronJob, AutomationMode } from "@/proto/jules";
 
 export async function getCronJobs(): Promise<CronJob[]> {
   return new Promise((resolve, reject) => {

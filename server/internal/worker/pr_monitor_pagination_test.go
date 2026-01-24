@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/go-github/v69/github"
-	pb "github.com/mcpany/jules/gen"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 )
 
 func TestRunCheck_PaginatedCheckRuns(t *testing.T) {
@@ -94,8 +94,9 @@ func TestRunCheck_PaginatedCheckRuns(t *testing.T) {
 		t.Errorf("expected 1 comment, got %d", len(mockGH.CreatedComments))
 	} else {
         // Optional: verify the comment mentions the specific failed check
-        if mockGH.CreatedComments[0] != failureCommentPrefix + "\n- test-fail-page-2" {
-             t.Errorf("Unexpected comment content: %s", mockGH.CreatedComments[0])
+        expected := failureCommentPrefix + "\n- test-fail-page-2\n\n@jules"
+        if mockGH.CreatedComments[0] != expected {
+             t.Errorf("Unexpected comment content: %s \nExpected: %s", mockGH.CreatedComments[0], expected)
         }
     }
 }

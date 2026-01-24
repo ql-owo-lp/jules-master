@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/mcpany/jules/gen"
+	pb "github.com/mcpany/jules/proto"
 )
 
 const BufferSize = 1000

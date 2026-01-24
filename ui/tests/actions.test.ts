@@ -12,7 +12,7 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
-import { PredefinedPrompt } from '@/proto/gen/ts/jules';
+import { PredefinedPrompt } from '@/proto/jules';
 
 // Mock grpc-client
 const { mockJobClient, mockPromptClient, mockSettingsClient, mockSessionClient } = vi.hoisted(() => {

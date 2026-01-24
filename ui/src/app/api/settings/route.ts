@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { settingsClient } from '@/lib/grpc-client';
 import { settingsSchema } from '@/lib/validation';
-import { Settings } from '@/proto/gen/ts/jules';
+import { Settings } from '@/proto/jules';
 
 export async function GET(request: Request) {
   try {

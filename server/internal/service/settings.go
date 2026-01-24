@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	pb "github.com/mcpany/jules/gen"
+	pb "github.com/mcpany/jules/proto"
 )
 
 type SettingsServer struct {

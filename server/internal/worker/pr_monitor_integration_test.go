@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/go-github/v69/github"
-	pb "github.com/mcpany/jules/gen"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 )
 
 func TestPRMonitor_Comprehensive(t *testing.T) {
@@ -111,7 +111,7 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 			t.Errorf("expected 1 comment, got %d", len(mockGH.CreatedComments))
 		}
 
-		expectedBody := failureCommentPrefix + "\n- check-1\n- legacy-check"
+		expectedBody := failureCommentPrefix + "\n- check-1\n- legacy-check\n\n@jules"
 		if mockGH.CreatedComments[0] != expectedBody {
 			t.Errorf("unexpected comment body.\nExpected:\n%s\nGot:\n%s", expectedBody, mockGH.CreatedComments[0])
 		}
@@ -121,7 +121,13 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 		mockGH.Comments = []*github.IssueComment{
 			{
 				User: &github.User{Login: github.String("google-labs-jules")},
-				Body: github.String(failureCommentPrefix + "\n- check-1\n- legacy-check"),
+				Body: github.String("Random body"), // Logic depends on author only now? No, pr_monitor code I saw checked author.
+                // Wait, code was: 
+                // if lastComment.User... "google-labs-jules" {
+                //    logger...
+                //    shouldComment = false
+                // }
+                // So ANY last comment by bot skips.
 			},
 		}
 
@@ -130,6 +136,7 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 			t.Errorf("runCheck failed: %v", err)
 		}
 
+		// Now we expect 0 comments because it skipped
 		if len(mockGH.CreatedComments) != 1 {
 			t.Errorf("expected still 1 comment (skipped redundant), got %d", len(mockGH.CreatedComments))
 		}
