@@ -58,6 +58,22 @@ describe('Validation Schemas', () => {
           expect(result.error.issues[0].path).toContain('profileId');
       }
     });
+
+    it('should fail if theme is too long', () => {
+      const result = settingsSchema.safeParse({
+        ...minimalSettings,
+        theme: 'a'.repeat(21)
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should fail if autoRetryMessage is too long', () => {
+      const result = settingsSchema.safeParse({
+        ...minimalSettings,
+        autoRetryMessage: 'a'.repeat(1001)
+      });
+      expect(result.success).toBe(false);
+    });
   });
 
   describe('createSessionSchema', () => {
@@ -110,6 +126,33 @@ describe('Validation Schemas', () => {
             // @ts-expect-error - testing stripped field
             expect(result.data.extraField).toBeUndefined();
         }
+    });
+
+    it('should fail if prompt is too long', () => {
+        const result = createSessionSchema.safeParse({
+            prompt: 'a'.repeat(50001),
+            sourceContext: {
+                source: 'test-source',
+                githubRepoContext: {
+                    startingBranch: 'main'
+                }
+            }
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it('should fail if title is too long', () => {
+        const result = createSessionSchema.safeParse({
+            title: 'a'.repeat(101),
+            prompt: 'test prompt',
+            sourceContext: {
+                source: 'test-source',
+                githubRepoContext: {
+                    startingBranch: 'main'
+                }
+            }
+        });
+        expect(result.success).toBe(false);
     });
   });
 });

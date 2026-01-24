@@ -10,13 +10,13 @@ export const settingsSchema = z.object({
   jobsPerPage: z.number(),
   defaultSessionCount: z.number(),
   prStatusPollInterval: z.number(),
-  theme: z.string(),
+  theme: z.string().max(20),
   autoApprovalInterval: z.number(),
   autoApprovalEnabled: z.boolean().optional().default(false),
   autoRetryEnabled: z.boolean(),
-  autoRetryMessage: z.string(),
+  autoRetryMessage: z.string().max(1000),
   autoContinueEnabled: z.boolean(),
-  autoContinueMessage: z.string(),
+  autoContinueMessage: z.string().max(1000),
   sessionCacheInProgressInterval: z.number(),
   sessionCacheCompletedNoPrInterval: z.number(),
   sessionCachePendingApprovalInterval: z.number(),
@@ -39,11 +39,11 @@ export const settingsSchema = z.object({
 });
 
 export const cronJobSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  schedule: z.string().min(1, "Schedule is required"),
-  prompt: z.string().min(1, "Prompt is required"),
-  repo: z.string().min(1, "Repository is required"),
-  branch: z.string().min(1, "Branch is required"),
+  name: z.string().min(1, "Name is required").max(100),
+  schedule: z.string().min(1, "Schedule is required").max(100),
+  prompt: z.string().min(1, "Prompt is required").max(50000),
+  repo: z.string().min(1, "Repository is required").max(200),
+  branch: z.string().min(1, "Branch is required").max(250),
   autoApproval: z.boolean(),
   automationMode: z.enum(['AUTOMATION_MODE_UNSPECIFIED', 'AUTO_CREATE_PR']).optional(),
   requirePlanApproval: z.boolean().optional(),
@@ -52,13 +52,13 @@ export const cronJobSchema = z.object({
 });
 
 export const createSessionSchema = z.object({
-  title: z.string().optional(),
-  prompt: z.string().min(1, "Prompt is required"),
+  title: z.string().max(100).optional(),
+  prompt: z.string().min(1, "Prompt is required").max(50000),
   sourceContext: z.object({
-    source: z.string().min(1, "Source is required"),
+    source: z.string().min(1, "Source is required").max(500),
     githubRepoContext: z.object({
-        startingBranch: z.string().min(1, "Starting branch is required"),
-        branch: z.string().optional()
+        startingBranch: z.string().min(1, "Starting branch is required").max(250),
+        branch: z.string().max(250).optional()
     }).optional()
   }),
   requirePlanApproval: z.boolean().optional(),
