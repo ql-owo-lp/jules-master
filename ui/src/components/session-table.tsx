@@ -155,7 +155,7 @@ const SessionRowComponent = ({
                   )}
                    <MessageDialog
                       trigger={
-                          <Button variant="ghost" size="icon" disabled={isActionPending}><MessageSquare className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message"><MessageSquare className="h-4 w-4" /></Button>
                       }
                       tooltip="Send Message"
                       storageKey={`jules-session-message-${session.id}`}
@@ -169,7 +169,7 @@ const SessionRowComponent = ({
                      <Tooltip>
                         <TooltipTrigger asChild>
                           <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={isActionPending} onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" disabled={isActionPending} onClick={(e) => e.stopPropagation()} aria-label="Send Quick Reply">
                               <MessageSquareReply className="h-4 w-4" />
                             </Button>
                           </PopoverTrigger>
