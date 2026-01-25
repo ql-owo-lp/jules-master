@@ -108,8 +108,8 @@ export async function getCachedSessions(profileId: string = 'default'): Promise<
     url: s.url || undefined,
     // Optimization: Sanitize outputs to reduce payload size.
     // We only need pullRequest info for the list view.
-    outputs: s.outputs ? s.outputs.map(o => {
-      if (o.pullRequest) {
+    outputs: (s.outputs && Array.isArray(s.outputs)) ? s.outputs.map(o => {
+      if (o && o.pullRequest) {
         return { pullRequest: o.pullRequest };
       }
       return null;
