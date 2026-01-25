@@ -16,8 +16,35 @@ export function middleware(req: NextRequest) {
   const basicAuthUser = process.env.BASIC_AUTH_USER;
   const basicAuthPassword = process.env.BASIC_AUTH_PASSWORD;
 
-  // Initialize response
-  let response = NextResponse.next();
+  // Generate nonce for CSP
+  const nonce = btoa(crypto.randomUUID());
+
+  // Security Headers
+  // Note: 'unsafe-inline' for style-src is kept for Chart components
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: https:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+    connect-src 'self';
+  `.replace(/\s{2,}/g, ' ').trim();
+
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', cspHeader);
+
+  // Initialize response with modified request headers
+  let response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 
   if (basicAuthUser && basicAuthPassword) {
     const authHeader = req.headers.get('authorization');
@@ -51,28 +78,12 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // Security Headers
+  // Set Security Headers on the response
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), browsing-topics=()');
-
-  // Content Security Policy
-  // This is a starting point and might need adjustment based on the application's needs (e.g., specific scripts, images)
-  const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'unsafe-inline';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' data: https:;
-    font-src 'self';
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-    frame-ancestors 'none';
-    upgrade-insecure-requests;
-  `.replace(/\s{2,}/g, ' ').trim();
-
   response.headers.set('Content-Security-Policy', cspHeader);
 
   return response;
