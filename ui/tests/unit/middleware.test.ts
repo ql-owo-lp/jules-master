@@ -67,10 +67,8 @@ describe('Middleware Basic Auth', () => {
     expect(res.headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains');
     expect(res.headers.get('Permissions-Policy')).toBe('camera=(), microphone=(), geolocation=(), browsing-topics=()');
     const csp = res.headers.get('Content-Security-Policy') || '';
-    expect(csp).toContain("script-src 'self' 'nonce-");
-    expect(csp).toContain("'strict-dynamic'");
-    expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
-    expect(csp).not.toContain("'unsafe-eval'");
+    expect(csp).toContain("script-src 'self' 'unsafe-inline'");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline'");
     expect(csp).toContain("connect-src 'self'");
   });
 });

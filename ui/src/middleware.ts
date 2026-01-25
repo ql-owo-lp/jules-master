@@ -16,14 +16,12 @@ export function middleware(req: NextRequest) {
   const basicAuthUser = process.env.BASIC_AUTH_USER;
   const basicAuthPassword = process.env.BASIC_AUTH_PASSWORD;
 
-  // Generate nonce for CSP
-  const nonce = btoa(crypto.randomUUID());
-
   // Security Headers
-  // Note: 'unsafe-inline' for style-src is kept for Chart components
+  // Note: 'unsafe-inline' for script-src and style-src is currently required for Next.js and Chart components.
+  // Ideally we would use nonces, but that requires deeper integration with Next.js App Router to inject nonces into framework scripts.
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+    script-src 'self' 'unsafe-inline';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https:;
     font-src 'self';
@@ -35,16 +33,8 @@ export function middleware(req: NextRequest) {
     connect-src 'self';
   `.replace(/\s{2,}/g, ' ').trim();
 
-  const requestHeaders = new Headers(req.headers);
-  requestHeaders.set('x-nonce', nonce);
-  requestHeaders.set('Content-Security-Policy', cspHeader);
-
-  // Initialize response with modified request headers
-  let response = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  // Initialize response
+  let response = NextResponse.next();
 
   if (basicAuthUser && basicAuthPassword) {
     const authHeader = req.headers.get('authorization');
