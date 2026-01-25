@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2, PlayCircle, PauseCircle, Clock, CheckCircle2 } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, PlayCircle, PauseCircle, Clock, CheckCircle2, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CronJobDialog } from "@/components/cron-job-dialog";
 import type { CronJob } from "@/lib/types";
@@ -126,8 +126,14 @@ export function CronJobsList() {
             <CardContent>
                 {cronJobs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
-                        <p className="font-semibold text-lg">No cron jobs yet</p>
-                        <p className="text-sm">Click &quot;Add New Cron Job&quot; to create your first scheduled job.</p>
+                        <Clock className="h-12 w-12 mb-4 opacity-50" />
+                        <h3 className="font-semibold text-lg">No cron jobs yet</h3>
+                        <p className="text-sm mb-4">Schedule your first job to run automatically.</p>
+                        <CronJobDialog mode="create" onSuccess={fetchCronJobs}>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> Create Cron Job
+                            </Button>
+                        </CronJobDialog>
                     </div>
                 ) : (
                     <div className="border rounded-lg">
