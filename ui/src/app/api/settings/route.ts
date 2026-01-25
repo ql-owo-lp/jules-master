@@ -10,7 +10,9 @@ export async function GET(request: Request) {
     const profileId = searchParams.get('profileId') || 'default';
 
     const settings = await new Promise<Settings>((resolve, reject) => {
+        console.log(`[API] gRPC GET getSettings for ${profileId}...`);
         if (process.env.MOCK_API === 'true') {
+            console.log(`[API] Returning MOCK settings`);
             return resolve({
                 id: 'mock',
                 defaultSessionCount: 20,
@@ -22,11 +24,23 @@ export async function GET(request: Request) {
                 titleTruncateLength: 50,
                 lineClamp: 3,
                 sessionItemsPerPage: 10,
+                maxConcurrentBackgroundWorkers: 10,
                 profileId: profileId
             } as unknown as Settings);
         }
+
+        const timeout = setTimeout(() => {
+            console.error(`[API] gRPC GET getSettings TIMEOUT for ${profileId}`);
+            reject(new Error('gRPC timeout'));
+        }, 5000);
+
         settingsClient.getSettings({ profileId }, (err, res) => {
-            if (err) return reject(err);
+            clearTimeout(timeout);
+            if (err) {
+                console.error(`[API] gRPC GET getSettings ERROR:`, err);
+                return reject(err);
+            }
+            console.log(`[API] gRPC GET getSettings SUCCESS`);
             resolve(res);
         });
     });
@@ -49,7 +63,7 @@ export async function POST(request: Request) {
     const validation = settingsSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
+      return NextResponse.json({ error: validation.error.format() }, { status: 400 });
     }
 
     const profileId = validation.data.profileId || 'default';
@@ -67,12 +81,25 @@ export async function POST(request: Request) {
     // validation.data comes from zod which enforces types.
     
     await new Promise<void>((resolve, reject) => {
+        console.log(`[API] gRPC POST updateSettings for ${profileId}...`);
         if (process.env.MOCK_API === 'true') {
+            console.log(`[API] Returning MOCK success`);
             return resolve();
         }
+
+        const timeout = setTimeout(() => {
+            console.error(`[API] gRPC POST updateSettings TIMEOUT for ${profileId}`);
+            reject(new Error('gRPC timeout'));
+        }, 5000);
+
         settingsClient.updateSettings({ settings: newSettings }, (err) => {
-             if (err) return reject(err);
-             resolve();
+            clearTimeout(timeout);
+            if (err) {
+                console.error(`[API] gRPC POST updateSettings ERROR:`, err);
+                return reject(err);
+            }
+            console.log(`[API] gRPC POST updateSettings SUCCESS`);
+            resolve();
         });
     });
 

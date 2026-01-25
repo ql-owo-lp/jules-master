@@ -47,7 +47,8 @@ export function PrStatus({ prUrl, initialStatus }: PrStatusProps) {
 
   const [isLoading, setIsLoading] = useState(false);
   const { hasGithubToken: hasEnvGithubToken } = useEnv();
-  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+  const [githubToken] = useLocalStorage<string | null>(`jules-github-token-${currentProfileId}`, null);
   
   useEffect(() => {
     async function fetchStatus() {

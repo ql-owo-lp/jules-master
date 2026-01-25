@@ -16,6 +16,7 @@ proto-gen:
 		--go-grpc_out=proto --go-grpc_opt=paths=source_relative \
 		--proto_path=proto proto/*.proto
 	protoc --plugin=./ui/node_modules/.bin/protoc-gen-ts_proto \
+	protoc --plugin=./ui/node_modules/.bin/protoc-gen-ts_proto \
 		--ts_proto_out=proto \
 		--ts_proto_opt=esModuleInterop=true \
 		--ts_proto_opt=outputServices=grpc-js \

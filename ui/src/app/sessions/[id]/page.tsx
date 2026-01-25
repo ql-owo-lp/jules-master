@@ -62,9 +62,10 @@ export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const { hasJulesApiKey } = useEnv();
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+  const [apiKey] = useLocalStorage<string | null>(`jules-api-key-${currentProfileId}`, null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const [githubToken] = useLocalStorage<string | null>(`jules-github-token-${currentProfileId}`, null);
   const [idlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
   const [jobs, setJobs] = useState<Job[]>([]);

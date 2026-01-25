@@ -121,7 +121,7 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 		mockGH.Comments = []*github.IssueComment{
 			{
 				User: &github.User{Login: github.String("google-labs-jules")},
-				Body: github.String("Random body"), // Logic depends on author only now? No, pr_monitor code I saw checked author.
+				Body: github.String(failureCommentPrefix + "\n- check-1\n- legacy-check\n\n@jules"),
                 // Wait, code was: 
                 // if lastComment.User... "google-labs-jules" {
                 //    logger...
@@ -142,7 +142,7 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 		}
 	})
 
-	t.Run("Re-comment if human intervenes", func(t *testing.T) {
+	t.Run("Yield if human intervenes", func(t *testing.T) {
 		mockGH.Comments = append(mockGH.Comments, &github.IssueComment{
 			User: &github.User{Login: github.String("human-user")},
 			Body: github.String("I'm fixing this now."),
@@ -153,8 +153,8 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 			t.Errorf("runCheck failed: %v", err)
 		}
 
-		if len(mockGH.CreatedComments) != 2 {
-			t.Errorf("expected 2 comments (re-commented after human), got %d", len(mockGH.CreatedComments))
+		if len(mockGH.CreatedComments) != 1 {
+			t.Errorf("expected 1 comment (yielded to human), got %d", len(mockGH.CreatedComments))
 		}
 	})
 

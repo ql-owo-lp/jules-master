@@ -74,7 +74,7 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
 
       let slug = jobName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       if (!slug) {
-        slug = Buffer.from(jobName).toString('hex');
+        slug = Array.from(new TextEncoder().encode(jobName)).map(b => b.toString(16).padStart(2, '0')).join('');
       }
       return {
         id: `dynamic-${slug}-${Math.abs(hash).toString(36)}`,

@@ -10,23 +10,9 @@ export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T) => void] {
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === "undefined") {
-      return initialValue;
-    }
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch {
-      return initialValue;
-    }
-  });
+  // Always start with initialValue to avoid hydration mismatch.
+  // Next.js will render the same initial value on server and client first pass.
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
 
   // Use a ref to store the latest value for the event handler
   // This avoids including storedValue in the useEffect dependency array
@@ -49,7 +35,6 @@ export function useLocalStorage<T>(
         if (typeof window !== "undefined") {
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
           // Dispatch a custom event scoped to this key
-          // This avoids notifying every single useLocalStorage hook in the app
           storageEmitter.emit(`storage:${key}`, valueToStore);
         }
       } catch (error) {
@@ -61,7 +46,6 @@ export function useLocalStorage<T>(
   
   // Effect to listen for storage change events from other instances of the hook
   useEffect(() => {
-    // The payload is now just the value, as the event is already scoped to the key
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleStorageChange = (newValue: any) => {
         if (JSON.stringify(newValue) !== JSON.stringify(storedValueRef.current)) {
@@ -77,23 +61,26 @@ export function useLocalStorage<T>(
     };
   }, [key]);
 
-  // Re-read from local storage when isClient becomes true
+  // Consolidate re-reading from local storage on mount and key change
   useEffect(() => {
-    if (isClient) {
-      try {
-        const item = window.localStorage.getItem(key);
-        if (item) {
-          const freshValue = JSON.parse(item);
-          if(JSON.stringify(freshValue) !== JSON.stringify(storedValue)) {
-            setStoredValue(freshValue);
-          }
-        }
-      } catch (error) {
-        console.error(error);
+    if (typeof window === "undefined") return;
+
+    try {
+      const item = window.localStorage.getItem(key);
+      const freshValue = item ? JSON.parse(item) : initialValue;
+      
+      // Update state only if different to avoid infinite loops with objects/arrays
+      if (JSON.stringify(freshValue) !== JSON.stringify(storedValue)) {
+        setStoredValue(freshValue);
+      }
+    } catch (error) {
+      console.error(`Error reading from localStorage key "${key}":`, error);
+      if (JSON.stringify(initialValue) !== JSON.stringify(storedValue)) {
+          setStoredValue(initialValue);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, key]);
+  }, [key]);
 
 
   return [storedValue, setValue];

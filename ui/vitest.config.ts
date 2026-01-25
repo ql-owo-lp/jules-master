@@ -24,7 +24,14 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@/proto': path.resolve(__dirname, '../proto'),
       '@': path.resolve(__dirname, './src'),
+    },
+    preserveSymlinks: true,
+  },
+  server: {
+    fs: {
+      allow: ['..'],
     },
   },
 });

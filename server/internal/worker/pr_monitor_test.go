@@ -236,8 +236,8 @@ func TestRunCheck_CommentsOnFailure(t *testing.T) {
 		t.Errorf("runCheck failed: %v", err)
 	}
 
-	if len(mockGH.CreatedComments) != 2 {
-		t.Errorf("expected 2 comments (human intervened), got %d", len(mockGH.CreatedComments))
+	if len(mockGH.CreatedComments) != 1 {
+		t.Errorf("expected 1 comment (yielded to human), got %d", len(mockGH.CreatedComments))
 	}
 }
 

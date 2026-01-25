@@ -11,7 +11,7 @@ import {
 
 const PORT = 50051;
 // In production, this should be configurable
-const TARGET = `localhost:${PORT}`;
+const TARGET = `127.0.0.1:${PORT}`;
 
 const creds = credentials.createInsecure();
 

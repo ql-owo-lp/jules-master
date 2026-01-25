@@ -55,7 +55,9 @@ func Connect() (*sql.DB, error) {
 	}
 
 	// Lazy Migrations
-	_, _ = db.Exec("ALTER TABLE settings ADD COLUMN max_concurrent_background_workers INTEGER DEFAULT 5")
-
+	if _, err := db.Exec("ALTER TABLE settings ADD COLUMN max_concurrent_background_workers INTEGER DEFAULT 5"); err != nil {
+		fmt.Printf("Lazy migration failed (might already exist): %v\n", err)
+	}
+ 
 	return db, nil
 }
