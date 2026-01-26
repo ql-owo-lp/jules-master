@@ -25,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem, CommandList } from "./ui/command";
 
 type SessionListProps = {
-  sessions: Session[];
+  sessionMap: Map<string, Session>;
   jobs: Job[];
   unknownSessions: Session[];
   quickReplies: PredefinedPrompt[];
@@ -53,7 +53,7 @@ type SessionListProps = {
 };
 
 export function SessionList({
-  sessions,
+  sessionMap,
   jobs,
   unknownSessions,
   quickReplies,
@@ -89,10 +89,6 @@ export function SessionList({
   
   const [sessionsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
   const [sessionPages, setSessionPages] = useState<Record<string, number>>({});
-
-  const sessionMap = useMemo(() => {
-    return new Map(sessions.map(s => [s.id, s]));
-  }, [sessions]);
 
   const getDetails = useCallback((sessionIds: string[]) => {
       let completed = 0;

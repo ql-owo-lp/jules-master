@@ -22,7 +22,7 @@ describe('SessionList', () => {
   it('should render', () => {
     render(
       <SessionList
-        sessions={[]}
+        sessionMap={new Map()}
         jobs={[]}
         unknownSessions={[]}
         quickReplies={[]}
@@ -50,7 +50,7 @@ describe('SessionList', () => {
   it('should display the progress bar when a job is in a "PROCESSING" or "PENDING" state', () => {
     render(
       <SessionList
-        sessions={[]}
+        sessionMap={new Map()}
         jobs={[
           {
             id: 'job-1',
@@ -98,7 +98,7 @@ describe('SessionList', () => {
   it('should display the progress bar when a job is in a "PENDING" state', () => {
     render(
       <SessionList
-        sessions={[]}
+        sessionMap={new Map()}
         jobs={[
           {
             id: 'job-1',
@@ -146,7 +146,7 @@ describe('SessionList', () => {
   it('should display "No jobs found" when there are no jobs', () => {
     render(
       <SessionList
-        sessions={[]}
+        sessionMap={new Map()}
         jobs={[]}
         unknownSessions={[]}
         quickReplies={[]}
@@ -174,18 +174,19 @@ describe('SessionList', () => {
   });
 
   it('should display uncategorized sessions', () => {
+    const sessions = [
+      {
+        id: 'session-1',
+        title: 'Uncategorized Session',
+        state: 'COMPLETED',
+        createTime: new Date().toISOString(),
+        name: 'sessions/1',
+        prompt: 'test prompt',
+      } as any,
+    ];
     render(
       <SessionList
-        sessions={[
-          {
-            id: 'session-1',
-            title: 'Uncategorized Session',
-            state: 'COMPLETED',
-            createTime: new Date().toISOString(),
-            name: 'sessions/1',
-            prompt: 'test prompt',
-          } as any,
-        ]}
+        sessionMap={new Map(sessions.map(s => [s.id, s]))}
         jobs={[]}
         unknownSessions={[
           {
@@ -222,18 +223,19 @@ describe('SessionList', () => {
   });
 
   it('should not hide the job when the status filter is applied and there are no matching sessions', () => {
+    const sessions = [
+      {
+        id: 'session-1',
+        title: 'Test Session',
+        state: 'COMPLETED',
+        createTime: new Date().toISOString(),
+        name: 'sessions/1',
+        prompt: 'test prompt',
+      } as any,
+    ];
     render(
       <SessionList
-        sessions={[
-          {
-            id: 'session-1',
-            title: 'Test Session',
-            state: 'COMPLETED',
-            createTime: new Date().toISOString(),
-            name: 'sessions/1',
-            prompt: 'test prompt',
-          } as any,
-        ]}
+        sessionMap={new Map(sessions.map(s => [s.id, s]))}
         jobs={[
           {
             id: 'job-1',
@@ -306,7 +308,7 @@ describe('SessionList', () => {
 
     const { rerender } = render(
       <SessionList
-        sessions={sessions}
+        sessionMap={new Map(sessions.map(s => [s.id, s]))}
         jobs={jobs}
         unknownSessions={[]}
         quickReplies={[]}
