@@ -17,6 +17,7 @@ RUN npm install -g npm@latest
 RUN npm ci
 # Copy UI source
 COPY ui/ .
+COPY proto/ /proto/
 RUN npm run build --debug
 RUN mkdir -p /app/data
 
