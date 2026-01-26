@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-function secureCompare(a: string, b: string): boolean {
+export function secureCompare(a: string, b: string): boolean {
+  let mismatch = 0;
   if (a.length !== b.length) {
-    return false;
+    mismatch = 1;
   }
 
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < b.length; i++) {
+    const charCodeA = i < a.length ? a.charCodeAt(i) : 0;
+    const charCodeB = b.charCodeAt(i);
+    mismatch |= charCodeA ^ charCodeB;
   }
   return mismatch === 0;
 }
