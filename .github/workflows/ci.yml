@@ -54,7 +54,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./ui
+          context: .
           file: ./ui/Dockerfile.test
           push: false
           load: true
@@ -80,7 +80,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build Docker image
-        run: docker build -t nextn-app ./ui
+        run: docker build -t nextn-app .
 
       - name: Run container and smoke test
         run: |

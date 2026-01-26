@@ -7,13 +7,14 @@ ENV JULES_API_KEY=mock-api-key
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # Copy package files
-COPY package.json package-lock.json ./
+COPY ui/package.json ui/package-lock.json ./
 
 # Install dependencies
 RUN npm ci
 
 # Copy source code
-COPY . .
+COPY ui/ .
+COPY proto/ /proto/
 
 # Run E2E tests
 CMD ["npm", "run", "test:e2e"]
