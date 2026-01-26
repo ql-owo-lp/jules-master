@@ -98,7 +98,7 @@ jobs:
             -e DATABASE_URL=/app/data/sqlite.db \
             --entrypoint /bin/sh \
             jules-test:latest \
-            -c "npx tsx ui/scripts/seed-e2e.ts"
+            -c "npx tsx scripts/seed-e2e.ts"
 
           # 2. Run Playwright Tests against network host (localhost:9002)
           docker run --rm \
