@@ -507,7 +507,7 @@ function HomePageContent() {
             </NewJobDialog>
           </div>
           <SessionList
-            sessions={sessions}
+            sessionMap={sessionMap}
             jobs={paginatedJobs}
             unknownSessions={unknownSessions}
             quickReplies={quickReplies}
