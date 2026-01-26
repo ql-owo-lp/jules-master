@@ -51,38 +51,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./ui/Dockerfile.test
-          push: false
-          load: true
-          tags: jules-test:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
-
-      - name: Run E2E Tests
-        run: docker run --rm jules-test:latest npm run test:e2e
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: ui/playwright-report/
-          retention-days: 30
-
-  docker_smoke_test:
-    timeout-minutes: 20
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and load Docker image
+      # Build Production Image
+      - name: Build Production Image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -90,16 +60,62 @@ jobs:
           push: false
           load: true
           tags: nextn-app:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
+          cache-from: type=gha,scope=prod
+          cache-to: type=gha,mode=min,scope=prod
 
-      - name: Run container and smoke test
+      # Build Test Runner Image (reusing Dockerfile.test)
+      - name: Build Test Runner Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./ui/Dockerfile.test
+          push: false
+          load: true
+          tags: jules-test:latest
+          cache-from: type=gha,scope=test
+          cache-to: type=gha,mode=min,scope=test
+
+      # Start Production App with Shared Volume
+      - name: Start Production App
         run: |
-          # Run container with random port mapping
-          CONTAINER_ID=$(docker run -d -p 0:9002 --name nextn-container nextn-app:latest)
-          sleep 10
-          # Get the assigned port
-          HOST_PORT=$(docker port $CONTAINER_ID 9002 | cut -d ':' -f 2)
-          echo "Container running on port $HOST_PORT"
-          # Verify health
-          curl -f "http://localhost:$HOST_PORT"
+          docker volume create shared-data
+          # Run production app with shared volume for DB
+          docker run -d \
+            --name nextn-prod \
+            --network host \
+            -e PORT=9002 \
+            -e DATABASE_URL=/app/data/sqlite.db \
+            -v shared-data:/app/data \
+            nextn-app:latest
+          
+          # Initial wait for container
+          sleep 5
+
+      # Run Tests
+      - name: Run E2E Tests
+        run: |
+          # 1. Seed the DB using the test runner (mounting the same volume)
+          # We use the test runner because it has the tsx/scripts needed for seeding
+          docker run --rm \
+            --network host \
+            -v shared-data:/app/data \
+            -e DATABASE_URL=/app/data/sqlite.db \
+            --entrypoint /bin/sh \
+            jules-test:latest \
+            -c "npx tsx ui/scripts/seed-e2e.ts"
+
+          # 2. Run Playwright Tests against network host (localhost:9002)
+          docker run --rm \
+            --network host \
+            -e TEST_TARGET_URL=http://localhost:9002 \
+            -e TEST_SKIP_WEBSERVER=true \
+            -e CI=true \
+            jules-test:latest \
+            npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: ui/playwright-report/
+          retention-days: 30
