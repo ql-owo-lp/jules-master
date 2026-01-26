@@ -1,5 +1,5 @@
 # 1. Builder Stage: Build the Next.js application
-FROM node:22 AS builder
+FROM node:24 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -26,7 +26,7 @@ RUN mkdir -p /app/data
 
 
 # 2. Runner Stage: Create the final, minimal production image
-FROM gcr.io/distroless/nodejs22-debian12 AS runner
+FROM gcr.io/distroless/nodejs24-debian12 AS runner
 
 # Set working directory
 WORKDIR /app
