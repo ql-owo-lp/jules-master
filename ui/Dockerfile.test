@@ -25,5 +25,8 @@ COPY ui/ .
 COPY proto/ /proto/
 COPY server/ /server/
 
+# Pre-build backend
+RUN cd /server && go mod download && go build -o /app/server_bin cmd/server/main.go
+
 # Run E2E tests
 CMD ["npm", "run", "test:e2e"]
