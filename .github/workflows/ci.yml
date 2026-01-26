@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   backend-test:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.1'
+          go-version: "1.23.1"
 
       - name: Run Backend Tests
         run: make test-backend
@@ -31,7 +31,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Install Dependencies
         working-directory: ./ui
@@ -83,7 +83,7 @@ jobs:
             -e DATABASE_URL=/app/data/sqlite.db \
             -v shared-data:/app/data \
             nextn-app:latest
-          
+
           # Initial wait for container
           sleep 5
 
@@ -115,3 +115,40 @@ jobs:
           name: playwright-report
           path: ui/playwright-report/
           retention-days: 30
+
+  comment-on-failure:
+    runs-on: ubuntu-latest
+    needs: [backend-test, test, e2e]
+    if: failure() && github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const needs = ${{ toJson(needs) }};
+            const { repo, owner } = context.repo;
+            const run_id = context.runId;
+            const run_url = `https://github.com/${owner}/${repo}/actions/runs/${run_id}`;
+
+            const failedJobs = Object.entries(needs)
+              .filter(([_, job]) => job.result === 'failure')
+              .map(([name]) => name);
+
+            const list = failedJobs.map(job => `- **${job}**`).join('\n');
+
+            const body = `❌ **CI Checks Failed** @jules
+
+            The following checks failed in this run:
+            ${list}
+
+            Please check the [Action logs](${run_url}) for more details.
+            `;
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: context.issue.number,
+              body
+            });
