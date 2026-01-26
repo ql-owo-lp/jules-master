@@ -2,7 +2,7 @@
 import { db } from './db';
 import { sessions, settings } from './db/schema';
 import { eq, sql, lt, and, gt } from 'drizzle-orm';
-import type { Session, State } from '@/lib/types';
+import type { Session, State, SessionOutput } from '@/lib/types';
 import { fetchWithRetry } from './fetch-client';
 
 // Type definitions for easier usage
@@ -106,7 +106,14 @@ export async function getCachedSessions(profileId: string = 'default'): Promise<
     createTime: s.createTime || undefined,
     updateTime: s.updateTime || undefined,
     url: s.url || undefined,
-    outputs: s.outputs || undefined,
+    // Optimization: Sanitize outputs to reduce payload size.
+    // We only need pullRequest info for the list view.
+    outputs: (s.outputs && Array.isArray(s.outputs)) ? s.outputs.map(o => {
+      if (o && o.pullRequest) {
+        return { pullRequest: o.pullRequest };
+      }
+      return null;
+    }).filter((o): o is SessionOutput => o !== null) : undefined,
     requirePlanApproval: s.requirePlanApproval || undefined,
     automationMode: s.automationMode || undefined,
     profileId: s.profileId,

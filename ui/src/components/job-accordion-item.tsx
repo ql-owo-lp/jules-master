@@ -24,7 +24,7 @@ interface JobAccordionItemProps {
   statusFilter: string;
   selectedSessionIds: string[];
   sessionsPerPage: number;
-  sessionPages: Record<string, number>;
+  page: number;
   isRefreshing?: boolean;
   activeJobId: string | null;
   isActionPending?: boolean;
@@ -49,7 +49,7 @@ const JobAccordionItemComponent = ({
   statusFilter,
   selectedSessionIds,
   sessionsPerPage,
-  sessionPages,
+  page,
   isRefreshing,
   activeJobId,
   isActionPending,
@@ -99,7 +99,7 @@ const JobAccordionItemComponent = ({
   const isSomeSelected = filteredSessionIds.some(id => selectedSessionIds.includes(id));
   const selectAllState = isAllSelected ? true : (isSomeSelected ? 'indeterminate' : false);
 
-  const currentPage = sessionPages[job.id] || 1;
+  const currentPage = page;
   const totalPages = Math.ceil(sessionsForJob.length / sessionsPerPage);
   const paginatedSessions = sessionsForJob.slice(
     (currentPage - 1) * sessionsPerPage,
@@ -353,4 +353,29 @@ const JobAccordionItemComponent = ({
   );
 };
 
-export const JobAccordionItem = memo(JobAccordionItemComponent);
+function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next: JobAccordionItemProps) {
+  // 1. Check strict equality for all props except 'selectedSessionIds'
+  const keys = Object.keys(prev) as (keyof JobAccordionItemProps)[];
+  for (const key of keys) {
+      if (key === 'selectedSessionIds') continue;
+      if (prev[key] !== next[key]) return false;
+  }
+
+  // 2. Check 'selectedSessionIds'
+  if (prev.selectedSessionIds === next.selectedSessionIds) return true;
+
+  // If array refs differ, check if it affects THIS job.
+  const prevSelectedSet = new Set(prev.selectedSessionIds);
+  const nextSelectedSet = new Set(next.selectedSessionIds);
+
+  // We use next.job.sessionIds (assuming job didn't change, checked above)
+  for (const sessionId of next.job.sessionIds) {
+      if (prevSelectedSet.has(sessionId) !== nextSelectedSet.has(sessionId)) {
+          return false;
+      }
+  }
+
+  return true;
+}
+
+export const JobAccordionItem = memo(JobAccordionItemComponent, areJobAccordionItemPropsEqual);
