@@ -252,36 +252,36 @@ function SettingsContent() {
           const dbSettings = await response.json();
           // Update state with values from DB (Source of Truth)
           // valid DB values will overwrite local storage via the hooks
-          setIdlePollInterval(dbSettings.idlePollInterval);
-          setActivePollInterval(dbSettings.activePollInterval);
-          setTitleTruncateLength(dbSettings.titleTruncateLength);
-          setLineClamp(dbSettings.lineClamp);
-          setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
-          setJobsPerPage(dbSettings.jobsPerPage);
-          setDefaultSessionCount(dbSettings.defaultSessionCount);
-          setPrStatusPollInterval(dbSettings.prStatusPollInterval);
-          setHistoryPromptsCount(dbSettings.historyPromptsCount);
-          setAutoApprovalInterval(dbSettings.autoApprovalInterval);
-          setAutoApprovalEnabled(dbSettings.autoApprovalEnabled);
-          setAutoRetryEnabled(dbSettings.autoRetryEnabled);
-          setAutoRetryMessage(dbSettings.autoRetryMessage);
-          setAutoContinueEnabled(dbSettings.autoContinueEnabled);
-          setAutoContinueMessage(dbSettings.autoContinueMessage);
+          setIdlePollInterval(dbSettings.idlePollInterval ?? 120);
+          setActivePollInterval(dbSettings.activePollInterval ?? 30);
+          setTitleTruncateLength(dbSettings.titleTruncateLength ?? 50);
+          setLineClamp(dbSettings.lineClamp ?? 1);
+          setSessionItemsPerPage(dbSettings.sessionItemsPerPage ?? 10);
+          setJobsPerPage(dbSettings.jobsPerPage ?? 5);
+          setDefaultSessionCount(dbSettings.defaultSessionCount ?? 10);
+          setPrStatusPollInterval(dbSettings.prStatusPollInterval ?? 300);
+          setHistoryPromptsCount(dbSettings.historyPromptsCount ?? 10);
+          setAutoApprovalInterval(dbSettings.autoApprovalInterval ?? 60);
+          setAutoApprovalEnabled(dbSettings.autoApprovalEnabled ?? false);
+          setAutoRetryEnabled(dbSettings.autoRetryEnabled ?? true);
+          setAutoRetryMessage(dbSettings.autoRetryMessage ?? "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
+          setAutoContinueEnabled(dbSettings.autoContinueEnabled ?? true);
+          setAutoContinueMessage(dbSettings.autoContinueMessage ?? "Sounds good. Now go ahead finish the work");
 
-          setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
-          setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
-          setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
-          setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
-          setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
-          setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
-          setCheckFailingActionsEnabled(dbSettings.checkFailingActionsEnabled);
-          setCheckFailingActionsInterval(dbSettings.checkFailingActionsInterval);
-          setCheckFailingActionsThreshold(dbSettings.checkFailingActionsThreshold);
-          setAutoCloseStaleConflictedPrs(dbSettings.autoCloseStaleConflictedPrs);
-          setStaleConflictedPrsDurationDays(dbSettings.staleConflictedPrsDurationDays);
-          setClosePrOnConflictEnabled(dbSettings.closePrOnConflictEnabled);
-          setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
-          setRetryTimeout(dbSettings.retryTimeout);
+          setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval ?? 60);
+          setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval ?? 1800);
+          setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval ?? 300);
+          setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays ?? 3);
+          setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches ?? false);
+          setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays ?? 3);
+          setCheckFailingActionsEnabled(dbSettings.checkFailingActionsEnabled ?? true);
+          setCheckFailingActionsInterval(dbSettings.checkFailingActionsInterval ?? 600);
+          setCheckFailingActionsThreshold(dbSettings.checkFailingActionsThreshold ?? 10);
+          setAutoCloseStaleConflictedPrs(dbSettings.autoCloseStaleConflictedPrs ?? false);
+          setStaleConflictedPrsDurationDays(dbSettings.staleConflictedPrsDurationDays ?? 3);
+          setClosePrOnConflictEnabled(dbSettings.closePrOnConflictEnabled ?? false);
+          setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval ?? 60);
+          setRetryTimeout(dbSettings.retryTimeout ?? 1200);
 
           if (dbSettings.theme) {
             setTheme(dbSettings.theme);

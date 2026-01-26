@@ -67,7 +67,7 @@ export function useLocalStorage<T>(
 
     try {
       const item = window.localStorage.getItem(key);
-      const freshValue = item ? JSON.parse(item) : initialValue;
+      const freshValue = item && item !== "undefined" ? JSON.parse(item) : initialValue;
       
       // Update state only if different to avoid infinite loops with objects/arrays
       if (JSON.stringify(freshValue) !== JSON.stringify(storedValue)) {
