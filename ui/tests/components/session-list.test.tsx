@@ -12,6 +12,12 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+// Mock actions to avoid network calls and dependency issues
+vi.mock('@/app/config/actions', () => ({
+  getPredefinedPrompts: vi.fn().mockResolvedValue([]),
+  getQuickReplies: vi.fn().mockResolvedValue([]),
+}));
+
 describe('SessionList', () => {
   it('should render', () => {
     render(

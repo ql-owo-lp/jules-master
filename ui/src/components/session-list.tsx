@@ -276,7 +276,7 @@ export function SessionList({
                       statusFilter={statusFilter}
                       selectedSessionIds={selectedSessionIds}
                       sessionsPerPage={sessionsPerPage}
-                      sessionPages={sessionPages}
+                      page={sessionPages[job.id] || 1}
                       isRefreshing={isRefreshing}
                       activeJobId={activeJobId}
                       isActionPending={isActionPending}
