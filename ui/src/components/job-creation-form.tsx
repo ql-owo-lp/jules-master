@@ -489,7 +489,10 @@ export function JobCreationForm({
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="session-count">Number of sessions</Label>
+              <Label htmlFor="session-count">
+                Number of sessions
+                <span className="text-destructive ml-1">*</span>
+              </Label>
               <Input
                 id="session-count"
                 type="number"
@@ -507,7 +510,10 @@ export function JobCreationForm({
 
           <div className="grid w-full gap-2">
             <div className="flex items-center justify-between">
-                <Label htmlFor="prompts">Prompt</Label>
+                <Label htmlFor="prompts">
+                  Prompt
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
                 {prompt && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -534,6 +540,7 @@ export function JobCreationForm({
               }}
               disabled={isPending || disabled}
               aria-label="Session Prompts"
+              required
             />
              <div className="grid grid-cols-2 items-center gap-4 pt-2">
               {isClient && (predefinedPrompts.length > 0 || historyPrompts.length > 0) && (
@@ -571,7 +578,10 @@ export function JobCreationForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                    <Label htmlFor="repository">Repository</Label>
+                    <Label htmlFor="repository">
+                      Repository
+                      <span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-6 w-6" disabled={isRefreshing} aria-label="Refresh Repositories">
