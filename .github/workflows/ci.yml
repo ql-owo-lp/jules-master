@@ -91,7 +91,7 @@ jobs:
           load: true
           tags: nextn-app:latest
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
 
       - name: Run container and smoke test
         run: |
