@@ -60,7 +60,6 @@ jobs:
           load: true
           tags: jules-test:latest
           cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Run E2E Tests
         run: docker run --rm jules-test:latest npm run test:e2e
