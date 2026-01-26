@@ -58,7 +58,7 @@ describe('CronJobForm', () => {
 
     render(<CronJobForm onCronJobCreated={onCronJobCreated} onCancel={onCancel} />);
 
-    const scheduleInput = screen.getByLabelText('Schedule (Cron Expression)');
+    const scheduleInput = screen.getByRole('textbox', { name: /Schedule/i });
     expect(scheduleInput).toHaveValue('0 * * * *');
 
     // Trigger has aria-label "Schedule Presets"
@@ -88,7 +88,7 @@ describe('CronJobForm', () => {
       const onCancel = vi.fn();
       render(<CronJobForm onCronJobCreated={onCronJobCreated} onCancel={onCancel} />);
 
-      const scheduleInput = screen.getByLabelText('Schedule (Cron Expression)');
+      const scheduleInput = screen.getByRole('textbox', { name: /Schedule/i });
 
       // Change to "Every Week" value manually: "0 0 * * 0"
       await user.clear(scheduleInput);
@@ -106,7 +106,7 @@ describe('CronJobForm', () => {
       const onCancel = vi.fn();
       render(<CronJobForm onCronJobCreated={onCronJobCreated} onCancel={onCancel} />);
 
-      const scheduleInput = screen.getByLabelText('Schedule (Cron Expression)');
+      const scheduleInput = screen.getByRole('textbox', { name: /Schedule/i });
 
       // Change to custom value
       await user.clear(scheduleInput);
@@ -124,7 +124,7 @@ describe('CronJobForm', () => {
     const onCancel = vi.fn();
     render(<CronJobForm onCronJobCreated={onCronJobCreated} onCancel={onCancel} />);
 
-    const scheduleInput = screen.getByLabelText('Schedule (Cron Expression)');
+    const scheduleInput = screen.getByRole('textbox', { name: /Schedule/i });
 
     // Type invalid cron
     await user.clear(scheduleInput);
@@ -142,5 +142,40 @@ describe('CronJobForm', () => {
       expect(screen.queryByText('Invalid cron expression')).not.toBeInTheDocument();
       expect(screen.getByText(/Next run:/)).toBeInTheDocument();
     });
+  });
+
+  it('should HAVE asterisks on required labels', async () => {
+    const onCronJobCreated = vi.fn();
+    const onCancel = vi.fn();
+
+    render(<CronJobForm onCronJobCreated={onCronJobCreated} onCancel={onCancel} />);
+
+    // Check Job Name label
+    const nameLabel = screen.getByText((content, element) => {
+        return element?.tagName.toLowerCase() === 'label' && content.startsWith('Job Name');
+    });
+    expect(nameLabel.innerHTML).toContain('*');
+
+    // Check Schedule label
+    const scheduleLabel = screen.getByText((content, element) => {
+        return element?.tagName.toLowerCase() === 'label' && content.startsWith('Schedule');
+    });
+    expect(scheduleLabel.innerHTML).toContain('*');
+
+    // Check Prompt label
+    const promptLabel = screen.getByText((content, element) => {
+        return element?.tagName.toLowerCase() === 'label' && content.trim().startsWith('Prompt');
+    });
+    expect(promptLabel.innerHTML).toContain('*');
+
+    // Check Repository label
+    const repoLabel = screen.getByText((content, element) => {
+        return element?.tagName.toLowerCase() === 'label' && content.startsWith('Repository');
+    });
+    expect(repoLabel.innerHTML).toContain('*');
+
+    // Check required attribute on prompt textarea
+    const promptTextarea = screen.getByRole('textbox', { name: /Prompt/i });
+    expect(promptTextarea).toHaveAttribute('required');
   });
 });

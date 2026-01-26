@@ -353,7 +353,10 @@ export function CronJobForm({
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="job-name">Job Name</Label>
+              <Label htmlFor="job-name">
+                Job Name
+                <span className="text-destructive ml-1">*</span>
+              </Label>
               <Input
                 id="job-name"
                 placeholder="e.g., Weekly Maintenance"
@@ -365,7 +368,10 @@ export function CronJobForm({
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label htmlFor="schedule">Schedule (Cron Expression)</Label>
+                <Label htmlFor="schedule">
+                  Schedule (Cron Expression)
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
                 <Select
                   value={CRON_PRESETS.find(p => p.value === schedule)?.value || ""}
                   onValueChange={(val) => {
@@ -414,7 +420,10 @@ export function CronJobForm({
 
           <div className="grid w-full gap-2">
             <div className="flex items-center justify-between">
-                <Label htmlFor="prompts">Prompt</Label>
+                <Label htmlFor="prompts">
+                  Prompt
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
                 {prompt && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -440,6 +449,7 @@ export function CronJobForm({
               }}
               disabled={isPending}
               aria-label="Session Prompts"
+              required
             />
              <div className="grid grid-cols-2 items-center gap-4 pt-2">
               {isClient && (predefinedPrompts.length > 0 || historyPrompts.length > 0) && (
@@ -479,7 +489,10 @@ export function CronJobForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                    <Label htmlFor="repository">Repository</Label>
+                    <Label htmlFor="repository">
+                      Repository
+                      <span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-6 w-6" disabled={isRefreshing} aria-label="Refresh Repositories">
@@ -509,7 +522,10 @@ export function CronJobForm({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
              <div className="space-y-2">
-              <Label htmlFor="session-count">Session Count</Label>
+              <Label htmlFor="session-count">
+                Session Count
+                <span className="text-destructive ml-1">*</span>
+              </Label>
               <Input
                 id="session-count"
                 type="number"
