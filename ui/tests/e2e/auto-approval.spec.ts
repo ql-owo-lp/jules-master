@@ -11,6 +11,28 @@ test.describe('Auto Approval Features', () => {
         try {
             // Set API key via UI to ensure it's picked up correctly by hydration
             await page.goto('/settings?tab=general');
+
+            // Seed sources to avoid real API calls and timeouts
+            await page.evaluate(() => {
+                const mockSources = [{
+                    name: "sources/github/owner/repo",
+                    id: "source-1",
+                    githubRepo: {
+                        owner: "owner",
+                        repo: "repo",
+                        isPrivate: false,
+                        defaultBranch: { displayName: "main" },
+                        branches: [{ displayName: "main" }]
+                    }
+                }];
+                // localStorage.setItem('jules-sources-cache', JSON.stringify(mockSources));
+                // localStorage.setItem('jules-sources-last-fetch', Date.now().toString());
+                // We use useLocalStorage which might have different keys or formats, 
+                // but setting these directly usually works if they match the keys in the code.
+                window.localStorage.setItem('jules-sources-cache', JSON.stringify(mockSources));
+                window.localStorage.setItem('jules-sources-last-fetch', Date.now().toString());
+            });
+            await page.reload();
             
             // Wait for settings to be loaded from DB to avoid race conditions
             await page.waitForSelector('[data-settings-loaded="true"]', { timeout: 30000 });
@@ -72,14 +94,16 @@ test.describe('Auto Approval Features', () => {
 
         // Select Repository (Mock Data)
         // Wait for Repository combobox to be enabled which signifies API key is loaded and hydration complete
-        const repoCombobox = page.getByRole('combobox', { name: 'Repository' });
+        const repoCombobox = page.locator('#repository');
         await expect(repoCombobox).toBeEnabled({ timeout: 25000 });
 
         // Ensure "Require Plan Approval" is UNCHECKED (which means Auto Approval is ON)
-        const requireApprovalSwitch = page.getByRole('switch', { name: 'Require Plan Approval' });
+        const requireApprovalSwitch = page.locator('#require-plan-approval');
+        await expect(requireApprovalSwitch).toBeVisible({ timeout: 10000 });
 
         // If it's checked, uncheck it.
-        if (await requireApprovalSwitch.isChecked()) {
+        const isChecked = await requireApprovalSwitch.getAttribute('aria-checked') === 'true';
+        if (isChecked) {
              await requireApprovalSwitch.click();
         }
         await expect(requireApprovalSwitch).not.toBeChecked();

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mcpany/jules/internal/logger"
 	pb "github.com/mcpany/jules/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -18,6 +19,7 @@ type JobServer struct {
 }
 
 func (s *JobServer) ListJobs(ctx context.Context, _ *emptypb.Empty) (*pb.ListJobsResponse, error) {
+	logger.Info("[BACKEND] ListJobs called (FIX APPLIED)")
 	rows, err := s.DB.Query(`
         SELECT id, name, session_ids, created_at, repo, branch, auto_approval, 
                background, prompt, session_count, status, automation_mode, 
@@ -33,25 +35,49 @@ func (s *JobServer) ListJobs(ctx context.Context, _ *emptypb.Empty) (*pb.ListJob
 	var jobs []*pb.Job
 	for rows.Next() {
 		var j pb.Job
-		var sessionIdsJSON string
-		var automationMode sql.NullString
-		var cronJobId, profileId sql.NullString
+		var (
+			sessionIdsJSON      sql.NullString
+			automationMode      sql.NullString
+			cronJobId           sql.NullString
+			profileId           sql.NullString
+			requirePlanApproval sql.NullBool
+			prompt              sql.NullString
+			sessionCount        sql.NullInt64
+			status              sql.NullString
+		)
 
-		var requirePlanApproval sql.NullBool
 		if err := rows.Scan(
 			&j.Id, &j.Name, &sessionIdsJSON, &j.CreatedAt, &j.Repo, &j.Branch, &j.AutoApproval,
-			&j.Background, &j.Prompt, &j.SessionCount, &j.Status, &automationMode,
+			&j.Background, &prompt, &sessionCount, &status, &automationMode,
 			&requirePlanApproval, &cronJobId, &profileId,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan job: %w", err)
 		}
+
+		if prompt.Valid {
+			j.Prompt = prompt.String
+		}
+		if sessionCount.Valid {
+			j.SessionCount = int32(sessionCount.Int64)
+		}
+		if status.Valid {
+			j.Status = status.String
+		}
 		if requirePlanApproval.Valid {
 			j.RequirePlanApproval = requirePlanApproval.Bool
 		}
+		if cronJobId.Valid {
+			j.CronJobId = cronJobId.String
+		}
+		if profileId.Valid {
+			j.ProfileId = profileId.String
+		}
 
-		if err := json.Unmarshal([]byte(sessionIdsJSON), &j.SessionIds); err != nil {
-			// If manual string or empty
-			// Assuming sessionIds is always JSON array per code
+		if sessionIdsJSON.Valid && sessionIdsJSON.String != "" {
+			if err := json.Unmarshal([]byte(sessionIdsJSON.String), &j.SessionIds); err != nil {
+				j.SessionIds = []string{}
+			}
+		} else {
 			j.SessionIds = []string{}
 		}
 
@@ -61,12 +87,6 @@ func (s *JobServer) ListJobs(ctx context.Context, _ *emptypb.Empty) (*pb.ListJob
 			} else {
 				j.AutomationMode = pb.AutomationMode_AUTOMATION_MODE_UNSPECIFIED
 			}
-		}
-		if cronJobId.Valid {
-			j.CronJobId = cronJobId.String
-		}
-		if profileId.Valid {
-			j.ProfileId = profileId.String
 		}
 
 		jobs = append(jobs, &j)
@@ -80,11 +100,17 @@ func (s *JobServer) GetJob(ctx context.Context, req *pb.GetJobRequest) (*pb.Job,
 	}
 
 	var j pb.Job
-	var sessionIdsJSON string
-	var automationMode sql.NullString
-	var cronJobId, profileId sql.NullString
+	var (
+		sessionIdsJSON      sql.NullString
+		automationMode      sql.NullString
+		cronJobId           sql.NullString
+		profileId           sql.NullString
+		requirePlanApproval sql.NullBool
+		prompt              sql.NullString
+		sessionCount        sql.NullInt64
+		status              sql.NullString
+	)
 
-	var requirePlanApproval sql.NullBool
 	err := s.DB.QueryRow(`
         SELECT id, name, session_ids, created_at, repo, branch, auto_approval, 
         background, prompt, session_count, status, automation_mode, 
@@ -93,12 +119,9 @@ func (s *JobServer) GetJob(ctx context.Context, req *pb.GetJobRequest) (*pb.Job,
         WHERE id = ?
     `, req.Id).Scan(
 		&j.Id, &j.Name, &sessionIdsJSON, &j.CreatedAt, &j.Repo, &j.Branch, &j.AutoApproval,
-		&j.Background, &j.Prompt, &j.SessionCount, &j.Status, &automationMode,
+		&j.Background, &prompt, &sessionCount, &status, &automationMode,
 		&requirePlanApproval, &cronJobId, &profileId,
 	)
-	if requirePlanApproval.Valid {
-		j.RequirePlanApproval = requirePlanApproval.Bool
-	}
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("job not found")
@@ -106,17 +129,35 @@ func (s *JobServer) GetJob(ctx context.Context, req *pb.GetJobRequest) (*pb.Job,
 		return nil, fmt.Errorf("failed to get job: %w", err)
 	}
 
-	if err := json.Unmarshal([]byte(sessionIdsJSON), &j.SessionIds); err != nil {
-		j.SessionIds = []string{}
+	if prompt.Valid {
+		j.Prompt = prompt.String
 	}
-	if automationMode.Valid && automationMode.String == "AUTO_CREATE_PR" {
-		j.AutomationMode = pb.AutomationMode_AUTO_CREATE_PR
+	if sessionCount.Valid {
+		j.SessionCount = int32(sessionCount.Int64)
+	}
+	if status.Valid {
+		j.Status = status.String
+	}
+	if requirePlanApproval.Valid {
+		j.RequirePlanApproval = requirePlanApproval.Bool
 	}
 	if cronJobId.Valid {
 		j.CronJobId = cronJobId.String
 	}
 	if profileId.Valid {
 		j.ProfileId = profileId.String
+	}
+
+	if sessionIdsJSON.Valid && sessionIdsJSON.String != "" {
+		if err := json.Unmarshal([]byte(sessionIdsJSON.String), &j.SessionIds); err != nil {
+			j.SessionIds = []string{}
+		}
+	} else {
+		j.SessionIds = []string{}
+	}
+
+	if automationMode.Valid && automationMode.String == "AUTO_CREATE_PR" {
+		j.AutomationMode = pb.AutomationMode_AUTO_CREATE_PR
 	}
 
 	return &j, nil

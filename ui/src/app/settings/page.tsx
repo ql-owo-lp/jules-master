@@ -14,12 +14,6 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
 import { useEnv } from "@/components/env-provider";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
   Card,
   CardHeader,
   CardTitle,
@@ -419,11 +413,11 @@ function SettingsContent() {
             title: "Settings Saved",
             description: "Your settings have been updated.",
         });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Failed to save settings", error);
          toast({
             title: "Error",
-            description: error.message || "Failed to save settings. Local storage updated.",
+            description: error instanceof Error ? error.message : "Failed to save settings. Local storage updated.",
             variant: "destructive"
         });
     }

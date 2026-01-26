@@ -492,6 +492,7 @@ export function CronJobForm({
                     </Tooltip>
                 </div>
                 <SourceSelection
+                    id="repository"
                     onSourceSelected={setSelectedSource}
                     disabled={isPending}
                     selectedValue={selectedSource}

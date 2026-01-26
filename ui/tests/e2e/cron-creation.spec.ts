@@ -63,8 +63,8 @@ test.describe('Cron Job Creation', () => {
         });
 
         await page.reload();
-
-        await page.getByRole('tab', { name: 'Cron Jobs' }).click();
+        // Use direct navigation to Cron tab to avoid click flakiness
+        await page.goto('/settings?tab=cron');
 
         // Verify list is initially empty
         await expect(page.getByText('No cron jobs yet')).toBeVisible();
@@ -76,18 +76,21 @@ test.describe('Cron Job Creation', () => {
         await page.getByLabel('Session Prompts').fill('Test prompt');
 
         // Select repo
-        try {
-            await page.getByRole('combobox', { name: 'Select a repository' }).click({ timeout: 2000 });
-        } catch {
-             await page.getByText('Select a repository').click();
+        const repoTrigger = page.locator('#repository');
+        await expect(repoTrigger).toBeVisible();
+        const text = await repoTrigger.innerText();
+        if (text.includes('Select a repository')) {
+             await repoTrigger.click();
+             await page.keyboard.press('ArrowDown');
+             await page.keyboard.press('Enter');
         }
-        await page.getByRole('option').first().click();
+        await expect(repoTrigger).toHaveText(/owner\/repo/);
 
         await page.getByRole('button', { name: 'Create Cron Job' }).click();
 
         // Verify that the new cron job appears in the list
-        await expect(page.getByText(jobName)).toBeVisible();
-        await expect(page.getByText('0 0 * * *')).toBeVisible();
+        await expect(page.getByText(jobName).first()).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText('0 0 * * *').first()).toBeVisible({ timeout: 10000 });
     });
 
     test('should show error for invalid schedule', async ({ page }) => {

@@ -45,6 +45,7 @@ if (dbUrl !== ':memory:') {
 }
 
 const sqlite = new Database(dbPath);
+sqlite.pragma('journal_mode = WAL');
 export const db = drizzle(sqlite, { schema });
 
 // Generic DAO Interface

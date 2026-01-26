@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Terminal } from "lucide-react";
 import { useEnv } from "@/components/env-provider";
