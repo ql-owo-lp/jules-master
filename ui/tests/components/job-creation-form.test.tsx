@@ -67,10 +67,10 @@ describe('JobCreationForm', () => {
     });
 
     render(<JobCreationForm onJobsCreated={onJobsCreated} onCreateJob={onCreateJob} />);
-    await screen.findByLabelText('Prompt');
+    await screen.findByRole('textbox', { name: /Session Prompts/i });
 
-    fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'Test background job prompt' } });
-    fireEvent.change(screen.getByLabelText('Job Name (Optional)'), { target: { value: 'Test BG Job' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /Session Prompts/i }), { target: { value: 'Test background job prompt' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /Job Name/i }), { target: { value: 'Test BG Job' } });
     fireEvent.click(screen.getByRole('button', { name: /Create Job/i }));
 
     await waitFor(() => {
@@ -98,15 +98,16 @@ describe('JobCreationForm', () => {
     });
 
     render(<JobCreationForm onJobsCreated={onJobsCreated} onCreateJob={onCreateJob} />);
-    await screen.findByLabelText('Prompt');
+    await screen.findByRole('textbox', { name: /Session Prompts/i });
 
-    fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'Test foreground job prompt' } });
-    fireEvent.change(screen.getByLabelText('Job Name (Optional)'), { target: { value: 'Test FG Job' } });
-    fireEvent.change(screen.getByLabelText('Number of sessions'), { target: { value: '2' } });
-    fireEvent.change(screen.getByLabelText('Number of sessions'), { target: { value: '2' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /Session Prompts/i }), { target: { value: 'Test foreground job prompt' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /Job Name/i }), { target: { value: 'Test FG Job' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: /Number of sessions/i }), { target: { value: '2' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: /Number of sessions/i }), { target: { value: '2' } });
     
     // Toggle background job to false (defaults to true)
-    fireEvent.click(screen.getByLabelText('Background Job'));
+    // Background Job switch usually has role="switch"
+    fireEvent.click(screen.getByRole('switch', { name: /Background Job/i }));
     
     fireEvent.click(screen.getByRole('button', { name: /Create Job/i }));
 
@@ -123,5 +124,47 @@ describe('JobCreationForm', () => {
         requirePlanApproval: false,
       });
     }, { timeout: 2000 }); // Increased timeout
+  });
+
+  it('should HAVE asterisks on required labels', async () => {
+    const onJobsCreated = vi.fn();
+    const onCreateJob = vi.fn();
+
+    render(<JobCreationForm onJobsCreated={onJobsCreated} onCreateJob={onCreateJob} />);
+    await screen.findByRole('textbox', { name: /Session Prompts/i });
+
+    // Check Prompt label
+    // The label text includes the asterisk, so we look for "Prompt" loosely.
+    // Also ensuring it contains the asterisk visually (via span or text content)
+    // getByText returns the label element.
+    const promptLabel = screen.getByText((content, element) => {
+        return element?.tagName.toLowerCase() === 'label' && content.startsWith('Prompt');
+    });
+    expect(promptLabel.innerHTML).toContain('*');
+
+    // Check Repository label
+    const repoLabel = screen.getByText((content, element) => {
+        return element?.tagName.toLowerCase() === 'label' && content.includes('Repository');
+    });
+    expect(repoLabel.innerHTML).toContain('*');
+
+    // Check Branch label (rendered by BranchSelection)
+    const branchLabel = screen.getByText((content, element) => {
+        return element?.tagName.toLowerCase() === 'label' && content.includes('Branch');
+    });
+    expect(branchLabel.innerHTML).toContain('*');
+
+    // Check required attribute on prompt textarea
+    // getByLabelText might fail if the label text is exactly "Prompt" but now it renders "Prompt *"
+    // Testing library often normalizes text but "Prompt *" might be distinct.
+    // However, the accessible name usually includes the text.
+    // Let's verify if `getByLabelText` works or if we need `getByRole`.
+    // The asterisk is inside the label, so the label text is "Prompt *".
+    // But `getByLabelText` usually does partial matching or regex if provided.
+    // If we use string 'Prompt', it might fail if it's strictly "Prompt *".
+    // Let's use regex /Prompt/i
+
+    const promptTextarea = screen.getByRole('textbox', { name: /Prompt/i });
+    expect(promptTextarea).toHaveAttribute('required');
   });
 });

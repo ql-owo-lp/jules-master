@@ -26,7 +26,10 @@ export function BranchSelection({ branches, selectedValue, onBranchSelected, dis
 
   return (
     <div className="grid w-full items-center gap-2">
-      <Label htmlFor="branch">Branch</Label>
+      <Label htmlFor="branch">
+        Branch
+        <span className="text-destructive ml-1">*</span>
+      </Label>
       <Combobox 
         id="branch"
         options={options}

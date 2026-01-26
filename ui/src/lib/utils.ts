@@ -113,11 +113,11 @@ export function hasDataChanged<T extends { id: string }>(
     if (
       'updateTime' in item &&
       'updateTime' in prevItem &&
-      typeof (item as any).updateTime === 'string' &&
-      typeof (prevItem as any).updateTime === 'string'
+      typeof (item as Record<string, unknown>).updateTime === 'string' &&
+      typeof (prevItem as Record<string, unknown>).updateTime === 'string'
     ) {
-      const itemTime = (item as any).updateTime;
-      const prevTime = (prevItem as any).updateTime;
+      const itemTime = (item as Record<string, unknown>).updateTime;
+      const prevTime = (prevItem as Record<string, unknown>).updateTime;
       if (itemTime !== prevTime) return true;
       // If timestamps match, we assume content is same.
       continue;
