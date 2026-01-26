@@ -87,6 +87,15 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
     });
 }
 
+/**
+ * Checks if data has changed between two arrays of objects.
+ * Uses `updateTime` for fast comparison if available and valid (string).
+ * Falls back to deep equality (via JSON.stringify) otherwise.
+ *
+ * Note: If `updateTime` matches, it assumes the object is unchanged.
+ * This works well for server-synced entities but may miss local client-side mutations
+ * that don't update the timestamp.
+ */
 export function hasDataChanged<T extends { id: string }>(
   prev: T[],
   next: T[]
@@ -98,6 +107,22 @@ export function hasDataChanged<T extends { id: string }>(
   for (const item of next) {
     const prevItem = prevMap.get(item.id);
     if (!prevItem) return true;
+
+    // Optimization: Use updateTime if available on both items
+    // This avoids expensive JSON.stringify for large objects like Sessions
+    if (
+      'updateTime' in item &&
+      'updateTime' in prevItem &&
+      typeof (item as any).updateTime === 'string' &&
+      typeof (prevItem as any).updateTime === 'string'
+    ) {
+      const itemTime = (item as any).updateTime;
+      const prevTime = (prevItem as any).updateTime;
+      if (itemTime !== prevTime) return true;
+      // If timestamps match, we assume content is same.
+      continue;
+    }
+
     if (JSON.stringify(prevItem) !== JSON.stringify(item)) return true;
   }
 
