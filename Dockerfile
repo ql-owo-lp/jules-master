@@ -4,20 +4,35 @@ WORKDIR /app
 # Install build dependencies if needed (gcc is included in bookworm)
 # RUN apt-get update && apt-get install -y gcc
 COPY server/go.mod server/go.sum ./
+COPY proto/ /proto/
 RUN go mod download
 COPY server/ .
 RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
 FROM node:24 AS node-builder
+RUN apt-get update && apt-get install -y protobuf-compiler
 WORKDIR /app
-# Copy UI package files
-COPY ui/package.json ui/package-lock.json ./
+
+# Copy UI package files and proto files
+COPY ui/package.json ./
 RUN npm install -g npm@latest
-RUN npm ci
-# Copy UI source
+RUN npm install
+
+# Copy source code and protos
 COPY ui/ .
 COPY proto/ /proto/
+# Workdir for proto generation
+WORKDIR /
+RUN protoc --plugin=/app/node_modules/.bin/protoc-gen-ts_proto \
+    --ts_proto_out=proto \
+    --ts_proto_opt=esModuleInterop=true \
+    --ts_proto_opt=outputServices=grpc-js \
+    --proto_path=proto proto/*.proto
+
+# Back to app workdir for build
+WORKDIR /app
+RUN ln -s /app/node_modules /node_modules
 RUN npm run build --debug
 RUN mkdir -p /app/data
 
@@ -29,6 +44,7 @@ ENV DATABASE_URL=/app/data/sqlite.db
 
 # Copy Next.js assets
 COPY --from=node-builder /app/.next ./.next
+COPY --from=node-builder /app/package-lock.json ./package-lock.json
 COPY --from=node-builder /app/node_modules ./node_modules
 COPY --from=node-builder /app/package.json ./package.json
 COPY --from=node-builder /app/start.js ./

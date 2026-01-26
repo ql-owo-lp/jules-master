@@ -4,18 +4,19 @@ FROM node:22 AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and lock files
+# Copy package.json
 COPY package.json ./
-COPY package-lock.json ./
 
 # Update npm to the latest version
 RUN npm install -g npm@latest
 
 # Install dependencies
-RUN npm ci
+RUN npm install
+RUN ln -s /app/node_modules /node_modules
 
 # Copy the rest of the application source code
 COPY . .
+COPY ../proto /proto
 
 # Build the Next.js application for production
 RUN npm run build --debug
