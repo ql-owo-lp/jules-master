@@ -1,0 +1,15 @@
+.git
+node_modules
+ui/node_modules
+.next
+ui/.next
+out
+ui/out
+build
+dist
+*.log
+.DS_Store
+.env
+.env.local
+server/server
+proto/gen

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/go-github/v69/github"
-	pb "github.com/mcpany/jules/gen"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 )
 
 type MockGitHubClient struct {
@@ -181,7 +181,7 @@ func TestRunCheck_CommentsOnFailure(t *testing.T) {
 				Number:  github.Int(1),
 				HTMLURL: github.String("https://github.com/owner/repo/pull/1"),
 				Head: &github.PullRequestBranch{
-					SHA: github.String("sha123"),
+					SHA: github.String("sha12345"),
 					Ref: github.String("branch-name"),
 				},
 				User: &github.User{
@@ -203,7 +203,7 @@ func TestRunCheck_CommentsOnFailure(t *testing.T) {
 	if len(mockGH.CreatedComments) != 1 {
 		t.Errorf("expected 1 comment, got %d", len(mockGH.CreatedComments))
 	}
-	expectedMsg := failureCommentPrefix + "\n- test-lint"
+	expectedMsg := failureCommentPrefix + "\n- test-lint\n\n@jules"
 	if mockGH.CreatedComments[0] != expectedMsg {
 		t.Errorf("expected comment body:\n%s\ngot:\n%s", expectedMsg, mockGH.CreatedComments[0])
 	}
@@ -236,8 +236,8 @@ func TestRunCheck_CommentsOnFailure(t *testing.T) {
 		t.Errorf("runCheck failed: %v", err)
 	}
 
-	if len(mockGH.CreatedComments) != 2 {
-		t.Errorf("expected 2 comments (human intervened), got %d", len(mockGH.CreatedComments))
+	if len(mockGH.CreatedComments) != 1 {
+		t.Errorf("expected 1 comment (yielded to human), got %d", len(mockGH.CreatedComments))
 	}
 }
 
@@ -579,6 +579,10 @@ func TestRunCheck_ClosesConflictPR(t *testing.T) {
 	nowMilli := time.Now().UnixMilli()
 	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
 	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-conflict", "owner/repo", "test-job", time.Now(), "main", "test prompt")
+	// Enable AutoCloseStaleConflictedPrs by inserting settings row. Avoid NULLs for strings.
+	db.Exec(`INSERT INTO settings (
+		profile_id, auto_close_stale_conflicted_prs, theme, auto_retry_message, auto_continue_message
+	) VALUES ('default', 1, 'system', '', '')`)
 
 	mockFetcher := &MockSessionFetcher{
 		Session: &RemoteSession{
@@ -606,6 +610,7 @@ func TestRunCheck_ClosesConflictPR(t *testing.T) {
 				Number:    github.Int(55),
 				HTMLURL:   github.String("https://github.com/owner/repo/pull/55"),
 				Mergeable: github.Bool(false), // Conflicting!
+				UpdatedAt: &github.Timestamp{Time: time.Now().AddDate(0, 0, -6)}, // Stale!
 				Head: &github.PullRequestBranch{
 					SHA: github.String("sha-conflict"),
 				},
@@ -628,13 +633,13 @@ func TestRunCheck_ClosesConflictPR(t *testing.T) {
 	// Verify comment
 	foundComment := false
 	for _, c := range mockGH.CreatedComments {
-		if strings.Contains(c, "merge conflicts") {
+		if strings.Contains(c, "Closing stale PR") {
 			foundComment = true
 			break
 		}
 	}
 	if !foundComment {
-		t.Error("expected comment explaining merge conflicts")
+		t.Error("expected comment explaining stale closure")
 	}
 }
 

@@ -5,8 +5,9 @@ test.describe('Comprehensive UI Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Mock API key and other local storage items to ensure consistent state
     await page.addInitScript(() => {
-      window.localStorage.setItem('jules-api-key', '"test-api-key"');
-      window.localStorage.setItem('jules-github-token', '"test-github-token"');
+      window.localStorage.setItem('jules-current-profile-id', '"default"');
+      window.localStorage.setItem('jules-api-key-default', '"test-api-key"');
+      window.localStorage.setItem('jules-github-token-default', '"test-github-token"');
     });
   });
 
@@ -54,7 +55,7 @@ test.describe('Comprehensive UI Tests', () => {
       // On mobile or if collapsed, the trigger might be in the header or sidebar.
       // We check if we need to open it.
       
-      const newJobButton = page.getByRole('button', { name: 'New Job', exact: true });
+      const newJobButton = page.getByRole('button', { name: 'New Job', exact: true }).first();
       
       if (!await newJobButton.isVisible()) {
           // Try to click the toggle if visible (e.g. in header on mobile)

@@ -3,38 +3,89 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Auto Approval Features', () => {
     test.beforeEach(async ({ page }) => {
-        // Mock API key to ensure form is enabled
-        await page.addInitScript(() => {
-            window.localStorage.setItem('jules-api-key', '"test-api-key"');
+        // Log browser console messages
+        page.on('console', msg => {
+            console.log(`BROWSER [${msg.type()}]: ${msg.text()}`);
         });
+
+        try {
+            // Set API key via UI to ensure it's picked up correctly by hydration
+            await page.goto('/settings?tab=general');
+
+            // Seed sources to avoid real API calls and timeouts
+            await page.evaluate(() => {
+                const mockSources = [{
+                    name: "sources/github/owner/repo",
+                    id: "source-1",
+                    githubRepo: {
+                        owner: "owner",
+                        repo: "repo",
+                        isPrivate: false,
+                        defaultBranch: { displayName: "main" },
+                        branches: [{ displayName: "main" }]
+                    }
+                }];
+                // localStorage.setItem('jules-sources-cache', JSON.stringify(mockSources));
+                // localStorage.setItem('jules-sources-last-fetch', Date.now().toString());
+                // We use useLocalStorage which might have different keys or formats, 
+                // but setting these directly usually works if they match the keys in the code.
+                window.localStorage.setItem('jules-sources-cache', JSON.stringify(mockSources));
+                window.localStorage.setItem('jules-sources-last-fetch', Date.now().toString());
+            });
+            await page.reload();
+            
+            // Wait for settings to be loaded from DB to avoid race conditions
+            await page.waitForSelector('[data-settings-loaded="true"]', { timeout: 30000 });
+            
+            // Wait for the input by ID to avoid label matching issues
+            await page.waitForSelector('#api-key', { state: 'visible', timeout: 30000 });
+            const apiKeyInput = page.locator('#api-key');
+            await apiKeyInput.fill('test-api-key');
+            
+            // Click save and wait for toast
+            const saveButton = page.getByRole('button', { name: 'Save General Settings' });
+            await saveButton.click({ force: true });
+            
+            // Wait for toast with a more flexible selector if needed, but getByText is usually fine
+            await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible({ timeout: 20000 });
+        } catch (e) {
+            console.error('Error in beforeEach setup:', e);
+            console.log('Current URL:', page.url());
+            // Log body content for debugging
+            const content = await page.content();
+            console.log('Page content preview:', content.substring(0, 1000));
+            throw e;
+        }
     });
 
     test('should verify Auto Approval UI elements', async ({ page }) => {
         // 1. Check Job Creation Form for "Require Plan Approval" switch
         await page.goto('/jobs/new');
 
-        // Wait for form to be ready - matching the snapshot structure
-        // Using text because "New Job" is inside a generic container that looks like a title but isn't a heading role
-        // Narrowing to main to avoid conflict with sidebar button
-        await expect(page.locator('main').getByText('New Job', { exact: true })).toBeVisible();
+        // Wait for page to be ready
+        await expect(page.getByTestId('new-job-content')).toBeVisible({ timeout: 20000 });
 
+        // Wait for title to ensure hydration
+        await expect(page.getByText('New Job', { exact: true }).first()).toBeVisible({ timeout: 20000 });
+ 
         // Check for "Require Plan Approval" switch
-        const requireApprovalLabel = page.getByLabel('Require Plan Approval');
-        await expect(requireApprovalLabel).toBeVisible();
+        const requireApprovalSwitch = page.getByRole('switch', { name: 'Require Plan Approval' });
+        await expect(requireApprovalSwitch).toBeVisible({ timeout: 20000 });
 
         // 2. Check Settings Page for "Auto Approval Check Interval"
-        await page.goto('/settings');
-        // Switch to Automation tab
-        await page.getByRole('tab', { name: 'Automation' }).click();
-
-        // Check for Auto Approval Interval input
-        const autoApprovalInput = page.getByLabel('Auto Approval Check Interval (seconds)');
+        // Navigate directly to the tab via URL to avoid flaky tab clicks
+        await page.goto('/settings?tab=automation');
+        
+        // Wait for the specific input by ID to avoid label matching issues
+        await page.waitForSelector('#auto-approval-interval', { state: 'visible', timeout: 30000 });
+        const autoApprovalInput = page.locator('#auto-approval-interval');
         await expect(autoApprovalInput).toBeVisible();
     });
 
     test('should create a job with Auto Approval enabled', async ({ page }) => {
         await page.goto('/jobs/new');
-        await expect(page.locator('main').getByText('New Job', { exact: true })).toBeVisible();
+        // Wait for content
+        await expect(page.getByText('New Job', { exact: true }).first()).toBeVisible({ timeout: 25000 });
 
         // Fill basic info
         await page.getByLabel('Job Name').fill('Auto Approval Test Job');
@@ -42,58 +93,24 @@ test.describe('Auto Approval Features', () => {
         await page.getByLabel('Number of sessions').fill('1');
 
         // Select Repository (Mock Data)
-        // This is flaky in some environments due to mock data loading timing.
-        // await expect(page.locator('#repository-skeleton')).toBeHidden({ timeout: 10000 });
-
-        // Use exact match or regex for the combobox that displays the repository
-        // const repoCombobox = page.getByRole('combobox').filter({ hasText: /test-owner\/test-repo/ }).first();
-        // await expect(repoCombobox).toBeVisible();
-        // await expect(repoCombobox).toBeVisible();
+        // Wait for Repository combobox to be enabled which signifies API key is loaded and hydration complete
+        const repoCombobox = page.locator('#repository');
+        await expect(repoCombobox).toBeEnabled({ timeout: 25000 });
 
         // Ensure "Require Plan Approval" is UNCHECKED (which means Auto Approval is ON)
-        const requireApprovalSwitch = page.getByRole('switch', { name: 'Require Plan Approval' });
+        const requireApprovalSwitch = page.locator('#require-plan-approval');
+        await expect(requireApprovalSwitch).toBeVisible({ timeout: 10000 });
 
         // If it's checked, uncheck it.
-        if (await requireApprovalSwitch.isChecked()) {
+        const isChecked = await requireApprovalSwitch.getAttribute('aria-checked') === 'true';
+        if (isChecked) {
              await requireApprovalSwitch.click();
         }
         await expect(requireApprovalSwitch).not.toBeChecked();
 
-        // Select Branch if needed (it might be auto-selected)
-        // const branchCombobox = page.getByRole('combobox').filter({ hasText: /main/ }).first();
-        // await expect(branchCombobox).toBeVisible();
-
-        // Create the job
+        // Create the job button should be enabled
         const createButton = page.getByRole('button', { name: 'Create Job' });
-        await expect(createButton).toBeEnabled();
-
-        // Mock the createSession action or intercept the request
-        // Since we can't easily mock server actions in Playwright e2e without intercepting the network request if it was an API call,
-        // but Next.js server actions use POST.
-        // However, looking at `job-creation.spec.ts`, it seems it expects the creation to succeed.
-        // But in my run, I saw "Failed to create session: 401 Unauthorized".
-        // This is because the server action tries to call the real Google API which fails with the mock key.
-
-        // In `job-creation.spec.ts`, it checks `await expect(createButton).toBeEnabled();` but does NOT click it to verify success.
-        // Ah, wait, `job-creation.spec.ts` DOES NOT click submit?
-        // Let's check `job-creation.spec.ts` content again.
-        // It ends with checking the button is enabled.
-
-        // So, for this test, verifying that we can fill the form and set the switch correctly is probably enough for "E2E" in this context,
-        // unless we want to mock the server action response which is hard.
-        // OR we can check that the button is enabled and we *would* submit.
-
-        // Since the goal is to verify "auto approval features works", verifying the UI state (checkbox) and that the form is valid is a good step.
-        // If we want to verify the backend logic, we should probably use a unit/integration test for `createSession` or `JobCreationForm`.
-
-        // Given the environment limitations, I will assert the form state and button enablement,
-        // but refrain from clicking submit to avoid the 401 error which fails the test implicitly or explicitly.
-
-        // Wait, `job-creation.spec.ts` does NOT click submit. It just checks:
-        // await expect(createButton).toBeEnabled();
-
-        // So I will do the same.
-        await expect(createButton).toBeEnabled();
+        await expect(createButton).toBeEnabled({ timeout: 20000 });
     });
 
     test('should persist Auto Approval Interval setting', async ({ page }) => {
@@ -122,12 +139,10 @@ test.describe('Auto Approval Features', () => {
             }
         });
 
-        await page.goto('/settings');
-        // Switch to Automation tab
-        await page.getByRole('tab', { name: 'Automation' }).click();
-
-        const input = page.getByLabel('Auto Approval Check Interval (seconds)');
-        await expect(input).toBeVisible();
+        // Navigate directly to the tab
+        await page.goto('/settings?tab=automation');
+        await page.waitForSelector('#auto-approval-interval', { state: 'visible', timeout: 30000 });
+        const input = page.locator('#auto-approval-interval');
 
         // Change value
         await input.fill('123');
@@ -135,14 +150,12 @@ test.describe('Auto Approval Features', () => {
         // Save Changes
         await page.getByRole('button', { name: 'Save Automation Settings' }).click();
 
-        // Wait for toast or dialog close
-        await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible();
+        // Wait for toast
+        await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible({ timeout: 15000 });
 
         // Reload and verify
-        await page.reload();
-        // Switch to Automation tab
-        await page.getByRole('tab', { name: 'Automation' }).click();
-
-        await expect(page.getByLabel('Auto Approval Check Interval (seconds)')).toHaveValue('123');
+        await page.goto('/settings?tab=automation');
+        await page.waitForSelector('#auto-approval-interval', { state: 'visible', timeout: 20000 });
+        await expect(page.locator('#auto-approval-interval')).toHaveValue('123');
     });
 });

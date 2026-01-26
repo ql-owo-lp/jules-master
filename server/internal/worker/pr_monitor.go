@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -10,12 +11,12 @@ import (
 	"github.com/gammazero/workerpool"
 	"github.com/google/go-github/v69/github"
 	"github.com/google/uuid"
-	pb "github.com/mcpany/jules/gen"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 )
 
-const failureCommentPrefix = "The following github action checks are failing. Please review the code and fix the program or the test."
+const failureCommentPrefix = "The following github action checks are failing. Please review the code and fix the program or the test. Make sure ALL operations in github actions MUST PASS 100%"
 
 type GitHubClient interface {
 	GetCombinedStatus(ctx context.Context, owner, repo, ref string) (*github.CombinedStatus, error)
@@ -172,22 +173,48 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 			continue
 		}
 
-		// 0.5 Check for merge conflicts
-		// Note: The requirement was "more than 3 merge conflict files".
-		// However, GitHub API doesn't easily give "number of conflicting files" without an expensive dry-run merge.
-		// As per approved plan, we close ANY PR that is not mergeable, as manual intervention is needed anyway.
-		if pr.Mergeable != nil && !*pr.Mergeable {
-			logger.Info("%s [%s]: Closing PR %s because it has merge conflicts", w.Name(), w.id, *pr.HTMLURL)
-			// Optional: We could comment explaining why.
-			msg := "Closing PR because it has merge conflicts. Please resolve conflicts and reopen."
-			if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
-				logger.Error("%s [%s]: Failed to comment on conflicting PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+		// 0.5 Check for Stale PRs (Conflict OR Failing)
+		// Condition: UpdatedAt > Threshold AND (Mergeable == false OR Status == failure)
+		if s.AutoCloseStaleConflictedPrs {
+			days := 5
+			if s.StaleConflictedPrsDurationDays > 0 {
+				days = int(s.StaleConflictedPrsDurationDays)
 			}
+			threshold := time.Now().AddDate(0, 0, -days)
 
-			if _, err := w.githubClient.ClosePullRequest(ctx, owner, repo, *pr.Number); err != nil {
-				logger.Error("%s [%s]: Failed to close PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+			if pr.UpdatedAt != nil && pr.UpdatedAt.Before(threshold) {
+				isStale := false
+				reason := ""
+
+				// Check Conflict
+				if pr.Mergeable != nil && !*pr.Mergeable {
+					isStale = true
+					reason = "it has merge conflicts"
+				}
+
+				// Check Status (if not already stale by conflict)
+				if !isStale && pr.Head != nil && pr.Head.SHA != nil {
+					status, err := w.githubClient.GetCombinedStatus(ctx, owner, repo, *pr.Head.SHA)
+					if err == nil && status != nil && status.State != nil && *status.State == "failure" {
+						isStale = true
+						reason = "it has failing checks"
+					}
+				}
+
+				if isStale {
+					logger.Info("%s [%s]: Closing stale PR %s because %s", w.Name(), w.id, *pr.HTMLURL, reason)
+					msg := fmt.Sprintf("Closing stale PR because it hasn't been updated for %d days and %s. Please update the branch or fix issues to reopen.", days, reason)
+
+					if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
+						logger.Error("%s [%s]: Failed to comment on stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+					}
+
+					if _, err := w.githubClient.ClosePullRequest(ctx, owner, repo, *pr.Number); err != nil {
+						logger.Error("%s [%s]: Failed to close stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+					}
+					continue
+				}
 			}
-			continue
 		}
 
 		// 1. Check for test file deletions (Applies to everyone)
@@ -196,25 +223,16 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 			logger.Error("%s: Failed to check test deletion for %s: %v", w.Name(), *pr.HTMLURL, err)
 		}
 		if deleted {
-			// If we detected deletion, we skip other checks (fail fast) or proceed?
-			// Proceeding might be okay, but we definitely block auto-ready logic if valid.
-			// Actually checkTestDeletion comments on the PR.
 			continue
 		}
 
 		isBot := strings.Contains(*pr.User.Login, "google-labs-jules")
 
 		// 2. Check for Auto-Ready (Applicable if checks passed)
-		// We only do this if it's NOT a bot? Or for bots too?
-		// User requirement "Auto-Mark PR Ready for Review" didn't specify bot-only.
-		// Assuming for everyone for now (or at least for humans).
 		w.checkAutoReady(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr)
 
-		// 3. Bot-Specific Logic (Update Branch, Status Checks that trigger update)
-		// HEAD had filter here. We apply it for the heavy logic.
-		if isBot {
-			w.checkBotPR(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr.Head)
-		}
+		// 3. Check Status and Actions (Update Branch for Bot, Comment for Failure)
+		w.checkPRStatus(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr.Head, isBot)
 	}
 }
 
@@ -283,7 +301,7 @@ func (w *PRMonitorWorker) checkAutoReady(ctx context.Context, owner, repo string
 	}
 }
 
-func (w *PRMonitorWorker) checkBotPR(ctx context.Context, owner, repo string, number int, prUrl string, head *github.PullRequestBranch) {
+func (w *PRMonitorWorker) checkPRStatus(ctx context.Context, owner, repo string, number int, prUrl string, head *github.PullRequestBranch, isBot bool) {
 	if head == nil || head.SHA == nil {
 		logger.Error("%s [%s]: PR %s has no Head/SHA", w.Name(), w.id, prUrl)
 		return
@@ -304,8 +322,8 @@ func (w *PRMonitorWorker) checkBotPR(ctx context.Context, owner, repo string, nu
 		return
 	}
 
-	// Detailed logging as requested
-	logger.Info("%s [%s]: Checked PR %s (author: google-labs-jules). Status: %s", w.Name(), w.id, prUrl, *combinedStatus.State)
+	// Detailed logging
+	logger.Info("%s [%s]: Checked PR %s. Status: %s", w.Name(), w.id, prUrl, *combinedStatus.State)
 
 	if *combinedStatus.State == "failure" || *combinedStatus.State == "pending" {
 		// Check if ANY check run is pending/in_progress.
@@ -337,7 +355,7 @@ func (w *PRMonitorWorker) checkBotPR(ctx context.Context, owner, repo string, nu
 		if *combinedStatus.State == "pending" {
 			hasFailure := false
 			for _, run := range allCheckRuns {
-				if run.Conclusion != nil && *run.Conclusion == "failure" {
+				if run.Conclusion != nil && (*run.Conclusion == "failure" || *run.Conclusion == "timed_out" || *run.Conclusion == "cancelled") {
 					hasFailure = true
 					break
 				}
@@ -348,66 +366,95 @@ func (w *PRMonitorWorker) checkBotPR(ctx context.Context, owner, repo string, nu
 			logger.Info("%s [%s]: PR %s is pending but has failed check runs. Treating as failure.", w.Name(), w.id, prUrl)
 		}
 
-		// Update Branch logic
-		// Check if rebase/update is needed
-		fullPR, _, err := w.githubClient.GetPullRequest(ctx, owner, repo, number)
-		if err != nil {
-			logger.Error("%s [%s]: Failed to get full PR details for %s: %v", w.Name(), w.id, prUrl, err)
-		} else {
-			if fullPR.MergeableState != nil && *fullPR.MergeableState == "behind" {
-				logger.Info("%s [%s]: PR %s is behind base. Attempting to update branch...", w.Name(), w.id, prUrl)
-				if err := w.githubClient.UpdateBranch(ctx, owner, repo, number); err != nil {
-					logger.Error("%s [%s]: Failed to update branch for %s: %v", w.Name(), w.id, prUrl, err)
-				} else {
-					logger.Info("%s [%s]: Successfully triggered branch update for %s", w.Name(), w.id, prUrl)
-					// Return here because update triggers new checks
-					return
+		// Update Branch logic (BOT ONLY)
+		if isBot {
+			fullPR, _, err := w.githubClient.GetPullRequest(ctx, owner, repo, number)
+			if err != nil {
+				logger.Error("%s [%s]: Failed to get full PR details for %s: %v", w.Name(), w.id, prUrl, err)
+			} else {
+				if fullPR.MergeableState != nil && *fullPR.MergeableState == "behind" {
+					logger.Info("%s [%s]: PR %s is behind base. Attempting to update branch...", w.Name(), w.id, prUrl)
+					if err := w.githubClient.UpdateBranch(ctx, owner, repo, number); err != nil {
+						logger.Error("%s [%s]: Failed to update branch for %s: %v", w.Name(), w.id, prUrl, err)
+					} else {
+						logger.Info("%s [%s]: Successfully triggered branch update for %s", w.Name(), w.id, prUrl)
+						return
+					}
 				}
 			}
 		}
 
-		// Comment on failure
+		// Comment on failure (ALL USERS)
 		comments, err := w.githubClient.ListComments(ctx, owner, repo, number)
 		if err != nil {
 			logger.Error("%s [%s]: Failed to list comments for %s: %v", w.Name(), w.id, prUrl, err)
 			return
 		}
 
+		// Calculate failing check names first to construct message
+		var failingCheckNames []string
+		for _, run := range allCheckRuns {
+			if run.Conclusion != nil && (*run.Conclusion == "failure" || *run.Conclusion == "timed_out" || *run.Conclusion == "cancelled") {
+				failingCheckNames = append(failingCheckNames, run.GetName())
+			}
+		}
+		for _, status := range combinedStatus.Statuses {
+			if status.State != nil && *status.State == "failure" {
+				failingCheckNames = append(failingCheckNames, status.GetContext())
+			}
+		}
+
+		// Deduplicate failure names
+		uniqueNames := make(map[string]bool)
+		var distinctNames []string
+		for _, name := range failingCheckNames {
+			if !uniqueNames[name] {
+				uniqueNames[name] = true
+				distinctNames = append(distinctNames, name)
+			}
+		}
+
+		if len(distinctNames) == 0 {
+			logger.Info("%s [%s]: No failed checks found for %s despite failure status. Skipping comment.", w.Name(), w.id, prUrl)
+			return
+		}
+
+		// Construct message
+		msg := failureCommentPrefix
+		for _, name := range distinctNames {
+			msg += "\n- " + name
+		}
+		sha := *head.SHA
+		if len(sha) > 8 {
+			sha = sha[:8]
+		}
+		msg += "\n\n@jules"
+
 		shouldComment := true
 		if len(comments) > 0 {
 			lastComment := comments[len(comments)-1]
-			// We skip "google-labs-jules" check here because we are only checking Bot PRs anyway?
-			// Actually best to strictly check if last comment is ours/failure comment.
-			if lastComment.User != nil && lastComment.User.Login != nil && strings.Contains(*lastComment.User.Login, "google-labs-jules") {
-				if lastComment.Body != nil && strings.Contains(*lastComment.Body, failureCommentPrefix) {
+			isLastByBot := lastComment.User != nil && lastComment.User.Login != nil && strings.Contains(*lastComment.User.Login, "google-labs-jules")
+
+			if !isLastByBot {
+				logger.Info("%s [%s]: Last comment on PR %s is by Human. Skipping (yielding to human).", w.Name(), w.id, prUrl)
+				shouldComment = false
+			} else {
+				// Last by Bot. Check duplication to avoid exact spam.
+				if lastComment.Body != nil && strings.Contains(*lastComment.Body, msg) {
+					logger.Info("%s [%s]: Last comment on PR %s is identical to new failure report. Skipping.", w.Name(), w.id, prUrl)
 					shouldComment = false
-					logger.Info("%s [%s]: PR %s already has failure comment as last comment. Skipping.", w.Name(), w.id, prUrl)
+				} else {
+					logger.Info("%s [%s]: Last comment on PR %s is by Bot but content differs (or we want to nag). Commenting.", w.Name(), w.id, prUrl)
+					// Proceed to comment
 				}
 			}
 		}
 
 		if shouldComment {
-			var failingCheckNames []string
-			for _, run := range allCheckRuns {
-				if run.Conclusion != nil && *run.Conclusion == "failure" {
-					failingCheckNames = append(failingCheckNames, run.GetName())
-				}
-			}
-			for _, status := range combinedStatus.Statuses {
-				if status.State != nil && *status.State == "failure" {
-					failingCheckNames = append(failingCheckNames, status.GetContext())
-				}
-			}
-
-			msg := failureCommentPrefix
-			for _, name := range failingCheckNames {
-				msg += "\n- " + name
-			}
-
 			if err := w.githubClient.CreateComment(ctx, owner, repo, number, msg); err != nil {
 				logger.Error("%s [%s]: Failed to create comment on %s: %v", w.Name(), w.id, prUrl, err)
 			} else {
-				logger.Info("%s [%s]: Posted failure comment on %s", w.Name(), w.id, prUrl)
+				logger.Info("%s [%s]: Posted failure comment on %s for commit %s", w.Name(), w.id, prUrl, sha)
 			}
 		}
 	}

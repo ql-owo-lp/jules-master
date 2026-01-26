@@ -1,18 +1,44 @@
 'use server';
 
 import { jobClient, promptClient, sessionClient, settingsClient } from '@/lib/grpc-client';
-import { Job, PredefinedPrompt, HistoryPrompt, AutomationMode, Settings, Session } from '@/proto/gen/ts/jules';
+import { Job, PredefinedPrompt, HistoryPrompt, AutomationMode, Settings, Session } from '@/proto/jules';
 import { Job as LocalJob } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
 const MOCK_JOBS: LocalJob[] = [];
 const MOCK_SETTINGS: Settings = {
+    id: 0,
     defaultSessionCount: 20,
     idlePollInterval: 120,
     activePollInterval: 30,
     historyPromptsCount: 10,
     autoDeleteStaleBranches: false,
-    autoApprovalInterval: 60
+    autoApprovalInterval: 60,
+    titleTruncateLength: 0,
+    lineClamp: 0,
+    sessionItemsPerPage: 0,
+    jobsPerPage: 0,
+    prStatusPollInterval: 0,
+    theme: '',
+    autoApprovalEnabled: false,
+    autoRetryEnabled: false,
+    autoRetryMessage: '',
+    autoContinueEnabled: false,
+    autoContinueMessage: '',
+    sessionCacheInProgressInterval: 0,
+    sessionCacheCompletedNoPrInterval: 0,
+    sessionCachePendingApprovalInterval: 0,
+    sessionCacheMaxAgeDays: 0,
+    autoDeleteStaleBranchesAfterDays: 0,
+    checkFailingActionsEnabled: false,
+    checkFailingActionsInterval: 0,
+    checkFailingActionsThreshold: 0,
+    autoCloseStaleConflictedPrs: false,
+    staleConflictedPrsDurationDays: 0,
+    minSessionInteractionInterval: 0,
+    retryTimeout: 0,
+    profileId: '',
+    maxConcurrentBackgroundWorkers: 0
 };
 const MOCK_PREDEFINED_PROMPTS: PredefinedPrompt[] = [
     { id: '1', title: 'Fix Lint', prompt: 'Fix lint errors', profileId: 'default' }

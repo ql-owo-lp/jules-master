@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package jules;
 
-option go_package = "github.com/mcpany/jules/gen;jules";
+option go_package = "github.com/mcpany/jules/proto;jules";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";

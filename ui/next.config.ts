@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['better-sqlite3'],
+  serverExternalPackages: ['better-sqlite3', '@grpc/grpc-js'],
 };
 
 export default nextConfig;

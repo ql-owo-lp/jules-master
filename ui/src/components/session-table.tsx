@@ -267,7 +267,8 @@ export function SessionTable({
   // State to hold batched PR statuses
   const [prStatuses, setPrStatuses] = useState<Record<string, PullRequestStatus | null>>({});
   const { hasGithubToken: hasEnvGithubToken } = useEnv();
-  const [githubToken] = useLocalStorage<string | null>("jules-github-token", null);
+  const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+  const [githubToken] = useLocalStorage<string | null>(`jules-github-token-${currentProfileId}`, null);
   const [pollInterval] = useLocalStorage<number>("jules-pr-status-poll-interval", 60);
 
   // Extract all unique PR URLs from sessions

@@ -45,7 +45,7 @@ func Connect() (*sql.DB, error) {
 		}
 	}
 
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_foreign_keys=on")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -54,8 +54,15 @@ func Connect() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	// Lazy Migrations
-	_, _ = db.Exec("ALTER TABLE settings ADD COLUMN max_concurrent_background_workers INTEGER DEFAULT 5")
+	// Double check WAL mode if the connection string didn't do it (sqlite3 driver specific)
+	if _, err := db.Exec("PRAGMA journal_mode=WAL;"); err != nil {
+		fmt.Printf("Failed to set WAL mode: %v\n", err)
+	}
 
+	// Lazy Migrations
+	if _, err := db.Exec("ALTER TABLE settings ADD COLUMN max_concurrent_background_workers INTEGER DEFAULT 5"); err != nil {
+		fmt.Printf("Lazy migration failed (might already exist): %v\n", err)
+	}
+ 
 	return db, nil
 }

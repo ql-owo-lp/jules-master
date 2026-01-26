@@ -1,25 +1,25 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('Cron Jobs API and Actions', () => {
     
-  const mockCronJobClient = {
+  const mocks = {
       listCronJobs: vi.fn(),
       toggleCronJob: vi.fn(),
   };
 
-  beforeAll(() => {
-    vi.doMock('@/lib/grpc-client', () => ({
-      cronJobClient: mockCronJobClient,
-    }));
-  });
-  
-  afterAll(() => {
+  beforeEach(() => {
       vi.resetModules();
+      vi.doMock('@/lib/grpc-client', () => ({
+          cronJobClient: {
+              listCronJobs: mocks.listCronJobs,
+              toggleCronJob: mocks.toggleCronJob,
+          },
+      }));
   });
 
   it('should return a 500 error when getCronJobs fails', async () => {
     // Mock failure
-    mockCronJobClient.listCronJobs.mockImplementation((req: any, callback: any) => {
+    mocks.listCronJobs.mockImplementation((req: any, callback: any) => {
         callback(new Error('gRPC error'), null);
     });
 
@@ -36,7 +36,7 @@ describe('Cron Jobs API and Actions', () => {
     const cronJobId = '123';
     const enabled = false;
     
-    mockCronJobClient.toggleCronJob.mockImplementation((req: any, callback: any) => {
+    mocks.toggleCronJob.mockImplementation((req: any, callback: any) => {
         callback(null, {});
     });
 
@@ -44,8 +44,8 @@ describe('Cron Jobs API and Actions', () => {
 
     await toggleCronJob(cronJobId, enabled);
 
-    expect(mockCronJobClient.toggleCronJob).toHaveBeenCalledTimes(1);
-    expect(mockCronJobClient.toggleCronJob).toHaveBeenCalledWith(
+    expect(mocks.toggleCronJob).toHaveBeenCalledTimes(1);
+    expect(mocks.toggleCronJob).toHaveBeenCalledWith(
         expect.objectContaining({ id: cronJobId, enabled }),
         expect.any(Function)
     );

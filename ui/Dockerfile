@@ -1,21 +1,22 @@
 # 1. Builder Stage: Build the Next.js application
-FROM node:22 AS builder
+FROM node:24 AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and lock files
+# Copy package.json
 COPY package.json ./
-COPY package-lock.json ./
 
 # Update npm to the latest version
 RUN npm install -g npm@latest
 
 # Install dependencies
-RUN npm ci
+RUN npm install
+RUN ln -s /app/node_modules /node_modules
 
 # Copy the rest of the application source code
 COPY . .
+COPY ../proto /proto
 
 # Build the Next.js application for production
 RUN npm run build --debug
@@ -25,7 +26,7 @@ RUN mkdir -p /app/data
 
 
 # 2. Runner Stage: Create the final, minimal production image
-FROM gcr.io/distroless/nodejs22-debian12 AS runner
+FROM gcr.io/distroless/nodejs24-debian12 AS runner
 
 # Set working directory
 WORKDIR /app

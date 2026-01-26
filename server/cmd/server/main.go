@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	pb "github.com/mcpany/jules/gen"
+	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/db"
 	gclient "github.com/mcpany/jules/internal/github"
 	"github.com/mcpany/jules/internal/service"
