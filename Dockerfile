@@ -10,14 +10,13 @@ COPY server/ .
 RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
-FROM node:24 AS node-builder
+FROM node:22 AS node-builder
 RUN apt-get update && apt-get install -y protobuf-compiler
 WORKDIR /app
 
 # Copy UI package files and proto files
-COPY ui/package.json ./
-RUN npm install -g npm@latest
-RUN npm install
+COPY ui/package.json ui/package-lock.json ./
+RUN npm ci
 
 # Copy source code and protos
 COPY ui/ .
