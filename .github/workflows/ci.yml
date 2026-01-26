@@ -60,8 +60,6 @@ jobs:
           push: false
           load: true
           tags: nextn-app:latest
-          cache-from: type=gha,scope=prod-retry
-          cache-to: type=gha,mode=min,scope=prod-retry
 
       # Build Test Runner Image (reusing Dockerfile.test)
       - name: Build Test Runner Image
@@ -72,8 +70,6 @@ jobs:
           push: false
           load: true
           tags: jules-test:latest
-          cache-from: type=gha,scope=test-retry
-          cache-to: type=gha,mode=min,scope=test-retry
 
       # Start Production App with Shared Volume
       - name: Start Production App
