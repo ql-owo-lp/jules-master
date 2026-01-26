@@ -57,6 +57,13 @@
       "when": 1768112150642,
       "tag": "0007_nice_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1769326687925,
+      "tag": "0008_thin_black_tom",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { profileClient } from "@/lib/grpc-client";
-import { Profile } from "@/proto/gen/ts/jules";
+import { Profile } from "@/proto/jules";
 
 export class ProfileService {
   async getProfiles(): Promise<Profile[]> {

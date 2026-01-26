@@ -158,10 +158,11 @@ test.describe('Settings Persistence', () => {
     // Wait for any overlays to disappear
     await page.waitForTimeout(500);
 
-    // Switch to Display tab
-    const displayTab = page.getByRole('tab', { name: 'Display' });
-    await expect(displayTab).toBeVisible();
-    await displayTab.click({ force: true });
+    // Navigate directly to Display tab
+    await page.goto('/settings?tab=display');
+    
+    // Explicitly wait for an element unique to the Display tab to ensure it's loaded
+    await page.waitForSelector('label[for="line-clamp"]', { state: 'visible', timeout: 15000 });
 
     await page.getByLabel('Session Title Truncation Length').fill('55');
     await page.getByLabel('Activity Feed Line Clamp').fill('2');

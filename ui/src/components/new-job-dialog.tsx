@@ -25,7 +25,8 @@ type NewJobDialogProps = {
 
 export function NewJobDialog({ isPage = false, children, initialValues }: NewJobDialogProps) {
     const { hasJulesApiKey } = useEnv();
-    const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+    const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+    const [apiKey] = useLocalStorage<string | null>(`jules-api-key-${currentProfileId}`, null);
     const [jobs, setJobs] = useLocalStorage<Job[]>("jules-jobs", []);
     const router = useRouter();
     const { toast } = useToast();

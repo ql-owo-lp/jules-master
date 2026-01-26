@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `max_concurrent_background_workers` integer DEFAULT 5 NOT NULL;

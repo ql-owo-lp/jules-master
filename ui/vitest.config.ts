@@ -24,7 +24,17 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@/proto': path.resolve(__dirname, '../proto'),
+      '@bufbuild/protobuf/wire': path.resolve(__dirname, 'node_modules/@bufbuild/protobuf/dist/esm/wire/index.js'),
+      '@bufbuild/protobuf': path.resolve(__dirname, 'node_modules/@bufbuild/protobuf'),
+      '@grpc/grpc-js': path.resolve(__dirname, 'node_modules/@grpc/grpc-js'),
       '@': path.resolve(__dirname, './src'),
+    },
+    preserveSymlinks: true,
+  },
+  server: {
+    fs: {
+      allow: ['..'],
     },
   },
 });

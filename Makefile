@@ -11,12 +11,12 @@ release:
 
 .PHONY: proto-gen
 proto-gen:
-	mkdir -p server/gen proto/gen/ts
-	protoc --go_out=server/gen --go_opt=paths=source_relative \
-		--go-grpc_out=server/gen --go-grpc_opt=paths=source_relative \
+	mkdir -p proto/gen/ts
+	protoc --go_out=proto --go_opt=paths=source_relative \
+		--go-grpc_out=proto --go-grpc_opt=paths=source_relative \
 		--proto_path=proto proto/*.proto
 	protoc --plugin=./ui/node_modules/.bin/protoc-gen-ts_proto \
-		--ts_proto_out=ui/src/proto/gen/ts \
+		--ts_proto_out=proto \
 		--ts_proto_opt=esModuleInterop=true \
 		--ts_proto_opt=outputServices=grpc-js \
 		--proto_path=proto proto/*.proto

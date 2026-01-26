@@ -63,7 +63,8 @@ export function CronJobForm({
   const [selectedBranch, setSelectedBranch] = useState<string | undefined>(undefined);
   const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
   const [, setLastSourcesFetch] = useLocalStorage<number>("jules-sources-last-fetch", 0);
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+  const [apiKey] = useLocalStorage<string | null>(`jules-api-key-${currentProfileId}`, null);
 
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
   const [historyPrompts, setHistoryPrompts] = useState<HistoryPrompt[]>([]);
@@ -491,6 +492,7 @@ export function CronJobForm({
                     </Tooltip>
                 </div>
                 <SourceSelection
+                    id="repository"
                     onSourceSelected={setSelectedSource}
                     disabled={isPending}
                     selectedValue={selectedSource}

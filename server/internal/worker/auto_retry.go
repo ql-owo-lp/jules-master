@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	pb "github.com/mcpany/jules/gen"
+	pb "github.com/mcpany/jules/proto"
 	gclient "github.com/mcpany/jules/internal/github"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"

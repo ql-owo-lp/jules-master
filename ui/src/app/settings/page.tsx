@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -9,16 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw, Briefcase, Clock, MessageSquare, Zap, Database, Monitor, User } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
 import { useEnv } from "@/components/env-provider";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import {
   Card,
   CardHeader,
@@ -75,26 +69,41 @@ type DialogState = {
 }
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto py-8 max-w-5xl space-y-4">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-[600px] w-full" />
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
   const { hasJulesApiKey, hasGithubToken: hasEnvGithubToken } = useEnv();
   const { toast } = useToast();
-  const { setTheme } = useTheme();
+  const { setTheme, theme } = useTheme();
   const [isClient, setIsClient] = useState(false);
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
 
-  const currentTab = searchParams.get("tab") || "general";
-
+  const activeTab = searchParams.get("tab") || "general";
+ 
   const onTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", value);
-    router.push(`${pathname}?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   // --- Settings State (from SettingsSheet) ---
-  const [apiKey, setApiKey] = useLocalStorage<string>("jules-api-key", "");
-  const [githubToken, setGithubToken] = useLocalStorage<string>("jules-github-token", "");
+  const [currentProfileId, setCurrentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+  const [apiKey, setApiKey] = useLocalStorage<string>(`jules-api-key-${currentProfileId}`, "");
+  const [githubToken, setGithubToken] = useLocalStorage<string>(`jules-github-token-${currentProfileId}`, "");
 
   const [idlePollInterval, setIdlePollInterval] = useLocalStorage<number>("jules-idle-poll-interval", 120);
   const [activePollInterval, setActivePollInterval] = useLocalStorage<number>("jules-active-poll-interval", 30);
@@ -112,7 +121,7 @@ export default function SettingsPage() {
   const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
   const [autoContinueMessage, setAutoContinueMessage] = useLocalStorage<string>("jules-auto-continue-message", "Sounds good. Now go ahead finish the work");
   const [debugMode, setDebugMode] = useLocalStorage<boolean>("jules-debug-mode", false);
-  const [currentProfileId, setCurrentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+
 
   // New Settings for Session Cache
   const [sessionCacheInProgressInterval, setSessionCacheInProgressInterval] = useLocalStorage<number>("jules-session-cache-in-progress-interval", 60);
@@ -243,36 +252,36 @@ export default function SettingsPage() {
           const dbSettings = await response.json();
           // Update state with values from DB (Source of Truth)
           // valid DB values will overwrite local storage via the hooks
-          setIdlePollInterval(dbSettings.idlePollInterval);
-          setActivePollInterval(dbSettings.activePollInterval);
-          setTitleTruncateLength(dbSettings.titleTruncateLength);
-          setLineClamp(dbSettings.lineClamp);
-          setSessionItemsPerPage(dbSettings.sessionItemsPerPage);
-          setJobsPerPage(dbSettings.jobsPerPage);
-          setDefaultSessionCount(dbSettings.defaultSessionCount);
-          setPrStatusPollInterval(dbSettings.prStatusPollInterval);
-          setHistoryPromptsCount(dbSettings.historyPromptsCount);
-          setAutoApprovalInterval(dbSettings.autoApprovalInterval);
-          setAutoApprovalEnabled(dbSettings.autoApprovalEnabled);
-          setAutoRetryEnabled(dbSettings.autoRetryEnabled);
-          setAutoRetryMessage(dbSettings.autoRetryMessage);
-          setAutoContinueEnabled(dbSettings.autoContinueEnabled);
-          setAutoContinueMessage(dbSettings.autoContinueMessage);
+          setIdlePollInterval(dbSettings.idlePollInterval ?? 120);
+          setActivePollInterval(dbSettings.activePollInterval ?? 30);
+          setTitleTruncateLength(dbSettings.titleTruncateLength ?? 50);
+          setLineClamp(dbSettings.lineClamp ?? 1);
+          setSessionItemsPerPage(dbSettings.sessionItemsPerPage ?? 10);
+          setJobsPerPage(dbSettings.jobsPerPage ?? 5);
+          setDefaultSessionCount(dbSettings.defaultSessionCount ?? 10);
+          setPrStatusPollInterval(dbSettings.prStatusPollInterval ?? 300);
+          setHistoryPromptsCount(dbSettings.historyPromptsCount ?? 10);
+          setAutoApprovalInterval(dbSettings.autoApprovalInterval ?? 60);
+          setAutoApprovalEnabled(dbSettings.autoApprovalEnabled ?? false);
+          setAutoRetryEnabled(dbSettings.autoRetryEnabled ?? true);
+          setAutoRetryMessage(dbSettings.autoRetryMessage ?? "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
+          setAutoContinueEnabled(dbSettings.autoContinueEnabled ?? true);
+          setAutoContinueMessage(dbSettings.autoContinueMessage ?? "Sounds good. Now go ahead finish the work");
 
-          setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval);
-          setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval);
-          setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval);
-          setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays);
-          setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches);
-          setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays);
-          setCheckFailingActionsEnabled(dbSettings.checkFailingActionsEnabled);
-          setCheckFailingActionsInterval(dbSettings.checkFailingActionsInterval);
-          setCheckFailingActionsThreshold(dbSettings.checkFailingActionsThreshold);
-          setAutoCloseStaleConflictedPrs(dbSettings.autoCloseStaleConflictedPrs);
-          setStaleConflictedPrsDurationDays(dbSettings.staleConflictedPrsDurationDays);
-          setClosePrOnConflictEnabled(dbSettings.closePrOnConflictEnabled);
-          setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval);
-          setRetryTimeout(dbSettings.retryTimeout);
+          setSessionCacheInProgressInterval(dbSettings.sessionCacheInProgressInterval ?? 60);
+          setSessionCacheCompletedNoPrInterval(dbSettings.sessionCacheCompletedNoPrInterval ?? 1800);
+          setSessionCachePendingApprovalInterval(dbSettings.sessionCachePendingApprovalInterval ?? 300);
+          setSessionCacheMaxAgeDays(dbSettings.sessionCacheMaxAgeDays ?? 3);
+          setAutoDeleteStaleBranches(dbSettings.autoDeleteStaleBranches ?? false);
+          setAutoDeleteStaleBranchesAfterDays(dbSettings.autoDeleteStaleBranchesAfterDays ?? 3);
+          setCheckFailingActionsEnabled(dbSettings.checkFailingActionsEnabled ?? true);
+          setCheckFailingActionsInterval(dbSettings.checkFailingActionsInterval ?? 600);
+          setCheckFailingActionsThreshold(dbSettings.checkFailingActionsThreshold ?? 10);
+          setAutoCloseStaleConflictedPrs(dbSettings.autoCloseStaleConflictedPrs ?? false);
+          setStaleConflictedPrsDurationDays(dbSettings.staleConflictedPrsDurationDays ?? 3);
+          setClosePrOnConflictEnabled(dbSettings.closePrOnConflictEnabled ?? false);
+          setMinSessionInteractionInterval(dbSettings.minSessionInteractionInterval ?? 60);
+          setRetryTimeout(dbSettings.retryTimeout ?? 1200);
 
           if (dbSettings.theme) {
             setTheme(dbSettings.theme);
@@ -282,7 +291,7 @@ export default function SettingsPage() {
         console.error("Failed to fetch settings from DB", error);
       }
     };
-    fetchSettings();
+    fetchSettings().finally(() => setIsSettingsLoaded(true));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProfileId]);
 
@@ -354,63 +363,61 @@ export default function SettingsPage() {
     setRetryTimeout(retryTimeoutValue);
 
     try {
-        const response = await fetch('/api/settings');
-        let currentTheme = 'system';
-        if (response.ok) {
-            const data = await response.json();
-            currentTheme = data.theme;
-        }
-
-        await fetch('/api/settings', {
+        const response = await fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                idlePollInterval: idlePollIntervalValue,
-                activePollInterval: activePollIntervalValue,
-                titleTruncateLength: titleTruncateLengthValue,
-                lineClamp: lineClampValue,
-                sessionItemsPerPage: sessionItemsPerPageValue,
-                jobsPerPage: jobsPerPageValue,
-                defaultSessionCount: defaultSessionCountValue,
-                prStatusPollInterval: prStatusPollIntervalValue,
-                historyPromptsCount: historyPromptsCountValue,
-                autoApprovalInterval: autoApprovalIntervalValue,
-                autoApprovalEnabled: autoApprovalEnabledValue,
-                autoRetryEnabled: autoRetryEnabledValue,
-                autoRetryMessage: autoRetryMessageValue,
-                autoContinueEnabled: autoContinueEnabledValue,
-                autoContinueMessage: autoContinueMessageValue,
-                theme: currentTheme,
+          body: JSON.stringify({
+              idlePollInterval: idlePollIntervalValue ?? 120,
+              activePollInterval: activePollIntervalValue ?? 30,
+              titleTruncateLength: titleTruncateLengthValue ?? 50,
+              lineClamp: lineClampValue ?? 1,
+              sessionItemsPerPage: sessionItemsPerPageValue ?? 10,
+              jobsPerPage: jobsPerPageValue ?? 5,
+              defaultSessionCount: defaultSessionCountValue ?? 10,
+              prStatusPollInterval: prStatusPollIntervalValue ?? 300,
+              historyPromptsCount: historyPromptsCountValue ?? 10,
+              autoApprovalInterval: autoApprovalIntervalValue ?? 60,
+              autoApprovalEnabled: autoApprovalEnabledValue ?? false,
+              autoRetryEnabled: autoRetryEnabledValue ?? true,
+              autoRetryMessage: autoRetryMessageValue ?? "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution",
+              autoContinueEnabled: autoContinueEnabledValue ?? true,
+              autoContinueMessage: autoContinueMessageValue ?? "Sounds good. Now go ahead finish the work",
+              theme: theme || 'system',
 
-                // New Settings
-                sessionCacheInProgressInterval: sessionCacheInProgressIntervalValue,
-                sessionCacheCompletedNoPrInterval: sessionCacheCompletedNoPrIntervalValue,
-                sessionCachePendingApprovalInterval: sessionCachePendingApprovalIntervalValue,
-                sessionCacheMaxAgeDays: sessionCacheMaxAgeDaysValue,
+              // New Settings
+              sessionCacheInProgressInterval: sessionCacheInProgressIntervalValue ?? 60,
+              sessionCacheCompletedNoPrInterval: sessionCacheCompletedNoPrIntervalValue ?? 1800,
+              sessionCachePendingApprovalInterval: sessionCachePendingApprovalIntervalValue ?? 300,
+              sessionCacheMaxAgeDays: sessionCacheMaxAgeDaysValue ?? 3,
 
-                autoDeleteStaleBranches: autoDeleteStaleBranchesValue,
-                autoDeleteStaleBranchesAfterDays: autoDeleteStaleBranchesAfterDaysValue,
-                checkFailingActionsEnabled: checkFailingActionsEnabledValue,
-                checkFailingActionsInterval: checkFailingActionsIntervalValue,
-                checkFailingActionsThreshold: checkFailingActionsThresholdValue,
-                autoCloseStaleConflictedPrs: autoCloseStaleConflictedPrsValue,
-                staleConflictedPrsDurationDays: staleConflictedPrsDurationDaysValue,
-                closePrOnConflictEnabled: closePrOnConflictEnabledValue,
-                minSessionInteractionInterval: minSessionInteractionIntervalValue,
-                retryTimeout: retryTimeoutValue,
-                profileId: currentProfileId,
-            }),
+              autoDeleteStaleBranches: autoDeleteStaleBranchesValue ?? false,
+              autoDeleteStaleBranchesAfterDays: autoDeleteStaleBranchesAfterDaysValue ?? 3,
+              checkFailingActionsEnabled: checkFailingActionsEnabledValue ?? true,
+              checkFailingActionsInterval: checkFailingActionsIntervalValue ?? 600,
+              checkFailingActionsThreshold: checkFailingActionsThresholdValue ?? 10,
+              autoCloseStaleConflictedPrs: autoCloseStaleConflictedPrsValue ?? false,
+              staleConflictedPrsDurationDays: staleConflictedPrsDurationDaysValue ?? 3,
+              closePrOnConflictEnabled: closePrOnConflictEnabledValue ?? false,
+              minSessionInteractionInterval: minSessionInteractionIntervalValue ?? 60,
+              retryTimeout: retryTimeoutValue ?? 1200,
+              profileId: currentProfileId || 'default',
+          }),
         });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to save settings to database');
+        }
 
         toast({
             title: "Settings Saved",
             description: "Your settings have been updated.",
         });
     } catch (error) {
-        console.error("Failed to save settings to DB", error);
+        console.error("Failed to save settings", error);
          toast({
             title: "Error",
-            description: "Failed to save settings to database. Local storage updated.",
+            description: error instanceof Error ? error.message : "Failed to save settings. Local storage updated.",
             variant: "destructive"
         });
     }
@@ -572,17 +579,10 @@ export default function SettingsPage() {
     )
   }
 
-  if (!isClient) {
-      return (
-        <div className="p-8 space-y-4">
-             <Skeleton className="h-10 w-48" />
-             <Skeleton className="h-[400px] w-full" />
-        </div>
-      )
-  }
+
 
   return (
-    <div className="container mx-auto py-8 max-w-5xl">
+    <div className="container mx-auto py-8 max-w-5xl" data-settings-loaded={isSettingsLoaded}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Settings</h1>
         <div className="bg-muted p-2 rounded-md border text-sm flex items-center gap-2">
@@ -590,19 +590,89 @@ export default function SettingsPage() {
             <code className="bg-background px-1 py-0.5 rounded border">{currentProfileId}</code>
         </div>
       </div>
-      <Tabs value={currentTab} onValueChange={onTabChange} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="automation">Automation</TabsTrigger>
-          <TabsTrigger value="cache">Cache</TabsTrigger>
-          <TabsTrigger value="display">Display</TabsTrigger>
-          <TabsTrigger value="profiles">Profiles</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Sidebar Navigation */}
+        <div className="lg:col-span-1">
+          <div className="flex flex-col space-y-1 bg-muted/30 p-2 rounded-lg border" role="tablist">
+            <Button
+              variant={activeTab === "general" ? "secondary" : "ghost"}
+              className={cn("w-full justify-start font-medium", activeTab === "general" && "bg-background shadow-sm")}
+              onClick={() => onTabChange("general")}
+              role="tab"
+              aria-selected={activeTab === "general"}
+            >
+              <Briefcase className="h-4 w-4 mr-3 text-primary" />
+              General
+            </Button>
+            <Button
+              variant={activeTab === "cron" ? "secondary" : "ghost"}
+              className={cn("w-full justify-start font-medium", activeTab === "cron" && "bg-background shadow-sm")}
+              onClick={() => onTabChange("cron")}
+              role="tab"
+              aria-selected={activeTab === "cron"}
+            >
+              <Clock className="h-4 w-4 mr-3 text-primary" />
+              Cron Jobs
+            </Button>
+            <Button
+              variant={activeTab === "messages" ? "secondary" : "ghost"}
+              className={cn("w-full justify-start font-medium", activeTab === "messages" && "bg-background shadow-sm")}
+              onClick={() => onTabChange("messages")}
+              role="tab"
+              aria-selected={activeTab === "messages"}
+            >
+              <MessageSquare className="h-4 w-4 mr-3 text-primary" />
+              Messages
+            </Button>
+            <Button
+              variant={activeTab === "automation" ? "secondary" : "ghost"}
+              className={cn("w-full justify-start font-medium", activeTab === "automation" && "bg-background shadow-sm")}
+              onClick={() => onTabChange("automation")}
+              role="tab"
+              aria-selected={activeTab === "automation"}
+            >
+              <Zap className="h-4 w-4 mr-3 text-primary" />
+              Automation
+            </Button>
+            <Button
+              variant={activeTab === "cache" ? "secondary" : "ghost"}
+              className={cn("w-full justify-start font-medium", activeTab === "cache" && "bg-background shadow-sm")}
+              onClick={() => onTabChange("cache")}
+              role="tab"
+              aria-selected={activeTab === "cache"}
+            >
+              <Database className="h-4 w-4 mr-3 text-primary" />
+              Cache
+            </Button>
+            <Button
+              variant={activeTab === "display" ? "secondary" : "ghost"}
+              className={cn("w-full justify-start font-medium", activeTab === "display" && "bg-background shadow-sm")}
+              onClick={() => onTabChange("display")}
+              role="tab"
+              aria-selected={activeTab === "display"}
+            >
+              <Monitor className="h-4 w-4 mr-3 text-primary" />
+              Display
+            </Button>
+            <Button
+              variant={activeTab === "profiles" ? "secondary" : "ghost"}
+              className={cn("w-full justify-start font-medium", activeTab === "profiles" && "bg-background shadow-sm")}
+              onClick={() => onTabChange("profiles")}
+              role="tab"
+              aria-selected={activeTab === "profiles"}
+            >
+              <User className="h-4 w-4 mr-3 text-primary" />
+              Profiles
+            </Button>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="lg:col-span-3 min-h-[600px]">
 
         {/* General Tab */}
-        <TabsContent value="general" className="space-y-6">
+        {activeTab === "general" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 mt-0">
             <Card>
                 <CardHeader>
                     <CardTitle>General Settings</CardTitle>
@@ -719,15 +789,18 @@ export default function SettingsPage() {
             <div className="flex justify-end">
                 <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save General Settings</Button>
             </div>
-        </TabsContent>
+        </div>
+        )}
 
-        {/* Cron Jobs Tab */}
-        <TabsContent value="cron" className="space-y-6">
+        {activeTab === "cron" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 mt-0">
              <CronJobsList />
-        </TabsContent>
+          </div>
+        )}
 
         {/* Messages Tab */}
-        <TabsContent value="messages" className="space-y-6">
+        {activeTab === "messages" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 mt-0">
             <Card>
               <CardHeader>
                   <div className="flex items-center gap-2">
@@ -826,18 +899,23 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent>{renderTable('reply')}</CardContent>
             </Card>
-        </TabsContent>
+          </div>
+        )}
 
         {/* Profiles Tab */}
-        <TabsContent value="profiles" className="space-y-6">
+        {activeTab === "profiles" && (
+
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 mt-0">
             <ProfilesSettings
                 currentProfileId={currentProfileId}
                 onProfileSelect={setCurrentProfileId}
             />
-        </TabsContent>
+          </div>
+        )}
 
         {/* Automation Tab */}
-        <TabsContent value="automation" className="space-y-6">
+        {activeTab === "automation" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 mt-0">
              <Card>
                 <CardHeader>
                     <CardTitle>Automation Settings</CardTitle>
@@ -1003,14 +1081,16 @@ export default function SettingsPage() {
                         <Switch id="close-pr-on-conflict-enabled" checked={closePrOnConflictEnabledValue ?? false} onCheckedChange={setClosePrOnConflictEnabledValue} />
                     </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex justify-end">
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Automation Settings</Button>
                 </CardFooter>
              </Card>
-        </TabsContent>
+        </div>
+        )}
 
-        {/* Cache Tab (New) */}
-        <TabsContent value="cache" className="space-y-6">
+        {/* Cache Tab */}
+        {activeTab === "cache" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 mt-0">
              <Card>
                 <CardHeader>
                     <CardTitle>Cache & Polling Settings</CardTitle>
@@ -1059,15 +1139,16 @@ export default function SettingsPage() {
                          <p className="text-xs text-muted-foreground">Sessions older than this will only update manually.</p>
                     </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex justify-end">
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Cache Settings</Button>
                 </CardFooter>
             </Card>
-        </TabsContent>
-
+          </div>
+        )}
 
         {/* Display Tab */}
-        <TabsContent value="display" className="space-y-6">
+        {activeTab === "display" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 mt-0">
             <Card>
                 <CardHeader>
                     <CardTitle>Display Settings</CardTitle>
@@ -1126,14 +1207,15 @@ export default function SettingsPage() {
                         />
                     </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex justify-end">
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Display Settings</Button>
                 </CardFooter>
             </Card>
-        </TabsContent>
+          </div>
+        )}
 
-
-      </Tabs>
+      </div>
+    </div>
 
       {/* Dialogs for Messages */}
       <Dialog open={dialogState.isOpen} onOpenChange={closeDialog}>

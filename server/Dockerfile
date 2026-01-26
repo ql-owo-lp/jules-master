@@ -7,6 +7,7 @@ RUN apk add --no-cache gcc musl-dev git
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./
+COPY ../proto /proto
 RUN go mod download
 
 # Copy the source code

@@ -35,6 +35,7 @@ export const settingsSchema = z.object({
   autoCloseStaleConflictedPrs: z.boolean().optional().default(false),
   staleConflictedPrsDurationDays: z.number().optional().default(3),
   closePrOnConflictEnabled: z.boolean().optional().default(false),
+  maxConcurrentBackgroundWorkers: z.number().optional().default(10),
   profileId: z.union([z.string().uuid(), z.literal('default')]).optional(),
 });
 

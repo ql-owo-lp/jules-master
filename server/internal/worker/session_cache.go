@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	pb "github.com/mcpany/jules/gen"
+	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
 )

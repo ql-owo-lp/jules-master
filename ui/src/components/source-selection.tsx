@@ -21,7 +21,8 @@ type SourceSelectionProps = {
 export function SourceSelection({ onSourceSelected, disabled, selectedValue, sources, onSourcesLoaded, id }: SourceSelectionProps) {
   const [isFetching, startFetching] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+  const [apiKey] = useLocalStorage<string | null>(`jules-api-key-${currentProfileId}`, null);
 
 
   useEffect(() => {

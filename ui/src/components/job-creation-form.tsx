@@ -79,7 +79,7 @@ export function JobCreationForm({
   const [selectedBranch, setSelectedBranch] = useLocalStorage<string | undefined>("jules-last-branch", undefined);
   const [sources, setSources] = useLocalStorage<Source[]>("jules-sources-cache", []);
   const [lastSourcesFetch, setLastSourcesFetch] = useLocalStorage<number>("jules-sources-last-fetch", 0);
-  const [apiKey] = useLocalStorage<string | null>("jules-api-key", null);
+  const [apiKey] = useLocalStorage<string | null>(`jules-api-key-${currentProfileId}`, null);
 
   const [predefinedPrompts, setPredefinedPrompts] = useState<PredefinedPrompt[]>([]);
   const [historyPrompts, setHistoryPrompts] = useState<HistoryPrompt[]>([]);

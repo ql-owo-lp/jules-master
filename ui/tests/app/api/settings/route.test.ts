@@ -40,6 +40,6 @@ describe('Settings API', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error.idlePollInterval).toEqual(['Expected number, received string']);
+    expect(data.error.idlePollInterval).toEqual({ _errors: ['Expected number, received string'] });
   });
 });

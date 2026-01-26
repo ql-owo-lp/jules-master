@@ -1,6 +1,6 @@
 module github.com/mcpany/jules
 
-go 1.24.3
+go 1.24.8
 
 require (
 	github.com/gammazero/workerpool v1.1.3
@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/mattn/go-sqlite3 v1.14.33
+	github.com/mcpany/jules/proto v0.0.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/oauth2 v0.34.0
@@ -27,3 +28,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/mcpany/jules/proto => ../proto

@@ -22,6 +22,16 @@ vi.mock('drizzle-orm/better-sqlite3/migrator', () => ({
   migrate: vi.fn(),
 }));
 
+vi.mock('@/lib/grpc-client', () => ({
+    settingsClient: { getSettings: vi.fn(), updateSettings: vi.fn() },
+    profileClient: { listProfiles: vi.fn(), createProfile: vi.fn(), deleteProfile: vi.fn() },
+    logClient: { getLogs: vi.fn() },
+    cronJobClient: { listCronJobs: vi.fn(), createCronJob: vi.fn(), deleteCronJob: vi.fn(), updateCronJob: vi.fn(), toggleCronJob: vi.fn(), executeCronJob: vi.fn() },
+    jobClient: { listJobs: vi.fn(), createJob: vi.fn(), getJob: vi.fn(), deleteJob: vi.fn(), updateJob: vi.fn() },
+    promptClient: { listPredefinedPrompts: vi.fn(), getPrompt: vi.fn(), listHistoryPrompts: vi.fn(), getRepoPrompt: vi.fn() },
+    sessionClient: { listSessions: vi.fn(), getSession: vi.fn(), createSession: vi.fn(), deleteSession: vi.fn() },
+}));
+
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { db } from '../src/lib/db';
 
