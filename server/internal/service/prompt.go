@@ -51,11 +51,11 @@ func (s *PromptServer) CreatePredefinedPrompt(ctx context.Context, req *pb.Creat
 	if len(req.Prompt) > 50000 {
 		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
 	}
-	_, err := s.DB.Exec("INSERT INTO predefined_prompts (id, title, prompt, profile_id) VALUES (?, ?, ?, ?)", req.Id, req.Title, req.Prompt, req.ProfileId)
+	_, err := s.DB.Exec("INSERT INTO predefined_prompts (id, title, prompt, profile_id) VALUES (?, ?, ?, ?)", req.GetId(), req.GetTitle(), req.GetPrompt(), req.GetProfileId())
 	if err != nil {
 		return nil, err
 	}
-	return &pb.PredefinedPrompt{Id: req.Id, Title: req.Title, Prompt: req.Prompt, ProfileId: req.ProfileId}, nil
+	return &pb.PredefinedPrompt{Id: req.GetId(), Title: req.GetTitle(), Prompt: req.GetPrompt(), ProfileId: req.GetProfileId()}, nil
 }
 
 func (s *PromptServer) CreateManyPredefinedPrompts(ctx context.Context, req *pb.CreateManyPromptsRequest) (*emptypb.Empty, error) {

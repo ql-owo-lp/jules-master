@@ -124,6 +124,8 @@ export const settings = sqliteTable('settings', {
   minSessionInteractionInterval: integer('min_session_interaction_interval').notNull().default(60),
   retryTimeout: integer('retry_timeout').notNull().default(1200), // 20 minutes
   maxConcurrentBackgroundWorkers: integer('max_concurrent_background_workers').notNull().default(5),
+  autoApprovalAllSessions: integer('auto_approval_all_sessions', { mode: 'boolean' }).notNull().default(true),
+  autoContinueAllSessions: integer('auto_continue_all_sessions', { mode: 'boolean' }).notNull().default(true),
   profileId: text('profile_id').references(() => profiles.id).notNull().default('default'),
 });
 

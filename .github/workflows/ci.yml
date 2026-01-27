@@ -18,6 +18,12 @@ jobs:
         with:
           go-version: "1.23.1"
 
+      - name: Install Protoc
+        run: |
+          mkdir -p $HOME/.local/bin
+          make install-protoc
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Run Backend Tests
         run: make test-backend
 

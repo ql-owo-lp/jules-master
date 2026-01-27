@@ -20,7 +20,7 @@ const failureCommentPrefix = "The following github action checks are failing. Pl
 
 type GitHubClient interface {
 	GetCombinedStatus(ctx context.Context, owner, repo, ref string) (*github.CombinedStatus, error)
-	ListPullRequests(ctx context.Context, owner, repo string, opts *github.PullRequestListOptions) ([]*github.PullRequest, error)
+	ListPullRequests(ctx context.Context, owner, repo string, opts *github.PullRequestListOptions) ([]*github.PullRequest, *github.Response, error)
 	GetPullRequest(ctx context.Context, owner, repo string, number int) (*github.PullRequest, *github.Response, error)
 	ListCheckRunsForRef(ctx context.Context, owner, repo, ref string, opts *github.ListCheckRunsOptions) (*github.ListCheckRunsResults, *github.Response, error)
 	ListComments(ctx context.Context, owner, repo string, number int) ([]*github.IssueComment, error)
@@ -40,10 +40,11 @@ type PRMonitorWorker struct {
 	sessionService  *service.SessionServer
 	githubClient    GitHubClient
 	pool            *workerpool.WorkerPool
+    fetcher         SessionFetcher
+    apiKey          string
 }
 
-func NewPRMonitorWorker(database *sql.DB, settingsService *service.SettingsServer, sessionService *service.SessionServer, gh GitHubClient, fetcher interface{}, apiKey string) *PRMonitorWorker {
-	// fetcher and apiKey are no longer needed
+func NewPRMonitorWorker(database *sql.DB, settingsService *service.SettingsServer, sessionService *service.SessionServer, gh GitHubClient, fetcher SessionFetcher, apiKey string) *PRMonitorWorker {
 	return &PRMonitorWorker{
 		BaseWorker: BaseWorker{
 			NameStr:  "PRMonitorWorker",
@@ -54,12 +55,20 @@ func NewPRMonitorWorker(database *sql.DB, settingsService *service.SettingsServe
 		settingsService: settingsService,
 		sessionService:  sessionService,
 		githubClient:    gh,
+        fetcher:         fetcher,
+        apiKey:          apiKey,
 		pool:            GetPoolFactory().NewPool(5),
 	}
 }
 
 func (w *PRMonitorWorker) Start(ctx context.Context) error {
 	logger.Info("%s [%s] starting...", w.Name(), w.id)
+
+	// Initial run
+	logger.Info("%s [%s] performing initial run...", w.Name(), w.id)
+	if err := w.runCheck(ctx); err != nil {
+		logger.Error("%s [%s] initial run failed: %v", w.Name(), w.id, err)
+	}
 
 	for {
 		interval := w.getInterval(ctx)
@@ -82,8 +91,8 @@ func (w *PRMonitorWorker) Start(ctx context.Context) error {
 func (w *PRMonitorWorker) getInterval(ctx context.Context) time.Duration {
 	s, err := w.settingsService.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
 	if err == nil {
-		if s.PrStatusPollInterval > 0 {
-			return time.Duration(s.PrStatusPollInterval) * time.Second
+		if s.GetPrStatusPollInterval() > 0 {
+			return time.Duration(s.GetPrStatusPollInterval()) * time.Second
 		}
 	}
 	return 300 * time.Second
@@ -95,7 +104,7 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 		return err
 	}
 
-	if !s.CheckFailingActionsEnabled {
+	if !s.GetCheckFailingActionsEnabled() {
 		return nil
 	}
 
@@ -106,21 +115,43 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 	}
 	defer rows.Close()
 
-	var repos []string
+    repoMap := make(map[string]bool)
 	for rows.Next() {
 		var r string
 		if err := rows.Scan(&r); err != nil {
 			continue
 		}
-		repos = append(repos, r)
+        repoMap[r] = true
 	}
 	rows.Close()
 
+    // Fetch from Jules API
+    if w.fetcher != nil && w.apiKey != "" {
+        logger.Info("%s [%s]: Fetching sources from Jules API...", w.Name(), w.id)
+        sources, err := w.fetcher.ListSources(ctx, w.apiKey)
+        if err != nil {
+            logger.Error("%s [%s]: Failed to list sources from API: %v", w.Name(), w.id, err)
+        } else {
+            for _, src := range sources {
+                if src.GithubRepo.Owner != "" && src.GithubRepo.Repo != "" {
+                    repo := fmt.Sprintf("%s/%s", src.GithubRepo.Owner, src.GithubRepo.Repo)
+                    repoMap[repo] = true
+                }
+            }
+        }
+    }
+
+    var repos []string
+    for r := range repoMap {
+        repos = append(repos, r)
+    }
+
 	if len(repos) == 0 {
+        logger.Info("%s [%s]: No repos found to check", w.Name(), w.id)
 		return nil
 	}
 
-	logger.Info("%s [%s]: Found %d repos to check", w.Name(), w.id, len(repos))
+	logger.Info("%s [%s]: Found %d repos to check: %v", w.Name(), w.id, len(repos), repos)
 
 	var wg sync.WaitGroup
 	for _, r := range repos {
@@ -148,14 +179,24 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 	opts := &github.PullRequestListOptions{
 		State: "open",
 		ListOptions: github.ListOptions{
-			PerPage: 50,
+			PerPage: 100, // Increase page size to reduce calls
 		},
 	}
-	prs, err := w.githubClient.ListPullRequests(ctx, owner, repo, opts)
-	if err != nil {
-		logger.Error("%s [%s]: Failed to list PRs for %s: %v", w.Name(), w.id, repoFullName, err)
-		return
-	}
+
+    var prs []*github.PullRequest
+    for {
+        p, resp, err := w.githubClient.ListPullRequests(ctx, owner, repo, opts)
+        if err != nil {
+            logger.Error("%s [%s]: Failed to list PRs for %s: %v", w.Name(), w.id, repoFullName, err)
+            return
+        }
+        logger.Info("%s [%s]: Fetched %d PRs for %s. NextPage: %d", w.Name(), w.id, len(p), repoFullName, resp.NextPage)
+        prs = append(prs, p...)
+        if resp.NextPage == 0 {
+            break
+        }
+        opts.Page = resp.NextPage
+    }
 
 	logger.Info("%s [%s]: Found %d open PRs in %s", w.Name(), w.id, len(prs), repoFullName)
 
@@ -175,45 +216,62 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 
 		// 0.5 Check for Stale PRs (Conflict OR Failing)
 		// Condition: UpdatedAt > Threshold AND (Mergeable == false OR Status == failure)
-		if s.AutoCloseStaleConflictedPrs {
-			days := 5
-			if s.StaleConflictedPrsDurationDays > 0 {
-				days = int(s.StaleConflictedPrsDurationDays)
+		// 0.5 Check for Stale PRs
+		if s.GetAutoCloseStaleConflictedPrs() {
+			conflictDays := 3 // Stale branch/conflict default
+			failingDays := 5  // Failing/Not mergeable default
+
+			if s.GetStaleConflictedPrsDurationDays() > 0 {
+				conflictDays = int(s.GetStaleConflictedPrsDurationDays())
 			}
-			threshold := time.Now().AddDate(0, 0, -days)
 
-			if pr.UpdatedAt != nil && pr.UpdatedAt.Before(threshold) {
-				isStale := false
-				reason := ""
+			now := time.Now()
+			conflictThreshold := now.AddDate(0, 0, -conflictDays)
+			failingThreshold := now.AddDate(0, 0, -failingDays)
 
-				// Check Conflict
-				if pr.Mergeable != nil && !*pr.Mergeable {
+			isStale := false
+			reason := ""
+			thresholdUsed := conflictDays
+
+			// 1. Conflict (Unmergeable) - Check UpdatedAt > 3 days
+			// Note: Mergable=false usually means conflict.
+			if pr.Mergeable != nil && !*pr.Mergeable {
+				if pr.UpdatedAt != nil && pr.UpdatedAt.Before(conflictThreshold) {
 					isStale = true
-					reason = "it has merge conflicts"
+					reason = "it has merge conflicts and hasn't been updated"
+					thresholdUsed = conflictDays
 				}
+			}
 
-				// Check Status (if not already stale by conflict)
-				if !isStale && pr.Head != nil && pr.Head.SHA != nil {
+			// 2. Failing Checks - Check CreatedAt > 5 days (as requested)
+			// OR maybe UpdatedAt > 5 days? "after they are created" usually implies lifetime.
+			// Getting strict on "created after 5 days" -> CreatedAt.Before(failingThreshold).
+			// But we also want to ensure it's NOT just a new PR that is running checks.
+			// So CreatedAt > 5 days AND failing.
+			if !isStale && pr.CreatedAt != nil && pr.CreatedAt.Before(failingThreshold) {
+				// Check status
+				if pr.Head != nil && pr.Head.SHA != nil {
 					status, err := w.githubClient.GetCombinedStatus(ctx, owner, repo, *pr.Head.SHA)
 					if err == nil && status != nil && status.State != nil && *status.State == "failure" {
 						isStale = true
-						reason = "it has failing checks"
+						reason = "it has failing checks for over 5 days"
+						thresholdUsed = failingDays
 					}
 				}
+			}
 
-				if isStale {
-					logger.Info("%s [%s]: Closing stale PR %s because %s", w.Name(), w.id, *pr.HTMLURL, reason)
-					msg := fmt.Sprintf("Closing stale PR because it hasn't been updated for %d days and %s. Please update the branch or fix issues to reopen.", days, reason)
+			if isStale {
+				logger.Info("%s [%s]: Closing stale PR %s because %s", w.Name(), w.id, *pr.HTMLURL, reason)
+				msg := fmt.Sprintf("Closing stale PR because %s (%d+ days). Please update the branch or fix issues to reopen.", reason, thresholdUsed)
 
-					if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
-						logger.Error("%s [%s]: Failed to comment on stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
-					}
-
-					if _, err := w.githubClient.ClosePullRequest(ctx, owner, repo, *pr.Number); err != nil {
-						logger.Error("%s [%s]: Failed to close stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
-					}
-					continue
+				if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
+					logger.Error("%s [%s]: Failed to comment on stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
 				}
+
+				if _, err := w.githubClient.ClosePullRequest(ctx, owner, repo, *pr.Number); err != nil {
+					logger.Error("%s [%s]: Failed to close stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+				}
+				continue
 			}
 		}
 

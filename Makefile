@@ -9,6 +9,15 @@ build:
 release:
 	docker buildx build --platform $(platforms) -t $(image_name):latest . --push
 
+PROTOC_VERSION=29.3
+PROTOC_ZIP=protoc-$(PROTOC_VERSION)-linux-x86_64.zip
+
+.PHONY: install-protoc
+install-protoc:
+	curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/$(PROTOC_ZIP)
+	unzip -o $(PROTOC_ZIP) -d $(HOME)/.local
+	rm $(PROTOC_ZIP)
+
 .PHONY: proto-gen
 proto-gen:
 	mkdir -p proto/gen/ts

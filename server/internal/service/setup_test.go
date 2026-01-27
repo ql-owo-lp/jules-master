@@ -60,7 +60,9 @@ func createTables(t *testing.T, conn *sql.DB) {
             min_session_interaction_interval INTEGER DEFAULT 60,
             retry_timeout INTEGER DEFAULT 1200,
             profile_id TEXT DEFAULT 'default',
-            max_concurrent_background_workers INTEGER DEFAULT 5
+            max_concurrent_background_workers INTEGER DEFAULT 5,
+            auto_approval_all_sessions BOOLEAN DEFAULT 1,
+            auto_continue_all_sessions BOOLEAN DEFAULT 1
         );`,
 		`CREATE TABLE profiles (
             id TEXT PRIMARY KEY,

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/github"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 )
 
 type AutoDeleteStaleBranchWorker struct {
@@ -57,7 +57,7 @@ func (w *AutoDeleteStaleBranchWorker) Start(ctx context.Context) error {
 func (w *AutoDeleteStaleBranchWorker) getInterval(ctx context.Context) time.Duration {
 	// Check if enabled, if not long interval
 	s, err := w.settingsService.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
-	if err == nil && s.AutoDeleteStaleBranches {
+	if err == nil && s.GetAutoDeleteStaleBranches() {
 		// Daily check
 		return 24 * time.Hour
 	}
@@ -70,7 +70,7 @@ func (w *AutoDeleteStaleBranchWorker) runCheck(ctx context.Context) error {
 		return err
 	}
 
-	if !s.AutoDeleteStaleBranches {
+	if !s.GetAutoDeleteStaleBranches() {
 		return nil
 	}
 

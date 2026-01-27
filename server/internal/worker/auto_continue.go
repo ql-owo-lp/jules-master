@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 )
 
 type AutoContinueWorker struct {
@@ -17,10 +17,12 @@ type AutoContinueWorker struct {
 	db              *sql.DB
 	settingsService *service.SettingsServer
 	sessionService  *service.SessionServer
+	fetcher         SessionFetcher
+	apiKey          string
 	id              string
 }
 
-func NewAutoContinueWorker(database *sql.DB, settingsService *service.SettingsServer, sessionService *service.SessionServer) *AutoContinueWorker {
+func NewAutoContinueWorker(database *sql.DB, settingsService *service.SettingsServer, sessionService *service.SessionServer, fetcher SessionFetcher, apiKey string) *AutoContinueWorker {
 	return &AutoContinueWorker{
 		BaseWorker: BaseWorker{
 			NameStr:  "AutoContinueWorker",
@@ -29,6 +31,8 @@ func NewAutoContinueWorker(database *sql.DB, settingsService *service.SettingsSe
 		db:              database,
 		settingsService: settingsService,
 		sessionService:  sessionService,
+		fetcher:         fetcher,
+		apiKey:          apiKey,
 		id:              uuid.New().String()[:8],
 	}
 }
@@ -57,10 +61,8 @@ func (w *AutoContinueWorker) Start(ctx context.Context) error {
 func (w *AutoContinueWorker) getInterval(ctx context.Context) time.Duration {
 	s, err := w.settingsService.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
 	if err == nil {
-		if s.AutoApprovalInterval > 0 {
-			// Reusing auto approval interval logic from TS?
-			// TS uses `settingsResult[0].autoApprovalInterval` as fallback interval for auto continue check
-			return time.Duration(s.AutoApprovalInterval) * time.Second
+		if s.GetAutoApprovalInterval() > 0 {
+			return time.Duration(s.GetAutoApprovalInterval()) * time.Second
 		}
 	}
 	return 60 * time.Second
@@ -72,72 +74,106 @@ func (w *AutoContinueWorker) runCheck(ctx context.Context) error {
 		return err
 	}
 
-	if !s.AutoContinueEnabled {
+	if !s.GetAutoContinueEnabled() {
 		return nil
 	}
 
-	// Logic:
-	// 1. Get recently started jobs (last 3 days)
-	// 2. Get session IDs
-	// 3. Check session status (COMPLETED) and outputs (no PR)
-	// 4. Send continue message
+	cannedResponse := "you are independent principal software engineer, you are doing good, I trust your judgement, please continue. If you do it correctly in the first run, I will offer you a great peer bonus"
+	if s.GetAutoContinueMessage() != "" {
+		cannedResponse = s.GetAutoContinueMessage()
+	}
 
-	// SQLite: created_at is usually RFC3339 string.
+	// 1. Discovery Phase
+	var allSessionIDs []string
 	threeDaysAgo := time.Now().AddDate(0, 0, -3).Format(time.RFC3339)
 
-	rows, err := w.db.QueryContext(ctx, "SELECT session_ids FROM jobs WHERE created_at >= ?", threeDaysAgo)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	var allSessionIDs []string
-	for rows.Next() {
-		var idsJSON string
-		if err := rows.Scan(&idsJSON); err == nil {
-			var ids []string
-			if err := json.Unmarshal([]byte(idsJSON), &ids); err == nil {
-				allSessionIDs = append(allSessionIDs, ids...)
+	if s.GetAutoContinueAllSessions() {
+		// Discover ALL completed sessions from last 3 days
+		rows, err := w.db.QueryContext(ctx, "SELECT id FROM sessions WHERE state = 'COMPLETED' AND create_time >= ?", threeDaysAgo)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err == nil {
+				allSessionIDs = append(allSessionIDs, id)
 			}
 		}
+		rows.Close()
+	} else {
+		// Discover sessions only from JOBS
+		rows, err := w.db.QueryContext(ctx, "SELECT session_ids FROM jobs WHERE created_at >= ?", threeDaysAgo)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var idsJSON string
+			if err := rows.Scan(&idsJSON); err == nil {
+				var ids []string
+				if err := json.Unmarshal([]byte(idsJSON), &ids); err == nil {
+					allSessionIDs = append(allSessionIDs, ids...)
+				}
+			}
+		}
+		rows.Close()
 	}
-	rows.Close()
 
 	if len(allSessionIDs) == 0 {
 		return nil
 	}
 
-	// Check sessions
-	// Need to batch get? For now simple loop or IN clause
-	// Construct IN clause
-	// SQLite limit on variables... handle efficiently or simplified loop.
-	// Loop is safer for variable limit.
-
 	for _, sessID := range allSessionIDs {
-		// Fetch session status and output
-		// Need to query DB
+		// Local check first to avoid unnecessary API calls
 		var state string
-		// var outputsJSON sql.NullString
-
 		err := w.db.QueryRowContext(ctx, "SELECT state FROM sessions WHERE id = ?", sessID).Scan(&state)
-		if err != nil {
+		if err != nil || state != "COMPLETED" {
 			continue
 		}
 
-		if state == "COMPLETED" {
-			// Check outputs for PR
-			// We need outputs column.
-			// SELECT outputs FROM sessions ...
-			// Assuming outputs is stored in sessions table or separate?
-			// Proto has 'outputs' in Session message.
+		// Fetch remote session
+		if w.fetcher == nil {
+			logger.Error("%s [%s]: No fetcher configured", w.Name(), w.id)
+			continue
+		}
 
-			// TODO: Check PR existence in outputs
-			// TODO: Check if we already sent continue message
+		remoteSess, err := w.fetcher.GetSession(ctx, sessID, w.apiKey)
+		if err != nil {
+			logger.Error("%s [%s]: Failed to fetch remote session %s: %v", w.Name(), w.id, sessID, err)
+			continue
+		}
 
-			// If eligible:
-			// logger.Info("%s: Sending continue message to session %s", w.Name(), sessID)
-			// w.sessionService.SendMessage(ctx, &pb.SendMessageRequest{...})
-			// We need SendMessage RPC.
+		// Check for PR
+		hasPR := false
+		for _, output := range remoteSess.Outputs {
+			if output.PullRequest != nil && output.PullRequest.Url != "" {
+				hasPR = true
+				break
+			}
+		}
+
+		if hasPR {
+			continue
+		}
+
+		// Check messages
+		if len(remoteSess.Messages) > 0 {
+			lastMsg := remoteSess.Messages[len(remoteSess.Messages)-1]
+			// Avoid loop: if last message is EXACTLY our canned response, skip.
+			if lastMsg.Text == cannedResponse {
+				continue
+			}
+		}
+
+		// Send Continue Message
+		logger.Info("%s [%s]: Auto-replying to session %s (Completed, No PR)", w.Name(), w.id, sessID)
+		_, err = w.sessionService.SendMessage(ctx, &pb.SendMessageRequest{
+			Id:      sessID,
+			Message: cannedResponse,
+		})
+		if err != nil {
+			logger.Error("%s [%s]: Failed to send message to session %s: %v", w.Name(), w.id, sessID, err)
 		}
 	}
 

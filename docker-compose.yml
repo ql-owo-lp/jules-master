@@ -24,6 +24,8 @@ services:
       - ./ui/package.json:/app/package.json
       - /app/node_modules
     # Use an env_file to load environment variables for the container
+    env_file:
+      - .env
     # Ensure the container stops gracefully
     stop_grace_period: 1m
     # Command to run the development server
@@ -31,12 +33,14 @@ services:
 
   prod:
     build:
-      context: ./ui
+      context: .
       dockerfile: Dockerfile
     ports:
-      - "9002:9002"
+      - "9003:9002"
     volumes:
       - ./data:/app/data
     # In production, we don't mount volumes for source code.
+    env_file:
+      - .env
     # The code is copied into the image during the build process.
-    command: npm run start
+
