@@ -216,45 +216,62 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 
 		// 0.5 Check for Stale PRs (Conflict OR Failing)
 		// Condition: UpdatedAt > Threshold AND (Mergeable == false OR Status == failure)
+		// 0.5 Check for Stale PRs
 		if s.GetAutoCloseStaleConflictedPrs() {
-			days := 5
+			conflictDays := 3 // Stale branch/conflict default
+			failingDays := 5  // Failing/Not mergeable default
+
 			if s.GetStaleConflictedPrsDurationDays() > 0 {
-				days = int(s.GetStaleConflictedPrsDurationDays())
+				conflictDays = int(s.GetStaleConflictedPrsDurationDays())
 			}
-			threshold := time.Now().AddDate(0, 0, -days)
 
-			if pr.UpdatedAt != nil && pr.UpdatedAt.Before(threshold) {
-				isStale := false
-				reason := ""
+			now := time.Now()
+			conflictThreshold := now.AddDate(0, 0, -conflictDays)
+			failingThreshold := now.AddDate(0, 0, -failingDays)
 
-				// Check Conflict
-				if pr.Mergeable != nil && !*pr.Mergeable {
+			isStale := false
+			reason := ""
+			thresholdUsed := conflictDays
+
+			// 1. Conflict (Unmergeable) - Check UpdatedAt > 3 days
+			// Note: Mergable=false usually means conflict.
+			if pr.Mergeable != nil && !*pr.Mergeable {
+				if pr.UpdatedAt != nil && pr.UpdatedAt.Before(conflictThreshold) {
 					isStale = true
-					reason = "it has merge conflicts"
+					reason = "it has merge conflicts and hasn't been updated"
+					thresholdUsed = conflictDays
 				}
+			}
 
-				// Check Status (if not already stale by conflict)
-				if !isStale && pr.Head != nil && pr.Head.SHA != nil {
+			// 2. Failing Checks - Check CreatedAt > 5 days (as requested)
+			// OR maybe UpdatedAt > 5 days? "after they are created" usually implies lifetime.
+			// Getting strict on "created after 5 days" -> CreatedAt.Before(failingThreshold).
+			// But we also want to ensure it's NOT just a new PR that is running checks.
+			// So CreatedAt > 5 days AND failing.
+			if !isStale && pr.CreatedAt != nil && pr.CreatedAt.Before(failingThreshold) {
+				// Check status
+				if pr.Head != nil && pr.Head.SHA != nil {
 					status, err := w.githubClient.GetCombinedStatus(ctx, owner, repo, *pr.Head.SHA)
 					if err == nil && status != nil && status.State != nil && *status.State == "failure" {
 						isStale = true
-						reason = "it has failing checks"
+						reason = "it has failing checks for over 5 days"
+						thresholdUsed = failingDays
 					}
 				}
+			}
 
-				if isStale {
-					logger.Info("%s [%s]: Closing stale PR %s because %s", w.Name(), w.id, *pr.HTMLURL, reason)
-					msg := fmt.Sprintf("Closing stale PR because it hasn't been updated for %d days and %s. Please update the branch or fix issues to reopen.", days, reason)
+			if isStale {
+				logger.Info("%s [%s]: Closing stale PR %s because %s", w.Name(), w.id, *pr.HTMLURL, reason)
+				msg := fmt.Sprintf("Closing stale PR because %s (%d+ days). Please update the branch or fix issues to reopen.", reason, thresholdUsed)
 
-					if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
-						logger.Error("%s [%s]: Failed to comment on stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
-					}
-
-					if _, err := w.githubClient.ClosePullRequest(ctx, owner, repo, *pr.Number); err != nil {
-						logger.Error("%s [%s]: Failed to close stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
-					}
-					continue
+				if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
+					logger.Error("%s [%s]: Failed to comment on stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
 				}
+
+				if _, err := w.githubClient.ClosePullRequest(ctx, owner, repo, *pr.Number); err != nil {
+					logger.Error("%s [%s]: Failed to close stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+				}
+				continue
 			}
 		}
 

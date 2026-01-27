@@ -30,7 +30,9 @@ RUN protoc --plugin=/app/node_modules/.bin/protoc-gen-ts_proto \
     --ts_proto_out=proto \
     --ts_proto_opt=esModuleInterop=true \
     --ts_proto_opt=outputServices=grpc-js \
-    --proto_path=proto proto/*.proto
+    --proto_path=proto \
+    --proto_path=/usr/local/include \
+    proto/*.proto
 
 # Back to app workdir for build
 WORKDIR /app

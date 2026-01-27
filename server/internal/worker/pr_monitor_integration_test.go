@@ -202,4 +202,65 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 			t.Errorf("comment body should not contain passing check name 'check-pass'")
 		}
 	})
+	t.Run("Stale PR Logic", func(t *testing.T) {
+		// Mock PRs
+		conflictStale := time.Now().AddDate(0, 0, -4) // > 3 days
+		conflictFresh := time.Now().AddDate(0, 0, -2) // < 3 days
+		failingStale := time.Now().AddDate(0, 0, -6)  // > 5 days
+		failingFresh := time.Now().AddDate(0, 0, -4)  // < 5 days
+
+		mockGH.PullRequests = []*github.PullRequest{
+			{Number: github.Int(10), HTMLURL: github.String("http://10"), UpdatedAt: &github.Timestamp{Time: conflictStale}, Mergeable: github.Bool(false), User: &github.User{Login: github.String("u")}},
+			{Number: github.Int(11), HTMLURL: github.String("http://11"), UpdatedAt: &github.Timestamp{Time: conflictFresh}, Mergeable: github.Bool(false), User: &github.User{Login: github.String("u")}},
+			{Number: github.Int(12), HTMLURL: github.String("http://12"), CreatedAt: &github.Timestamp{Time: failingStale}, UpdatedAt: &github.Timestamp{Time: failingStale}, Head: &github.PullRequestBranch{SHA: github.String("sha-stale")}, User: &github.User{Login: github.String("u")}},
+			{Number: github.Int(13), HTMLURL: github.String("http://13"), CreatedAt: &github.Timestamp{Time: failingFresh}, UpdatedAt: &github.Timestamp{Time: failingFresh}, Head: &github.PullRequestBranch{SHA: github.String("sha-fresh")}, User: &github.User{Login: github.String("u")}},
+		}
+
+		// Combined Status mocks
+		mockGH.CombinedStatus = &github.CombinedStatus{State: github.String("failure")} // For simplicity, all return failure for now, logic checks SHA
+		// But Wait, runCheck iterates PRs. GetCombinedStatus is called with SHA.
+		// We need MockGitHubClient to return failure for specific SHAs?
+		// The current mock implementation likely returns the SAME status for all calls unless we modify it.
+		// Let's assume it returns what is set in mockGH.CombinedStatus.
+		// So all PRs with Head will see failure.
+		
+		// Reset
+		mockGH.CreatedComments = nil
+		mockGH.Comments = nil
+		// Enable Stale Check in settings
+		// We insert a row to ensure it exists, including nullable text fields
+		_, err = db.Exec(`INSERT INTO settings (id, auto_close_stale_conflicted_prs, stale_conflicted_prs_duration_days, theme, auto_retry_message, auto_continue_message) 
+			VALUES (1, 1, 3, 'light', '', '') 
+			ON CONFLICT(id) DO UPDATE SET 
+			auto_close_stale_conflicted_prs = 1, 
+			stale_conflicted_prs_duration_days = 3`)
+		if err != nil {
+			t.Fatalf("failed to update settings: %v", err)
+		}
+
+		err = worker.runCheck(context.Background())
+		if err != nil {
+			t.Errorf("runCheck failed: %v", err)
+		}
+
+		// Expect PR 10 (Conflict Stale) to be closed/commented
+		// Expect PR 12 (Failing Stale) to be closed/commented
+		// Expect PR 11 (Conflict Fresh) to be skipped
+		// Expect PR 13 (Failing Fresh) to be skipped
+
+		closedCount := 0
+		for _, comment := range mockGH.CreatedComments {
+			if strings.Contains(comment, "Closing stale PR") {
+				closedCount++
+			}
+		}
+
+		if closedCount != 2 {
+			t.Errorf("Expected 2 stale PRs to be closed, got %d. Comments: %v", closedCount, mockGH.CreatedComments)
+			// Debug
+			for _, c := range mockGH.CreatedComments {
+				t.Logf("Comment: %s", c)
+			}
+		}
+	})
 }
