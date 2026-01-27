@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 )
 
 type AutoApprovalWorker struct {
@@ -84,7 +84,7 @@ func (w *AutoApprovalWorker) runCheck(ctx context.Context) error {
 		return err
 	}
 
-	if !s.AutoApprovalEnabled {
+	if !s.GetAutoApprovalEnabled() {
 		// Disabled
 		return nil
 	}

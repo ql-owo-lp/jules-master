@@ -71,7 +71,9 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 
 	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
 
-	t.Run("Wait for pending checks", func(t *testing.T) {
+	t.Run("Report failure even if pending checks exist", func(t *testing.T) {
+		mockGH.CreatedComments = nil
+		mockGH.Comments = nil
 		mockGH.CombinedStatus = &github.CombinedStatus{State: github.String("failure")}
 		mockGH.CheckRuns = &github.ListCheckRunsResults{
 			CheckRuns: []*github.CheckRun{
@@ -85,12 +87,15 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 			t.Errorf("runCheck failed: %v", err)
 		}
 
-		if len(mockGH.CreatedComments) != 0 {
-			t.Errorf("expected 0 comments while checks are in_progress, got %d", len(mockGH.CreatedComments))
+		// Fail Fast: Expect 1 comment
+		if len(mockGH.CreatedComments) != 1 {
+			t.Errorf("expected 1 comment (fail fast), got %d", len(mockGH.CreatedComments))
 		}
 	})
 
 	t.Run("Comment when all checks done and failed (Status: failure)", func(t *testing.T) {
+		mockGH.CreatedComments = nil
+		mockGH.Comments = nil
 		mockGH.CheckRuns = &github.ListCheckRunsResults{
 			CheckRuns: []*github.CheckRun{
 				{Name: github.String("check-1"), Status: github.String("completed"), Conclusion: github.String("failure")},
@@ -111,38 +116,43 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 			t.Errorf("expected 1 comment, got %d", len(mockGH.CreatedComments))
 		}
 
+		// Verify body contains both checks
 		expectedBody := failureCommentPrefix + "\n- check-1\n- legacy-check\n\n@jules"
+		// Order might vary if map iteration is random? 
+		// Logic uses slice append? 
+		// "failingCheckNames = append... check runs... then statuses". Order preserved.
+		// "distinctNames" uses map for uniqueness BUT iteration over `failingCheckNames` preserves order.
+		// `failingCheckNames` checks `allCheckRuns` then `combinedStatus.Statuses`.
+		// So `check-1` then `legacy-check`.
+		// However, `allCheckRuns` order depends on mock setup.
 		if mockGH.CreatedComments[0] != expectedBody {
 			t.Errorf("unexpected comment body.\nExpected:\n%s\nGot:\n%s", expectedBody, mockGH.CreatedComments[0])
 		}
 	})
 
 	t.Run("Skip if bot's failure comment is already the last comment", func(t *testing.T) {
+		mockGH.CreatedComments = nil
 		mockGH.Comments = []*github.IssueComment{
 			{
 				User: &github.User{Login: github.String("google-labs-jules")},
 				Body: github.String(failureCommentPrefix + "\n- check-1\n- legacy-check\n\n@jules"),
-                // Wait, code was: 
-                // if lastComment.User... "google-labs-jules" {
-                //    logger...
-                //    shouldComment = false
-                // }
-                // So ANY last comment by bot skips.
 			},
 		}
-
+		// logic uses mockGH.CheckRuns from previous step? Yes, shared mock.
+		
 		err := worker.runCheck(context.Background())
 		if err != nil {
 			t.Errorf("runCheck failed: %v", err)
 		}
 
 		// Now we expect 0 comments because it skipped
-		if len(mockGH.CreatedComments) != 1 {
-			t.Errorf("expected still 1 comment (skipped redundant), got %d", len(mockGH.CreatedComments))
+		if len(mockGH.CreatedComments) != 0 {
+			t.Errorf("expected 0 comments (skipped redundant), got %d", len(mockGH.CreatedComments))
 		}
 	})
 
 	t.Run("Yield if human intervenes", func(t *testing.T) {
+		mockGH.CreatedComments = nil
 		mockGH.Comments = append(mockGH.Comments, &github.IssueComment{
 			User: &github.User{Login: github.String("human-user")},
 			Body: github.String("I'm fixing this now."),
@@ -153,8 +163,8 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 			t.Errorf("runCheck failed: %v", err)
 		}
 
-		if len(mockGH.CreatedComments) != 1 {
-			t.Errorf("expected 1 comment (yielded to human), got %d", len(mockGH.CreatedComments))
+		if len(mockGH.CreatedComments) != 0 {
+			t.Errorf("expected 0 comments (yielded/skipped due to identical failure despite human), got %d", len(mockGH.CreatedComments))
 		}
 	})
 

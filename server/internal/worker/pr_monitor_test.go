@@ -277,7 +277,7 @@ func TestRunCheck_CommentsOnFailure(t *testing.T) {
 	}
 }
 
-func TestRunCheck_SkipsIfPending(t *testing.T) {
+func TestRunCheck_ReportsFailure_EvenIfPending(t *testing.T) {
 	db := setupTestDB(t)
 	settingsService := &service.SettingsServer{DB: db}
 	sessionService := &service.SessionServer{DB: db}
@@ -325,8 +325,8 @@ func TestRunCheck_SkipsIfPending(t *testing.T) {
 		},
 		CheckRuns: &github.ListCheckRunsResults{
 			CheckRuns: []*github.CheckRun{
-				{Status: github.String("completed"), Conclusion: github.String("failure")},
-				{Status: github.String("in_progress")}, // Pending check!
+				{Status: github.String("completed"), Conclusion: github.String("failure"), Name: github.String("test-fail")},
+				{Status: github.String("in_progress"), Name: github.String("test-pending")}, // Pending check!
 			},
 		},
 		PullRequests: []*github.PullRequest{
@@ -355,9 +355,9 @@ func TestRunCheck_SkipsIfPending(t *testing.T) {
 		t.Errorf("runCheck failed: %v", err)
 	}
 
-	// Should NOT comment because one check is in_progress
-	if len(mockGH.CreatedComments) != 0 {
-		t.Errorf("expected 0 comments (pending check), got %d", len(mockGH.CreatedComments))
+	// Should comment because there IS a failure, even if one is pending.
+	if len(mockGH.CreatedComments) != 1 {
+		t.Errorf("expected 1 comment (fail fast), got %d", len(mockGH.CreatedComments))
 	}
 }
 

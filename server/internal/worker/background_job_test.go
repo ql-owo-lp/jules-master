@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,7 +63,7 @@ func TestBackgroundJobWorker_ProcessJob(t *testing.T) {
 		s, err := sessionSvc.GetSession(ctx, &pb.GetSessionRequest{Id: sid})
 		assert.NoError(t, err)
 		// assert.Equal(t, "test-bg-job", s.Name) // Name might be generated or empty
-		assert.Equal(t, "QUEUED", s.State)
+		assert.Equal(t, "QUEUED", s.GetState())
 	}
 }
 
@@ -138,5 +138,5 @@ func TestBackgroundJobWorker_ScheduleAndProcess(t *testing.T) {
 	// Verify session
 	s, err := sessionSvc.GetSession(ctx, &pb.GetSessionRequest{Id: updatedJob.SessionIds[0]})
 	assert.NoError(t, err)
-	assert.Equal(t, "QUEUED", s.State)
+	assert.Equal(t, "QUEUED", s.GetState())
 }

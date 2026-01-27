@@ -107,15 +107,15 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 				min_session_interaction_interval, retry_timeout, profile_id, auto_approval_enabled
 			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`,
-			newSettings.IdlePollInterval, newSettings.ActivePollInterval, newSettings.TitleTruncateLength, newSettings.LineClamp,
-			newSettings.SessionItemsPerPage, newSettings.JobsPerPage, newSettings.DefaultSessionCount, newSettings.PrStatusPollInterval,
-			newSettings.Theme, newSettings.AutoApprovalInterval, newSettings.AutoRetryEnabled, newSettings.AutoRetryMessage,
-			newSettings.AutoContinueEnabled, newSettings.AutoContinueMessage, newSettings.SessionCacheInProgressInterval,
-			newSettings.SessionCacheCompletedNoPrInterval, newSettings.SessionCachePendingApprovalInterval,
-			newSettings.SessionCacheMaxAgeDays, newSettings.AutoDeleteStaleBranches, newSettings.AutoDeleteStaleBranchesAfterDays,
-			newSettings.CheckFailingActionsEnabled, newSettings.CheckFailingActionsInterval, newSettings.CheckFailingActionsThreshold,
-			newSettings.AutoCloseStaleConflictedPrs, newSettings.StaleConflictedPrsDurationDays, newSettings.HistoryPromptsCount,
-			newSettings.MinSessionInteractionInterval, newSettings.RetryTimeout, newSettings.ProfileId, newSettings.AutoApprovalEnabled,
+			newSettings.GetIdlePollInterval(), newSettings.GetActivePollInterval(), newSettings.GetTitleTruncateLength(), newSettings.GetLineClamp(),
+			newSettings.GetSessionItemsPerPage(), newSettings.GetJobsPerPage(), newSettings.GetDefaultSessionCount(), newSettings.GetPrStatusPollInterval(),
+			newSettings.GetTheme(), newSettings.GetAutoApprovalInterval(), newSettings.GetAutoRetryEnabled(), newSettings.GetAutoRetryMessage(),
+			newSettings.GetAutoContinueEnabled(), newSettings.GetAutoContinueMessage(), newSettings.GetSessionCacheInProgressInterval(),
+			newSettings.GetSessionCacheCompletedNoPrInterval(), newSettings.GetSessionCachePendingApprovalInterval(),
+			newSettings.GetSessionCacheMaxAgeDays(), newSettings.GetAutoDeleteStaleBranches(), newSettings.GetAutoDeleteStaleBranchesAfterDays(),
+			newSettings.GetCheckFailingActionsEnabled(), newSettings.GetCheckFailingActionsInterval(), newSettings.GetCheckFailingActionsThreshold(),
+			newSettings.GetAutoCloseStaleConflictedPrs(), newSettings.GetStaleConflictedPrsDurationDays(), newSettings.GetHistoryPromptsCount(),
+			newSettings.GetMinSessionInteractionInterval(), newSettings.GetRetryTimeout(), newSettings.GetProfileId(), newSettings.GetAutoApprovalEnabled(),
 		)
 	} else if err == nil {
 		_, err = s.DB.Exec(`
@@ -131,15 +131,15 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 				min_session_interaction_interval=?, retry_timeout=?, auto_approval_enabled=?
 			WHERE id = ?
 		`,
-			newSettings.IdlePollInterval, newSettings.ActivePollInterval, newSettings.TitleTruncateLength, newSettings.LineClamp,
-			newSettings.SessionItemsPerPage, newSettings.JobsPerPage, newSettings.DefaultSessionCount, newSettings.PrStatusPollInterval,
-			newSettings.Theme, newSettings.AutoApprovalInterval, newSettings.AutoRetryEnabled, newSettings.AutoRetryMessage,
-			newSettings.AutoContinueEnabled, newSettings.AutoContinueMessage, newSettings.SessionCacheInProgressInterval,
-			newSettings.SessionCacheCompletedNoPrInterval, newSettings.SessionCachePendingApprovalInterval,
-			newSettings.SessionCacheMaxAgeDays, newSettings.AutoDeleteStaleBranches, newSettings.AutoDeleteStaleBranchesAfterDays,
-			newSettings.CheckFailingActionsEnabled, newSettings.CheckFailingActionsInterval, newSettings.CheckFailingActionsThreshold,
-			newSettings.AutoCloseStaleConflictedPrs, newSettings.StaleConflictedPrsDurationDays, newSettings.HistoryPromptsCount,
-			newSettings.MinSessionInteractionInterval, newSettings.RetryTimeout, newSettings.AutoApprovalEnabled,
+			newSettings.GetIdlePollInterval(), newSettings.GetActivePollInterval(), newSettings.GetTitleTruncateLength(), newSettings.GetLineClamp(),
+			newSettings.GetSessionItemsPerPage(), newSettings.GetJobsPerPage(), newSettings.GetDefaultSessionCount(), newSettings.GetPrStatusPollInterval(),
+			newSettings.GetTheme(), newSettings.GetAutoApprovalInterval(), newSettings.GetAutoRetryEnabled(), newSettings.GetAutoRetryMessage(),
+			newSettings.GetAutoContinueEnabled(), newSettings.GetAutoContinueMessage(), newSettings.GetSessionCacheInProgressInterval(),
+			newSettings.GetSessionCacheCompletedNoPrInterval(), newSettings.GetSessionCachePendingApprovalInterval(),
+			newSettings.GetSessionCacheMaxAgeDays(), newSettings.GetAutoDeleteStaleBranches(), newSettings.GetAutoDeleteStaleBranchesAfterDays(),
+			newSettings.GetCheckFailingActionsEnabled(), newSettings.GetCheckFailingActionsInterval(), newSettings.GetCheckFailingActionsThreshold(),
+			newSettings.GetAutoCloseStaleConflictedPrs(), newSettings.GetStaleConflictedPrsDurationDays(), newSettings.GetHistoryPromptsCount(),
+			newSettings.GetMinSessionInteractionInterval(), newSettings.GetRetryTimeout(), newSettings.GetAutoApprovalEnabled(),
 			existingId,
 		)
 	}

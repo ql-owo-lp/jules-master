@@ -196,9 +196,9 @@ func (s *JobServer) CreateJob(ctx context.Context, req *pb.CreateJobRequest) (*p
         auto_approval, background, prompt, session_count, 
         status, automation_mode, require_plan_approval, cron_job_id, profile_id
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, req.Name, string(sessionIdsJSON), createdAt, req.Repo, req.Branch,
-		req.AutoApproval, req.Background, req.Prompt, req.SessionCount,
-		req.Status, automationModeStr, req.RequirePlanApproval, req.CronJobId, req.ProfileId)
+		id, req.GetName(), string(sessionIdsJSON), createdAt, req.GetRepo(), req.GetBranch(),
+		req.GetAutoApproval(), req.GetBackground(), req.GetPrompt(), req.GetSessionCount(),
+		req.GetStatus(), automationModeStr, req.GetRequirePlanApproval(), req.GetCronJobId(), req.GetProfileId())
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create job: %w", err)

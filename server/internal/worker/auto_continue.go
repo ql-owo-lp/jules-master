@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 )
 
 type AutoContinueWorker struct {
@@ -72,7 +72,7 @@ func (w *AutoContinueWorker) runCheck(ctx context.Context) error {
 		return err
 	}
 
-	if !s.AutoContinueEnabled {
+	if !s.GetAutoContinueEnabled() {
 		return nil
 	}
 

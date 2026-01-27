@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 	"github.com/robfig/cron/v3"
 )
 
@@ -125,13 +125,13 @@ func (w *CronWorker) runCheck(ctx context.Context) error {
 
 		jobReq := &pb.CreateJobRequest{
 			Id:                  newJobId,
-			Name:                c.Name,
-			Repo:                c.Repo,
-			Branch:              c.Branch,
-			AutoApproval:        c.AutoApproval,
+			Name:                c.GetName(),
+			Repo:                c.GetRepo(),
+			Branch:              c.GetBranch(),
+			AutoApproval:        c.GetAutoApproval(),
 			Background:          true,
-			Prompt:              c.Prompt,
-			SessionCount:        c.SessionCount,
+			Prompt:              c.GetPrompt(),
+			SessionCount:        c.GetSessionCount(),
 			Status:              "PENDING",
 			RequirePlanApproval: c.RequirePlanApproval,
 			CronJobId:           c.Id,

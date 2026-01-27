@@ -91,8 +91,8 @@ func (w *PRMonitorWorker) Start(ctx context.Context) error {
 func (w *PRMonitorWorker) getInterval(ctx context.Context) time.Duration {
 	s, err := w.settingsService.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
 	if err == nil {
-		if s.PrStatusPollInterval > 0 {
-			return time.Duration(s.PrStatusPollInterval) * time.Second
+		if s.GetPrStatusPollInterval() > 0 {
+			return time.Duration(s.GetPrStatusPollInterval()) * time.Second
 		}
 	}
 	return 300 * time.Second
@@ -104,7 +104,7 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 		return err
 	}
 
-	if !s.CheckFailingActionsEnabled {
+	if !s.GetCheckFailingActionsEnabled() {
 		return nil
 	}
 
@@ -216,10 +216,10 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 
 		// 0.5 Check for Stale PRs (Conflict OR Failing)
 		// Condition: UpdatedAt > Threshold AND (Mergeable == false OR Status == failure)
-		if s.AutoCloseStaleConflictedPrs {
+		if s.GetAutoCloseStaleConflictedPrs() {
 			days := 5
-			if s.StaleConflictedPrsDurationDays > 0 {
-				days = int(s.StaleConflictedPrsDurationDays)
+			if s.GetStaleConflictedPrsDurationDays() > 0 {
+				days = int(s.GetStaleConflictedPrsDurationDays())
 			}
 			threshold := time.Now().AddDate(0, 0, -days)
 
