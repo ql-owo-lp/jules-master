@@ -11,7 +11,10 @@ RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
 FROM node:24 AS node-builder
-RUN apt-get update && apt-get install -y protobuf-compiler
+RUN apt-get update && apt-get install -y curl unzip
+RUN curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v29.3/protoc-29.3-linux-x86_64.zip && \
+    unzip -o protoc-29.3-linux-x86_64.zip -d /usr/local && \
+    rm protoc-29.3-linux-x86_64.zip
 WORKDIR /app
 
 # Copy UI package files and proto files
