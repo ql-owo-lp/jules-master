@@ -40,8 +40,8 @@ type PRMonitorWorker struct {
 	sessionService  *service.SessionServer
 	githubClient    GitHubClient
 	pool            *workerpool.WorkerPool
-    fetcher         SessionFetcher
-    apiKey          string
+	fetcher         SessionFetcher
+	apiKey          string
 }
 
 func NewPRMonitorWorker(database *sql.DB, settingsService *service.SettingsServer, sessionService *service.SessionServer, gh GitHubClient, fetcher SessionFetcher, apiKey string) *PRMonitorWorker {
@@ -55,8 +55,8 @@ func NewPRMonitorWorker(database *sql.DB, settingsService *service.SettingsServe
 		settingsService: settingsService,
 		sessionService:  sessionService,
 		githubClient:    gh,
-        fetcher:         fetcher,
-        apiKey:          apiKey,
+		fetcher:         fetcher,
+		apiKey:          apiKey,
 		pool:            GetPoolFactory().NewPool(5),
 	}
 }
@@ -115,39 +115,39 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 	}
 	defer rows.Close()
 
-    repoMap := make(map[string]bool)
+	repoMap := make(map[string]bool)
 	for rows.Next() {
 		var r string
 		if err := rows.Scan(&r); err != nil {
 			continue
 		}
-        repoMap[r] = true
+		repoMap[r] = true
 	}
 	rows.Close()
 
-    // Fetch from Jules API
-    if w.fetcher != nil && w.apiKey != "" {
-        logger.Info("%s [%s]: Fetching sources from Jules API...", w.Name(), w.id)
-        sources, err := w.fetcher.ListSources(ctx, w.apiKey)
-        if err != nil {
-            logger.Error("%s [%s]: Failed to list sources from API: %v", w.Name(), w.id, err)
-        } else {
-            for _, src := range sources {
-                if src.GithubRepo.Owner != "" && src.GithubRepo.Repo != "" {
-                    repo := fmt.Sprintf("%s/%s", src.GithubRepo.Owner, src.GithubRepo.Repo)
-                    repoMap[repo] = true
-                }
-            }
-        }
-    }
+	// Fetch from Jules API
+	if w.fetcher != nil && w.apiKey != "" {
+		logger.Info("%s [%s]: Fetching sources from Jules API...", w.Name(), w.id)
+		sources, err := w.fetcher.ListSources(ctx, w.apiKey)
+		if err != nil {
+			logger.Error("%s [%s]: Failed to list sources from API: %v", w.Name(), w.id, err)
+		} else {
+			for _, src := range sources {
+				if src.GithubRepo.Owner != "" && src.GithubRepo.Repo != "" {
+					repo := fmt.Sprintf("%s/%s", src.GithubRepo.Owner, src.GithubRepo.Repo)
+					repoMap[repo] = true
+				}
+			}
+		}
+	}
 
-    var repos []string
-    for r := range repoMap {
-        repos = append(repos, r)
-    }
+	var repos []string
+	for r := range repoMap {
+		repos = append(repos, r)
+	}
 
 	if len(repos) == 0 {
-        logger.Info("%s [%s]: No repos found to check", w.Name(), w.id)
+		logger.Info("%s [%s]: No repos found to check", w.Name(), w.id)
 		return nil
 	}
 
@@ -183,20 +183,20 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 		},
 	}
 
-    var prs []*github.PullRequest
-    for {
-        p, resp, err := w.githubClient.ListPullRequests(ctx, owner, repo, opts)
-        if err != nil {
-            logger.Error("%s [%s]: Failed to list PRs for %s: %v", w.Name(), w.id, repoFullName, err)
-            return
-        }
-        logger.Info("%s [%s]: Fetched %d PRs for %s. NextPage: %d", w.Name(), w.id, len(p), repoFullName, resp.NextPage)
-        prs = append(prs, p...)
-        if resp.NextPage == 0 {
-            break
-        }
-        opts.Page = resp.NextPage
-    }
+	var prs []*github.PullRequest
+	for {
+		p, resp, err := w.githubClient.ListPullRequests(ctx, owner, repo, opts)
+		if err != nil {
+			logger.Error("%s [%s]: Failed to list PRs for %s: %v", w.Name(), w.id, repoFullName, err)
+			return
+		}
+		logger.Info("%s [%s]: Fetched %d PRs for %s. NextPage: %d", w.Name(), w.id, len(p), repoFullName, resp.NextPage)
+		prs = append(prs, p...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
 
 	logger.Info("%s [%s]: Found %d open PRs in %s", w.Name(), w.id, len(prs), repoFullName)
 
@@ -401,8 +401,6 @@ func (w *PRMonitorWorker) checkPRStatus(ctx context.Context, owner, repo string,
 			}
 			opts.Page = resp.NextPage
 		}
-
-
 
 		// If pending, check if there is an actual failure
 		hasFailure := false

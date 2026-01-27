@@ -118,8 +118,8 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 
 		// Verify body contains both checks
 		expectedBody := failureCommentPrefix + "\n- check-1\n- legacy-check\n\n@jules"
-		// Order might vary if map iteration is random? 
-		// Logic uses slice append? 
+		// Order might vary if map iteration is random?
+		// Logic uses slice append?
 		// "failingCheckNames = append... check runs... then statuses". Order preserved.
 		// "distinctNames" uses map for uniqueness BUT iteration over `failingCheckNames` preserves order.
 		// `failingCheckNames` checks `allCheckRuns` then `combinedStatus.Statuses`.
@@ -139,7 +139,7 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 			},
 		}
 		// logic uses mockGH.CheckRuns from previous step? Yes, shared mock.
-		
+
 		err := worker.runCheck(context.Background())
 		if err != nil {
 			t.Errorf("runCheck failed: %v", err)
@@ -223,7 +223,7 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 		// The current mock implementation likely returns the SAME status for all calls unless we modify it.
 		// Let's assume it returns what is set in mockGH.CombinedStatus.
 		// So all PRs with Head will see failure.
-		
+
 		// Reset
 		mockGH.CreatedComments = nil
 		mockGH.Comments = nil
