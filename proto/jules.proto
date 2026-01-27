@@ -237,16 +237,16 @@ message UpdateCronJobRequest {
   string id = 1;
   // Using specific fields for partial updates or a mask would be better,
   // but for simplicity mirroring the TS partial logic, we'll make fields optional/nullable
-  optional string name = 2;
-  optional string schedule = 3;
-  optional string prompt = 4;
-  optional string repo = 5;
-  optional string branch = 6;
-  optional bool auto_approval = 7;
-  optional AutomationMode automation_mode = 8;
-  optional bool require_plan_approval = 9;
-  optional int32 session_count = 10;
-  optional bool enabled = 11;
+  string name = 2;
+  string schedule = 3;
+  string prompt = 4;
+  string repo = 5;
+  string branch = 6;
+  bool auto_approval = 7;
+  AutomationMode automation_mode = 8;
+  bool require_plan_approval = 9;
+  int32 session_count = 10;
+  bool enabled = 11;
 }
 
 message DeleteCronJobRequest {
@@ -314,10 +314,10 @@ message CreateManyJobsRequest {
 
 message UpdateJobRequest {
     string id = 1;
-    optional string name = 2;
-    optional string status = 3;
-    optional string repo = 4;
-    optional string branch = 5;
+    string name = 2;
+    string status = 3;
+    string repo = 4;
+    string branch = 5;
 }
 
 message DeleteJobRequest {
@@ -354,8 +354,8 @@ message CreateManyPromptsRequest {
 
 message UpdatePromptRequest {
     string id = 1;
-    optional string title = 2;
-    optional string prompt = 3;
+    string title = 2;
+    string prompt = 3;
 }
 
 message DeletePromptRequest {
