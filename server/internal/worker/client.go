@@ -73,3 +73,60 @@ func (f *RetryableRemoteSessionFetcher) GetSession(ctx context.Context, id, apiK
 	}
 	return &sess, nil
 }
+
+// Source defines the structure of a source from the API
+type Source struct {
+	Name       string `json:"name"`
+	Id         string `json:"id"`
+	GithubRepo struct {
+		Owner string `json:"owner"`
+		Repo  string `json:"repo"`
+	} `json:"githubRepo"`
+}
+
+// ListSourcesResponse defines the structure of the list sources response
+type ListSourcesResponse struct {
+	Sources       []Source `json:"sources"`
+	NextPageToken string   `json:"nextPageToken"`
+}
+
+// SessionFetcher defines the interface for fetching sessions/sources
+type SessionFetcher interface {
+    GetSession(ctx context.Context, id, apiKey string) (*RemoteSession, error)
+    ListSources(ctx context.Context, apiKey string) ([]Source, error)
+}
+
+// Ensure RetryableRemoteSessionFetcher implements SessionFetcher
+var _ SessionFetcher = (*RetryableRemoteSessionFetcher)(nil)
+
+func (f *RetryableRemoteSessionFetcher) ListSources(ctx context.Context, apiKey string) ([]Source, error) {
+	url := "https://jules.googleapis.com/v1alpha/sources"
+	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if apiKey != "" {
+		req.Header.Set("X-Goog-Api-Key", apiKey)
+	}
+
+	resp, err := f.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var listResp ListSourcesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&listResp); err != nil {
+		return nil, err
+	}
+
+    // Pagination could be handled here if we want to fetch all pages, 
+    // but for now let's just return the first page as per initial requirement
+    // or we could loop. Let's start with single page.
+	return listResp.Sources, nil
+}

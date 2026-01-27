@@ -20,7 +20,7 @@ const failureCommentPrefix = "The following github action checks are failing. Pl
 
 type GitHubClient interface {
 	GetCombinedStatus(ctx context.Context, owner, repo, ref string) (*github.CombinedStatus, error)
-	ListPullRequests(ctx context.Context, owner, repo string, opts *github.PullRequestListOptions) ([]*github.PullRequest, error)
+	ListPullRequests(ctx context.Context, owner, repo string, opts *github.PullRequestListOptions) ([]*github.PullRequest, *github.Response, error)
 	GetPullRequest(ctx context.Context, owner, repo string, number int) (*github.PullRequest, *github.Response, error)
 	ListCheckRunsForRef(ctx context.Context, owner, repo, ref string, opts *github.ListCheckRunsOptions) (*github.ListCheckRunsResults, *github.Response, error)
 	ListComments(ctx context.Context, owner, repo string, number int) ([]*github.IssueComment, error)
@@ -40,10 +40,11 @@ type PRMonitorWorker struct {
 	sessionService  *service.SessionServer
 	githubClient    GitHubClient
 	pool            *workerpool.WorkerPool
+    fetcher         SessionFetcher
+    apiKey          string
 }
 
-func NewPRMonitorWorker(database *sql.DB, settingsService *service.SettingsServer, sessionService *service.SessionServer, gh GitHubClient, fetcher interface{}, apiKey string) *PRMonitorWorker {
-	// fetcher and apiKey are no longer needed
+func NewPRMonitorWorker(database *sql.DB, settingsService *service.SettingsServer, sessionService *service.SessionServer, gh GitHubClient, fetcher SessionFetcher, apiKey string) *PRMonitorWorker {
 	return &PRMonitorWorker{
 		BaseWorker: BaseWorker{
 			NameStr:  "PRMonitorWorker",
@@ -54,12 +55,20 @@ func NewPRMonitorWorker(database *sql.DB, settingsService *service.SettingsServe
 		settingsService: settingsService,
 		sessionService:  sessionService,
 		githubClient:    gh,
+        fetcher:         fetcher,
+        apiKey:          apiKey,
 		pool:            GetPoolFactory().NewPool(5),
 	}
 }
 
 func (w *PRMonitorWorker) Start(ctx context.Context) error {
 	logger.Info("%s [%s] starting...", w.Name(), w.id)
+
+	// Initial run
+	logger.Info("%s [%s] performing initial run...", w.Name(), w.id)
+	if err := w.runCheck(ctx); err != nil {
+		logger.Error("%s [%s] initial run failed: %v", w.Name(), w.id, err)
+	}
 
 	for {
 		interval := w.getInterval(ctx)
@@ -106,21 +115,43 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 	}
 	defer rows.Close()
 
-	var repos []string
+    repoMap := make(map[string]bool)
 	for rows.Next() {
 		var r string
 		if err := rows.Scan(&r); err != nil {
 			continue
 		}
-		repos = append(repos, r)
+        repoMap[r] = true
 	}
 	rows.Close()
 
+    // Fetch from Jules API
+    if w.fetcher != nil && w.apiKey != "" {
+        logger.Info("%s [%s]: Fetching sources from Jules API...", w.Name(), w.id)
+        sources, err := w.fetcher.ListSources(ctx, w.apiKey)
+        if err != nil {
+            logger.Error("%s [%s]: Failed to list sources from API: %v", w.Name(), w.id, err)
+        } else {
+            for _, src := range sources {
+                if src.GithubRepo.Owner != "" && src.GithubRepo.Repo != "" {
+                    repo := fmt.Sprintf("%s/%s", src.GithubRepo.Owner, src.GithubRepo.Repo)
+                    repoMap[repo] = true
+                }
+            }
+        }
+    }
+
+    var repos []string
+    for r := range repoMap {
+        repos = append(repos, r)
+    }
+
 	if len(repos) == 0 {
+        logger.Info("%s [%s]: No repos found to check", w.Name(), w.id)
 		return nil
 	}
 
-	logger.Info("%s [%s]: Found %d repos to check", w.Name(), w.id, len(repos))
+	logger.Info("%s [%s]: Found %d repos to check: %v", w.Name(), w.id, len(repos), repos)
 
 	var wg sync.WaitGroup
 	for _, r := range repos {
@@ -148,14 +179,24 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 	opts := &github.PullRequestListOptions{
 		State: "open",
 		ListOptions: github.ListOptions{
-			PerPage: 50,
+			PerPage: 100, // Increase page size to reduce calls
 		},
 	}
-	prs, err := w.githubClient.ListPullRequests(ctx, owner, repo, opts)
-	if err != nil {
-		logger.Error("%s [%s]: Failed to list PRs for %s: %v", w.Name(), w.id, repoFullName, err)
-		return
-	}
+
+    var prs []*github.PullRequest
+    for {
+        p, resp, err := w.githubClient.ListPullRequests(ctx, owner, repo, opts)
+        if err != nil {
+            logger.Error("%s [%s]: Failed to list PRs for %s: %v", w.Name(), w.id, repoFullName, err)
+            return
+        }
+        logger.Info("%s [%s]: Fetched %d PRs for %s. NextPage: %d", w.Name(), w.id, len(p), repoFullName, resp.NextPage)
+        prs = append(prs, p...)
+        if resp.NextPage == 0 {
+            break
+        }
+        opts.Page = resp.NextPage
+    }
 
 	logger.Info("%s [%s]: Found %d open PRs in %s", w.Name(), w.id, len(prs), repoFullName)
 
