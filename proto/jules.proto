@@ -5,7 +5,7 @@ package jules;
 import "google/protobuf/go_features.proto";
 
 option go_package = "github.com/mcpany/jules/proto";
-option (go.features).api_level = API_OPAQUE;
+option features.(pb.go).api_level = API_OPAQUE;
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
