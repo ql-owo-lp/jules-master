@@ -52,9 +52,8 @@ func (c *Client) GetBranch(ctx context.Context, owner, repo, branch string) (*gi
 	return b, err
 }
 
-func (c *Client) ListPullRequests(ctx context.Context, owner, repo string, opts *github.PullRequestListOptions) ([]*github.PullRequest, error) {
-	prs, _, err := c.client.PullRequests.List(ctx, owner, repo, opts)
-	return prs, err
+func (c *Client) ListPullRequests(ctx context.Context, owner, repo string, opts *github.PullRequestListOptions) ([]*github.PullRequest, *github.Response, error) {
+	return c.client.PullRequests.List(ctx, owner, repo, opts)
 }
 
 func (c *Client) GetPullRequest(ctx context.Context, owner, repo string, number int) (*github.PullRequest, *github.Response, error) {

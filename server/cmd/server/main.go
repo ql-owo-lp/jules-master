@@ -5,11 +5,11 @@ import (
 	"net"
 	"os"
 
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/db"
 	gclient "github.com/mcpany/jules/internal/github"
 	"github.com/mcpany/jules/internal/service"
 	"github.com/mcpany/jules/internal/worker"
+	pb "github.com/mcpany/jules/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -47,9 +47,9 @@ func main() {
 	workerManager.Register(worker.NewAutoApprovalWorker(dbConn, settingsService, sessionService))
 	workerManager.Register(worker.NewBackgroundJobWorker(dbConn, jobService, sessionService, settingsService))
 	workerManager.Register(worker.NewAutoDeleteStaleBranchWorker(dbConn, settingsService))
-	workerManager.Register(worker.NewAutoContinueWorker(dbConn, settingsService, sessionService))
 	ghClient := gclient.NewClient(os.Getenv("GITHUB_TOKEN"))
 	fetcher := worker.NewRetryableRemoteSessionFetcher()
+	workerManager.Register(worker.NewAutoContinueWorker(dbConn, settingsService, sessionService, fetcher, os.Getenv("JULES_API_KEY")))
 	workerManager.Register(worker.NewPRMonitorWorker(dbConn, settingsService, sessionService, ghClient, fetcher, os.Getenv("JULES_API_KEY")))
 	workerManager.Register(worker.NewAutoRetryWorker(dbConn, settingsService, sessionService))
 	workerManager.Register(worker.NewCronWorker(dbConn, cronService, jobService))

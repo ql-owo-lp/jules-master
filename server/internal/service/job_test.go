@@ -30,12 +30,12 @@ func TestJobService_CreateAndGet(t *testing.T) {
 
 	created, err := svc.CreateJob(ctx, req)
 	assert.NoError(t, err)
-	assert.Equal(t, "Test Job", created.Name)
+	assert.Equal(t, "Test Job", created.GetName())
 
 	got, err := svc.GetJob(ctx, &pb.GetJobRequest{Id: "1"})
 	assert.NoError(t, err)
-	assert.Equal(t, "Test Job", got.Name)
-	assert.Equal(t, "session1", got.SessionIds[0])
+	assert.Equal(t, "Test Job", got.GetName())
+	assert.Equal(t, "session1", got.GetSessionIds()[0])
 }
 
 func TestJobService_CreateManyAndList(t *testing.T) {
@@ -71,7 +71,7 @@ func TestJobService_Update(t *testing.T) {
 
 	got, err := svc.GetJob(ctx, &pb.GetJobRequest{Id: "4"})
 	assert.NoError(t, err)
-	assert.Equal(t, "New Name", got.Name)
+	assert.Equal(t, "New Name", got.GetName())
 }
 
 func TestJobService_Delete(t *testing.T) {

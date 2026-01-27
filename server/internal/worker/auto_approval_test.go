@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,6 +15,7 @@ func TestAutoApprovalWorker_RunCheck(t *testing.T) {
 	defer db.Close()
 
 	settingsSvc := &service.SettingsServer{DB: db}
+	t.Setenv("JULES_API_KEY", "")
 	sessionSvc := &service.SessionServer{DB: db}
 	workerCtx := NewAutoApprovalWorker(db, settingsSvc, sessionSvc)
 
@@ -24,8 +25,9 @@ func TestAutoApprovalWorker_RunCheck(t *testing.T) {
 	_, err := settingsSvc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{
 		Settings: &pb.Settings{
 			ProfileId:            "default",
-			AutoApprovalEnabled:  true,
-			AutoApprovalInterval: 1,
+			AutoApprovalEnabled:      true,
+			AutoApprovalInterval:     1,
+			AutoApprovalAllSessions:  true,
 		},
 	})
 	if err != nil {
