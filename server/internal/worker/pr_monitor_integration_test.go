@@ -89,7 +89,7 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 
 		// Fail Fast: Expect 1 comment
 		if len(mockGH.CreatedComments) != 1 {
-			t.Errorf("expected 1 comment (fail fast), got %d", len(mockGH.CreatedComments))
+			t.Fatalf("expected 1 comment (fail fast), got %d", len(mockGH.CreatedComments))
 		}
 	})
 
@@ -113,7 +113,7 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 		}
 
 		if len(mockGH.CreatedComments) != 1 {
-			t.Errorf("expected 1 comment, got %d", len(mockGH.CreatedComments))
+			t.Fatalf("expected 1 comment, got %d", len(mockGH.CreatedComments))
 		}
 
 		// Verify body contains both checks
@@ -187,11 +187,19 @@ func TestPRMonitor_Comprehensive(t *testing.T) {
 		}
 
 		if len(mockGH.CreatedComments) != 1 {
-			t.Errorf("expected 1 comment (handled pending status with completed failure), got %d", len(mockGH.CreatedComments))
+			t.Fatalf("expected 1 comment (handled pending status with completed failure), got %d", len(mockGH.CreatedComments))
 		}
 
-		if !strings.Contains(mockGH.CreatedComments[0], "check-fail") {
-			t.Errorf("comment body missing failing check name")
+		// Verify comment
+		commentBody := mockGH.CreatedComments[0]
+		if !strings.Contains(commentBody, "The following github action checks are failing") {
+			t.Errorf("comment body missing 'The following github action checks are failing' prefix. Got:\n%s", commentBody)
+		}
+		if !strings.Contains(commentBody, "check-fail") {
+			t.Errorf("comment body missing failing check name 'check-fail'")
+		}
+		if strings.Contains(commentBody, "check-pass") {
+			t.Errorf("comment body should not contain passing check name 'check-pass'")
 		}
 	})
 }

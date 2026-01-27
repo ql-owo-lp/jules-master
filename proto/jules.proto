@@ -1,11 +1,15 @@
-syntax = "proto3";
+edition = "2023";
 
 package jules;
 
-option go_package = "github.com/mcpany/jules/proto;jules";
+import "google/protobuf/go_features.proto";
+
+option go_package = "github.com/mcpany/jules/proto";
+option (go.features).api_level = API_OPAQUE;
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
+
 
 // Common Enums
 
@@ -26,8 +30,8 @@ enum AutomationMode {
 // ---------------------------------------------------------
 
 service SettingsService {
-  rpc GetSettings(GetSettingsRequest) returns (Settings);
-  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
+  rpc GetSettings(GetSettingsRequest) returns (Settings) {}
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse) {}
 }
 
 service ProfileService {
@@ -138,6 +142,9 @@ message Settings {
   int32 retry_timeout = 29;
   string profile_id = 30;
   int32 max_concurrent_background_workers = 32;
+  // Opaque API: Use getters for all fields.
+  bool auto_approval_all_sessions = 33; // Default: true (handled in service)
+  bool auto_continue_all_sessions = 34; // Default: true (handled in service)
 }
 
 message GetSettingsRequest {

@@ -17,6 +17,48 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+func (s *SessionServer) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (*emptypb.Empty, error) {
+	apiKey := s.getAPIKey()
+	if apiKey == "" {
+		return nil, fmt.Errorf("JULES_API_KEY not set")
+	}
+
+	url := fmt.Sprintf("https://jules.googleapis.com/v1alpha/sessions/%s:sendMessage", req.Id)
+	
+	body := map[string]interface{}{
+		"message": req.Message,
+	}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	r, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("X-Goog-Api-Key", apiKey)
+
+	resp, err := client.Do(r)
+	if err != nil {
+		return nil, fmt.Errorf("sendMessage failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("sendMessage failed %d: %s", resp.StatusCode, string(b))
+	}
+
+	// Update local interaction time?
+	// s.DB.Exec("UPDATE sessions SET last_interaction_at = ? WHERE id = ?", time.Now().UnixMilli(), req.Id)
+
+	return &emptypb.Empty{}, nil
+}
+
 type SessionServer struct {
 	pb.UnimplementedSessionServiceServer
 	DB *sql.DB

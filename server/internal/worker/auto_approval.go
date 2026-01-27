@@ -100,24 +100,34 @@ func (w *AutoApprovalWorker) runCheck(ctx context.Context) error {
 	}
 	defer rows.Close()
 
-	var pendingIDs []string
+	// 1. Collect candidates
+	type candidate struct {
+		id string
+	}
+	var candidates []candidate
+
 	for rows.Next() {
 		var id string
 		var updateTime string // SQLite datetime string
 		if err := rows.Scan(&id, &updateTime); err != nil {
 			continue
 		}
+		candidates = append(candidates, candidate{id: id})
+	}
+	rows.Close()
 
-		// Check throttling/min interaction interval
-		// Parse updateTime
-		// SQLite uses "2006-01-02 15:04:05" typically
-		// But we store what?
-		// assuming standard format.
-		// We can skip detailed throttling check for MVP or implement it.
-		// Node implementation checks `shouldInteract`.
-
-		// For simplified migration, approving all clearly valid ones.
-		pendingIDs = append(pendingIDs, id)
+	// 2. Filter and Approve
+	var pendingIDs []string
+	for _, c := range candidates {
+		// FILTER: If NOT "All Sessions", check if this session belongs to a Job.
+		if !s.GetAutoApprovalAllSessions() {
+			var count int
+			err := w.db.QueryRowContext(ctx, `SELECT count(*) FROM jobs WHERE session_ids LIKE ?`, "%"+c.id+"%").Scan(&count)
+			if err != nil || count == 0 {
+				continue
+			}
+		}
+		pendingIDs = append(pendingIDs, c.id)
 	}
 
 	if len(pendingIDs) > 0 {
