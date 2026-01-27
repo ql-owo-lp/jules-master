@@ -354,14 +354,24 @@ const JobAccordionItemComponent = ({
 };
 
 function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next: JobAccordionItemProps) {
-  // 1. Check strict equality for all props except 'selectedSessionIds'
+  // 1. Check strict equality for all props except 'selectedSessionIds' and progress props
   const keys = Object.keys(prev) as (keyof JobAccordionItemProps)[];
   for (const key of keys) {
       if (key === 'selectedSessionIds') continue;
+      if (key === 'progressCurrent') continue;
+      if (key === 'progressTotal') continue;
       if (prev[key] !== next[key]) return false;
   }
 
-  // 2. Check 'selectedSessionIds'
+  // 2. Check 'progressCurrent' and 'progressTotal' ONLY if this job is active.
+  // If the job is NOT active, changes to these props don't affect the render.
+  // Note: activeJobId change is caught in the loop above.
+  if (next.activeJobId === next.job.id) {
+      if (prev.progressCurrent !== next.progressCurrent) return false;
+      if (prev.progressTotal !== next.progressTotal) return false;
+  }
+
+  // 3. Check 'selectedSessionIds'
   if (prev.selectedSessionIds === next.selectedSessionIds) return true;
 
   // If array refs differ, check if it affects THIS job.
