@@ -344,26 +344,32 @@ func (w *PRMonitorWorker) checkPRStatus(ctx context.Context, owner, repo string,
 			opts.Page = resp.NextPage
 		}
 
+
+
+		// If pending, check if there is an actual failure
+		hasFailure := false
 		for _, run := range allCheckRuns {
-			if run.Status != nil && (*run.Status == "queued" || *run.Status == "in_progress") {
-				logger.Info("%s [%s]: PR %s has pending check run: %s (%s). Waiting.", w.Name(), w.id, prUrl, run.GetName(), *run.Status)
-				return
+			if run.Conclusion != nil && (*run.Conclusion == "failure" || *run.Conclusion == "timed_out" || *run.Conclusion == "cancelled") {
+				hasFailure = true
+				break
 			}
 		}
 
-		// If pending, check if there is an actual failure
-		if *combinedStatus.State == "pending" {
-			hasFailure := false
+		if !hasFailure {
+			// If no confirmed failure, but some are pending/queued, we wait.
 			for _, run := range allCheckRuns {
-				if run.Conclusion != nil && (*run.Conclusion == "failure" || *run.Conclusion == "timed_out" || *run.Conclusion == "cancelled") {
-					hasFailure = true
-					break
+				if run.Status != nil && (*run.Status == "queued" || *run.Status == "in_progress") {
+					logger.Info("%s [%s]: PR %s has pending check run: %s (%s) and no confirmed failures. Waiting.", w.Name(), w.id, prUrl, run.GetName(), *run.Status)
+					return
 				}
 			}
-			if !hasFailure {
-				return
-			}
-			logger.Info("%s [%s]: PR %s is pending but has failed check runs. Treating as failure.", w.Name(), w.id, prUrl)
+		} else {
+			logger.Info("%s [%s]: PR %s has failed check runs. Reporting immediately despite potential pending checks.", w.Name(), w.id, prUrl)
+		}
+
+		// Proceed to report failure if hasFailure is true (or if state is failure)
+		if *combinedStatus.State == "pending" && !hasFailure {
+			return
 		}
 
 		// Update Branch logic (BOT ONLY)
@@ -436,8 +442,24 @@ func (w *PRMonitorWorker) checkPRStatus(ctx context.Context, owner, repo string,
 			isLastByBot := lastComment.User != nil && lastComment.User.Login != nil && strings.Contains(*lastComment.User.Login, "google-labs-jules")
 
 			if !isLastByBot {
-				logger.Info("%s [%s]: Last comment on PR %s is by Human. Skipping (yielding to human).", w.Name(), w.id, prUrl)
-				shouldComment = false
+				// Last comment by human.
+				// Only comment if the content is DIFFERENT from the last time we (the bot) commented.
+				// Find the last comment BY THE BOT.
+				var lastBotComment *github.IssueComment
+				for i := len(comments) - 1; i >= 0; i-- {
+					c := comments[i]
+					if c.User != nil && c.User.Login != nil && strings.Contains(*c.User.Login, "google-labs-jules") {
+						lastBotComment = c
+						break
+					}
+				}
+
+				if lastBotComment != nil && lastBotComment.Body != nil && strings.Contains(*lastBotComment.Body, msg) {
+					logger.Info("%s [%s]: Last comment on PR %s is by Human, but our last report is identical. Skipping.", w.Name(), w.id, prUrl)
+					shouldComment = false
+				} else {
+					logger.Info("%s [%s]: Last comment on PR %s is by Human, but we have NEW failure info (or never commented). Commenting.", w.Name(), w.id, prUrl)
+				}
 			} else {
 				// Last by Bot. Check duplication to avoid exact spam.
 				if lastComment.Body != nil && strings.Contains(*lastComment.Body, msg) {
