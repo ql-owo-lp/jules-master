@@ -97,11 +97,18 @@ const ActivityItem = memo(({ activity, isLast }: { activity: Activity, isLast: b
         <div className="flex-1 space-y-1 min-w-0 pt-1">
             <div className="flex justify-between items-start gap-4">
             <p className="font-semibold text-sm break-words">{activity.description}</p>
-            <p className="text-xs text-muted-foreground whitespace-nowrap pl-4 pt-0.5">
-                {formatDistanceToNow(new Date(activity.createTime), {
-                addSuffix: true,
-                })}
-            </p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="text-xs text-muted-foreground whitespace-nowrap pl-4 pt-0.5 cursor-help">
+                  {formatDistanceToNow(new Date(activity.createTime), {
+                    addSuffix: true,
+                  })}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent>
+                {format(new Date(activity.createTime), "PPpp")}
+              </TooltipContent>
+            </Tooltip>
             </div>
             <div className="text-sm text-muted-foreground">
             <MemoizedActivityContent activity={activity} />
@@ -167,6 +174,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
   }
 
   return (
+    <TooltipProvider>
     <Card>
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
@@ -202,6 +210,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
         </ScrollArea>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 });
 ActivityFeed.displayName = 'ActivityFeed';
@@ -459,32 +468,30 @@ function BashOutputDetails({ bashOutput, index }: { bashOutput: BashOutput, inde
             <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto max-h-[300px]">
               <code>{bashOutput.output}</code>
             </pre>
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 bg-background/80 hover:bg-background shadow-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopy(bashOutput.output);
-                      }}
-                    >
-                      {copied ? (
-                        <ClipboardCheck className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <Clipboard className="h-3 w-3" />
-                      )}
-                      <span className="sr-only">Copy output</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Copy output</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 bg-background/80 hover:bg-background shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopy(bashOutput.output);
+                    }}
+                  >
+                    {copied ? (
+                      <ClipboardCheck className="h-3 w-3 text-green-500" />
+                    ) : (
+                      <Clipboard className="h-3 w-3" />
+                    )}
+                    <span className="sr-only">Copy output</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Copy output</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">Exit Code: {bashOutput.exitCode}</p>
