@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Activity, Plan, GitPatch } from "@/lib/types";
+import type { Activity, Plan, GitPatch, BashOutput } from "@/lib/types";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   Card,
@@ -31,6 +31,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import React, { useState, forwardRef, useEffect, memo } from "react";
@@ -392,22 +398,7 @@ function ActivityContent({ activity }: { activity: Activity }) {
               <GitPatchDetails patch={artifact.changeSet.gitPatch} />
             )}
             {artifact.bashOutput?.output && (
-                <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value={`bash-${index}`} className="border-b-0">
-                        <AccordionTrigger>
-                            <div className="flex items-center gap-2 text-sm font-mono">
-                                <ChevronsRight className="h-4 w-4" />
-                                <span>{artifact.bashOutput.command}</span>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                            <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto">
-                                <code>{artifact.bashOutput.output}</code>
-                            </pre>
-                             <p className="mt-2 text-xs">Exit Code: {artifact.bashOutput.exitCode}</p>
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
+              <BashOutputDetails bashOutput={artifact.bashOutput} index={index} />
             )}
           </div>
         ))}
@@ -437,6 +428,66 @@ function PlanDetails({ plan }: { plan: Plan }) {
               </li>
             ))}
           </ol>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
+
+function BashOutputDetails({ bashOutput, index }: { bashOutput: BashOutput, index: number }) {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast({ title: "Copied to clipboard!" });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value={`bash-${index}`} className="border-b-0">
+        <AccordionTrigger>
+          <div className="flex items-center gap-2 text-sm font-mono">
+            <ChevronsRight className="h-4 w-4" />
+            <span>{bashOutput.command}</span>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="relative group">
+            <pre className="whitespace-pre-wrap bg-muted text-foreground p-2 rounded-md font-mono text-xs overflow-auto max-h-[300px]">
+              <code>{bashOutput.output}</code>
+            </pre>
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 bg-background/80 hover:bg-background shadow-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopy(bashOutput.output);
+                      }}
+                    >
+                      {copied ? (
+                        <ClipboardCheck className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <Clipboard className="h-3 w-3" />
+                      )}
+                      <span className="sr-only">Copy output</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Copy output</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Exit Code: {bashOutput.exitCode}</p>
         </AccordionContent>
       </AccordionItem>
     </Accordion>
