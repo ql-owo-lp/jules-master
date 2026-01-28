@@ -149,6 +149,19 @@ export async function sendMessage(
   apiKey?: string | null,
   skipRevalidation: boolean = false
 ): Promise<Session | null> {
+  // Rate Limit Check
+  const localSession = await db.select({ lastInteractionAt: sessions.lastInteractionAt })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .get();
+
+  if (localSession && localSession.lastInteractionAt) {
+      const now = Date.now();
+      if (now - localSession.lastInteractionAt < 1000) {
+           throw new Error("Rate limit exceeded. Please wait a second before sending another message.");
+      }
+  }
+
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");

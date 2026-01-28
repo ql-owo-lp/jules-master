@@ -13,6 +13,23 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
+// Mock db
+const { mockSelect, mockGet, mockUpdate } = vi.hoisted(() => {
+  const mockGet = vi.fn();
+  const mockWhere = vi.fn().mockReturnValue({ get: mockGet });
+  const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+  const mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
+  const mockUpdate = vi.fn().mockReturnValue({ set: vi.fn().mockReturnValue({ where: vi.fn() }) });
+  return { mockSelect, mockGet, mockUpdate };
+});
+
+vi.mock('@/lib/db', () => ({
+  db: {
+    select: mockSelect,
+    update: mockUpdate,
+  },
+}));
+
 describe('Session [id] Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
