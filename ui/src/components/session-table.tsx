@@ -264,6 +264,9 @@ export function SessionTable({
   quickReplies,
   jobIdParam
 }: SessionTableProps) {
+  // Memoize the selected session set for O(1) lookups instead of O(N) includes check
+  const selectedSessionSet = useMemo(() => new Set(selectedSessionIds), [selectedSessionIds]);
+
   // State to hold batched PR statuses
   const [prStatuses, setPrStatuses] = useState<Record<string, PullRequestStatus | null>>({});
   const { hasGithubToken: hasEnvGithubToken } = useEnv();
@@ -338,7 +341,7 @@ export function SessionTable({
               session={session}
               isUncategorized={isUncategorized}
               jobId={jobId}
-              isSelected={selectedSessionIds.includes(session.id)}
+              isSelected={selectedSessionSet.has(session.id)}
               onSelectRow={onSelectRow}
               titleTruncateLength={titleTruncateLength}
               isActionPending={isActionPending}
