@@ -9,6 +9,8 @@ vi.mock('better-sqlite3', () => {
         run: vi.fn(),
         get: vi.fn(),
         all: vi.fn(),
+        raw: vi.fn(),
+        iterate: vi.fn(),
       });
       exec = vi.fn();
       pragma = vi.fn();
