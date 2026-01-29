@@ -64,7 +64,7 @@ export function middleware(req: NextRequest) {
   // This is a starting point and might need adjustment based on the application's needs (e.g., specific scripts, images)
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval';
+    script-src 'self' 'unsafe-inline';
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' data: https:;
     font-src 'self' https://fonts.gstatic.com;
