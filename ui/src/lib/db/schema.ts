@@ -126,6 +126,8 @@ export const settings = sqliteTable('settings', {
   maxConcurrentBackgroundWorkers: integer('max_concurrent_background_workers').notNull().default(5),
   autoApprovalAllSessions: integer('auto_approval_all_sessions', { mode: 'boolean' }).notNull().default(true),
   autoContinueAllSessions: integer('auto_continue_all_sessions', { mode: 'boolean' }).notNull().default(true),
+  autoMergeEnabled: integer('auto_merge_enabled', { mode: 'boolean' }).notNull().default(false),
+  autoMergeMethod: text('auto_merge_method').notNull().default('squash'),
   profileId: text('profile_id').references(() => profiles.id).notNull().default('default'),
 });
 
