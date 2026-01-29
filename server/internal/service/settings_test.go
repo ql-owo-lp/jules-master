@@ -19,7 +19,7 @@ func TestSettingsService_GetUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSettings failed: %v", err)
 	}
-	assert.Equal(t, int32(120), def.IdlePollInterval)
+	assert.Equal(t, int32(300), def.IdlePollInterval)
 
 	// Update
 	def.IdlePollInterval = 300
@@ -32,4 +32,17 @@ func TestSettingsService_GetUpdate(t *testing.T) {
 	got, err := svc.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
 	assert.NoError(t, err)
 	assert.Equal(t, int32(300), got.IdlePollInterval)
+
+	// Update again (cover UPDATE path)
+	got.IdlePollInterval = 600
+	_, err = svc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{Settings: got})
+	assert.NoError(t, err)
+
+	got2, err := svc.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
+	assert.NoError(t, err)
+	assert.Equal(t, int32(600), got2.IdlePollInterval)
+
+	// Error path
+	_, err = svc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{Settings: nil})
+	assert.Error(t, err)
 }
