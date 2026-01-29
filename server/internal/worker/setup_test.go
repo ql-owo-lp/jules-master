@@ -55,7 +55,9 @@ func createTables(t *testing.T, conn *sql.DB) {
             profile_id TEXT DEFAULT 'default',
             max_concurrent_background_workers INTEGER DEFAULT 5,
             auto_approval_all_sessions BOOLEAN DEFAULT 1,
-            auto_continue_all_sessions BOOLEAN DEFAULT 1
+            auto_continue_all_sessions BOOLEAN DEFAULT 1,
+            auto_merge_enabled BOOLEAN DEFAULT 0,
+            auto_merge_method TEXT DEFAULT 'squash'
         );`,
 		`CREATE TABLE profiles (
             id TEXT PRIMARY KEY,

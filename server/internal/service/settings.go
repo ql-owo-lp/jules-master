@@ -19,7 +19,7 @@ func (s *SettingsServer) GetSettings(ctx context.Context, req *pb.GetSettingsReq
 		profileId = "default"
 	}
 
-	query := `SELECT id, idle_poll_interval, active_poll_interval, title_truncate_length, line_clamp, session_items_per_page, jobs_per_page, default_session_count, pr_status_poll_interval, theme, auto_approval_interval, auto_retry_enabled, auto_retry_message, auto_continue_enabled, auto_continue_message, session_cache_in_progress_interval, session_cache_completed_no_pr_interval, session_cache_pending_approval_interval, session_cache_max_age_days, auto_delete_stale_branches, auto_delete_stale_branches_after_days, check_failing_actions_enabled, check_failing_actions_interval, check_failing_actions_threshold, auto_close_stale_conflicted_prs, stale_conflicted_prs_duration_days, history_prompts_count, min_session_interaction_interval, retry_timeout, profile_id, auto_approval_enabled, auto_approval_all_sessions, auto_continue_all_sessions FROM settings WHERE profile_id = ? LIMIT 1`
+	query := `SELECT id, idle_poll_interval, active_poll_interval, title_truncate_length, line_clamp, session_items_per_page, jobs_per_page, default_session_count, pr_status_poll_interval, theme, auto_approval_interval, auto_retry_enabled, auto_retry_message, auto_continue_enabled, auto_continue_message, session_cache_in_progress_interval, session_cache_completed_no_pr_interval, session_cache_pending_approval_interval, session_cache_max_age_days, auto_delete_stale_branches, auto_delete_stale_branches_after_days, check_failing_actions_enabled, check_failing_actions_interval, check_failing_actions_threshold, auto_close_stale_conflicted_prs, stale_conflicted_prs_duration_days, history_prompts_count, min_session_interaction_interval, retry_timeout, profile_id, auto_approval_enabled, auto_approval_all_sessions, auto_continue_all_sessions, auto_merge_enabled, auto_merge_method FROM settings WHERE profile_id = ? LIMIT 1`
 
 	var settings pb.Settings
 	err := s.DB.QueryRow(query, profileId).Scan(
@@ -32,20 +32,20 @@ func (s *SettingsServer) GetSettings(ctx context.Context, req *pb.GetSettingsReq
 		&settings.CheckFailingActionsEnabled, &settings.CheckFailingActionsInterval, &settings.CheckFailingActionsThreshold,
 		&settings.AutoCloseStaleConflictedPrs, &settings.StaleConflictedPrsDurationDays, &settings.HistoryPromptsCount,
 		&settings.MinSessionInteractionInterval, &settings.RetryTimeout, &settings.ProfileId, &settings.AutoApprovalEnabled,
-		&settings.AutoApprovalAllSessions, &settings.AutoContinueAllSessions,
+		&settings.AutoApprovalAllSessions, &settings.AutoContinueAllSessions, &settings.AutoMergeEnabled, &settings.AutoMergeMethod,
 	)
 	settings.MaxConcurrentBackgroundWorkers = 5
 
 	if err == sql.ErrNoRows {
 		return &pb.Settings{
-			IdlePollInterval:                    120,
+			IdlePollInterval:                    300,
 			ActivePollInterval:                  30,
 			TitleTruncateLength:                 50,
 			LineClamp:                           1,
 			SessionItemsPerPage:                 10,
 			JobsPerPage:                         5,
 			DefaultSessionCount:                 10,
-			PrStatusPollInterval:                60,
+			PrStatusPollInterval:                300,
 			Theme:                               "system",
 			AutoApprovalInterval:                60,
 			AutoRetryEnabled:                    true,
@@ -70,6 +70,8 @@ func (s *SettingsServer) GetSettings(ctx context.Context, req *pb.GetSettingsReq
 			MaxConcurrentBackgroundWorkers:      5,
 			AutoApprovalAllSessions:             true,
 			AutoContinueAllSessions:             true,
+			AutoMergeEnabled:                    false,
+			AutoMergeMethod:                     "squash",
 		}, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to scan settings: %w", err)
@@ -105,8 +107,8 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 				check_failing_actions_enabled, check_failing_actions_interval, check_failing_actions_threshold, 
 				auto_close_stale_conflicted_prs, stale_conflicted_prs_duration_days, history_prompts_count, 
 				min_session_interaction_interval, retry_timeout, profile_id, auto_approval_enabled,
-				auto_approval_all_sessions, auto_continue_all_sessions
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				auto_approval_all_sessions, auto_continue_all_sessions, auto_merge_enabled, auto_merge_method
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`,
 			newSettings.GetIdlePollInterval(), newSettings.GetActivePollInterval(), newSettings.GetTitleTruncateLength(), newSettings.GetLineClamp(),
 			newSettings.GetSessionItemsPerPage(), newSettings.GetJobsPerPage(), newSettings.GetDefaultSessionCount(), newSettings.GetPrStatusPollInterval(),
@@ -118,6 +120,7 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 			newSettings.GetAutoCloseStaleConflictedPrs(), newSettings.GetStaleConflictedPrsDurationDays(), newSettings.GetHistoryPromptsCount(),
 			newSettings.GetMinSessionInteractionInterval(), newSettings.GetRetryTimeout(), newSettings.GetProfileId(), newSettings.GetAutoApprovalEnabled(),
 			newSettings.GetAutoApprovalAllSessions(), newSettings.GetAutoContinueAllSessions(),
+			newSettings.GetAutoMergeEnabled(), newSettings.GetAutoMergeMethod(),
 		)
 	} else if err == nil {
 		_, err = s.DB.Exec(`
@@ -131,7 +134,7 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 				check_failing_actions_enabled=?, check_failing_actions_interval=?, check_failing_actions_threshold=?, 
 				auto_close_stale_conflicted_prs=?, stale_conflicted_prs_duration_days=?, history_prompts_count=?, 
 				min_session_interaction_interval=?, retry_timeout=?, auto_approval_enabled=?,
-				auto_approval_all_sessions=?, auto_continue_all_sessions=?
+				auto_approval_all_sessions=?, auto_continue_all_sessions=?, auto_merge_enabled=?, auto_merge_method=?
 			WHERE id = ?
 		`,
 			newSettings.GetIdlePollInterval(), newSettings.GetActivePollInterval(), newSettings.GetTitleTruncateLength(), newSettings.GetLineClamp(),
@@ -144,6 +147,7 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 			newSettings.GetAutoCloseStaleConflictedPrs(), newSettings.GetStaleConflictedPrsDurationDays(), newSettings.GetHistoryPromptsCount(),
 			newSettings.GetMinSessionInteractionInterval(), newSettings.GetRetryTimeout(), newSettings.GetAutoApprovalEnabled(),
 			newSettings.GetAutoApprovalAllSessions(), newSettings.GetAutoContinueAllSessions(),
+			newSettings.GetAutoMergeEnabled(), newSettings.GetAutoMergeMethod(),
 			existingId,
 		)
 	}

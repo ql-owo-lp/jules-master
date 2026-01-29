@@ -29,6 +29,7 @@ type GitHubClient interface {
 	ClosePullRequest(ctx context.Context, owner, repo string, number int) (*github.PullRequest, error)
 	UpdateBranch(ctx context.Context, owner, repo string, number int) error
 	MarkPullRequestReadyForReview(ctx context.Context, owner, repo string, number int) (*github.PullRequest, error)
+	MergePullRequest(ctx context.Context, owner, repo string, number int, message string, method string) error
 	ListFiles(ctx context.Context, owner, repo string, number int, opts *github.ListOptions) ([]*github.CommitFile, error)
 }
 
@@ -289,8 +290,88 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 		// 2. Check for Auto-Ready (Applicable if checks passed)
 		w.checkAutoReady(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr)
 
+		// 2.5 Check for Auto-Merge
+		if s.GetAutoMergeEnabled() {
+			w.attemptAutoMerge(ctx, owner, repo, pr, s)
+		}
+
 		// 3. Check Status and Actions (Update Branch for Bot, Comment for Failure)
 		w.checkPRStatus(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr.Head, isBot)
+	}
+}
+
+func (w *PRMonitorWorker) attemptAutoMerge(ctx context.Context, owner, repo string, pr *github.PullRequest, s *pb.Settings) {
+	if pr.Mergeable == nil || !*pr.Mergeable {
+		return
+	}
+	if pr.MergeableState != nil && *pr.MergeableState == "dirty" {
+		return
+	}
+
+	// Check if checks passed
+	if pr.Head == nil || pr.Head.SHA == nil {
+		return
+	}
+	status, err := w.githubClient.GetCombinedStatus(ctx, owner, repo, *pr.Head.SHA)
+	if err != nil {
+		logger.Error("%s [%s]: Failed to get status for PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+		return
+	}
+	if status.State == nil || *status.State != "success" {
+		return
+	}
+
+	// Double check if it is already merged
+	if pr.Merged != nil && *pr.Merged {
+		return
+	}
+
+	logger.Info("%s [%s]: Attempting to auto-merge PR %s", w.Name(), w.id, *pr.HTMLURL)
+
+	// Clean commit message
+	title := ""
+	body := ""
+	if pr.Title != nil {
+		title = *pr.Title
+	}
+	if pr.Body != nil {
+		body = *pr.Body
+	}
+
+	// Simple cleaning: Remove everything after "PR created automatically" or similar markers if we want strictness.
+	// For now, just use title + body as requested, maybe removing the "automated" footer if present.
+	// The plan mentioned "specific automated lines removed".
+	// Common markers: "Co-authored-by:", "PR created automatically by..."
+	
+	// Regex for cleaning
+	// 1. Remove "PR created automatically..." lines
+	// 2. Remove "Co-authored-by: ..."
+	
+	lines := strings.Split(body, "\n")
+	var cleanLines []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "PR created automatically") {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "Co-authored-by:") {
+			continue
+		}
+		cleanLines = append(cleanLines, line)
+	}
+	cleanBody := strings.Join(cleanLines, "\n")
+	cleanBody = strings.TrimSpace(cleanBody)
+
+	commitMessage := fmt.Sprintf("%s\n\n%s", title, cleanBody)
+	method := s.GetAutoMergeMethod()
+	if method == "" {
+		method = "squash"
+	}
+
+	if err := w.githubClient.MergePullRequest(ctx, owner, repo, *pr.Number, commitMessage, method); err != nil {
+		logger.Error("%s [%s]: Failed to auto-merge PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+	} else {
+		logger.Info("%s [%s]: Successfully auto-merged PR %s", w.Name(), w.id, *pr.HTMLURL)
 	}
 }
 

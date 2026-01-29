@@ -252,6 +252,8 @@ export type Settings = {
   minSessionInteractionInterval?: number;
   retryTimeout?: number;
   profileId?: string;
+  autoMergeEnabled?: boolean;
+  autoMergeMethod?: string;
 };
 
 export type Profile = {

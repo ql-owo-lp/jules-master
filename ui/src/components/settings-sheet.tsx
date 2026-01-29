@@ -21,11 +21,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useEffect } from "react";
-
+import { useEffect, useState } from "react";
+import { Settings as SettingsType } from "@/lib/types";
 
 export function SettingsSheet() {
   const { theme, setTheme } = useTheme();
+  const [settings, setSettings] = useState<SettingsType>({});
   // We still need to respect if theme is in DB, but this sheet now mainly controls local runtime config
   // or simple quick toggles.
   // Actually, the user said "only leave the run-time config like Theme in the side-panel settings menu".
@@ -44,6 +45,7 @@ export function SettingsSheet() {
              return window.localStorage.getItem(key) !== null;
           }
           if (!isSetInLocalStorage("theme") && dbSettings.theme) setTheme(dbSettings.theme);
+          setSettings(dbSettings);
         }
       } catch (error) {
         console.error("Failed to fetch settings from DB", error);
@@ -52,48 +54,8 @@ export function SettingsSheet() {
     fetchSettings();
   }, [setTheme]);
 
-  // When theme changes, we might want to save it to DB so it persists across devices?
-  // The original code only saved on "Save Changes".
-  // Let's add a "Save" button or auto-save?
-  // The user interaction for theme is usually instant.
-  // We can add a save button or just leave it as run-time only (local storage).
-  // But since we support DB persistence for settings, maybe we should save it.
-  // However, `next-themes` persists to localStorage automatically.
-  // If we want to persist to DB, we need to do it explicitly.
-
-  // Given the instruction "only leave the run-time config like Theme",
-  // I will keep the Sheet simple.
-
-  // I will assume we don't need a Save button for Theme if we just rely on `next-themes`
-  // but if we want to sync with DB we might need it.
-  // The previous implementation had a Save button.
-  // I'll keep a Save button just in case the user expects it to be saved to server.
-
   const handleSave = async () => {
       try {
-        // We only update theme here, but we need to preserve other settings?
-        // The API implementation in `route.ts` reconstructs the object from body.
-        // If we send only theme, other fields will be undefined in `newSettings` object in `route.ts`.
-        // Wait, let's look at `route.ts` again.
-
-        /*
-        const newSettings = {
-            id: 1,
-            idlePollInterval: body.idlePollInterval,
-            ...
-        }
-        await db.update(settings).set(newSettings)...
-        */
-
-        // This means if we send only `theme`, `idlePollInterval` etc will be undefined, and might be set to NULL in DB or default if not nullable?
-        // Drizzle `values` or `set` with undefined might behave differently depending on config, but usually it tries to set it.
-        // If the columns are not nullable, it might fail or set default.
-        // We MUST fetch existing settings first and merge if we want to update only one field using that API endpoint,
-        // OR update the API endpoint to use `patch` semantics.
-
-        // Since I cannot easily change the API endpoint logic without risking breaking other things (though I can check schema),
-        // I will do the safe thing: Fetch first, then Save.
-
         const response = await fetch('/api/settings');
         if (!response.ok) throw new Error("Failed to fetch current settings");
         const currentSettings = await response.json();
@@ -105,12 +67,16 @@ export function SettingsSheet() {
             },
             body: JSON.stringify({
                 ...currentSettings,
+                ...settings,
                 theme: theme,
             }),
         });
+        
+        // Update local settings with merged result in case server modified it?
+        // For now just keep local state.
 
       } catch (error) {
-          console.error("Failed to save theme to DB", error);
+          console.error("Failed to save settings to DB", error);
       }
   };
 
@@ -129,8 +95,42 @@ export function SettingsSheet() {
              Run-time configuration.
           </SheetDescription>
         </SheetHeader>
-        <div className="space-y-8">
+        <div className="space-y-4">
             <div className="space-y-6">
+                 <div className="grid gap-2">
+                    <Label>Auto Merge</Label>
+                    <div className="flex items-center space-x-2">
+                        <Button
+                            variant={settings.autoMergeEnabled ? "default" : "outline"}
+                            onClick={() => setSettings({ ...settings, autoMergeEnabled: !settings.autoMergeEnabled })}
+                            className="justify-start w-full"
+                        >
+                            {settings.autoMergeEnabled ? "Enabled" : "Disabled"}
+                        </Button>
+                    </div>
+                </div>
+
+                {settings.autoMergeEnabled && (
+                    <div className="grid gap-2">
+                         <Label>Merge Method</Label>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="justify-start w-full">
+                                    {settings.autoMergeMethod === 'rebase' ? 'Rebase and Merge' : 'Squash and Merge'}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                                <DropdownMenuItem onClick={() => setSettings({ ...settings, autoMergeMethod: 'squash' })}>
+                                    Squash and Merge
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSettings({ ...settings, autoMergeMethod: 'rebase' })}>
+                                    Rebase and Merge
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                )}
+
                 <div className="grid gap-2">
                     <Label>Theme</Label>
                     <DropdownMenu>

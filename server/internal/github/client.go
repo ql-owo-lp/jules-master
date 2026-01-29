@@ -107,3 +107,11 @@ func (c *Client) ListFiles(ctx context.Context, owner, repo string, number int, 
 	files, _, err := c.client.PullRequests.ListFiles(ctx, owner, repo, number, opts)
 	return files, err
 }
+
+func (c *Client) MergePullRequest(ctx context.Context, owner, repo string, number int, message string, method string) error {
+	options := &github.PullRequestOptions{
+		MergeMethod: method,
+	}
+	_, _, err := c.client.PullRequests.Merge(ctx, owner, repo, number, message, options)
+	return err
+}
