@@ -66,7 +66,7 @@ describe('Middleware Basic Auth', () => {
     const res = middleware(req);
     expect(res.headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains');
     expect(res.headers.get('Permissions-Policy')).toBe('camera=(), microphone=(), geolocation=(), browsing-topics=()');
-    expect(res.headers.get('Content-Security-Policy')).toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval';");
-    expect(res.headers.get('Content-Security-Policy')).toContain("'unsafe-eval'");
+    expect(res.headers.get('Content-Security-Policy')).toContain("script-src 'self' 'unsafe-inline';");
+    expect(res.headers.get('Content-Security-Policy')).not.toContain("'unsafe-eval'");
   });
 });
