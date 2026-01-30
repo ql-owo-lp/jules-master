@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo, useState } from "react";
+import React, { memo, useState, useMemo } from "react";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -89,33 +89,53 @@ const JobAccordionItemComponent = ({
         });
   };
 
-  const sessionsForJob = job.sessionIds
-    .map(id => sessionMap.get(id))
-    .filter((s): s is Session => !!s)
-    .filter(s => statusFilter === 'all' || s.state === statusFilter);
+  // Memoize filtering sessions to avoid recalculation on every render (e.g. when selection changes)
+  const sessionsForJob = useMemo(() => {
+    return job.sessionIds
+      .map(id => sessionMap.get(id))
+      .filter((s): s is Session => !!s)
+      .filter(s => statusFilter === 'all' || s.state === statusFilter);
+  }, [job.sessionIds, sessionMap, statusFilter]);
 
-  const filteredSessionIds = sessionsForJob.map(s => s.id);
-  const isAllSelected = filteredSessionIds.length > 0 && filteredSessionIds.every(id => selectedSessionIds.includes(id));
-  const isSomeSelected = filteredSessionIds.some(id => selectedSessionIds.includes(id));
-  const selectAllState = isAllSelected ? true : (isSomeSelected ? 'indeterminate' : false);
+  // Memoize derived list of IDs for selection logic
+  const filteredSessionIds = useMemo(() => sessionsForJob.map(s => s.id), [sessionsForJob]);
+
+  // Memoize selection state calculation to avoid iteration on every render
+  const { isAllSelected, isSomeSelected, selectAllState } = useMemo(() => {
+      const isAll = filteredSessionIds.length > 0 && filteredSessionIds.every(id => selectedSessionIds.includes(id));
+      const isSome = filteredSessionIds.some(id => selectedSessionIds.includes(id));
+      const state: boolean | 'indeterminate' = isAll ? true : (isSome ? 'indeterminate' : false);
+      return { isAllSelected: isAll, isSomeSelected: isSome, selectAllState: state };
+  }, [filteredSessionIds, selectedSessionIds]);
 
   const currentPage = page;
   const totalPages = Math.ceil(sessionsForJob.length / sessionsPerPage);
-  const paginatedSessions = sessionsForJob.slice(
-    (currentPage - 1) * sessionsPerPage,
-    currentPage * sessionsPerPage
-  );
+
+  // Memoize pagination slice to provide stable reference to SessionTable and avoid slice on every render
+  const paginatedSessions = useMemo(() => {
+      return sessionsForJob.slice(
+        (currentPage - 1) * sessionsPerPage,
+        currentPage * sessionsPerPage
+      );
+  }, [sessionsForJob, currentPage, sessionsPerPage]);
 
   const isJobProcessing = job.status === 'PROCESSING' || job.status === 'PENDING';
   const createdSessionsCount = job.sessionIds.length;
   const totalSessionsCount = job.sessionCount || 0;
-  const creationProgress = totalSessionsCount > 0 ? (createdSessionsCount / totalSessionsCount) * 100 : 0;
 
-  const quickReplyOptions = quickReplies.map(reply => ({
-    value: reply.id,
-    label: reply.title,
-    content: reply.prompt,
-  }));
+  // Memoize progress calculation
+  const creationProgress = useMemo(() => {
+      return totalSessionsCount > 0 ? (createdSessionsCount / totalSessionsCount) * 100 : 0;
+  }, [totalSessionsCount, createdSessionsCount]);
+
+  // Memoize quick reply options mapping
+  const quickReplyOptions = useMemo(() => {
+      return quickReplies.map(reply => ({
+        value: reply.id,
+        label: reply.title,
+        content: reply.prompt,
+      }));
+  }, [quickReplies]);
 
   const truncate = (str: string, length: number) => {
     if (!str) return '';
