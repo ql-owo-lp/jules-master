@@ -101,7 +101,7 @@ const JobAccordionItemComponent = ({
   const filteredSessionIds = useMemo(() => sessionsForJob.map(s => s.id), [sessionsForJob]);
 
   // Memoize selection state calculation to avoid iteration on every render
-  const { isAllSelected, isSomeSelected, selectAllState } = useMemo(() => {
+  const { selectAllState } = useMemo(() => {
       const isAll = filteredSessionIds.length > 0 && filteredSessionIds.every(id => selectedSessionIds.includes(id));
       const isSome = filteredSessionIds.some(id => selectedSessionIds.includes(id));
       const state: boolean | 'indeterminate' = isAll ? true : (isSome ? 'indeterminate' : false);

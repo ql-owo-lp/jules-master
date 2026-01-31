@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Save, Globe, GitMerge, BookText, MessageSquareReply, Plus, Edit, Trash2, MoreHorizontal, RefreshCw, Briefcase, Clock, MessageSquare, Zap, Database, Monitor, User } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useToast } from "@/hooks/use-toast";
@@ -931,212 +932,230 @@ function SettingsContent() {
              <Card>
                 <CardHeader>
                     <CardTitle>Automation Settings</CardTitle>
-                    <CardDescription>Configure automated behaviors.</CardDescription>
+                    <CardDescription>Configure automated behaviors for sessions, PRs, and merging.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-retry-enabled">Auto Retry Failed Sessions</Label>
-                            <p className="text-xs text-muted-foreground">Automatically send a retry message when a session fails.</p>
+                    {/* Session Automation */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Session Automation</h3>
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="auto-retry-enabled">Auto Retry Failed Sessions</Label>
+                                <p className="text-xs text-muted-foreground">Automatically send a retry message when a session fails.</p>
+                            </div>
+                            <Switch id="auto-retry-enabled" checked={autoRetryEnabledValue} onCheckedChange={setAutoRetryEnabledValue} />
                         </div>
-                        <Switch id="auto-retry-enabled" checked={autoRetryEnabledValue} onCheckedChange={setAutoRetryEnabledValue} />
-                    </div>
-                    {autoRetryEnabledValue && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="auto-retry-message">Auto Retry Message</Label>
-                            <Textarea
-                                id="auto-retry-message"
-                                value={autoRetryMessageValue}
-                                onChange={(e) => setAutoRetryMessageValue(e.target.value)}
-                            />
+                        {autoRetryEnabledValue && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="auto-retry-message">Auto Retry Message</Label>
+                                <Textarea
+                                    id="auto-retry-message"
+                                    value={autoRetryMessageValue}
+                                    onChange={(e) => setAutoRetryMessageValue(e.target.value)}
+                                />
+                            </div>
+                        )}
+                         <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="auto-continue-enabled">Auto Continue Completed Sessions</Label>
+                                <p className="text-xs text-muted-foreground">Automatically send a continue message when a session completes without a PR.</p>
+                            </div>
+                            <Switch id="auto-continue-enabled" checked={autoContinueEnabledValue} onCheckedChange={setAutoContinueEnabledValue} />
                         </div>
-                    )}
-                     <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-continue-enabled">Auto Continue Completed Sessions</Label>
-                            <p className="text-xs text-muted-foreground">Automatically send a continue message when a session completes without a PR.</p>
-                        </div>
-                        <Switch id="auto-continue-enabled" checked={autoContinueEnabledValue} onCheckedChange={setAutoContinueEnabledValue} />
-                    </div>
-                    {autoContinueEnabledValue && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="auto-continue-message">Auto Continue Message</Label>
-                            <Textarea
-                                id="auto-continue-message"
-                                value={autoContinueMessageValue}
-                                onChange={(e) => setAutoContinueMessageValue(e.target.value)}
-                            />
-                        </div>
-                    )}
+                        {autoContinueEnabledValue && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="auto-continue-message">Auto Continue Message</Label>
+                                <Textarea
+                                    id="auto-continue-message"
+                                    value={autoContinueMessageValue}
+                                    onChange={(e) => setAutoContinueMessageValue(e.target.value)}
+                                />
+                            </div>
+                        )}
 
-                    <div className="grid gap-2 pt-4 border-t">
-                        <Label htmlFor="min-session-interaction">Minimum Interaction Interval (seconds)</Label>
-                        <Input
-                            id="min-session-interaction"
-                            type="number"
-                            value={minSessionInteractionIntervalValue}
-                            onChange={(e) => setMinSessionInteractionIntervalValue(Number(e.target.value))}
-                            min="1"
-                        />
-                        <p className="text-xs text-muted-foreground">Wait at least this long before sending another automated message to the same session.</p>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="retry-timeout">Retry Timeout (seconds)</Label>
-                         <Input
-                            id="retry-timeout"
-                            type="number"
-                            value={retryTimeoutValue}
-                            onChange={(e) => setRetryTimeoutValue(Number(e.target.value))}
-                            min="60"
-                        />
-                        <p className="text-xs text-muted-foreground">If a session is inactive for this long, retry even without new updates.</p>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="auto-approval-interval">Auto Approval Check Interval (seconds)</Label>
-                        <Input
-                            id="auto-approval-interval"
-                            type="number"
-                            value={autoApprovalIntervalValue}
-                            onChange={(e) => setAutoApprovalIntervalValue(Number(e.target.value))}
-                            min="10"
-                        />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-approval-enabled">Auto Approval</Label>
-                            <p className="text-xs text-muted-foreground">Automatically approve execution if confidence is high.</p>
-                        </div>
-                        <Switch id="auto-approval-enabled" checked={autoApprovalEnabledValue} onCheckedChange={setAutoApprovalEnabledValue} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-delete-stale-branches">Auto Delete Stale Branches</Label>
-                            <p className="text-xs text-muted-foreground">Automatically delete branches after their PRs are merged.</p>
-                        </div>
-                        <Switch id="auto-delete-stale-branches" checked={autoDeleteStaleBranchesValue} onCheckedChange={setAutoDeleteStaleBranchesValue} />
-                    </div>
-                    {autoDeleteStaleBranchesValue && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="auto-delete-stale-branches-after-days">Auto Delete Stale Branches After (days)</Label>
+                        <div className="grid gap-2 pt-2">
+                            <Label htmlFor="min-session-interaction">Minimum Interaction Interval (seconds)</Label>
                             <Input
-                                id="auto-delete-stale-branches-after-days"
+                                id="min-session-interaction"
                                 type="number"
-                                value={autoDeleteStaleBranchesAfterDaysValue}
-                                onChange={(e) => setAutoDeleteStaleBranchesAfterDaysValue(Number(e.target.value))}
+                                value={minSessionInteractionIntervalValue}
+                                onChange={(e) => setMinSessionInteractionIntervalValue(Number(e.target.value))}
                                 min="1"
                             />
+                            <p className="text-xs text-muted-foreground">Wait at least this long before sending another automated message to the same session.</p>
                         </div>
-                    )}
 
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="check-failing-actions-enabled">Check Failing Actions</Label>
-                            <p className="text-xs text-muted-foreground">Automatically post a comment when PR checks fail.</p>
-                        </div>
-                        <Switch id="check-failing-actions-enabled" checked={checkFailingActionsEnabledValue} onCheckedChange={setCheckFailingActionsEnabledValue} />
-                    </div>
-                    {checkFailingActionsEnabledValue && (
-                        <>
                         <div className="grid gap-2">
-                            <Label htmlFor="check-failing-actions-interval">Check Interval (seconds)</Label>
-                            <Input
-                                id="check-failing-actions-interval"
+                            <Label htmlFor="retry-timeout">Retry Timeout (seconds)</Label>
+                             <Input
+                                id="retry-timeout"
                                 type="number"
-                                value={checkFailingActionsIntervalValue}
-                                onChange={(e) => setCheckFailingActionsIntervalValue(Number(e.target.value))}
+                                value={retryTimeoutValue}
+                                onChange={(e) => setRetryTimeoutValue(Number(e.target.value))}
+                                min="60"
+                            />
+                            <p className="text-xs text-muted-foreground">If a session is inactive for this long, retry even without new updates.</p>
+                        </div>
+                    </div>
+
+                    <Separator className="my-6" />
+
+                    {/* Auto Approval */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Auto Approval</h3>
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="auto-approval-enabled">Auto Approval</Label>
+                                <p className="text-xs text-muted-foreground">Automatically approve execution if confidence is high.</p>
+                            </div>
+                            <Switch id="auto-approval-enabled" checked={autoApprovalEnabledValue} onCheckedChange={setAutoApprovalEnabledValue} />
+                        </div>
+                         <div className="grid gap-2">
+                            <Label htmlFor="auto-approval-interval">Auto Approval Check Interval (seconds)</Label>
+                            <Input
+                                id="auto-approval-interval"
+                                type="number"
+                                value={autoApprovalIntervalValue}
+                                onChange={(e) => setAutoApprovalIntervalValue(Number(e.target.value))}
                                 min="10"
                             />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="check-failing-actions-threshold">Max Comments Threshold</Label>
-                            <Input
-                                id="check-failing-actions-threshold"
-                                type="number"
-                                value={checkFailingActionsThresholdValue}
-                                onChange={(e) => setCheckFailingActionsThresholdValue(Number(e.target.value))}
-                                min="1"
-                            />
-                            <p className="text-xs text-muted-foreground">Stop commenting if max comments reached or last comment was by bot.</p>
-                        </div>
-                        </>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-close-stale-conflicted-prs">Auto Close Stale Conflicted PRs</Label>
-                            <p className="text-xs text-muted-foreground">Automatically close open PRs with conflicts if older than threshold.</p>
-                        </div>
-                        <Switch id="auto-close-stale-conflicted-prs" checked={autoCloseStaleConflictedPrsValue} onCheckedChange={setAutoCloseStaleConflictedPrsValue} />
                     </div>
-                    {autoCloseStaleConflictedPrsValue && (
-                        <div className="grid gap-2">
-                             <Label htmlFor="stale-conflicted-prs-duration-days">Close After (days)</Label>
-                             <Input
-                                id="stale-conflicted-prs-duration-days"
-                                type="number"
-                                value={staleConflictedPrsDurationDaysValue}
-                                onChange={(e) => setStaleConflictedPrsDurationDaysValue(Number(e.target.value))}
-                                min="1"
-                             />
-                        </div>
-                    )}
 
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="close-pr-on-conflict-enabled">Close PR on Conflict</Label>
-                            <p className="text-xs text-muted-foreground">Automatically close PRs if merge conflicts are detected, instead of asking to rebase.</p>
+                    <Separator className="my-6" />
+
+                    {/* Branch Management */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Branch Management</h3>
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="auto-delete-stale-branches">Auto Delete Stale Branches</Label>
+                                <p className="text-xs text-muted-foreground">Automatically delete branches after their PRs are merged.</p>
+                            </div>
+                            <Switch id="auto-delete-stale-branches" checked={autoDeleteStaleBranchesValue} onCheckedChange={setAutoDeleteStaleBranchesValue} />
                         </div>
-                        <Switch id="close-pr-on-conflict-enabled" checked={closePrOnConflictEnabledValue ?? false} onCheckedChange={setClosePrOnConflictEnabledValue} />
+                        {autoDeleteStaleBranchesValue && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="auto-delete-stale-branches-after-days">Auto Delete Stale Branches After (days)</Label>
+                                <Input
+                                    id="auto-delete-stale-branches-after-days"
+                                    type="number"
+                                    value={autoDeleteStaleBranchesAfterDaysValue}
+                                    onChange={(e) => setAutoDeleteStaleBranchesAfterDaysValue(Number(e.target.value))}
+                                    min="1"
+                                />
+                            </div>
+                        )}
                     </div>
+
+                    <Separator className="my-6" />
+
+                    {/* PR Monitoring */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-medium">PR Monitoring & Cleanup</h3>
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="check-failing-actions-enabled">Check Failing Actions</Label>
+                                <p className="text-xs text-muted-foreground">Automatically post a comment when PR checks fail.</p>
+                            </div>
+                            <Switch id="check-failing-actions-enabled" checked={checkFailingActionsEnabledValue} onCheckedChange={setCheckFailingActionsEnabledValue} />
+                        </div>
+                        {checkFailingActionsEnabledValue && (
+                            <>
+                            <div className="grid gap-2">
+                                <Label htmlFor="check-failing-actions-interval">Check Interval (seconds)</Label>
+                                <Input
+                                    id="check-failing-actions-interval"
+                                    type="number"
+                                    value={checkFailingActionsIntervalValue}
+                                    onChange={(e) => setCheckFailingActionsIntervalValue(Number(e.target.value))}
+                                    min="10"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="check-failing-actions-threshold">Max Comments Threshold</Label>
+                                <Input
+                                    id="check-failing-actions-threshold"
+                                    type="number"
+                                    value={checkFailingActionsThresholdValue}
+                                    onChange={(e) => setCheckFailingActionsThresholdValue(Number(e.target.value))}
+                                    min="1"
+                                />
+                                <p className="text-xs text-muted-foreground">Stop commenting if max comments reached or last comment was by bot.</p>
+                            </div>
+                            </>
+                        )}
+
+                        <div className="flex items-center justify-between pt-2">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="auto-close-stale-conflicted-prs">Auto Close Stale Conflicted PRs</Label>
+                                <p className="text-xs text-muted-foreground">Automatically close open PRs with conflicts if older than threshold.</p>
+                            </div>
+                            <Switch id="auto-close-stale-conflicted-prs" checked={autoCloseStaleConflictedPrsValue} onCheckedChange={setAutoCloseStaleConflictedPrsValue} />
+                        </div>
+                        {autoCloseStaleConflictedPrsValue && (
+                            <div className="grid gap-2">
+                                 <Label htmlFor="stale-conflicted-prs-duration-days">Close After (days)</Label>
+                                 <Input
+                                    id="stale-conflicted-prs-duration-days"
+                                    type="number"
+                                    value={staleConflictedPrsDurationDaysValue}
+                                    onChange={(e) => setStaleConflictedPrsDurationDaysValue(Number(e.target.value))}
+                                    min="1"
+                                 />
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-2">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="close-pr-on-conflict-enabled">Close PR on Conflict</Label>
+                                <p className="text-xs text-muted-foreground">Automatically close PRs if merge conflicts are detected.</p>
+                            </div>
+                            <Switch id="close-pr-on-conflict-enabled" checked={closePrOnConflictEnabledValue ?? false} onCheckedChange={setClosePrOnConflictEnabledValue} />
+                        </div>
+                    </div>
+
+                    <Separator className="my-6" />
+
+                    {/* Auto Merge */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                             <GitMerge className="h-5 w-5" />
+                             <h3 className="text-lg font-medium">Auto Merge</h3>
+                        </div>
+                       
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="auto-merge-enabled">Enable Auto Merge</Label>
+                                <p className="text-xs text-muted-foreground">Automatically merge PRs when checks pass.</p>
+                            </div>
+                            <Switch id="auto-merge-enabled" checked={autoMergeEnabledValue} onCheckedChange={setAutoMergeEnabledValue} />
+                        </div>
+                        {autoMergeEnabledValue && (
+                            <div className="grid gap-2">
+                                 <Label>Merge Method</Label>
+                                 <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="justify-start w-full">
+                                            {autoMergeMethodValue === 'rebase' ? 'Rebase and Merge' : 'Squash and Merge'}
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start">
+                                        <DropdownMenuItem onClick={() => setAutoMergeMethodValue('squash')}>
+                                            Squash and Merge
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setAutoMergeMethodValue('rebase')}>
+                                            Rebase and Merge
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        )}
+                    </div>
+
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Automation Settings</Button>
-                </CardFooter>
-             </Card>
-
-             <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <GitMerge className="h-6 w-6" />
-                        <CardTitle>Auto Merge Settings</CardTitle>
-                    </div>
-                    <CardDescription>Configure automatic merging behavior.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-merge-enabled">Enable Auto Merge</Label>
-                            <p className="text-xs text-muted-foreground">Automatically merge PRs when checks pass.</p>
-                        </div>
-                        <Switch id="auto-merge-enabled" checked={autoMergeEnabledValue} onCheckedChange={setAutoMergeEnabledValue} />
-                    </div>
-                    {autoMergeEnabledValue && (
-                        <div className="grid gap-2">
-                             <Label>Merge Method</Label>
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="justify-start w-full">
-                                        {autoMergeMethodValue === 'rebase' ? 'Rebase and Merge' : 'Squash and Merge'}
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start">
-                                    <DropdownMenuItem onClick={() => setAutoMergeMethodValue('squash')}>
-                                        Squash and Merge
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setAutoMergeMethodValue('rebase')}>
-                                        Rebase and Merge
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    )}
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Auto Merge Settings</Button>
                 </CardFooter>
              </Card>
         </div>

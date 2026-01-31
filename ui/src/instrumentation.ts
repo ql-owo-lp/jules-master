@@ -9,7 +9,7 @@ export async function register() {
         // const { startAutoContinueWorker } = await import('./lib/auto-continue-worker');
         // const { startAutoDeleteStaleBranchWorker } = await import('./lib/auto-delete-stale-branch-worker');
         // const { startBackgroundJobWorker } = await import('./lib/background-job-worker');
-        // const { startPrMonitorWorker } = await import('./lib/pr-monitor-worker');
+        const { startPrMonitorWorker } = await import('./lib/pr-monitor-worker');
         // const { processCronJobs } = await import('./lib/cron-worker');
 
         // startAutoApprovalWorker();
@@ -17,7 +17,7 @@ export async function register() {
         // startAutoContinueWorker();
         // startAutoDeleteStaleBranchWorker();
         // startBackgroundJobWorker();
-        // startPrMonitorWorker();
+        startPrMonitorWorker();
 
         // Initialize settings if needed
         const { db } = await import('./lib/db');
@@ -39,12 +39,27 @@ export async function register() {
             const existingSettings = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
             if (existingSettings.length === 0) {
                 console.log('Seeding default settings...');
-                await db.insert(settings).values({ id: 1, autoApprovalEnabled: true });
+                await db.insert(settings).values({ 
+                    id: 1, 
+                    autoApprovalEnabled: process.env.AUTO_APPROVAL_ENABLED === 'true' || true,
+                    autoMergeEnabled: process.env.AUTO_MERGE_ENABLED === 'true' || false,
+                    closePrOnConflictEnabled: process.env.CLOSE_PR_ON_CONFLICT_ENABLED === 'true' || false,
+                });
             } else {
-                // Ensure auto-approval is enabled for existing installs (per user request)
-                console.log(`Current autoApprovalEnabled: ${existingSettings[0].autoApprovalEnabled}`);
-                console.log('Enabling auto-approval...');
-                await db.update(settings).set({ autoApprovalEnabled: true }).where(eq(settings.id, 1));
+                // Ensure settings match env vars if provided (or default auto-approval)
+                const updates: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
+                
+                if (process.env.AUTO_APPROVAL_ENABLED === 'true') updates.autoApprovalEnabled = true;
+                if (process.env.AUTO_MERGE_ENABLED === 'true') updates.autoMergeEnabled = true;
+                if (process.env.CLOSE_PR_ON_CONFLICT_ENABLED === 'true') updates.closePrOnConflictEnabled = true;
+                
+                // Fallback for existing constraint
+                if (Object.keys(updates).length === 0) {
+                     updates.autoApprovalEnabled = true;
+                }
+
+                console.log('Updating settings from environment variables/defaults:', updates);
+                await db.update(settings).set(updates).where(eq(settings.id, 1));
             }
         } catch (error) {
             console.error('Failed to seed settings:', error);
