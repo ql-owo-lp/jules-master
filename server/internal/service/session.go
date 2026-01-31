@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mcpany/jules/internal/logger"
 	pb "github.com/mcpany/jules/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -288,15 +289,18 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("X-Goog-Api-Key", apiKey)
 
+
 	resp, err := client.Do(r)
 	if err != nil {
-		return nil, fmt.Errorf("remote create failed: %w", err)
+		logger.Warn("Failed to create remote session (continuing locally): %v", err)
+		return nil, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("remote create error %d: %s", resp.StatusCode, string(respBytes))
+		logger.Warn("Remote create returned status %d (continuing locally): %s", resp.StatusCode, string(respBytes))
+		return nil, nil
 	}
 
 	var remoteSess struct {
