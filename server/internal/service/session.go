@@ -17,7 +17,23 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+func isValidSessionID(id string) bool {
+	if id == "" {
+		return false
+	}
+	for _, r := range id {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_') {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *SessionServer) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (*emptypb.Empty, error) {
+	if !isValidSessionID(req.Id) {
+		return nil, fmt.Errorf("invalid session id")
+	}
+
 	apiKey := s.getAPIKey()
 	if apiKey == "" {
 		return nil, fmt.Errorf("JULES_API_KEY not set")
@@ -96,6 +112,10 @@ func (s *SessionServer) ListSessions(ctx context.Context, req *pb.ListSessionsRe
 }
 
 func (s *SessionServer) ApprovePlan(ctx context.Context, req *pb.ApprovePlanRequest) (*emptypb.Empty, error) {
+	if !isValidSessionID(req.Id) {
+		return nil, fmt.Errorf("invalid session id")
+	}
+
 	// Try remote approval first if key is present
 	if err := s.approveRemotePlan(req.Id); err != nil {
 		// Log error but maybe continue to update local state?
