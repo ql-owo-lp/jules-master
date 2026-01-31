@@ -21,6 +21,7 @@ import { Bot, MessageSquare, PlusCircle, BookText, ExternalLink, PanelLeft, Term
 import { Header } from '@/components/header';
 import { NewJobDialog } from '@/components/new-job-dialog';
 import { EnvProvider } from '@/components/env-provider';
+import { headers } from 'next/headers';
 
 export const metadata: Metadata = {
   title: 'Jules Master',
@@ -29,11 +30,14 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const nonce = headersList.get('x-nonce') || undefined;
+
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
@@ -58,6 +62,7 @@ export default function RootLayout({
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
+            nonce={nonce}
           >
             <SidebarProvider>
               <Sidebar>
