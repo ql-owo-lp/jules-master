@@ -110,13 +110,10 @@ export async function listSessions(
         }
 
         for (const s of firstPage.sessions) {
-            await upsertSession(s); // upsertSession should preserve existing profiles, or if new, assign to default?
-            // Actually upsertSession implementation I updated takes profileId from object OR lets DB default handle it.
-            // If I want "Initial Fetch" to populate the CURRENT profile, I need to update upsertSession to take an arg?
-            // I haven't updated upsertSession signature to take arg yet in previous step!
-            // Wait, I checked session-service.ts in step 1023. I DID NOT update the signature of upsertSession!
-            // I only updated logic inside it to check session.profileId.
-            // I need to update UpsertSession signature in session-service.ts too!
+            // Assign profileId to the session before upserting to ensure it belongs to the current profile
+            // instead of defaulting to 'default'.
+            s.profileId = profileId;
+            await upsertSession(s);
         }
         sessions = await getCachedSessions(profileId);
     }
