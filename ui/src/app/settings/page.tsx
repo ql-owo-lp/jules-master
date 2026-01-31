@@ -116,6 +116,8 @@ function SettingsContent() {
   const [historyPromptsCount, setHistoryPromptsCount] = useLocalStorage<number>("jules-history-prompts-count", 10);
   const [autoApprovalInterval, setAutoApprovalInterval] = useLocalStorage<number>("jules-auto-approval-interval", 60);
   const [autoApprovalEnabled, setAutoApprovalEnabled] = useLocalStorage<boolean>("jules-auto-approval-enabled", false);
+  const [autoMergeEnabled, setAutoMergeEnabled] = useLocalStorage<boolean>("jules-auto-merge-enabled", false);
+  const [autoMergeMethod, setAutoMergeMethod] = useLocalStorage<string>("jules-auto-merge-method", "squash");
   const [autoRetryEnabled, setAutoRetryEnabled] = useLocalStorage<boolean>("jules-auto-retry-enabled", true);
   const [autoRetryMessage, setAutoRetryMessage] = useLocalStorage<string>("jules-auto-retry-message", "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
   const [autoContinueEnabled, setAutoContinueEnabled] = useLocalStorage<boolean>("jules-auto-continue-enabled", true);
@@ -159,6 +161,8 @@ function SettingsContent() {
   const [historyPromptsCountValue, setHistoryPromptsCountValue] = useState(historyPromptsCount);
   const [autoApprovalIntervalValue, setAutoApprovalIntervalValue] = useState(autoApprovalInterval);
   const [autoApprovalEnabledValue, setAutoApprovalEnabledValue] = useState(autoApprovalEnabled);
+  const [autoMergeEnabledValue, setAutoMergeEnabledValue] = useState(autoMergeEnabled);
+  const [autoMergeMethodValue, setAutoMergeMethodValue] = useState(autoMergeMethod);
   const [autoRetryEnabledValue, setAutoRetryEnabledValue] = useState(autoRetryEnabled);
   const [autoRetryMessageValue, setAutoRetryMessageValue] = useState(autoRetryMessage);
   const [autoContinueEnabledValue, setAutoContinueEnabledValue] = useState(autoContinueEnabled);
@@ -220,6 +224,8 @@ function SettingsContent() {
   useEffect(() => { setHistoryPromptsCountValue(historyPromptsCount); }, [historyPromptsCount]);
   useEffect(() => { setAutoApprovalIntervalValue(autoApprovalInterval); }, [autoApprovalInterval]);
   useEffect(() => { setAutoApprovalEnabledValue(autoApprovalEnabled); }, [autoApprovalEnabled]);
+  useEffect(() => { setAutoMergeEnabledValue(autoMergeEnabled); }, [autoMergeEnabled]);
+  useEffect(() => { setAutoMergeMethodValue(autoMergeMethod); }, [autoMergeMethod]);
   useEffect(() => { setAutoRetryEnabledValue(autoRetryEnabled); }, [autoRetryEnabled]);
   useEffect(() => { setAutoRetryMessageValue(autoRetryMessage); }, [autoRetryMessage]);
   useEffect(() => { setAutoContinueEnabledValue(autoContinueEnabled); }, [autoContinueEnabled]);
@@ -263,6 +269,8 @@ function SettingsContent() {
           setHistoryPromptsCount(dbSettings.historyPromptsCount ?? 10);
           setAutoApprovalInterval(dbSettings.autoApprovalInterval ?? 60);
           setAutoApprovalEnabled(dbSettings.autoApprovalEnabled ?? false);
+          setAutoMergeEnabled(dbSettings.autoMergeEnabled ?? false);
+          setAutoMergeMethod(dbSettings.autoMergeMethod ?? "squash");
           setAutoRetryEnabled(dbSettings.autoRetryEnabled ?? true);
           setAutoRetryMessage(dbSettings.autoRetryMessage ?? "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution");
           setAutoContinueEnabled(dbSettings.autoContinueEnabled ?? true);
@@ -340,6 +348,8 @@ function SettingsContent() {
     setHistoryPromptsCount(historyPromptsCountValue);
     setAutoApprovalInterval(autoApprovalIntervalValue);
     setAutoApprovalEnabled(autoApprovalEnabledValue);
+    setAutoMergeEnabled(autoMergeEnabledValue);
+    setAutoMergeMethod(autoMergeMethodValue);
     setAutoRetryEnabled(autoRetryEnabledValue);
     setAutoRetryMessage(autoRetryMessageValue);
     setAutoContinueEnabled(autoContinueEnabledValue);
@@ -378,6 +388,8 @@ function SettingsContent() {
               historyPromptsCount: historyPromptsCountValue ?? 10,
               autoApprovalInterval: autoApprovalIntervalValue ?? 60,
               autoApprovalEnabled: autoApprovalEnabledValue ?? false,
+              autoMergeEnabled: autoMergeEnabledValue ?? false,
+              autoMergeMethod: autoMergeMethodValue ?? "squash",
               autoRetryEnabled: autoRetryEnabledValue ?? true,
               autoRetryMessage: autoRetryMessageValue ?? "You have been doing a great job. Let’s try another approach to see if we can achieve the same goal. Do not stop until you find a solution",
               autoContinueEnabled: autoContinueEnabledValue ?? true,
@@ -1083,6 +1095,48 @@ function SettingsContent() {
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Automation Settings</Button>
+                </CardFooter>
+             </Card>
+
+             <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <GitMerge className="h-6 w-6" />
+                        <CardTitle>Auto Merge Settings</CardTitle>
+                    </div>
+                    <CardDescription>Configure automatic merging behavior.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="auto-merge-enabled">Enable Auto Merge</Label>
+                            <p className="text-xs text-muted-foreground">Automatically merge PRs when checks pass.</p>
+                        </div>
+                        <Switch id="auto-merge-enabled" checked={autoMergeEnabledValue} onCheckedChange={setAutoMergeEnabledValue} />
+                    </div>
+                    {autoMergeEnabledValue && (
+                        <div className="grid gap-2">
+                             <Label>Merge Method</Label>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="justify-start w-full">
+                                        {autoMergeMethodValue === 'rebase' ? 'Rebase and Merge' : 'Squash and Merge'}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                    <DropdownMenuItem onClick={() => setAutoMergeMethodValue('squash')}>
+                                        Squash and Merge
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setAutoMergeMethodValue('rebase')}>
+                                        Rebase and Merge
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    )}
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                    <Button onClick={handleSaveSettings}><Save className="w-4 h-4 mr-2"/> Save Auto Merge Settings</Button>
                 </CardFooter>
              </Card>
         </div>
