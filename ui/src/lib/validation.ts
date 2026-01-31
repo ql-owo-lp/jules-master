@@ -37,6 +37,8 @@ export const settingsSchema = z.object({
   closePrOnConflictEnabled: z.boolean().optional().default(false),
   maxConcurrentBackgroundWorkers: z.number().optional().default(10),
   profileId: z.union([z.string().uuid(), z.literal('default')]).optional(),
+  autoMergeEnabled: z.boolean().optional().default(false),
+  autoMergeMethod: z.string().optional().default('squash'),
 });
 
 export const cronJobSchema = z.object({
