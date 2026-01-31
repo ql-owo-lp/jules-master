@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
+
+	"github.com/mcpany/jules/internal/config"
 )
 
 // SessionSyncer defines the interface for syncing sessions
@@ -21,16 +22,39 @@ type SessionSyncer interface {
 }
 
 type HTTPSessionSyncer struct {
-	DB *sql.DB
+	DB      *sql.DB
+	BaseURL string // Optional override for testing
 }
 
 func (s *HTTPSessionSyncer) SyncSession(ctx context.Context, id string) error {
-	apiKey := os.Getenv("JULES_API_KEY")
-	if apiKey == "" {
-		return fmt.Errorf("JULES_API_KEY not set")
+	apiKeys := config.GetAllAPIKeys()
+	if len(apiKeys) == 0 {
+		return fmt.Errorf("JULES_API_KEYs not set")
 	}
 
-	url := fmt.Sprintf("https://jules.googleapis.com/v1alpha/sessions/%s", id)
+	var lastErr error
+	for _, apiKey := range apiKeys {
+		if err := s.syncSessionWithKey(ctx, id, apiKey); err != nil {
+			lastErr = err
+			// If 404, valid content but not found, maybe invalid key for that specific session if sessions are sharded?
+			// Actually session ID should be globally unique or 404.
+			// If 403/401, definitely try next key.
+			// If 404, checking other keys might help if keys see different scopes (unlikely for Jules API but possible).
+			// We'll continue on error.
+			continue
+		}
+		// Success
+		return nil
+	}
+	return fmt.Errorf("failed to sync session %s with any API key: %v", id, lastErr)
+}
+
+func (s *HTTPSessionSyncer) syncSessionWithKey(ctx context.Context, id, apiKey string) error {
+	baseURL := "https://jules.googleapis.com/v1alpha"
+	if s.BaseURL != "" {
+		baseURL = s.BaseURL
+	}
+	url := fmt.Sprintf("%s/sessions/%s", baseURL, id)
 	client := &http.Client{Timeout: 30 * time.Second}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

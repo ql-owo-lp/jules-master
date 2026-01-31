@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/google/go-github/v69/github"
 	"golang.org/x/oauth2"
@@ -20,6 +21,16 @@ func NewClient(token string) *Client {
 	return &Client{
 		client: github.NewClient(tc),
 	}
+}
+
+func (c *Client) SetBaseURL(urlStr string) error {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return err
+	}
+	c.client.BaseURL = u
+	c.client.UploadURL = u
+	return nil
 }
 
 func (c *Client) ListBranches(ctx context.Context, owner, repo string) ([]*github.Branch, error) {
@@ -114,4 +125,9 @@ func (c *Client) MergePullRequest(ctx context.Context, owner, repo string, numbe
 	}
 	_, _, err := c.client.PullRequests.Merge(ctx, owner, repo, number, message, options)
 	return err
+}
+
+
+func (c *Client) SearchIssues(ctx context.Context, query string, opts *github.SearchOptions) (*github.IssuesSearchResult, *github.Response, error) {
+	return c.client.Search.Issues(ctx, query, opts)
 }

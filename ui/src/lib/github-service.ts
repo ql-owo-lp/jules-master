@@ -555,3 +555,60 @@ export async function listBranches(repo: string): Promise<GitHubBranch[]> {
     }
 }
 
+
+
+
+export async function searchOpenPullRequests(
+  repo: string,
+  query: string,
+  token: string
+): Promise<{ items: GitHubPullRequestSimple[]; total_count: number }> {
+  try {
+    const q = encodeURIComponent(`repo:${repo} ${query}`);
+    const url = `https://api.github.com/search/issues?q=${q}&per_page=100`;
+    
+    const response = await fetchWithRetry(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
+      next: { revalidate: 60 },
+    });
+
+    if (!response.ok) {
+      if (response.status === 403 || response.status === 429) {
+        console.warn(`[GitHubService] Rate limited searching PRs for ${repo}`);
+        return { items: [], total_count: 0 };
+      }
+      throw new Error(`Failed to search PRs: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    const prs: GitHubPullRequestSimple[] = data.items
+      .filter((item: any) => item.pull_request)
+      .map((item: any) => ({
+        number: item.number,
+        title: item.title,
+        user: {
+            login: item.user?.login || 'unknown',
+            type: item.user?.type || 'User',
+        },
+        // Search API doesn't return head/base or draft status in the same way.
+        // We provide dummy head because the caller (processRepoPrs) fetches full PR immediately using number.
+        head: {
+            sha: '', 
+            ref: '',
+        },
+        draft: item.draft, // Search might not return draft field directly in top level? It does for issues? No.
+        // Actually 'draft' might not be in issue search result.
+        // But 'state' is.
+        updated_at: item.updated_at,
+      }));
+
+    return { items: prs, total_count: data.total_count };
+  } catch (error) {
+    console.error(`[GitHubService] Error searching PRs for ${repo}:`, error);
+    return { items: [], total_count: 0 };
+  }
+}

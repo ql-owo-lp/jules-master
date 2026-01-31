@@ -87,12 +87,14 @@ func (f *RetryableRemoteSessionFetcher) GetSession(ctx context.Context, id, apiK
 
 // Source defines the structure of a source from the API
 type Source struct {
-	Name       string `json:"name"`
-	Id         string `json:"id"`
-	GithubRepo struct {
-		Owner string `json:"owner"`
-		Repo  string `json:"repo"`
-	} `json:"githubRepo"`
+	Name       string     `json:"name"`
+	Id         string     `json:"id"`
+	GithubRepo GithubRepo `json:"githubRepo"`
+}
+
+type GithubRepo struct {
+	Owner string `json:"owner"`
+	Repo  string `json:"repo"`
 }
 
 // ListSourcesResponse defines the structure of the list sources response

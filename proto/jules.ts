@@ -140,6 +140,8 @@ export interface Settings {
   autoMergeEnabled: boolean;
   /** "squash" or "rebase" */
   autoMergeMethod: string;
+  autoMergeMessage: string;
+  autoCloseOnConflictMessage: string;
 }
 
 export interface GetSettingsRequest {
@@ -495,6 +497,8 @@ function createBaseSettings(): Settings {
     autoContinueAllSessions: false,
     autoMergeEnabled: false,
     autoMergeMethod: "",
+    autoMergeMessage: "",
+    autoCloseOnConflictMessage: "",
   };
 }
 
@@ -607,6 +611,12 @@ export const Settings: MessageFns<Settings> = {
     }
     if (message.autoMergeMethod !== "") {
       writer.uint32(290).string(message.autoMergeMethod);
+    }
+    if (message.autoMergeMessage !== "") {
+      writer.uint32(298).string(message.autoMergeMessage);
+    }
+    if (message.autoCloseOnConflictMessage !== "") {
+      writer.uint32(306).string(message.autoCloseOnConflictMessage);
     }
     return writer;
   },
@@ -906,6 +916,22 @@ export const Settings: MessageFns<Settings> = {
           message.autoMergeMethod = reader.string();
           continue;
         }
+        case 37: {
+          if (tag !== 298) {
+            break;
+          }
+
+          message.autoMergeMessage = reader.string();
+          continue;
+        }
+        case 38: {
+          if (tag !== 306) {
+            break;
+          }
+
+          message.autoCloseOnConflictMessage = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1089,6 +1115,16 @@ export const Settings: MessageFns<Settings> = {
         : isSet(object.auto_merge_method)
         ? globalThis.String(object.auto_merge_method)
         : "",
+      autoMergeMessage: isSet(object.autoMergeMessage)
+        ? globalThis.String(object.autoMergeMessage)
+        : isSet(object.auto_merge_message)
+        ? globalThis.String(object.auto_merge_message)
+        : "",
+      autoCloseOnConflictMessage: isSet(object.autoCloseOnConflictMessage)
+        ? globalThis.String(object.autoCloseOnConflictMessage)
+        : isSet(object.auto_close_on_conflict_message)
+        ? globalThis.String(object.auto_close_on_conflict_message)
+        : "",
     };
   },
 
@@ -1202,6 +1238,12 @@ export const Settings: MessageFns<Settings> = {
     if (message.autoMergeMethod !== "") {
       obj.autoMergeMethod = message.autoMergeMethod;
     }
+    if (message.autoMergeMessage !== "") {
+      obj.autoMergeMessage = message.autoMergeMessage;
+    }
+    if (message.autoCloseOnConflictMessage !== "") {
+      obj.autoCloseOnConflictMessage = message.autoCloseOnConflictMessage;
+    }
     return obj;
   },
 
@@ -1246,6 +1288,8 @@ export const Settings: MessageFns<Settings> = {
     message.autoContinueAllSessions = object.autoContinueAllSessions ?? false;
     message.autoMergeEnabled = object.autoMergeEnabled ?? false;
     message.autoMergeMethod = object.autoMergeMethod ?? "";
+    message.autoMergeMessage = object.autoMergeMessage ?? "";
+    message.autoCloseOnConflictMessage = object.autoCloseOnConflictMessage ?? "";
     return message;
   },
 };

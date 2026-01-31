@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -78,7 +79,11 @@ func (s *PromptServer) CreateManyPredefinedPrompts(ctx context.Context, req *pb.
 		if len(p.Prompt) > 50000 {
 			return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
 		}
-		if _, err := stmt.Exec(p.Id, p.Title, p.Prompt, p.ProfileId); err != nil {
+		profileId := p.ProfileId
+		if profileId == "" {
+			profileId = "default"
+		}
+		if _, err := stmt.Exec(p.Id, p.Title, p.Prompt, profileId); err != nil {
 			return nil, err
 		}
 	}
@@ -92,13 +97,33 @@ func (s *PromptServer) UpdatePredefinedPrompt(ctx context.Context, req *pb.Updat
 	if req.Prompt != nil && len(*req.Prompt) > 50000 {
 		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
 	}
-	_, err := s.DB.Exec("UPDATE predefined_prompts SET title = ?, prompt = ? WHERE id = ?", req.Title, req.Prompt, req.Id)
+
+	query := "UPDATE predefined_prompts SET "
+	var args []interface{}
+	var updates []string
+
+	if req.Title != nil {
+		updates = append(updates, "title = ?")
+		args = append(args, *req.Title)
+	}
+	if req.Prompt != nil {
+		updates = append(updates, "prompt = ?")
+		args = append(args, *req.Prompt)
+	}
+
+	if len(updates) == 0 {
+		return &emptypb.Empty{}, nil
+	}
+
+	query += strings.Join(updates, ", ") + " WHERE id = ?"
+	args = append(args, req.Id)
+
+	_, err := s.DB.Exec(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	return &emptypb.Empty{}, nil
 }
-
 func (s *PromptServer) DeletePredefinedPrompt(ctx context.Context, req *pb.DeletePromptRequest) (*emptypb.Empty, error) {
 	_, err := s.DB.Exec("DELETE FROM predefined_prompts WHERE id = ?", req.Id)
 	if err != nil {
@@ -107,7 +132,7 @@ func (s *PromptServer) DeletePredefinedPrompt(ctx context.Context, req *pb.Delet
 	return &emptypb.Empty{}, nil
 }
 
-// Quick Replies (Almost identical to Predefined Prompts, different table)
+// Quick Replies
 func (s *PromptServer) ListQuickReplies(ctx context.Context, _ *emptypb.Empty) (*pb.ListPredefinedPromptsResponse, error) {
 	rows, err := s.DB.Query("SELECT id, title, prompt, profile_id FROM quick_replies")
 	if err != nil {
@@ -148,7 +173,6 @@ func (s *PromptServer) CreateQuickReply(ctx context.Context, req *pb.CreatePromp
 	}
 	return &pb.PredefinedPrompt{Id: req.Id, Title: req.Title, Prompt: req.Prompt, ProfileId: req.ProfileId}, nil
 }
-
 func (s *PromptServer) CreateManyQuickReplies(ctx context.Context, req *pb.CreateManyPromptsRequest) (*emptypb.Empty, error) {
 	tx, err := s.DB.Begin()
 	if err != nil {
@@ -169,7 +193,11 @@ func (s *PromptServer) CreateManyQuickReplies(ctx context.Context, req *pb.Creat
 		if len(p.Prompt) > 50000 {
 			return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
 		}
-		if _, err := stmt.Exec(p.Id, p.Title, p.Prompt, p.ProfileId); err != nil {
+		profileId := p.ProfileId
+		if profileId == "" {
+			profileId = "default"
+		}
+		if _, err := stmt.Exec(p.Id, p.Title, p.Prompt, profileId); err != nil {
 			return nil, err
 		}
 	}
@@ -183,7 +211,28 @@ func (s *PromptServer) UpdateQuickReply(ctx context.Context, req *pb.UpdatePromp
 	if req.Prompt != nil && len(*req.Prompt) > 50000 {
 		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
 	}
-	_, err := s.DB.Exec("UPDATE quick_replies SET title = ?, prompt = ? WHERE id = ?", req.Title, req.Prompt, req.Id)
+
+	query := "UPDATE quick_replies SET "
+	var args []interface{}
+	var updates []string
+
+	if req.Title != nil {
+		updates = append(updates, "title = ?")
+		args = append(args, *req.Title)
+	}
+	if req.Prompt != nil {
+		updates = append(updates, "prompt = ?")
+		args = append(args, *req.Prompt)
+	}
+
+	if len(updates) == 0 {
+		return &emptypb.Empty{}, nil
+	}
+
+	query += strings.Join(updates, ", ") + " WHERE id = ?"
+	args = append(args, req.Id)
+
+	_, err := s.DB.Exec(query, args...)
 	if err != nil {
 		return nil, err
 	}

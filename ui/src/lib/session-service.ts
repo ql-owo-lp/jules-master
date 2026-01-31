@@ -4,6 +4,7 @@ import { sessions, settings } from './db/schema';
 import { eq, sql, lt, and, gt } from 'drizzle-orm';
 import type { Session, State, SessionOutput } from '@/lib/types';
 import { fetchWithRetry } from './fetch-client';
+import { getApiKeys } from './config';
 
 // Type definitions for easier usage
 export type CachedSession = typeof sessions.$inferSelect;
@@ -172,6 +173,13 @@ async function fetchSessionFromApi(sessionId: string, apiKey: string): Promise<S
         );
 
         if (!response.ok) {
+            // We'll return null on 404. 
+            // On 403/401, we might want to throw to let caller try next key?
+            // But currently caller just logs.
+            // Let's return null but log warning.
+            // Caller loop (syncStaleSessions) needs to know if it should retry with next key?
+            // Actually `syncStaleSessions` passes a SINGLE apiKey currently.
+            // We need to change `syncStaleSessions` to iterate keys.
             if (response.status === 404) {
                  console.warn(`Session not found during sync: ${sessionId}`);
             } else {
@@ -200,17 +208,23 @@ async function fetchSessionFromApi(sessionId: string, apiKey: string): Promise<S
  * Syncs a specific list of sessions if they are stale.
  * This function is intended to be called periodically or on demand.
  */
-export async function syncStaleSessions(apiKey: string) {
+export async function syncStaleSessions(explicitApiKey?: string) {
     // We strictly should sync based on per-profile settings, but iterating all sessions in DB
     // allows a background worker to keep everything fresh regardless of active profile.
-    // However, we need settings (thresholds).
-    // Let's iterate all profiles? Or just use 'default' settings as a baseline?
-    // Or fetch settings for the session's profile?
     
-    // For MVP efficiency, we'll fetch 'default' settings and apply to all sessions, 
-    // OR we iterate sessions and lazily fetch their profile settings if needed.
-    // Since we don't have many profiles, maybe we just loop through all settings?
-    
+    // Determine keys to use
+    let apiKeys: string[] = [];
+    if (explicitApiKey) {
+        apiKeys = [explicitApiKey];
+    } else {
+        apiKeys = getApiKeys();
+    }
+
+    if (apiKeys.length === 0) {
+        console.warn("No API keys configured for syncStaleSessions");
+        return;
+    }
+
     // Simplification: Use default settings for thresholds.
     const settings = await getSettings('default');
 
@@ -293,20 +307,20 @@ export async function syncStaleSessions(apiKey: string) {
   }
 
   // Update sessions in batches/concurrency control
-  // For simplicity, we'll do promise.all with a concurrency limit if needed, or just iterate.
-  // Given "don't hit jules api rate limit", we should be careful.
-  // Let's process 5 at a time.
   const BATCH_SIZE = 5;
   for (let i = 0; i < sessionsToUpdate.length; i += BATCH_SIZE) {
     const batch = sessionsToUpdate.slice(i, i + BATCH_SIZE);
+    
+    // Run batch in parallel
     await Promise.all(batch.map(async (id) => {
-        const updatedSession = await fetchSessionFromApi(id, apiKey);
+        // Try keys until one works
+        let updatedSession: Session | null = null;
+        for (const key of apiKeys) {
+            updatedSession = await fetchSessionFromApi(id, key);
+            if (updatedSession) break;
+        }
+
         if (updatedSession) {
-            // Ensure no nulls in sourceContext - fetchSessionFromApi does not sanitize?
-            // I updated src/app/sessions/actions.ts "fetchSessionsPage" logic in the previous step,
-            // but the error was in "fetchSessionFromApi" in src/lib/session-service.ts ?? 
-            // src/lib/session-service.ts defines fetchSessionFromApi locally!
-            // I need to update THAT one.
              const sanitizedSession = {
                 ...updatedSession,
                 sourceContext: updatedSession.sourceContext || undefined,
@@ -314,8 +328,11 @@ export async function syncStaleSessions(apiKey: string) {
                 outputs: updatedSession.outputs || undefined,
                 requirePlanApproval: updatedSession.requirePlanApproval ?? undefined,
                 automationMode: updatedSession.automationMode || undefined,
-             } as Session; // Force cast to avoid null vs undefined issues if runtime object has nulls
+             } as Session; 
             await upsertSession(sanitizedSession);
+            console.log(`Successfully synced session ${id}`);
+        } else {
+            console.warn(`Failed to sync session ${id} with all available keys`);
         }
     }));
   }
@@ -324,10 +341,30 @@ export async function syncStaleSessions(apiKey: string) {
 /**
  * Force refresh a specific session.
  */
-export async function forceRefreshSession(sessionId: string, apiKey: string) {
-    const updatedSession = await fetchSessionFromApi(sessionId, apiKey);
+export async function forceRefreshSession(sessionId: string, explicitApiKey: string) {
+    // Determine keys
+    let apiKeys: string[] = [];
+    if (explicitApiKey) {
+        apiKeys = [explicitApiKey];
+    } else {
+        apiKeys = getApiKeys();
+    }
+
+    if (apiKeys.length === 0) {
+        console.warn("No API keys for forceRefreshSession");
+        return null; // Return null if no keys
+    }
+
+    let updatedSession: Session | null = null;
+    for (const key of apiKeys) {
+        updatedSession = await fetchSessionFromApi(sessionId, key);
+        if (updatedSession) break;
+    }
+
     if (updatedSession) {
         await upsertSession(updatedSession);
+    } else {
+        console.warn(`Failed to force refresh session ${sessionId} with any key`);
     }
     return updatedSession;
 }

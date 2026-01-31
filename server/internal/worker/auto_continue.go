@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mcpany/jules/internal/config"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
 	pb "github.com/mcpany/jules/proto"
@@ -138,9 +139,27 @@ func (w *AutoContinueWorker) runCheck(ctx context.Context) error {
 			continue
 		}
 
-		remoteSess, err := w.fetcher.GetSession(ctx, sessID, w.apiKey)
-		if err != nil {
-			logger.Error("%s [%s]: Failed to fetch remote session %s: %v", w.Name(), w.id, sessID, err)
+		var remoteSess *RemoteSession
+		var fetchErr error
+		
+		apiKeys := config.GetAllAPIKeys()
+		if len(apiKeys) == 0 && w.apiKey != "" {
+			apiKeys = []string{w.apiKey}
+		} else if len(apiKeys) == 0 {
+			if w.apiKey != "" {
+				apiKeys = []string{w.apiKey}
+			}
+		}
+
+		for _, key := range apiKeys {
+			remoteSess, fetchErr = w.fetcher.GetSession(ctx, sessID, key)
+			if fetchErr == nil && remoteSess != nil {
+				break
+			}
+		}
+
+		if fetchErr != nil || remoteSess == nil {
+			logger.Error("%s [%s]: Failed to fetch remote session %s with any key: %v", w.Name(), w.id, sessID, fetchErr)
 			continue
 		}
 

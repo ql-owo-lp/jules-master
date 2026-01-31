@@ -2,7 +2,7 @@
 import { db } from './db';
 import { jobs, cronJobs } from './db/schema';
 import { getSettings } from './session-service';
-import { listOpenPullRequests, getPullRequest, createPullRequestComment, getPullRequestChecks, updatePullRequest, mergePullRequest, getPullRequestCheckStatus } from './github-service';
+import { listOpenPullRequests, getPullRequest, createPullRequestComment, getPullRequestChecks, updatePullRequest, mergePullRequest, getPullRequestCheckStatus, searchOpenPullRequests } from './github-service';
 // Unused imports sections removed
 
 let isWorkerRunning = false;
@@ -54,10 +54,17 @@ async function processPrs() {
     }
 }
 
-async function processRepoPrs(repo: string, settings: { closePrOnConflictEnabled: boolean; checkFailingActionsEnabled: boolean; autoMergeEnabled: boolean; autoMergeMethod: string; }) {
+
+async function processRepoPrs(repo: string, settings: { closePrOnConflictEnabled: boolean; checkFailingActionsEnabled: boolean; autoMergeEnabled: boolean; autoMergeMethod: string; autoMergeMessage: string; }) {
     try {
-        // Only list OPEN PRs
-        const prs = await listOpenPullRequests(repo);
+        let prs;
+        if (settings.autoMergeEnabled) {
+             const token = process.env.GITHUB_TOKEN || "";
+             const searchResult = await searchOpenPullRequests(repo, "is:pr state:open status:success", token);
+             prs = searchResult.items;
+        } else {
+             prs = await listOpenPullRequests(repo);
+        }
         
         for (const pr of prs) {
             try {
@@ -67,8 +74,6 @@ async function processRepoPrs(repo: string, settings: { closePrOnConflictEnabled
 
                 // 1. Auto Close on Conflict
                 if (settings.closePrOnConflictEnabled) {
-                    // mergeable_state can be 'dirty' for conflicts
-                    // mergeable can be false
                     if (fullPr.mergeable === false) {
                         console.log(`[PR Monitor] Closing PR #${pr.number} in ${repo} due to merge conflicts.`);
                         
@@ -85,35 +90,23 @@ async function processRepoPrs(repo: string, settings: { closePrOnConflictEnabled
                 if (settings.checkFailingActionsEnabled) {
                     const failedChecks = await getPullRequestChecks(repo, fullPr.head.sha);
                     if (failedChecks.length > 0) {
-                        // Check if we already commented recently?
-                        // For now, this is a basic implementation. 
-                        // To avoid spam, we should check if the last comment is from us and is about failing checks?
-                        // Or just rely on the fact that checks turn green eventually?
-                        // The settings has checkFailingActionsThreshold - we'll skip complex logic for now 
-                        // and just verify the basic monitor works, as requested.
-                        // Assuming the user wants basic notification.
-                        
-                        // NOTE: Real implementation should probably check recent comments to avoid loop.
-                        // For this task, we assume the user just wants the logic present.
                          console.log(`[PR Monitor] PR #${pr.number} in ${repo} has failing checks: ${failedChecks.join(', ')}`);
                     }
                 }
 
                 // 3. Auto Merge
                 if (settings.autoMergeEnabled) {
-                     // Check if PR is mergeable and clean
                     if (fullPr.mergeable === true && fullPr.mergeable_state !== 'dirty' && fullPr.mergeable_state !== 'blocked') {
                          const checkStatus = await getPullRequestCheckStatus(repo, fullPr.head.sha);
                          
-                         // Only merge if checks are successful or if there are no checks (unknown) and we decide to trust it?
-                         // Safest is 'success'.
-                         // If no checks are required, status might be 'unknown' or 'pending'?
-                         // Let's rely on settings? For now, require 'success' if checks exist, or 'unknown' if no checks?
-                         // Actually, if settings.autoMergeEnabled is true, user likely wants it merged.
-                         // But we must NOT merge if failure.
-                         
                          if (checkStatus.status === 'success' || (checkStatus.status === 'unknown' && checkStatus.total === 0)) {
                              console.log(`[PR Monitor] Auto-merging PR #${pr.number} in ${repo} (Status: ${checkStatus.status})`);
+                             
+                             // Post message if configured
+                             if (settings.autoMergeMessage) {
+                                  await createPullRequestComment(repo, pr.number, settings.autoMergeMessage);
+                             }
+
                              const merged = await mergePullRequest(repo, pr.number, settings.autoMergeMethod as 'merge' | 'squash' | 'rebase');
                              if (merged) {
                                  console.log(`[PR Monitor] Successfully merged PR #${pr.number}`);
@@ -121,8 +114,6 @@ async function processRepoPrs(repo: string, settings: { closePrOnConflictEnabled
                              } else {
                                  console.error(`[PR Monitor] Failed to merge PR #${pr.number}`);
                              }
-                         } else {
-                             // console.log(`[PR Monitor] Skipping auto-merge for PR #${pr.number}: Checks status is ${checkStatus.status}`);
                          }
                     }
                 }

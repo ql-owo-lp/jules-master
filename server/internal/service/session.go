@@ -29,6 +29,27 @@ func isValidSessionID(id string) bool {
 	return true
 }
 
+type SessionServer struct {
+	pb.UnimplementedSessionServiceServer
+	DB         *sql.DB
+	BaseURL    string
+	HTTPClient *http.Client
+}
+
+func (s *SessionServer) getBaseURL() string {
+	if s.BaseURL != "" {
+		return s.BaseURL
+	}
+	return "https://jules.googleapis.com/v1alpha"
+}
+
+func (s *SessionServer) getClient() *http.Client {
+	if s.HTTPClient != nil {
+		return s.HTTPClient
+	}
+	return &http.Client{Timeout: 30 * time.Second}
+}
+
 func (s *SessionServer) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (*emptypb.Empty, error) {
 	if !isValidSessionID(req.Id) {
 		return nil, fmt.Errorf("invalid session id")
@@ -39,7 +60,7 @@ func (s *SessionServer) SendMessage(ctx context.Context, req *pb.SendMessageRequ
 		return nil, fmt.Errorf("JULES_API_KEY not set")
 	}
 
-	url := fmt.Sprintf("https://jules.googleapis.com/v1alpha/sessions/%s:sendMessage", req.Id)
+	url := fmt.Sprintf("%s/sessions/%s:sendMessage", s.getBaseURL(), req.Id)
 	
 	body := map[string]interface{}{
 		"message": req.Message,
@@ -49,7 +70,7 @@ func (s *SessionServer) SendMessage(ctx context.Context, req *pb.SendMessageRequ
 		return nil, err
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := s.getClient()
 	r, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, err
@@ -73,11 +94,6 @@ func (s *SessionServer) SendMessage(ctx context.Context, req *pb.SendMessageRequ
 	// s.DB.Exec("UPDATE sessions SET last_interaction_at = ? WHERE id = ?", time.Now().UnixMilli(), req.Id)
 
 	return &emptypb.Empty{}, nil
-}
-
-type SessionServer struct {
-	pb.UnimplementedSessionServiceServer
-	DB *sql.DB
 }
 
 func (s *SessionServer) ListSessions(ctx context.Context, req *pb.ListSessionsRequest) (*pb.ListSessionsResponse, error) {
@@ -241,7 +257,7 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 		return nil, nil
 	}
 
-	url := "https://jules.googleapis.com/v1alpha/sessions"
+	url := fmt.Sprintf("%s/sessions", s.getBaseURL())
 
 	// Map fields to JSON body
 	body := map[string]interface{}{
@@ -263,7 +279,7 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 		return nil, err
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := s.getClient()
 	r, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, err
@@ -318,8 +334,8 @@ func (s *SessionServer) approveRemotePlan(id string) error {
 		return nil
 	}
 
-	url := fmt.Sprintf("https://jules.googleapis.com/v1alpha/sessions/%s:approvePlan", id)
-	client := &http.Client{Timeout: 30 * time.Second}
+	url := fmt.Sprintf("%s/sessions/%s:approvePlan", s.getBaseURL(), id)
+	client := s.getClient()
 	r, err := http.NewRequest("POST", url, nil) // Empty body for approvePlan action?
 	if err != nil {
 		return err

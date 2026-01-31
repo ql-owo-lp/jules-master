@@ -156,12 +156,14 @@ type Settings struct {
 	ProfileId                           string                 `protobuf:"bytes,30,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
 	MaxConcurrentBackgroundWorkers      int32                  `protobuf:"varint,32,opt,name=max_concurrent_background_workers,json=maxConcurrentBackgroundWorkers,proto3" json:"max_concurrent_background_workers,omitempty"`
 	// Opaque API: Use getters for all fields.
-	AutoApprovalAllSessions bool   `protobuf:"varint,33,opt,name=auto_approval_all_sessions,json=autoApprovalAllSessions,proto3" json:"auto_approval_all_sessions,omitempty"` // Default: true (handled in service)
-	AutoContinueAllSessions bool   `protobuf:"varint,34,opt,name=auto_continue_all_sessions,json=autoContinueAllSessions,proto3" json:"auto_continue_all_sessions,omitempty"` // Default: true (handled in service)
-	AutoMergeEnabled        bool   `protobuf:"varint,35,opt,name=auto_merge_enabled,json=autoMergeEnabled,proto3" json:"auto_merge_enabled,omitempty"`
-	AutoMergeMethod         string `protobuf:"bytes,36,opt,name=auto_merge_method,json=autoMergeMethod,proto3" json:"auto_merge_method,omitempty"` // "squash" or "rebase"
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	AutoApprovalAllSessions    bool   `protobuf:"varint,33,opt,name=auto_approval_all_sessions,json=autoApprovalAllSessions,proto3" json:"auto_approval_all_sessions,omitempty"` // Default: true (handled in service)
+	AutoContinueAllSessions    bool   `protobuf:"varint,34,opt,name=auto_continue_all_sessions,json=autoContinueAllSessions,proto3" json:"auto_continue_all_sessions,omitempty"` // Default: true (handled in service)
+	AutoMergeEnabled           bool   `protobuf:"varint,35,opt,name=auto_merge_enabled,json=autoMergeEnabled,proto3" json:"auto_merge_enabled,omitempty"`
+	AutoMergeMethod            string `protobuf:"bytes,36,opt,name=auto_merge_method,json=autoMergeMethod,proto3" json:"auto_merge_method,omitempty"` // "squash" or "rebase"
+	AutoMergeMessage           string `protobuf:"bytes,37,opt,name=auto_merge_message,json=autoMergeMessage,proto3" json:"auto_merge_message,omitempty"`
+	AutoCloseOnConflictMessage string `protobuf:"bytes,38,opt,name=auto_close_on_conflict_message,json=autoCloseOnConflictMessage,proto3" json:"auto_close_on_conflict_message,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *Settings) Reset() {
@@ -442,6 +444,20 @@ func (x *Settings) GetAutoMergeEnabled() bool {
 func (x *Settings) GetAutoMergeMethod() string {
 	if x != nil {
 		return x.AutoMergeMethod
+	}
+	return ""
+}
+
+func (x *Settings) GetAutoMergeMessage() string {
+	if x != nil {
+		return x.AutoMergeMessage
+	}
+	return ""
+}
+
+func (x *Settings) GetAutoCloseOnConflictMessage() string {
+	if x != nil {
+		return x.AutoCloseOnConflictMessage
 	}
 	return ""
 }
@@ -3445,7 +3461,7 @@ var File_jules_proto protoreflect.FileDescriptor
 
 const file_jules_proto_rawDesc = "" +
 	"\n" +
-	"\vjules.proto\x12\x05jules\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xd5\x0f\n" +
+	"\vjules.proto\x12\x05jules\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xc7\x10\n" +
 	"\bSettings\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12,\n" +
 	"\x12idle_poll_interval\x18\x02 \x01(\x05R\x10idlePollInterval\x120\n" +
@@ -3485,7 +3501,9 @@ const file_jules_proto_rawDesc = "" +
 	"\x1aauto_approval_all_sessions\x18! \x01(\bR\x17autoApprovalAllSessions\x12;\n" +
 	"\x1aauto_continue_all_sessions\x18\" \x01(\bR\x17autoContinueAllSessions\x12,\n" +
 	"\x12auto_merge_enabled\x18# \x01(\bR\x10autoMergeEnabled\x12*\n" +
-	"\x11auto_merge_method\x18$ \x01(\tR\x0fautoMergeMethod\"3\n" +
+	"\x11auto_merge_method\x18$ \x01(\tR\x0fautoMergeMethod\x12,\n" +
+	"\x12auto_merge_message\x18% \x01(\tR\x10autoMergeMessage\x12B\n" +
+	"\x1eauto_close_on_conflict_message\x18& \x01(\tR\x1aautoCloseOnConflictMessage\"3\n" +
 	"\x12GetSettingsRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\"D\n" +
