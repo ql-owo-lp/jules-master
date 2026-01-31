@@ -514,19 +514,26 @@ export function JobCreationForm({
                   Prompt
                   <span className="text-destructive ml-1">*</span>
                 </Label>
-                {prompt && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setPrompt(""); setSelectedPromptId(null); }}>
-                          <X className="h-4 w-4" />
-                          <span className="sr-only">Clear prompt</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Clear prompt</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
+                <div className="flex items-center gap-2">
+                  {(prompt?.length || 0) > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {prompt?.length || 0} chars
+                    </span>
+                  )}
+                  {prompt && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setPrompt(""); setSelectedPromptId(null); }}>
+                            <X className="h-4 w-4" />
+                            <span className="sr-only">Clear prompt</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Clear prompt</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
             </div>
             <Textarea
               id="prompts"
