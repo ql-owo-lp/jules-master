@@ -251,7 +251,7 @@ const areSessionPropsEqual = (prev: SessionRowProps, next: SessionRowProps) => {
 
 const SessionRow = memo(SessionRowComponent, areSessionPropsEqual);
 
-export function SessionTable({
+const SessionTableComponent = ({
   sessions,
   isUncategorized,
   jobId,
@@ -263,7 +263,7 @@ export function SessionTable({
   onSendMessage,
   quickReplies,
   jobIdParam
-}: SessionTableProps) {
+}: SessionTableProps) => {
   // Memoize the selected session set for O(1) lookups instead of O(N) includes check
   const selectedSessionSet = useMemo(() => new Set(selectedSessionIds), [selectedSessionIds]);
 
@@ -356,4 +356,8 @@ export function SessionTable({
       </TableBody>
     </Table>
   );
-}
+};
+
+// Memoize SessionTable to prevent re-renders when parent re-renders but props (like sessions) haven't changed.
+// This works well with the memoized paginatedSessions passed from JobAccordionItem.
+export const SessionTable = memo(SessionTableComponent);
