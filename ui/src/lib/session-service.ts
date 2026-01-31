@@ -95,7 +95,24 @@ export async function updateSessionInteraction(sessionId: string) {
  * Retrieves all sessions from the local database, sorted by creation time descending.
  */
 export async function getCachedSessions(profileId: string = 'default'): Promise<Session[]> {
-  const cachedSessions = await db.select().from(sessions)
+  // Optimization: Select only necessary columns for list view.
+  // Exclude heavy fields like lastError, retryCount, lastInteractionAt, lastUpdated.
+  const cachedSessions = await db.select({
+    id: sessions.id,
+    name: sessions.name,
+    title: sessions.title,
+    prompt: sessions.prompt,
+    sourceContext: sessions.sourceContext,
+    createTime: sessions.createTime,
+    updateTime: sessions.updateTime,
+    state: sessions.state,
+    url: sessions.url,
+    outputs: sessions.outputs,
+    requirePlanApproval: sessions.requirePlanApproval,
+    automationMode: sessions.automationMode,
+    profileId: sessions.profileId,
+  })
+    .from(sessions)
     .where(eq(sessions.profileId, profileId))
     .orderBy(sql`${sessions.createTime} DESC`);
 
@@ -108,12 +125,13 @@ export async function getCachedSessions(profileId: string = 'default'): Promise<
     url: s.url || undefined,
     // Optimization: Sanitize outputs to reduce payload size.
     // We only need pullRequest info for the list view.
-    outputs: (s.outputs && Array.isArray(s.outputs)) ? s.outputs.map(o => {
+    // Used reduce instead of map+filter to avoid creating intermediate arrays/objects.
+    outputs: (s.outputs && Array.isArray(s.outputs)) ? s.outputs.reduce<SessionOutput[]>((acc, o) => {
       if (o && o.pullRequest) {
-        return { pullRequest: o.pullRequest };
+        acc.push({ pullRequest: o.pullRequest });
       }
-      return null;
-    }).filter((o): o is SessionOutput => o !== null) : undefined,
+      return acc;
+    }, []) : undefined,
     requirePlanApproval: s.requirePlanApproval || undefined,
     automationMode: s.automationMode || undefined,
     profileId: s.profileId,
