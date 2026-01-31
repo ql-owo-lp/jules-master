@@ -12,9 +12,18 @@ RUN go build -o server cmd/server/main.go
 # 2. Node Builder Stage
 FROM node:24 AS node-builder
 RUN apt-get update && apt-get install -y curl unzip
-RUN curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v29.3/protoc-29.3-linux-x86_64.zip && \
-    unzip -o protoc-29.3-linux-x86_64.zip -d /usr/local && \
-    rm protoc-29.3-linux-x86_64.zip
+RUN PROTOC_VERSION="29.3" && \
+    ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+      PROTOC_ARCH="linux-x86_64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+      PROTOC_ARCH="linux-aarch_64"; \
+    else \
+      echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-${PROTOC_ARCH}.zip" && \
+    unzip -o "protoc-${PROTOC_VERSION}-${PROTOC_ARCH}.zip" -d /usr/local && \
+    rm "protoc-${PROTOC_VERSION}-${PROTOC_ARCH}.zip"
 WORKDIR /app
 
 # Copy UI package files and proto files
