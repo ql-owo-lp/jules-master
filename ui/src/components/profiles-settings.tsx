@@ -20,6 +20,16 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Trash2, Plus, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Profile } from "@/lib/types";
@@ -36,6 +46,7 @@ export function ProfilesSettings({ currentProfileId, onProfileSelect }: Profiles
     const [isLoading, setIsLoading] = useState(true);
     const [newProfileName, setNewProfileName] = useState("");
     const [isCreating, setIsCreating] = useState(false);
+    const [profileToDelete, setProfileToDelete] = useState<string | null>(null);
 
     const fetchProfiles = useCallback(async () => {
         setIsLoading(true);
@@ -87,13 +98,19 @@ export function ProfilesSettings({ currentProfileId, onProfileSelect }: Profiles
         }
     };
 
-    const handleDeleteProfile = async (id: string) => {
+    const executeDeleteProfile = async () => {
+        if (!profileToDelete) return;
+
+        const id = profileToDelete;
+
         if (id === 'default') {
              toast({ variant: "destructive", title: "Error", description: "Cannot delete default profile." });
+             setProfileToDelete(null);
              return;
         }
         if (id === currentProfileId) {
              toast({ variant: "destructive", title: "Error", description: "Cannot delete currently active profile." });
+             setProfileToDelete(null);
              return;
         }
 
@@ -112,6 +129,8 @@ export function ProfilesSettings({ currentProfileId, onProfileSelect }: Profiles
         } catch (error) {
             console.error("Failed to delete profile", error);
              toast({ variant: "destructive", title: "Error", description: "Failed to delete profile." });
+        } finally {
+            setProfileToDelete(null);
         }
     };
 
@@ -174,9 +193,10 @@ export function ProfilesSettings({ currentProfileId, onProfileSelect }: Profiles
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => handleDeleteProfile(profile.id)}
+                                                onClick={() => setProfileToDelete(profile.id)}
                                                 disabled={profile.id === 'default' || profile.id === currentProfileId}
                                                 className="text-destructive hover:text-destructive"
+                                                aria-label={`Delete profile ${profile.name}`}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -188,6 +208,24 @@ export function ProfilesSettings({ currentProfileId, onProfileSelect }: Profiles
                     </div>
                 </CardContent>
             </Card>
+
+            <AlertDialog open={!!profileToDelete} onOpenChange={(open) => !open && setProfileToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the profile
+                            and all its associated settings.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={executeDeleteProfile} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
