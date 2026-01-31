@@ -13,6 +13,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Settings, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -128,6 +129,41 @@ export function SettingsSheet() {
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+                    </div>
+                )}
+
+                {settings.autoMergeEnabled && (
+                    <div className="grid gap-2">
+                         <Label>Auto Merge Message</Label>
+                         <Input 
+                            value={settings.autoMergeMessage || ""} 
+                            onChange={(e) => setSettings({ ...settings, autoMergeMessage: e.target.value })}
+                            placeholder="Automatically merged by bot as all checks passed"
+                         />
+                    </div>
+                )}
+
+                <div className="grid gap-2">
+                    <Label>Auto Close Stale/Conflicted PRs</Label>
+                    <div className="flex items-center space-x-2">
+                        <Button
+                            variant={settings.closePrOnConflictEnabled ? "default" : "outline"}
+                            onClick={() => setSettings({ ...settings, closePrOnConflictEnabled: !settings.closePrOnConflictEnabled })}
+                            className="justify-start w-full"
+                        >
+                            {settings.closePrOnConflictEnabled ? "Enabled" : "Disabled"}
+                        </Button>
+                    </div>
+                </div>
+
+                {settings.closePrOnConflictEnabled && (
+                    <div className="grid gap-2">
+                         <Label>Conflict Message</Label>
+                         <Input 
+                            value={settings.autoCloseOnConflictMessage || ""} 
+                            onChange={(e) => setSettings({ ...settings, autoCloseOnConflictMessage: e.target.value })}
+                            placeholder="Closed due to merge conflict"
+                         />
                     </div>
                 )}
 

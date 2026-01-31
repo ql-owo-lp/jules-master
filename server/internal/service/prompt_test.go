@@ -168,3 +168,75 @@ func TestPromptService_Validation(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "prompt is too long")
 }
+
+func TestPromptService_QuickReply_CRUD(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	svc := &PromptServer{DB: db}
+	ctx := context.Background()
+
+	// Create
+	_, err := svc.CreateQuickReply(ctx, &pb.CreatePromptRequest{Id: "q1", Title: "Quick 1", Prompt: "Reply 1"})
+	assert.NoError(t, err)
+
+	// Get
+	got, err := svc.GetQuickReply(ctx, &pb.GetPromptRequest{Id: "q1"})
+	assert.NoError(t, err)
+	assert.Equal(t, "Quick 1", got.Title)
+
+	// Create Many
+	_, err = svc.CreateManyQuickReplies(ctx, &pb.CreateManyPromptsRequest{
+		Prompts: []*pb.CreatePromptRequest{
+			{Id: "q2", Title: "Q2", Prompt: "R2"},
+			{Id: "q3", Title: "Q3", Prompt: "R3"},
+		},
+	})
+	assert.NoError(t, err)
+
+	// List
+	list, err := svc.ListQuickReplies(ctx, &emptypb.Empty{})
+	assert.NoError(t, err)
+	assert.Len(t, list.Prompts, 3)
+
+	// Update
+	newTitle := "New Quick"
+	_, err = svc.UpdateQuickReply(ctx, &pb.UpdatePromptRequest{Id: "q1", Title: &newTitle})
+	assert.NoError(t, err)
+
+	got, _ = svc.GetQuickReply(ctx, &pb.GetPromptRequest{Id: "q1"})
+	assert.Equal(t, "New Quick", got.Title)
+
+	// Delete
+	_, err = svc.DeleteQuickReply(ctx, &pb.DeletePromptRequest{Id: "q1"})
+	assert.NoError(t, err)
+
+	list, _ = svc.ListQuickReplies(ctx, &emptypb.Empty{})
+	assert.Len(t, list.Prompts, 2)
+}
+
+func TestPromptService_HistoryPrompts_Recent(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	svc := &PromptServer{DB: db}
+	ctx := context.Background()
+
+	// Create 15 prompts
+	for i := 0; i < 15; i++ {
+		svc.SaveHistoryPrompt(ctx, &pb.SaveHistoryPromptRequest{Prompt: "History " + string(rune('A'+i))})
+	}
+
+	// Get Recent (Default limit 10)
+	list, err := svc.GetRecentHistoryPrompts(ctx, &pb.GetRecentRequest{Limit: 0})
+	assert.NoError(t, err)
+	assert.Len(t, list.Prompts, 10)
+
+	// Get Recent (Limit 5)
+	list5, err := svc.GetRecentHistoryPrompts(ctx, &pb.GetRecentRequest{Limit: 5})
+	assert.NoError(t, err)
+	assert.Len(t, list5.Prompts, 5)
+
+	// Get Recent (Limit > 100 -> cap at 100, but we have only 15)
+	list100, err := svc.GetRecentHistoryPrompts(ctx, &pb.GetRecentRequest{Limit: 150})
+	assert.NoError(t, err)
+	assert.Len(t, list100.Prompts, 15)
+}

@@ -5,6 +5,7 @@ import type { Session, Source } from '@/lib/types';
 import { revalidateTag } from 'next/cache';
 import { fetchWithRetry, cancelRequest } from '@/lib/fetch-client';
 import { getCachedSessions, syncStaleSessions, upsertSession, forceRefreshSession } from '@/lib/session-service';
+import { getApiKeys } from '@/lib/config';
 
 type ListSessionsResponse = {
   sessions: Session[];
@@ -80,13 +81,19 @@ export async function listSessions(
   requestId?: string,
   profileId: string = 'default'
 ): Promise<{ sessions: Session[], error?: string }> {
-  // Check for mock flag
   if (process.env.MOCK_API === 'true') {
      return { sessions: MOCK_SESSIONS };
   }
 
-  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
-  if (!effectiveApiKey) {
+  // Determine keys
+  let apiKeys: string[] = [];
+  if (apiKey) {
+      apiKeys = [apiKey];
+  } else {
+      apiKeys = getApiKeys();
+  }
+
+  if (apiKeys.length === 0) {
     return { sessions: [], error: "Jules API key is not configured. Please set it in the settings." };
   }
 
@@ -97,36 +104,36 @@ export async function listSessions(
 
     // 2. If DB is empty, perform an initial fetch from API to populate it
     if (isInitialFetch) {
-        console.log("Session cache is empty, performing initial fetch...");
-        // Fetch the first page or so to populate.
-        // NOTE: We might want to fetch *all* pages if we want a complete cache,
-        // but for now let's just fetch the first page to be responsive.
-        // Ideally, we should have a background job to fetch all history.
-        // We reuse fetchSessionsPage logic but simplified here.
-        const firstPage = await fetchSessionsPage(effectiveApiKey, null, 100);
-
-        if (firstPage.error) {
-            return { sessions: [], error: firstPage.error };
+        console.log("Session cache is empty, performing initial fetch from all keys...");
+        
+        // Fetch from all keys and merge in DB
+        const errors: string[] = [];
+        for (const key of apiKeys) {
+            const firstPage = await fetchSessionsPage(key, null, 100);
+            if (firstPage.error) {
+                console.warn(`Failed to fetch sessions for key ...${key.slice(-4)}: ${firstPage.error}`);
+                errors.push(firstPage.error);
+                continue;
+            }
+            for (const s of firstPage.sessions) {
+                s.profileId = profileId;
+                await upsertSession(s); 
+            }
         }
-
-        for (const s of firstPage.sessions) {
-            // Assign profileId to the session before upserting to ensure it belongs to the current profile
-            // instead of defaulting to 'default'.
-            s.profileId = profileId;
-            await upsertSession(s);
+        
+        // If all failed, return error. If at least one succeeded, we show partial results.
+        if (errors.length === apiKeys.length && errors.length > 0) {
+             return { sessions: [], error: errors[0] }; // Return first error
         }
         sessions = await getCachedSessions(profileId);
     }
 
     // 3. Trigger background sync for stale sessions
-    // We do not await this, so the UI is fast.
-    // However, in serverless environments, this might be cut short.
-    // In a long-running container (docker-compose), this is fine.
-    // We catch errors to prevent crashing.
     if (!isInitialFetch) {
       (async () => {
           try {
-              await syncStaleSessions(effectiveApiKey);
+              // passing undefined lets it use all keys
+              await syncStaleSessions(apiKey || undefined); 
           } catch (e) {
               console.error("Background session sync failed", e);
           }
@@ -232,52 +239,70 @@ export async function listSources(apiKey?: string | null): Promise<Source[]> {
     return MOCK_SOURCES;
   }
 
-  const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
-  if (!effectiveApiKey) {
+  // Determine keys
+  let apiKeys: string[] = [];
+  if (apiKey) {
+      apiKeys = [apiKey];
+  } else {
+      apiKeys = getApiKeys();
+  }
+
+  if (apiKeys.length === 0) {
     console.error("Jules API key is not configured.");
     return [];
   }
 
   let allSources: Source[] = [];
-  let nextPageToken: string | undefined | null = null;
+  const sourceIds = new Set<string>();
 
-  try {
-    do {
-      const url = new URL('https://jules.googleapis.com/v1alpha/sources');
-      // Set a page size to avoid fetching too many or too few if the API supports it
-      url.searchParams.set('pageSize', '100');
-      if (nextPageToken) {
-        url.searchParams.set('pageToken', nextPageToken);
-      }
-
-      const response = await fetchWithRetry(url.toString(), {
-        headers: {
-          'X-Goog-Api-Key': effectiveApiKey,
-        },
-        next: { revalidate: 300, tags: ['sources'] },
-      });
-
-      if (!response.ok) {
-        console.error(`Failed to fetch sources: ${response.status} ${response.statusText}`);
-        // If we have some sources, return them, otherwise return empty
-        if (allSources.length > 0) {
-          break;
+  for (const key of apiKeys) {
+      // We fetch sources for each key and merge
+      // Pagination needs to be handled PER KEY.
+      let keySources: Source[] = [];
+      let nextPageToken: string | undefined | null = null;
+      
+      try {
+        do {
+        const url = new URL('https://jules.googleapis.com/v1alpha/sources');
+        url.searchParams.set('pageSize', '100');
+        if (nextPageToken) {
+            url.searchParams.set('pageToken', nextPageToken);
         }
-        return [];
-      }
 
-      const data: ListSourcesResponse = await response.json();
-      if (data.sources) {
-        allSources = [...allSources, ...data.sources];
-      }
-      nextPageToken = data.nextPageToken;
-    } while (nextPageToken);
+        const response = await fetchWithRetry(url.toString(), {
+            headers: {
+            'X-Goog-Api-Key': key,
+            },
+            next: { revalidate: 300, tags: ['sources'] },
+        });
 
-    return allSources;
-  } catch (error) {
-    console.error('Error fetching sources:', error);
-    return [];
+        if (!response.ok) {
+            console.warn(`Failed to fetch sources for key ...${key.slice(-4)}: ${response.status} ${response.statusText}`);
+            // Don't abort other keys
+            break; 
+        }
+
+        const data: ListSourcesResponse = await response.json();
+        if (data.sources) {
+            keySources = [...keySources, ...data.sources];
+        }
+        nextPageToken = data.nextPageToken;
+        } while (nextPageToken);
+        
+        // Merge into allSources
+        for (const s of keySources) {
+            if (!sourceIds.has(s.id)) {
+                sourceIds.add(s.id);
+                allSources.push(s);
+            }
+        }
+
+      } catch (error) {
+        console.error(`Error fetching sources for key ...${key.slice(-4)}:`, error);
+      }
   }
+
+  return allSources;
 }
 
 export async function refreshSources() {

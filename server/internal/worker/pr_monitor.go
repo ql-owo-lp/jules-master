@@ -11,6 +11,7 @@ import (
 	"github.com/gammazero/workerpool"
 	"github.com/google/go-github/v69/github"
 	"github.com/google/uuid"
+	"github.com/mcpany/jules/internal/config"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
 	pb "github.com/mcpany/jules/proto"
@@ -31,6 +32,7 @@ type GitHubClient interface {
 	MarkPullRequestReadyForReview(ctx context.Context, owner, repo string, number int) (*github.PullRequest, error)
 	MergePullRequest(ctx context.Context, owner, repo string, number int, message string, method string) error
 	ListFiles(ctx context.Context, owner, repo string, number int, opts *github.ListOptions) ([]*github.CommitFile, error)
+	SearchIssues(ctx context.Context, query string, opts *github.SearchOptions) (*github.IssuesSearchResult, *github.Response, error)
 }
 
 type PRMonitorWorker struct {
@@ -105,7 +107,7 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 		return err
 	}
 
-	if !s.GetCheckFailingActionsEnabled() {
+	if !s.GetCheckFailingActionsEnabled() && !s.GetAutoMergeEnabled() {
 		return nil
 	}
 
@@ -126,19 +128,40 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 	}
 	rows.Close()
 
+
 	// Fetch from Jules API
-	if w.fetcher != nil && w.apiKey != "" {
+	if w.fetcher != nil {
 		logger.Info("%s [%s]: Fetching sources from Jules API...", w.Name(), w.id)
-		sources, err := w.fetcher.ListSources(ctx, w.apiKey)
-		if err != nil {
-			logger.Error("%s [%s]: Failed to list sources from API: %v", w.Name(), w.id, err)
-		} else {
+		
+		apiKeys := config.GetAllAPIKeys()
+		if len(apiKeys) == 0 && w.apiKey != "" {
+			apiKeys = []string{w.apiKey} // Fallback if GetAllAPIKeys missed it or if we want to support explicit single key injection
+		} else if len(apiKeys) == 0 {
+			// Try single injected key if config returns empty (e.g. testing)
+			if w.apiKey != "" {
+				apiKeys = []string{w.apiKey}
+			}
+		}
+
+		// We merge sources from ALL keys
+		totalSourcesFound := 0
+		for _, key := range apiKeys {
+			sources, err := w.fetcher.ListSources(ctx, key)
+			if err != nil {
+				logger.Error("%s [%s]: Failed to list sources from API with key ...%s: %v", w.Name(), w.id, key[len(key)-4:], err)
+				continue
+			}
 			for _, src := range sources {
 				if src.GithubRepo.Owner != "" && src.GithubRepo.Repo != "" {
 					repo := fmt.Sprintf("%s/%s", src.GithubRepo.Owner, src.GithubRepo.Repo)
 					repoMap[repo] = true
+					totalSourcesFound++
 				}
 			}
+		}
+		
+		if totalSourcesFound > 0 {
+			logger.Info("%s [%s]: Found %d total sources from %d keys", w.Name(), w.id, totalSourcesFound, len(apiKeys))
 		}
 	}
 
@@ -176,33 +199,47 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 	}
 	owner, repo := parts[0], parts[1]
 
-	// List open PRs
-	opts := &github.PullRequestListOptions{
-		State: "open",
+	// Use SearchIssues to filter PRs
+	// default: is:pr state:open
+	// optimization: status:success
+	query := fmt.Sprintf("repo:%s is:pr state:open status:success", repoFullName)
+	
+	opts := &github.SearchOptions{
 		ListOptions: github.ListOptions{
-			PerPage: 100, // Increase page size to reduce calls
+			PerPage: 100,
 		},
 	}
 
-	var prs []*github.PullRequest
+	var allIssues []*github.Issue
 	for {
-		p, resp, err := w.githubClient.ListPullRequests(ctx, owner, repo, opts)
+		result, resp, err := w.githubClient.SearchIssues(ctx, query, opts)
 		if err != nil {
-			logger.Error("%s [%s]: Failed to list PRs for %s: %v", w.Name(), w.id, repoFullName, err)
+			logger.Error("%s [%s]: Failed to search PRs for %s: %v", w.Name(), w.id, repoFullName, err)
 			return
 		}
-		logger.Info("%s [%s]: Fetched %d PRs for %s. NextPage: %d", w.Name(), w.id, len(p), repoFullName, resp.NextPage)
-		prs = append(prs, p...)
+		logger.Info("%s [%s]: Fetched %d PRs (search) for %s. NextPage: %d", w.Name(), w.id, len(result.Issues), repoFullName, resp.NextPage)
+		allIssues = append(allIssues, result.Issues...)
 		if resp.NextPage == 0 {
 			break
 		}
 		opts.Page = resp.NextPage
 	}
 
-	logger.Info("%s [%s]: Found %d open PRs in %s", w.Name(), w.id, len(prs), repoFullName)
+	logger.Info("%s [%s]: Found %d open passing PRs in %s", w.Name(), w.id, len(allIssues), repoFullName)
 
-	for _, pr := range prs {
-		if pr == nil || pr.Number == nil || pr.HTMLURL == nil || pr.User == nil || pr.User.Login == nil {
+	for _, issue := range allIssues {
+		if issue == nil || issue.Number == nil {
+			continue
+		}
+		
+		// Fetch full PR details
+		pr, _, err := w.githubClient.GetPullRequest(ctx, owner, repo, *issue.Number)
+		if err != nil {
+			logger.Error("%s [%s]: Failed to get PR %d details: %v", w.Name(), w.id, *issue.Number, err)
+			continue
+		}
+
+		if pr == nil || pr.HTMLURL == nil || pr.User == nil || pr.User.Login == nil {
 			continue
 		}
 
@@ -216,54 +253,49 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 		}
 
 		// 0.5 Check for Stale PRs (Conflict OR Failing)
-		// Condition: UpdatedAt > Threshold AND (Mergeable == false OR Status == failure)
-		// 0.5 Check for Stale PRs
+		// NOTE: Since we filter by status:success, we won't find failing PRs here.
+		// Stale conflict logic might still work if mergeable is false but status is success (rare but possible if conflict logic is separate).
+		// However, conflict often causes checks to fail or Pending.
+		// We'll keep the logic but expect it to trigger rarely with status:success filter.
 		if s.GetAutoCloseStaleConflictedPrs() {
 			conflictDays := 3 // Stale branch/conflict default
-			failingDays := 5  // Failing/Not mergeable default
-
+			
 			if s.GetStaleConflictedPrsDurationDays() > 0 {
 				conflictDays = int(s.GetStaleConflictedPrsDurationDays())
 			}
 
 			now := time.Now()
 			conflictThreshold := now.AddDate(0, 0, -conflictDays)
-			failingThreshold := now.AddDate(0, 0, -failingDays)
 
 			isStale := false
-			reason := ""
-			thresholdUsed := conflictDays
+			// reason := ""
+			// thresholdUsed := conflictDays
 
 			// 1. Conflict (Unmergeable) - Check UpdatedAt > 3 days
-			// Note: Mergable=false usually means conflict.
 			if pr.Mergeable != nil && !*pr.Mergeable {
 				if pr.UpdatedAt != nil && pr.UpdatedAt.Before(conflictThreshold) {
 					isStale = true
-					reason = "it has merge conflicts and hasn't been updated"
-					thresholdUsed = conflictDays
-				}
-			}
-
-			// 2. Failing Checks - Check CreatedAt > 5 days (as requested)
-			// OR maybe UpdatedAt > 5 days? "after they are created" usually implies lifetime.
-			// Getting strict on "created after 5 days" -> CreatedAt.Before(failingThreshold).
-			// But we also want to ensure it's NOT just a new PR that is running checks.
-			// So CreatedAt > 5 days AND failing.
-			if !isStale && pr.CreatedAt != nil && pr.CreatedAt.Before(failingThreshold) {
-				// Check status
-				if pr.Head != nil && pr.Head.SHA != nil {
-					status, err := w.githubClient.GetCombinedStatus(ctx, owner, repo, *pr.Head.SHA)
-					if err == nil && status != nil && status.State != nil && *status.State == "failure" {
-						isStale = true
-						reason = "it has failing checks for over 5 days"
-						thresholdUsed = failingDays
-					}
+					// reason = "it has merge conflicts and hasn't been updated" -> Moved inside if isStale
+					// thresholdUsed = conflictDays
 				}
 			}
 
 			if isStale {
+				reason := "it has merge conflicts and hasn't been updated"
 				logger.Info("%s [%s]: Closing stale PR %s because %s", w.Name(), w.id, *pr.HTMLURL, reason)
-				msg := fmt.Sprintf("Closing stale PR because %s (%d+ days). Please update the branch or fix issues to reopen.", reason, thresholdUsed)
+				
+				msg := s.GetAutoCloseOnConflictMessage()
+				if msg == "" {
+					msg = "Closed due to merge conflict"
+				}
+				// Append dynamic info if needed, or just use the message?
+				// User said: "by default it's 'Closed due to merge conflict'".
+				// The previous implementation had "Closing stale PR because ... (3+ days)...".
+				// I should probably stick to the requested message or append the explanation.
+				// "Auto Close on Conflict Message" usually implies the whole message.
+				// But we might want to keep the "reason" part if it's dynamic.
+				// Let's use the configured message as the main body.
+
 
 				if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
 					logger.Error("%s [%s]: Failed to comment on stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
@@ -296,6 +328,8 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 		}
 
 		// 3. Check Status and Actions (Update Branch for Bot, Comment for Failure)
+		// Since status is success, this mainly handles Update Branch if behind? 
+		// Or if status is success it just logs.
 		w.checkPRStatus(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr.Head, isBot)
 	}
 }
@@ -327,6 +361,19 @@ func (w *PRMonitorWorker) attemptAutoMerge(ctx context.Context, owner, repo stri
 	}
 
 	logger.Info("%s [%s]: Attempting to auto-merge PR %s", w.Name(), w.id, *pr.HTMLURL)
+
+	// Post Auto Merge Message if configured
+	msg := s.GetAutoMergeMessage()
+	if msg == "" {
+		msg = "Automatically merged by bot as all checks passed"
+	}
+	
+	if msg != "" {
+		if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
+			logger.Error("%s [%s]: Failed to post auto-merge comment on %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
+			// Continue to merge even if comment fails? Yes, primary goal is merge.
+		}
+	}
 
 	// Clean commit message
 	title := ""

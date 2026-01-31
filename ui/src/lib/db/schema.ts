@@ -128,6 +128,8 @@ export const settings = sqliteTable('settings', {
   autoContinueAllSessions: integer('auto_continue_all_sessions', { mode: 'boolean' }).notNull().default(true),
   autoMergeEnabled: integer('auto_merge_enabled', { mode: 'boolean' }).notNull().default(false),
   autoMergeMethod: text('auto_merge_method').notNull().default('squash'),
+  autoMergeMessage: text('auto_merge_message').notNull().default('Automatically merged by bot as all checks passed'),
+  autoCloseOnConflictMessage: text('auto_close_on_conflict_message').notNull().default('Closed due to merge conflict'),
   profileId: text('profile_id').references(() => profiles.id).notNull().default('default'),
 });
 

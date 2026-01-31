@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-github/v69/github"
 	"github.com/mcpany/jules/internal/service"
 	pb "github.com/mcpany/jules/proto"
+	"github.com/stretchr/testify/assert"
 )
 
 type MockGitHubClient struct {
@@ -23,6 +24,7 @@ type MockGitHubClient struct {
 	UpdateBranchCalled     bool
 	Files                  []*github.CommitFile
 	CombinedStatusError    error
+	IssuesSearchResult     *github.IssuesSearchResult
 }
 
 func (m *MockGitHubClient) GetCombinedStatus(ctx context.Context, owner, repo, ref string) (*github.CombinedStatus, error) {
@@ -68,11 +70,17 @@ func (m *MockGitHubClient) ListPullRequests(ctx context.Context, owner, repo str
 }
 
 func (m *MockGitHubClient) GetPullRequest(ctx context.Context, owner, repo string, number int) (*github.PullRequest, *github.Response, error) {
-	// Return first PR for simplicity or match logic
-	if len(m.PullRequests) > 0 {
-		return m.PullRequests[0], nil, nil
+	for _, pr := range m.PullRequests {
+		if pr.Number != nil && *pr.Number == number {
+			return pr, nil, nil
+		}
 	}
-	return nil, nil, nil
+	// Fallback to first if not found? No, better to return nil or error if not found to be correct.
+	// But existing tests might rely on loose matching?
+	// Given the previous implementation just returned [0], existing tests likely only have 1 PR or don't care.
+	// But Stale PR test has 4.
+	// Let's return nil if not found to be safe, or error.
+	return nil, nil, fmt.Errorf("PR %d not found in mock", number)
 }
 
 func (m *MockGitHubClient) ListCheckRunsForRef(ctx context.Context, owner, repo, ref string, opts *github.ListCheckRunsOptions) (*github.ListCheckRunsResults, *github.Response, error) {
@@ -153,10 +161,32 @@ func (m *MockGitHubClient) MergePullRequest(ctx context.Context, owner, repo str
     return nil
 }
 
+func (m *MockGitHubClient) SearchIssues(ctx context.Context, query string, opts *github.SearchOptions) (*github.IssuesSearchResult, *github.Response, error) {
+	if m.IssuesSearchResult != nil {
+		return m.IssuesSearchResult, &github.Response{}, nil
+	}
+	// Fallback for tests that establish PullRequests but not IssuesSearchResult
+	var issues []*github.Issue
+	for _, pr := range m.PullRequests {
+		issue := &github.Issue{
+			Number:           pr.Number,
+			State:            pr.State,
+			User:             pr.User,
+			HTMLURL:          pr.HTMLURL,
+			Title:            pr.Title,
+			Body:             pr.Body,
+			PullRequestLinks: &github.PullRequestLinks{URL: pr.URL},
+		}
+		issues = append(issues, issue)
+	}
+	return &github.IssuesSearchResult{Issues: issues, Total: github.Int(len(issues))}, &github.Response{}, nil
+}
+
 type MockSessionFetcher struct {
 	Session *RemoteSession
     Sources []Source
 	Err     error
+	ListSourcesCalls []string
 }
 
 func (m *MockSessionFetcher) GetSession(ctx context.Context, id, apiKey string) (*RemoteSession, error) {
@@ -164,6 +194,7 @@ func (m *MockSessionFetcher) GetSession(ctx context.Context, id, apiKey string) 
 }
 
 func (m *MockSessionFetcher) ListSources(ctx context.Context, apiKey string) ([]Source, error) {
+	m.ListSourcesCalls = append(m.ListSourcesCalls, apiKey)
     return m.Sources, m.Err
 }
 
@@ -679,13 +710,91 @@ func TestRunCheck_ClosesConflictPR(t *testing.T) {
 	// Verify comment
 	foundComment := false
 	for _, c := range mockGH.CreatedComments {
-		if strings.Contains(c, "Closing stale PR") {
+		if strings.Contains(c, "Closed due to merge conflict") {
 			foundComment = true
 			break
 		}
 	}
 	if !foundComment {
 		t.Error("expected comment explaining stale closure")
+	}
+}
+
+func TestRunCheck_ClosesConflictPR_WithCustomMessage(t *testing.T) {
+	db := setupTestDB(t)
+	settingsService := &service.SettingsServer{DB: db}
+	sessionService := &service.SessionServer{DB: db}
+
+	sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
+		Name: "test-session-conflict-custom",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+	nowMilli := time.Now().UnixMilli()
+	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-conflict-custom", "owner/repo", "test-job", time.Now(), "main", "test prompt")
+	
+    // Enable AutoCloseStaleConflictedPrs AND Custom Message
+	db.Exec(`INSERT INTO settings (
+		profile_id, auto_close_stale_conflicted_prs, auto_close_on_conflict_message, theme, auto_retry_message, auto_continue_message
+	) VALUES ('default', 1, 'Custom conflict message', 'system', '', '')`)
+
+	mockFetcher := &MockSessionFetcher{
+		Session: &RemoteSession{
+			Id:    sess.Id,
+			State: "IN_PROGRESS",
+			Outputs: []struct {
+				PullRequest *struct {
+					Url string `json:"url"`
+				} `json:"pullRequest"`
+			}{
+				{PullRequest: &struct {
+					Url string `json:"url"`
+				}{Url: "https://github.com/owner/repo/pull/56"}},
+			},
+		},
+	}
+
+	mockGH := &MockGitHubClient{
+		CombinedStatus: &github.CombinedStatus{
+			State: github.String("success"),
+		},
+		PullRequests: []*github.PullRequest{
+			{
+				State:     github.String("open"),
+				Number:    github.Int(56),
+				HTMLURL:   github.String("https://github.com/owner/repo/pull/56"),
+				Mergeable: github.Bool(false), // Conflicting!
+				UpdatedAt: &github.Timestamp{Time: time.Now().AddDate(0, 0, -6)},
+				Head: &github.PullRequestBranch{
+					SHA: github.String("sha-conflict-custom"),
+				},
+				User: &github.User{
+					Login: github.String("google-labs-jules"),
+				},
+			},
+		},
+	}
+
+	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
+	if err := worker.runCheck(context.Background()); err != nil {
+		t.Errorf("runCheck failed: %v", err)
+	}
+
+	if !mockGH.ClosePullRequestCalled {
+		t.Error("expected ClosePullRequest to be called")
+	}
+
+	foundComment := false
+	for _, c := range mockGH.CreatedComments {
+		if strings.Contains(c, "Custom conflict message") {
+			foundComment = true
+			break
+		}
+	}
+	if !foundComment {
+		t.Errorf("expected comment to contain 'Custom conflict message', got: %v", mockGH.CreatedComments)
 	}
 }
 
@@ -1155,4 +1264,39 @@ func TestRunCheck_CommentsOnTestDeletion(t *testing.T) {
 			t.Error("should NOT be marked ready for review if test files are deleted")
 		}
 	}
+}
+
+func TestPRMonitorWorker_RunCheck_MultiKey(t *testing.T) {
+	db := setupTestDB(t)
+	settingsService := &service.SettingsServer{DB: db}
+	sessionService := &service.SessionServer{DB: db}
+
+	// Setup Keys
+	t.Setenv("JULES_API_KEY", "key-1")
+	t.Setenv("JULES_API_KEY_2", "key-2")
+
+	// Setup Mock Fetcher
+	mockFetcher := &MockSessionFetcher{
+		Sources: []Source{
+			{GithubRepo: GithubRepo{Owner: "owner", Repo: "repo1"}},
+		},
+	}
+	
+	// Setup Mock GitHub
+	mockGH := &MockGitHubClient{
+		IssuesSearchResult: &github.IssuesSearchResult{
+			Issues: []*github.Issue{},
+			Total: github.Int(0),
+		},
+	}
+
+	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "default-key")
+	
+	err := worker.runCheck(context.Background())
+	assert.NoError(t, err)
+
+	// Verify that ListSources was called with both keys
+	assert.Equal(t, 2, len(mockFetcher.ListSourcesCalls))
+	assert.Contains(t, mockFetcher.ListSourcesCalls, "key-1")
+	assert.Contains(t, mockFetcher.ListSourcesCalls, "key-2")
 }

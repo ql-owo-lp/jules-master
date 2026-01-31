@@ -3,11 +3,14 @@ package worker
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,4 +72,60 @@ func TestSessionCacheWorker_RunCheck(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Greater(t, newLastUpdated, oldTime, "LastUpdated should be updated")
+}
+
+func TestSessionCacheWorker_SyncSession_MultiKey(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	// 1. Setup Keys
+	t.Setenv("JULES_API_KEY", "bad-key")
+	t.Setenv("JULES_API_KEY_1", "good-key")
+
+	// 2. Insert dummy session
+	_, err := db.Exec("INSERT INTO sessions (id, name, state, update_time, profile_id) VALUES (?, ?, ?, ?, ?)",
+		"session-123", "sessions/session-123", "IN_PROGRESS", "old-time", "default")
+	assert.NoError(t, err)
+
+	// 3. Setup Mock Server
+	var attempts int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		apiKey := r.Header.Get("X-Goog-Api-Key")
+		
+		if apiKey == "bad-key" {
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte("Forbidden"))
+			return
+		}
+		
+		if apiKey == "good-key" {
+			w.WriteHeader(http.StatusOK)
+			resp := map[string]string{
+				"state":      "COMPLETED",
+				"updateTime": "2024-01-01T12:00:00Z",
+			}
+			json.NewEncoder(w).Encode(resp)
+			return
+		}
+		
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	defer server.Close()
+
+	// 4. Test Sync
+	syncer := &HTTPSessionSyncer{
+		DB:      db,
+		BaseURL: server.URL,
+	}
+
+	err = syncer.SyncSession(context.Background(), "session-123")
+	assert.NoError(t, err)
+	assert.Equal(t, 2, attempts, "Should try both keys")
+
+	// 5. Verify DB update
+	var state string
+	err = db.QueryRow("SELECT state FROM sessions WHERE id = ?", "session-123").Scan(&state)
+	assert.NoError(t, err)
+	assert.Equal(t, "COMPLETED", state)
 }

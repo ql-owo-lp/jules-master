@@ -254,6 +254,8 @@ export type Settings = {
   profileId?: string;
   autoMergeEnabled?: boolean;
   autoMergeMethod?: string;
+  autoMergeMessage?: string;
+  autoCloseOnConflictMessage?: string;
 };
 
 export type Profile = {

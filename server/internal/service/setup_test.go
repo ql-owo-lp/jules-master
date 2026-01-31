@@ -55,6 +55,7 @@ func createTables(t *testing.T, conn *sql.DB) {
             check_failing_actions_interval INTEGER DEFAULT 600,
             check_failing_actions_threshold INTEGER DEFAULT 10,
             auto_close_stale_conflicted_prs BOOLEAN DEFAULT 0,
+            auto_close_on_conflict_message TEXT DEFAULT '',
             stale_conflicted_prs_duration_days INTEGER DEFAULT 3,
             history_prompts_count INTEGER DEFAULT 10,
             min_session_interaction_interval INTEGER DEFAULT 60,
