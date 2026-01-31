@@ -167,4 +167,21 @@ describe('JobCreationForm', () => {
     const promptTextarea = screen.getByRole('textbox', { name: /Prompt/i });
     expect(promptTextarea).toHaveAttribute('required');
   });
+
+  it('should display character count when prompt is entered', async () => {
+    const onJobsCreated = vi.fn();
+    const onCreateJob = vi.fn();
+
+    render(<JobCreationForm onJobsCreated={onJobsCreated} onCreateJob={onCreateJob} />);
+    const textarea = await screen.findByRole('textbox', { name: /Session Prompts/i });
+
+    // Initially, count should not be visible
+    expect(screen.queryByText(/chars/)).toBeNull();
+
+    fireEvent.change(textarea, { target: { value: 'Hello' } });
+    expect(await screen.findByText('5 chars')).toBeInTheDocument();
+
+    fireEvent.change(textarea, { target: { value: 'Hello World' } });
+    expect(await screen.findByText('11 chars')).toBeInTheDocument();
+  });
 });
