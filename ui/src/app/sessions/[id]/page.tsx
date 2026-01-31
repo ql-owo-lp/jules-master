@@ -11,6 +11,7 @@ import type { Session, Job, Activity, PredefinedPrompt } from "@/lib/types";
 import { getSession, approvePlan, sendMessage, listActivities } from "./actions";
 import { getJobs, getQuickReplies } from "@/app/config/actions";
 import { ActivityFeed } from "@/components/activity-feed";
+import { mergeActivities } from "@/lib/activity-utils";
 import { PrStatus } from "@/components/pr-status";
 import { useEnv } from "@/components/env-provider";
 import { NewJobDialog } from "@/components/new-job-dialog";
@@ -116,7 +117,7 @@ export default function SessionDetailPage() {
         const isNowDone = fetchedSession.state === 'COMPLETED' || fetchedSession.state === 'FAILED';
         
         setSession(fetchedSession);
-        setActivities(fetchedActivities.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime()));
+        setActivities(prev => mergeActivities(prev, fetchedActivities));
         setLastUpdatedAt(new Date());
         
         // If the session just finished, deactivate active polling
