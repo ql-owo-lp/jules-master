@@ -5,11 +5,11 @@ test.describe('Session Actions', () => {
   test.beforeEach(async ({ page }) => {
     // Mock API key to enable session fetching logic in the frontend
     await page.addInitScript(() => {
-      window.localStorage.setItem('jules-api-key', '"test-api-key"');
+      window.localStorage.setItem('jules-api-key-default', '"test-api-key"');
     });
   });
 
-  test.skip('should open Send Message dialog and Quick Reply popover', async ({ page }) => {
+  test('should open Send Message dialog and Quick Reply popover', async ({ page }) => {
     await page.goto('/');
 
     // Ensure API key is set (if injection failed, set it via UI)

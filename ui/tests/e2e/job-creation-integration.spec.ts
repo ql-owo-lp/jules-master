@@ -5,7 +5,7 @@ test.describe('Job Creation with JULES_API_KEY', () => {
   // We do NOT mock the API key in localStorage.
   // We expect it to be passed via EnvProvider from process.env.JULES_API_KEY
 
-  test.skip('should allow creating a job when JULES_API_KEY is present in env', async ({ page }) => {
+  test('should allow creating a job when JULES_API_KEY is present in env', async ({ page }) => {
     // Navigate to the home page
     await page.goto('/');
 
@@ -24,8 +24,8 @@ test.describe('Job Creation with JULES_API_KEY', () => {
     await expect(page.locator('#repository-skeleton')).toBeHidden({ timeout: 10000 });
 
     // Select Repository (Mock Data or Real Data depending on backend)
-    // Since MOCK_API=true in playwright config, we expect mock data.
-    const repoCombobox = page.getByRole('combobox').filter({ hasText: /test-owner\/test-repo/ }).first();
+    // We use the seeded repo 'test/repo'
+    const repoCombobox = page.getByRole('combobox').filter({ hasText: /test\/repo/ }).first();
     await expect(repoCombobox).toBeVisible();
 
     // Select Branch

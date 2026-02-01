@@ -17,7 +17,14 @@ console.log(`Seeding database at ${dbPath}...`);
 const sqlite = new Database(dbPath);
 const db = drizzle(sqlite);
 
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+
 async function main() {
+  console.log('Running migrations...');
+  const migrationsFolder = path.join(process.cwd(), 'src/lib/db/migrations');
+  await migrate(db, { migrationsFolder });
+  console.log('Migrations completed.');
+
   const timestamp = new Date().toISOString();
 
   // 1. Create Default Profile
@@ -139,6 +146,38 @@ async function main() {
           }
       ]);
       console.log('Inserted session.');
+    }
+
+    const existingMock1 = await db.select().from(sessions).where(eq(sessions.id, 'mock-1'));
+    if (!existingMock1.length) {
+       await db.insert(sessions).values([
+          {
+              id: 'mock-1',
+              name: 'Mock Session 1',
+              title: 'Mock Session 1',
+              prompt: 'Mock Prompt 1',
+              state: 'COMPLETED',
+              lastUpdated: Date.now(),
+              profileId: 'default'
+          }
+       ]);
+       console.log('Inserted Mock Session 1.');
+    }
+
+    const existingMock2 = await db.select().from(sessions).where(eq(sessions.id, 'mock-2'));
+    if (!existingMock2.length) {
+       await db.insert(sessions).values([
+          {
+              id: 'mock-2',
+              name: 'Mock Session 2',
+              title: 'Mock Session 2',
+              prompt: 'Mock Prompt 2',
+              state: 'AWAITING_USER_FEEDBACK', // Matches test expectation
+              lastUpdated: Date.now(),
+              profileId: 'default'
+          }
+       ]);
+       console.log('Inserted Mock Session 2.');
     }
   } catch(e) {
      console.error('Error inserting session:', e);

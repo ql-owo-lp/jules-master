@@ -8,7 +8,7 @@ test.describe('PR Conflict Settings', () => {
         // However, we can also rely on the integration test approach where we modify via UI and verify persistence.
     });
 
-  test.skip('should allow toggling Close PR on Conflict setting', async ({ page }) => {
+  test('should allow toggling Close PR on Conflict setting', async ({ page }) => {
     await page.goto('/settings?tab=automation');
 
     // Locate the toggle. It might be off by default.
