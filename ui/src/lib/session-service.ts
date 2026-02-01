@@ -102,7 +102,9 @@ export async function getCachedSessions(profileId: string = 'default'): Promise<
     id: sessions.id,
     name: sessions.name,
     title: sessions.title,
-    prompt: sessions.prompt,
+    // Optimization: Truncate prompt to 500 chars to reduce payload size.
+    // The full prompt is not needed for the list view, only the topic line (first line).
+    prompt: sql<string>`substr(${sessions.prompt}, 1, 500)`,
     sourceContext: sessions.sourceContext,
     createTime: sessions.createTime,
     updateTime: sessions.updateTime,
