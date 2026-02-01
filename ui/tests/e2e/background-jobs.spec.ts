@@ -4,16 +4,17 @@ import fs from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
 
-const dbPath = path.join(process.cwd(), 'data', 'sqlite.db');
+// Use the same DB as the app (defined in playwright.config.ts)
+const dbPath = process.env.DATABASE_URL || '/tmp/e2e_jules.db';
 
 test.describe('Background Jobs Progress', () => {
   let jobId = 'e2e-progress-job';
 
   test.beforeAll(() => {
-    // Ensure DB exists
-    if (!fs.existsSync(dbPath)) {
-        throw new Error('Database not found. Please run the app first.');
-    }
+    // Ensure DB exists (Playwright webServer should have created it)
+    // if (!fs.existsSync(dbPath)) {
+    //    throw new Error('Database not found. Please run the app first. ' + dbPath);
+    // }
 
     // Direct DB manipulation to setup test state
     const db = new Database(dbPath);
@@ -23,8 +24,8 @@ test.describe('Background Jobs Progress', () => {
 
     // Create a PROCESSING job
     db.prepare(`
-      INSERT INTO jobs (id, name, session_ids, created_at, repo, branch, status, session_count, prompt, background)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO jobs (id, name, session_ids, created_at, repo, branch, status, session_count, prompt, background, profile_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       jobId,
       'E2E Progress Job',
@@ -35,7 +36,8 @@ test.describe('Background Jobs Progress', () => {
       'PROCESSING',
       10, // Total 10
       'Prompt',
-      1 // true
+      1, // true
+      'default'
     );
 
     db.close();
@@ -47,7 +49,7 @@ test.describe('Background Jobs Progress', () => {
     db.close();
   });
 
-  test.skip('should display progress bar for processing jobs', async ({ page }) => {
+  test('should display progress bar for processing jobs', async ({ page }) => {
     // 1. Navigate to homepage
     await page.goto('/');
 

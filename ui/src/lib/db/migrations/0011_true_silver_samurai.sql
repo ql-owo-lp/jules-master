@@ -1,0 +1,2 @@
+ALTER TABLE `settings` ADD `auto_merge_message` text DEFAULT 'Automatically merged by bot as all checks passed' NOT NULL;--> statement-breakpoint
+ALTER TABLE `settings` ADD `auto_close_on_conflict_message` text DEFAULT 'Closed due to merge conflict' NOT NULL;

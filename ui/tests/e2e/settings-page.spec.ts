@@ -26,7 +26,7 @@ test.describe('Settings Page', () => {
     await expect(page.getByLabel('Idle Poll Interval (seconds)')).toBeVisible();
   });
 
-  test.skip('should switch tabs and show content', async ({ page }) => {
+  test('should switch tabs and show content', async ({ page }) => {
     await page.goto('/settings');
 
     // Switch to Messages tab

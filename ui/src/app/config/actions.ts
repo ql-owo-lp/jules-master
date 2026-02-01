@@ -38,7 +38,13 @@ const MOCK_SETTINGS: Settings = {
     minSessionInteractionInterval: 0,
     retryTimeout: 0,
     profileId: '',
-    maxConcurrentBackgroundWorkers: 0
+    maxConcurrentBackgroundWorkers: 0,
+    autoApprovalAllSessions: false,
+    autoContinueAllSessions: false,
+    autoMergeEnabled: false,
+    autoMergeMethod: 'squash',
+    autoMergeMessage: '',
+    autoCloseOnConflictMessage: ''
 };
 const MOCK_PREDEFINED_PROMPTS: PredefinedPrompt[] = [
     { id: '1', title: 'Fix Lint', prompt: 'Fix lint errors', profileId: 'default' }
