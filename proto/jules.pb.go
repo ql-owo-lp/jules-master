@@ -162,6 +162,7 @@ type Settings struct {
 	AutoMergeMethod            string `protobuf:"bytes,36,opt,name=auto_merge_method,json=autoMergeMethod,proto3" json:"auto_merge_method,omitempty"` // "squash" or "rebase"
 	AutoMergeMessage           string `protobuf:"bytes,37,opt,name=auto_merge_message,json=autoMergeMessage,proto3" json:"auto_merge_message,omitempty"`
 	AutoCloseOnConflictMessage string `protobuf:"bytes,38,opt,name=auto_close_on_conflict_message,json=autoCloseOnConflictMessage,proto3" json:"auto_close_on_conflict_message,omitempty"`
+	ClosePrOnConflictEnabled   bool   `protobuf:"varint,39,opt,name=close_pr_on_conflict_enabled,json=closePrOnConflictEnabled,proto3" json:"close_pr_on_conflict_enabled,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
@@ -460,6 +461,13 @@ func (x *Settings) GetAutoCloseOnConflictMessage() string {
 		return x.AutoCloseOnConflictMessage
 	}
 	return ""
+}
+
+func (x *Settings) GetClosePrOnConflictEnabled() bool {
+	if x != nil {
+		return x.ClosePrOnConflictEnabled
+	}
+	return false
 }
 
 type GetSettingsRequest struct {
@@ -3461,7 +3469,7 @@ var File_jules_proto protoreflect.FileDescriptor
 
 const file_jules_proto_rawDesc = "" +
 	"\n" +
-	"\vjules.proto\x12\x05jules\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xc7\x10\n" +
+	"\vjules.proto\x12\x05jules\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x87\x11\n" +
 	"\bSettings\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12,\n" +
 	"\x12idle_poll_interval\x18\x02 \x01(\x05R\x10idlePollInterval\x120\n" +
@@ -3503,7 +3511,8 @@ const file_jules_proto_rawDesc = "" +
 	"\x12auto_merge_enabled\x18# \x01(\bR\x10autoMergeEnabled\x12*\n" +
 	"\x11auto_merge_method\x18$ \x01(\tR\x0fautoMergeMethod\x12,\n" +
 	"\x12auto_merge_message\x18% \x01(\tR\x10autoMergeMessage\x12B\n" +
-	"\x1eauto_close_on_conflict_message\x18& \x01(\tR\x1aautoCloseOnConflictMessage\"3\n" +
+	"\x1eauto_close_on_conflict_message\x18& \x01(\tR\x1aautoCloseOnConflictMessage\x12>\n" +
+	"\x1cclose_pr_on_conflict_enabled\x18' \x01(\bR\x18closePrOnConflictEnabled\"3\n" +
 	"\x12GetSettingsRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\"D\n" +
