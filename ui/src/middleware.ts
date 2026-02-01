@@ -22,7 +22,7 @@ export function middleware(req: NextRequest) {
   // Content Security Policy
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}';
+    script-src 'self' 'unsafe-eval' 'nonce-${nonce}';
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' data: https:;
     font-src 'self' https://fonts.gstatic.com;
