@@ -33,8 +33,9 @@ test.describe('PR Conflict Settings', () => {
     await page.getByRole('button', { name: 'Save Automation Settings' }).click();
 
     // Verify toast
-    await expect(page.getByText('Settings Saved')).toBeVisible();
-    await expect(page.getByText('Settings Saved')).toBeHidden();
+    const settingsSavedToast = page.getByText('Settings Saved', { exact: true });
+    await expect(settingsSavedToast).toBeVisible();
+    await expect(settingsSavedToast).toBeHidden();
 
     // Reload page to verify persistence
     await page.reload();
