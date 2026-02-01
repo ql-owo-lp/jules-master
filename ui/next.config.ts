@@ -1,5 +1,6 @@
 
 import type {NextConfig} from 'next';
+import path from 'path';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -32,6 +33,10 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ['better-sqlite3', '@grpc/grpc-js'],
+  webpack: (config) => {
+    config.resolve.modules.push(path.resolve(__dirname, 'node_modules'));
+    return config;
+  },
 };
 
 export default nextConfig;

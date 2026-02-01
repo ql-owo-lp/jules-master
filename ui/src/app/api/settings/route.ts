@@ -25,7 +25,8 @@ export async function GET(request: Request) {
                 lineClamp: 3,
                 sessionItemsPerPage: 10,
                 maxConcurrentBackgroundWorkers: 10,
-                profileId: profileId
+                profileId: profileId,
+                closePrOnConflictEnabled: false
             } as unknown as Settings);
         }
 
