@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Session, Job, PredefinedPrompt } from "@/lib/types";
-import { RefreshCw, Briefcase, X, Loader2, MessageSquare, Hand, CheckCircle2, MessageSquareReply } from "lucide-react";
+import { RefreshCw, Briefcase, X, Loader2, MessageSquare, Hand, CheckCircle2, MessageSquareReply, Wand2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -23,6 +23,8 @@ import { SessionTable } from "./session-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem, CommandList } from "./ui/command";
+import { NewJobDialog } from "@/components/new-job-dialog";
+import { useEnv } from "@/components/env-provider";
 
 type SessionListProps = {
   sessionMap: Map<string, Session>;
@@ -80,6 +82,11 @@ export function SessionList({
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
   const [openAccordionItems, setOpenAccordionItems] = useState<string[]>(jobIdParam ? [jobIdParam] : []);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+
+  const { hasJulesApiKey: hasEnvJulesApiKey } = useEnv();
+  const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+  const [apiKey] = useLocalStorage<string | null>(`jules-api-key-${currentProfileId}`, null);
+  const hasJulesApiKey = !!(hasEnvJulesApiKey || apiKey);
 
   useEffect(() => {
     if (!isActionPending) {
@@ -249,11 +256,17 @@ export function SessionList({
         <CardContent>
           {(jobs.length === 0 && unknownSessions.length === 0) ? (
             <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
-              <Briefcase className="h-12 w-12 mb-4" />
+              <Briefcase className="h-12 w-12 mb-4 opacity-50" />
               <p className="font-semibold text-lg">No jobs found</p>
-              <p className="text-sm">
+              <p className="text-sm mb-4">
                 Create a new job to see jobs and sessions here.
               </p>
+              <NewJobDialog>
+                <Button disabled={!hasJulesApiKey}>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  Create New Job
+                </Button>
+              </NewJobDialog>
             </div>
           ) : (
             <Accordion 
