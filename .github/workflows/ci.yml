@@ -109,6 +109,8 @@ jobs:
           # 2. Run Playwright Tests against network host (localhost:9002)
           docker run --rm \
             --network host \
+            -v shared-data:/app/data \
+            -e DATABASE_URL=/app/data/sqlite.db \
             -e TEST_TARGET_URL=http://localhost:9002 \
             -e TEST_SKIP_WEBSERVER=true \
             -e CI=true \
