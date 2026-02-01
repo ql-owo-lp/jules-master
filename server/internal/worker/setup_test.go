@@ -58,7 +58,8 @@ func createTables(t *testing.T, conn *sql.DB) {
             auto_continue_all_sessions BOOLEAN DEFAULT 1,
             auto_merge_enabled BOOLEAN DEFAULT 0,
             auto_merge_method TEXT DEFAULT 'squash',
-            auto_close_on_conflict_message TEXT DEFAULT ''
+            auto_close_on_conflict_message TEXT DEFAULT '',
+            close_pr_on_conflict_enabled BOOLEAN DEFAULT 0
         );`,
 		`CREATE TABLE profiles (
             id TEXT PRIMARY KEY,

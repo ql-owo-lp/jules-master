@@ -81,9 +81,9 @@ export async function listSessions(
   requestId?: string,
   profileId: string = 'default'
 ): Promise<{ sessions: Session[], error?: string }> {
-  if (process.env.MOCK_API === 'true') {
-     return { sessions: MOCK_SESSIONS };
-  }
+  // if (process.env.MOCK_API === 'true') {
+  //    return { sessions: MOCK_SESSIONS };
+  // }
 
   // Determine keys
   let apiKeys: string[] = [];

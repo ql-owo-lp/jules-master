@@ -142,6 +142,7 @@ export interface Settings {
   autoMergeMethod: string;
   autoMergeMessage: string;
   autoCloseOnConflictMessage: string;
+  closePrOnConflictEnabled: boolean;
 }
 
 export interface GetSettingsRequest {
@@ -499,6 +500,7 @@ function createBaseSettings(): Settings {
     autoMergeMethod: "",
     autoMergeMessage: "",
     autoCloseOnConflictMessage: "",
+    closePrOnConflictEnabled: false,
   };
 }
 
@@ -617,6 +619,9 @@ export const Settings: MessageFns<Settings> = {
     }
     if (message.autoCloseOnConflictMessage !== "") {
       writer.uint32(306).string(message.autoCloseOnConflictMessage);
+    }
+    if (message.closePrOnConflictEnabled !== false) {
+      writer.uint32(312).bool(message.closePrOnConflictEnabled);
     }
     return writer;
   },
@@ -932,6 +937,14 @@ export const Settings: MessageFns<Settings> = {
           message.autoCloseOnConflictMessage = reader.string();
           continue;
         }
+        case 39: {
+          if (tag !== 312) {
+            break;
+          }
+
+          message.closePrOnConflictEnabled = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1125,6 +1138,11 @@ export const Settings: MessageFns<Settings> = {
         : isSet(object.auto_close_on_conflict_message)
         ? globalThis.String(object.auto_close_on_conflict_message)
         : "",
+      closePrOnConflictEnabled: isSet(object.closePrOnConflictEnabled)
+        ? globalThis.Boolean(object.closePrOnConflictEnabled)
+        : isSet(object.close_pr_on_conflict_enabled)
+        ? globalThis.Boolean(object.close_pr_on_conflict_enabled)
+        : false,
     };
   },
 
@@ -1244,6 +1262,9 @@ export const Settings: MessageFns<Settings> = {
     if (message.autoCloseOnConflictMessage !== "") {
       obj.autoCloseOnConflictMessage = message.autoCloseOnConflictMessage;
     }
+    if (message.closePrOnConflictEnabled !== false) {
+      obj.closePrOnConflictEnabled = message.closePrOnConflictEnabled;
+    }
     return obj;
   },
 
@@ -1290,6 +1311,7 @@ export const Settings: MessageFns<Settings> = {
     message.autoMergeMethod = object.autoMergeMethod ?? "";
     message.autoMergeMessage = object.autoMergeMessage ?? "";
     message.autoCloseOnConflictMessage = object.autoCloseOnConflictMessage ?? "";
+    message.closePrOnConflictEnabled = object.closePrOnConflictEnabled ?? false;
     return message;
   },
 };

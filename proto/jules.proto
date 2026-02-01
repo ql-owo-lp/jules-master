@@ -146,6 +146,7 @@ message Settings {
   string auto_merge_method = 36; // "squash" or "rebase"
   string auto_merge_message = 37;
   string auto_close_on_conflict_message = 38;
+  bool close_pr_on_conflict_enabled = 39;
 }
 
 message GetSettingsRequest {

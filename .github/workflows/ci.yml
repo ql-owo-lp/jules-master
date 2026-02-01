@@ -88,6 +88,8 @@ jobs:
             -e PORT=9002 \
             -e DATABASE_URL=/app/data/sqlite.db \
             -v shared-data:/app/data \
+            -e MOCK_API=true \
+            -e JULES_API_KEY=mock-api-key \
             nextn-app:latest
 
           # Initial wait for container
@@ -114,6 +116,8 @@ jobs:
             -e TEST_TARGET_URL=http://localhost:9002 \
             -e TEST_SKIP_WEBSERVER=true \
             -e CI=true \
+            -e MOCK_API=true \
+            -e JULES_API_KEY=mock-api-key \
             jules-test:latest \
             npm run test:e2e
 
