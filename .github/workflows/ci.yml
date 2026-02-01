@@ -90,6 +90,7 @@ jobs:
             -v shared-data:/app/data \
             -e MOCK_API=true \
             -e JULES_API_KEY=mock-api-key \
+            -e HYBRID_MOCK=true \
             nextn-app:latest
 
           # Initial wait for container

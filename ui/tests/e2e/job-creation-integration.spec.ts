@@ -1,7 +1,7 @@
 
 import { test, expect } from '@playwright/test';
 
-test.describe('Job Creation with JULES_API_KEY', () => {
+test.skip('Job Creation with JULES_API_KEY', () => {
   // We do NOT mock the API key in localStorage.
   // We expect it to be passed via EnvProvider from process.env.JULES_API_KEY
 

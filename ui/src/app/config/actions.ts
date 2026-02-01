@@ -57,9 +57,9 @@ const MOCK_QUICK_REPLIES: PredefinedPrompt[] = [
 // --- Jobs ---
 export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]> {
     return new Promise((resolve, reject) => {
-        // if (process.env.MOCK_API === 'true') {
-        //      return resolve(MOCK_JOBS);
-        // }
+        if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
+             return resolve(MOCK_JOBS);
+        }
         // ListJobs currently returns all, we might filter by profileId client-side
         // or update backend to support filtering.
         jobClient.listJobs({}, (err, response) => {
@@ -78,9 +78,9 @@ export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]
 
 export async function addJob(job: LocalJob): Promise<void> {
     return new Promise((resolve, reject) => {
-        // if (process.env.MOCK_API === 'true') {
-        //      return resolve();
-        // }
+        if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
+             return resolve();
+        }
         const req = {
             ...job,
             profileId: job.profileId || 'default',
@@ -105,10 +105,9 @@ export async function addJob(job: LocalJob): Promise<void> {
 }
 
 export async function getPendingBackgroundWorkCount(profileId: string = 'default'): Promise<{ pendingJobs: number, retryingSessions: number }> {
-
-    // if (process.env.MOCK_API === 'true') {
-    //     return { pendingJobs: 0, retryingSessions: 0 };
-    // }
+    if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
+        return { pendingJobs: 0, retryingSessions: 0 };
+    }
     // Fetch all jobs and sessions and filter.
     // Ideally backend should provide this.
     try {
@@ -149,7 +148,7 @@ export async function getPendingBackgroundWorkCount(profileId: string = 'default
 // --- Predefined Prompts ---
 export async function getPredefinedPrompts(profileId: string = 'default'): Promise<PredefinedPrompt[]> {
     return new Promise((resolve, reject) => {
-        if (process.env.MOCK_API === 'true') {
+        if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
              return resolve(MOCK_PREDEFINED_PROMPTS.filter(p => p.profileId === profileId));
         }
         promptClient.listPredefinedPrompts({}, (err, res) => {
@@ -326,9 +325,9 @@ export async function saveRepoPrompt(repo: string, prompt: string, _profileId: s
 // --- Settings ---
 export async function getSettings(profileId: string = 'default'): Promise<Settings | undefined> {
      return new Promise((resolve, reject) => {
-        //  if (process.env.MOCK_API === 'true') {
-        //      return resolve(MOCK_SETTINGS);
-        //  }
+         if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
+             return resolve(MOCK_SETTINGS);
+         }
          settingsClient.getSettings({ profileId }, (err, res) => {
              if (err) return reject(err);
              resolve(res);
