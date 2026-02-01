@@ -34,6 +34,7 @@ test.describe('PR Conflict Settings', () => {
 
     // Verify toast
     await expect(page.getByText('Settings Saved')).toBeVisible();
+    await expect(page.getByText('Settings Saved')).toBeHidden();
 
     // Reload page to verify persistence
     await page.reload();
