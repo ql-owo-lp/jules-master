@@ -12,7 +12,9 @@ test.describe('Job Creation', () => {
   test('should open new job dialog and fill form with mock data', async ({ page }) => {
     await page.goto('/');
 
-    await page.getByRole('button', { name: 'Create New Job' }).click();
+    // There might be multiple "Create New Job" buttons (one in header, one in empty state)
+    // We click the first one we find.
+    await page.getByRole('button', { name: 'Create New Job' }).first().click();
 
     await expect(page.getByRole('heading', { name: 'Create a New Job' })).toBeVisible();
 
