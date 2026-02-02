@@ -201,8 +201,7 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 
 	// Use SearchIssues to filter PRs
 	// default: is:pr state:open
-	// optimization: status:success
-	query := fmt.Sprintf("repo:%s is:pr state:open status:success", repoFullName)
+	query := fmt.Sprintf("repo:%s is:pr state:open", repoFullName)
 	
 	opts := &github.SearchOptions{
 		ListOptions: github.ListOptions{
@@ -253,10 +252,6 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 		}
 
 		// 0.5 Check for Stale PRs (Conflict OR Failing)
-		// NOTE: Since we filter by status:success, we won't find failing PRs here.
-		// Stale conflict logic might still work if mergeable is false but status is success (rare but possible if conflict logic is separate).
-		// However, conflict often causes checks to fail or Pending.
-		// We'll keep the logic but expect it to trigger rarely with status:success filter.
 		if s.GetAutoCloseStaleConflictedPrs() {
 			conflictDays := 3 // Stale branch/conflict default
 			
