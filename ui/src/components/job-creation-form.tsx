@@ -92,8 +92,16 @@ export function JobCreationForm({
 
   // Track selected prompt ID to make the combobox display the selected item correctly
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
+  const [modifierKey, setModifierKey] = useState<string>("Ctrl");
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    if (navigator.platform.indexOf('Mac') > -1) {
+      setModifierKey("⌘");
+    }
+  }, []);
   
   useEffect(() => {
     setIsClient(true);
@@ -414,6 +422,13 @@ export function JobCreationForm({
     return str.length > length ? str.substring(0, length) + "..." : str;
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      formRef.current?.requestSubmit();
+    }
+  };
+
   const promptOptions: ComboboxGroup[] = useMemo(() => {
     const options: ComboboxGroup[] = [];
 
@@ -471,7 +486,7 @@ export function JobCreationForm({
             </Tooltip>
         )}
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} ref={formRef}>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -545,6 +560,7 @@ export function JobCreationForm({
                   // If user types, we deselect any suggestion because it might differ now
                   if (selectedPromptId) setSelectedPromptId(null);
               }}
+              onKeyDown={handleKeyDown}
               disabled={isPending || disabled}
               aria-label="Session Prompts"
               required
@@ -683,7 +699,10 @@ export function JobCreationForm({
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end">
+        <CardFooter className="flex justify-end items-center gap-4">
+          <span className="text-xs text-muted-foreground hidden sm:inline-block">
+            Press <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{modifierKey} + Enter</kbd> to submit
+          </span>
           <Button
             type="submit"
             disabled={isPending || disabled || !finalPrompt.trim()}
