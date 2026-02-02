@@ -25,6 +25,7 @@ type MockGitHubClient struct {
 	Files                  []*github.CommitFile
 	CombinedStatusError    error
 	IssuesSearchResult     *github.IssuesSearchResult
+	SearchIssuesQuery      string
 }
 
 func (m *MockGitHubClient) GetCombinedStatus(ctx context.Context, owner, repo, ref string) (*github.CombinedStatus, error) {
@@ -162,6 +163,7 @@ func (m *MockGitHubClient) MergePullRequest(ctx context.Context, owner, repo str
 }
 
 func (m *MockGitHubClient) SearchIssues(ctx context.Context, query string, opts *github.SearchOptions) (*github.IssuesSearchResult, *github.Response, error) {
+	m.SearchIssuesQuery = query
 	if m.IssuesSearchResult != nil {
 		return m.IssuesSearchResult, &github.Response{}, nil
 	}
@@ -1299,4 +1301,52 @@ func TestPRMonitorWorker_RunCheck_MultiKey(t *testing.T) {
 	assert.Equal(t, 2, len(mockFetcher.ListSourcesCalls))
 	assert.Contains(t, mockFetcher.ListSourcesCalls, "key-1")
 	assert.Contains(t, mockFetcher.ListSourcesCalls, "key-2")
+}
+
+func TestRunCheck_QueryDoesNotFilterByStatus(t *testing.T) {
+	db := setupTestDB(t)
+	settingsService := &service.SettingsServer{DB: db}
+	sessionService := &service.SessionServer{DB: db}
+
+	sess, err := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{
+		Name:      "test-session-query",
+		ProfileId: "default",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+	nowMilli := time.Now().UnixMilli()
+	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-query", "owner/repo", "test-job", time.Now(), "main", "test prompt")
+
+	mockFetcher := &MockSessionFetcher{
+		Session: &RemoteSession{
+			Id:    sess.Id,
+			State: "IN_PROGRESS",
+			Outputs: []struct {
+				PullRequest *struct {
+					Url string `json:"url"`
+				} `json:"pullRequest"`
+			}{
+				{PullRequest: &struct {
+					Url string `json:"url"`
+				}{Url: "https://github.com/owner/repo/pull/1"}},
+			},
+		},
+	}
+
+	mockGH := &MockGitHubClient{
+		IssuesSearchResult: &github.IssuesSearchResult{
+			Issues: []*github.Issue{},
+			Total:  github.Int(0),
+		},
+	}
+
+	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "test-api-key")
+	err = worker.runCheck(context.Background())
+	assert.NoError(t, err)
+
+	if strings.Contains(mockGH.SearchIssuesQuery, "status:success") {
+		t.Errorf("Search query should not contain 'status:success', got: %s", mockGH.SearchIssuesQuery)
+	}
 }

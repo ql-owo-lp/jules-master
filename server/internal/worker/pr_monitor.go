@@ -201,8 +201,7 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 
 	// Use SearchIssues to filter PRs
 	// default: is:pr state:open
-	// optimization: status:success
-	query := fmt.Sprintf("repo:%s is:pr state:open status:success", repoFullName)
+	query := fmt.Sprintf("repo:%s is:pr state:open", repoFullName)
 	
 	opts := &github.SearchOptions{
 		ListOptions: github.ListOptions{
