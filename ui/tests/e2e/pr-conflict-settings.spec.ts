@@ -2,13 +2,34 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('PR Conflict Settings', () => {
-    test.beforeEach(async ({ page }) => {
-        // Mock API settings response to ensure consistent state if needed, 
-        // but for settings persistence test, we usually want to test the full flow including backend.
-        // However, we can also rely on the integration test approach where we modify via UI and verify persistence.
+  test('should allow toggling Close PR on Conflict setting', async ({ page }) => {
+    // Mock API to simulate persistence because the CI backend runs with MOCK_API=true
+    // which does not persist settings.
+    let settings = {
+        closePrOnConflictEnabled: false,
+        idlePollInterval: 120,
+        activePollInterval: 30,
+        titleTruncateLength: 50,
+        lineClamp: 1,
+        sessionItemsPerPage: 10,
+        jobsPerPage: 5,
+        defaultSessionCount: 10,
+        prStatusPollInterval: 60,
+        theme: 'system'
+    };
+
+    await page.route('/api/settings*', async route => {
+        if (route.request().method() === 'GET') {
+            await route.fulfill({ json: settings });
+        } else if (route.request().method() === 'POST') {
+            const postData = route.request().postDataJSON();
+            settings = { ...settings, ...postData };
+            await route.fulfill({ json: { success: true } });
+        } else {
+            await route.continue();
+        }
     });
 
-  test('should allow toggling Close PR on Conflict setting', async ({ page }) => {
     await page.goto('/settings?tab=automation');
 
     // Locate the toggle. It might be off by default.
