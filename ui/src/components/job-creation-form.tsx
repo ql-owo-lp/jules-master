@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useTransition, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useTransition, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -94,6 +94,7 @@ export function JobCreationForm({
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
 
   const [isClient, setIsClient] = useState(false);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
   
   useEffect(() => {
     setIsClient(true);
@@ -516,9 +517,14 @@ export function JobCreationForm({
                 </Label>
                 <div className="flex items-center gap-2">
                   {(prompt?.length || 0) > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      {prompt?.length || 0} chars
-                    </span>
+                    <>
+                      <span className="text-xs text-muted-foreground">
+                        {prompt?.length || 0} chars
+                      </span>
+                      <span className="text-xs text-muted-foreground border-l pl-2 ml-1">
+                        ⌘+Enter to submit
+                      </span>
+                    </>
                   )}
                   {prompt && (
                     <Tooltip>
@@ -544,6 +550,12 @@ export function JobCreationForm({
                   setPrompt(e.target.value);
                   // If user types, we deselect any suggestion because it might differ now
                   if (selectedPromptId) setSelectedPromptId(null);
+              }}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  submitButtonRef.current?.click();
+                }
               }}
               disabled={isPending || disabled}
               aria-label="Session Prompts"
@@ -685,6 +697,7 @@ export function JobCreationForm({
         </CardContent>
         <CardFooter className="flex justify-end">
           <Button
+            ref={submitButtonRef}
             type="submit"
             disabled={isPending || disabled || !finalPrompt.trim()}
             className="bg-accent text-accent-foreground hover:bg-accent/90"
