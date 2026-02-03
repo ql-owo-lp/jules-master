@@ -136,13 +136,11 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 		apiKeys := config.GetAllAPIKeys()
 		if len(apiKeys) == 0 && w.apiKey != "" {
 			apiKeys = []string{w.apiKey} // Fallback if GetAllAPIKeys missed it or if we want to support explicit single key injection
+		} else if len(apiKeys) == 0 {
+			// Try single injected key if config returns empty (e.g. testing)
 			if w.apiKey != "" {
 				apiKeys = []string{w.apiKey}
 			}
-		}
-
-		if len(apiKeys) == 0 {
-			logger.Warn("%s [%s]: No API keys found. Cannot fetch sources from Jules API.", w.Name(), w.id)
 		}
 
 		// We merge sources from ALL keys
@@ -255,6 +253,10 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 		}
 
 		// 0.5 Check for Stale PRs (Conflict OR Failing)
+		// NOTE: Since we filter by status:success, we won't find failing PRs here.
+		// Stale conflict logic might still work if mergeable is false but status is success (rare but possible if conflict logic is separate).
+		// However, conflict often causes checks to fail or Pending.
+		// We'll keep the logic but expect it to trigger rarely with status:success filter.
 		if s.GetAutoCloseStaleConflictedPrs() {
 			conflictDays := 3 // Stale branch/conflict default
 			
