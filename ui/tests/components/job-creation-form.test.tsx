@@ -184,4 +184,27 @@ describe('JobCreationForm', () => {
     fireEvent.change(textarea, { target: { value: 'Hello World' } });
     expect(await screen.findByText('11 chars')).toBeInTheDocument();
   });
+
+  it('should submit the form when Ctrl+Enter is pressed in the prompt textarea', async () => {
+    const onJobsCreated = vi.fn();
+    const onCreateJob = vi.fn();
+
+    render(<JobCreationForm onJobsCreated={onJobsCreated} onCreateJob={onCreateJob} />);
+    const textarea = await screen.findByRole('textbox', { name: /Session Prompts/i });
+
+    fireEvent.change(textarea, { target: { value: 'Test shortcut' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /Job Name/i }), { target: { value: 'Shortcut Job' } });
+
+    // Simulate Ctrl+Enter
+    fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(addJob).toHaveBeenCalledTimes(1);
+      const jobPayload = (addJob as Mock).mock.calls[0][0] as Job;
+      expect(jobPayload).toMatchObject({
+        name: 'Shortcut Job',
+        prompt: 'Test shortcut',
+      });
+    });
+  });
 });
