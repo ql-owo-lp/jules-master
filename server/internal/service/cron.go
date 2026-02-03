@@ -66,6 +66,13 @@ func (s *CronJobServer) ListCronJobs(ctx context.Context, _ *emptypb.Empty) (*pb
 }
 
 func (s *CronJobServer) CreateCronJob(ctx context.Context, req *pb.CreateCronJobRequest) (*pb.CronJob, error) {
+	if err := ValidateRepo(req.Repo); err != nil {
+		return nil, err
+	}
+	if err := ValidateBranch(req.Branch); err != nil {
+		return nil, err
+	}
+
 	id := uuid.New().String()
 	createdAt := time.Now().Format(time.RFC3339)
 
@@ -132,10 +139,16 @@ func (s *CronJobServer) UpdateCronJob(ctx context.Context, req *pb.UpdateCronJob
 		args = append(args, *req.Prompt)
 	}
 	if req.Repo != nil {
+		if err := ValidateRepo(*req.Repo); err != nil {
+			return nil, err
+		}
 		query += ", repo = ?"
 		args = append(args, *req.Repo)
 	}
 	if req.Branch != nil {
+		if err := ValidateBranch(*req.Branch); err != nil {
+			return nil, err
+		}
 		query += ", branch = ?"
 		args = append(args, *req.Branch)
 	}
