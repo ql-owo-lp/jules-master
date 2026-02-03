@@ -66,7 +66,8 @@ func createTables(t *testing.T, conn *sql.DB) {
             auto_approval_all_sessions BOOLEAN DEFAULT 1,
             auto_continue_all_sessions BOOLEAN DEFAULT 1,
             auto_merge_enabled BOOLEAN DEFAULT 0,
-            auto_merge_method TEXT DEFAULT 'squash'
+            auto_merge_method TEXT DEFAULT 'squash',
+            auto_merge_message TEXT DEFAULT ''
         );`,
 		`CREATE TABLE profiles (
             id TEXT PRIMARY KEY,

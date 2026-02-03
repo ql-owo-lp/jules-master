@@ -73,6 +73,7 @@ func (s *SettingsServer) GetSettings(ctx context.Context, req *pb.GetSettingsReq
 			AutoContinueAllSessions:             true,
 			AutoMergeEnabled:                    false,
 			AutoMergeMethod:                     "squash",
+			AutoMergeMessage:                    "Automatically merged by bot as all checks passed",
 			ClosePrOnConflictEnabled:            false,
 		}, nil
 	} else if err != nil {
