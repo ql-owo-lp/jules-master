@@ -136,11 +136,13 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 		apiKeys := config.GetAllAPIKeys()
 		if len(apiKeys) == 0 && w.apiKey != "" {
 			apiKeys = []string{w.apiKey} // Fallback if GetAllAPIKeys missed it or if we want to support explicit single key injection
-		} else if len(apiKeys) == 0 {
-			// Try single injected key if config returns empty (e.g. testing)
 			if w.apiKey != "" {
 				apiKeys = []string{w.apiKey}
 			}
+		}
+
+		if len(apiKeys) == 0 {
+			logger.Warn("%s [%s]: No API keys found. Cannot fetch sources from Jules API.", w.Name(), w.id)
 		}
 
 		// We merge sources from ALL keys
