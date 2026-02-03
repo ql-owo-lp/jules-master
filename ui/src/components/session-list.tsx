@@ -201,6 +201,14 @@ export function SessionList({
     content: reply.prompt,
   }));
 
+  // Pagination for unknown sessions
+  const uncategorizedPage = sessionPages['uncategorized'] || 1;
+  const totalUncategorizedPages = Math.ceil(unknownSessions.length / sessionsPerPage);
+  const paginatedUnknownSessions = unknownSessions.slice(
+    (uncategorizedPage - 1) * sessionsPerPage,
+    uncategorizedPage * sessionsPerPage
+  );
+
   return (
     <>
       <Card className="shadow-md">
@@ -411,7 +419,7 @@ export function SessionList({
                     </div>
                     <AccordionContent className="p-0">
                       <SessionTable
-                        sessions={unknownSessions}
+                        sessions={paginatedUnknownSessions}
                         isUncategorized={true}
                         selectedSessionIds={selectedSessionIds}
                         onSelectRow={handleSelectRow}
@@ -422,6 +430,29 @@ export function SessionList({
                         quickReplies={quickReplies}
                         jobIdParam={jobIdParam}
                       />
+                      {totalUncategorizedPages > 1 && (
+                        <div className="flex justify-center items-center gap-2 p-2 border-t">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSessionPageChange('uncategorized', uncategorizedPage - 1)}
+                                disabled={uncategorizedPage === 1}
+                            >
+                                Previous
+                            </Button>
+                            <span className="text-sm text-muted-foreground">
+                                Page {uncategorizedPage} of {totalUncategorizedPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSessionPageChange('uncategorized', uncategorizedPage + 1)}
+                                disabled={uncategorizedPage === totalUncategorizedPages}
+                            >
+                                Next
+                            </Button>
+                        </div>
+                      )}
                     </AccordionContent>
                   </AccordionItem>
                 )}
