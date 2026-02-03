@@ -195,6 +195,17 @@ export function SessionList({
   const isSomeUnknownSelected = unknownSessionIds.some(id => selectedSessionIds.includes(id));
   const selectAllUnknownState = isAllUnknownSelected ? true : (isSomeUnknownSelected ? 'indeterminate' : false);
 
+  // Pagination for Uncategorized Sessions
+  const uncategorizedPage = sessionPages['uncategorized'] || 1;
+  const totalUnknownPages = Math.ceil(unknownSessions.length / sessionsPerPage);
+
+  const paginatedUnknownSessions = useMemo(() => {
+    return unknownSessions.slice(
+      (uncategorizedPage - 1) * sessionsPerPage,
+      uncategorizedPage * sessionsPerPage
+    );
+  }, [unknownSessions, uncategorizedPage, sessionsPerPage]);
+
   const quickReplyOptions = quickReplies.map(reply => ({
     value: reply.id,
     label: reply.title,
@@ -411,7 +422,7 @@ export function SessionList({
                     </div>
                     <AccordionContent className="p-0">
                       <SessionTable
-                        sessions={unknownSessions}
+                        sessions={paginatedUnknownSessions}
                         isUncategorized={true}
                         selectedSessionIds={selectedSessionIds}
                         onSelectRow={handleSelectRow}
@@ -422,6 +433,29 @@ export function SessionList({
                         quickReplies={quickReplies}
                         jobIdParam={jobIdParam}
                       />
+                      {totalUnknownPages > 1 && (
+                        <div className="flex justify-center items-center gap-2 p-2 border-t">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSessionPageChange('uncategorized', uncategorizedPage - 1)}
+                                disabled={uncategorizedPage === 1}
+                            >
+                                Previous
+                            </Button>
+                            <span className="text-sm text-muted-foreground">
+                                Page {uncategorizedPage} of {totalUnknownPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSessionPageChange('uncategorized', uncategorizedPage + 1)}
+                                disabled={uncategorizedPage === totalUnknownPages}
+                            >
+                                Next
+                            </Button>
+                        </div>
+                      )}
                     </AccordionContent>
                   </AccordionItem>
                 )}
