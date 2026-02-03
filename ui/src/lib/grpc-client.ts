@@ -1,4 +1,4 @@
-import { credentials } from '@grpc/grpc-js';
+import { credentials, Metadata } from '@grpc/grpc-js';
 import { 
     SettingsServiceClient, 
     ProfileServiceClient, 
@@ -13,7 +13,17 @@ const PORT = 50051;
 // In production, this should be configurable
 const TARGET = `0.0.0.0:${PORT}`;
 
-const creds = credentials.createInsecure();
+let creds = credentials.createInsecure();
+
+const token = process.env.JULES_INTERNAL_TOKEN;
+if (token) {
+    const authCreds = credentials.createFromMetadataGenerator((args, callback) => {
+        const metadata = new Metadata();
+        metadata.add('authorization', 'Bearer ' + token);
+        callback(null, metadata);
+    });
+    creds = credentials.combineChannelCredentials(creds, authCreds);
+}
 
 export const settingsClient = new SettingsServiceClient(TARGET, creds);
 export const profileClient = new ProfileServiceClient(TARGET, creds);
