@@ -358,4 +358,70 @@ describe('SessionList', () => {
       expect(awaitingPlanApprovalSessionCheckbox).toBeNull();
     });
   });
+
+  it('should paginate uncategorized sessions', async () => {
+    const sessions = Array.from({ length: 15 }, (_, i) => ({
+      id: `session-${i}`,
+      title: `Session ${i}`,
+      state: 'COMPLETED',
+      createTime: new Date().toISOString(),
+      name: `sessions/${i}`,
+      prompt: `prompt ${i}`,
+    } as any));
+
+    render(
+      <SessionList
+        sessionMap={new Map(sessions.map(s => [s.id, s]))}
+        jobs={[]}
+        unknownSessions={sessions}
+        quickReplies={[]}
+        lastUpdatedAt={null}
+        onRefresh={() => {}}
+        isRefreshing={false}
+        isActionPending={false}
+        onApprovePlan={() => {}}
+        onSendMessage={() => {}}
+        onBulkSendMessage={() => {}}
+        countdown={0}
+        pollInterval={0}
+        jobIdParam={null}
+        statusFilter="all"
+        titleTruncateLength={50}
+        jobPage={1}
+        totalJobPages={1}
+        onJobPageChange={() => {}}
+      >
+        <div />
+      </SessionList>
+    );
+
+    expect(screen.getByText('Uncategorized Sessions')).toBeInTheDocument();
+
+    // Open accordion
+    const accordionTrigger = screen.getByText('Uncategorized Sessions');
+    await act(async () => {
+      accordionTrigger.click();
+    });
+
+    // Check if pagination controls exist
+    // Using waitFor because accordion animation/state update might take a tick
+    await waitFor(() => {
+        expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Next')).toBeInTheDocument();
+
+    // Check that not all sessions are rendered (only 10)
+    expect(screen.getByText('Session 0')).toBeInTheDocument();
+    expect(screen.queryByText('Session 14')).not.toBeInTheDocument();
+
+    // Click next
+    const nextButton = screen.getByText('Next');
+    await act(async () => {
+        nextButton.click();
+    });
+
+    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
+    expect(screen.getByText('Session 14')).toBeInTheDocument();
+  });
 });
