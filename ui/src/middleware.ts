@@ -1,28 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function secureCompare(a: string, b: string): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const aBuf = encoder.encode(a);
-  const bBuf = encoder.encode(b);
-
-  const [aHash, bHash] = await Promise.all([
-    crypto.subtle.digest('SHA-256', aBuf),
-    crypto.subtle.digest('SHA-256', bBuf)
-  ]);
-
-  const aView = new DataView(aHash);
-  const bView = new DataView(bHash);
-
+export function secureCompare(a: string, b: string): boolean {
   let mismatch = 0;
-  // SHA-256 is always 32 bytes
-  for (let i = 0; i < aView.byteLength; i++) {
-    mismatch |= aView.getUint8(i) ^ bView.getUint8(i);
+  if (a.length !== b.length) {
+    mismatch = 1;
   }
 
+  for (let i = 0; i < b.length; i++) {
+    const charCodeA = i < a.length ? a.charCodeAt(i) : 0;
+    const charCodeB = b.charCodeAt(i);
+    mismatch |= charCodeA ^ charCodeB;
+  }
   return mismatch === 0;
 }
 
-export async function middleware(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const nonce = crypto.randomUUID();
   const basicAuthUser = process.env.BASIC_AUTH_USER;
   const basicAuthPassword = process.env.BASIC_AUTH_PASSWORD;
@@ -65,7 +57,7 @@ export async function middleware(req: NextRequest) {
             // In Node/Next.js Edge, btoa is available.
             const expectedValue = btoa(`${basicAuthUser}:${basicAuthPassword}`);
 
-            if (await secureCompare(authValue, expectedValue)) {
+            if (secureCompare(authValue, expectedValue)) {
               authorized = true;
             }
         }
