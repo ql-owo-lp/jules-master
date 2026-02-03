@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
     const settings = await new Promise<Settings>((resolve, reject) => {
         console.log(`[API] gRPC GET getSettings for ${profileId}...`);
-        if (process.env.MOCK_API === 'true') {
+        if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
             console.log(`[API] Returning MOCK settings`);
             return resolve({
                 id: 'mock',
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     
     await new Promise<void>((resolve, reject) => {
         console.log(`[API] gRPC POST updateSettings for ${profileId}...`);
-        if (process.env.MOCK_API === 'true') {
+        if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
             console.log(`[API] Returning MOCK success`);
             return resolve();
         }
