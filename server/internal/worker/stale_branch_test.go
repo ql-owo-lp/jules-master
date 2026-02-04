@@ -34,6 +34,8 @@ func TestAutoDeleteStaleBranchWorker_GetInterval(t *testing.T) {
 		Settings: &pb.Settings{
 			ProfileId:               "default",
 			AutoDeleteStaleBranches: true,
+			Theme:                   "system",
+			AutoMergeMethod:         "squash",
 		},
 	})
 	assert.NoError(t, err)
@@ -65,6 +67,8 @@ func TestAutoDeleteStaleBranchWorker_RunCheck_DeletesStale(t *testing.T) {
 		Settings: &pb.Settings{
 			ProfileId:               "default",
 			AutoDeleteStaleBranches: true,
+			Theme:                   "system",
+			AutoMergeMethod:         "squash",
 		},
 	})
 	assert.NoError(t, err)

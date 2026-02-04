@@ -89,6 +89,41 @@ func (s *SettingsServer) UpdateSettings(ctx context.Context, req *pb.UpdateSetti
 		return nil, fmt.Errorf("settings are required")
 	}
 
+	// Validate inputs
+	switch newSettings.GetTheme() {
+	case "light", "dark", "system":
+		// ok
+	default:
+		return nil, fmt.Errorf("invalid theme: %s", newSettings.GetTheme())
+	}
+
+	switch newSettings.GetAutoMergeMethod() {
+	case "merge", "squash", "rebase":
+		// ok
+	default:
+		return nil, fmt.Errorf("invalid auto merge method: %s", newSettings.GetAutoMergeMethod())
+	}
+
+	if len(newSettings.GetAutoRetryMessage()) > 1000 {
+		return nil, fmt.Errorf("auto retry message is too long (max 1000 characters)")
+	}
+	if len(newSettings.GetAutoContinueMessage()) > 1000 {
+		return nil, fmt.Errorf("auto continue message is too long (max 1000 characters)")
+	}
+	if len(newSettings.GetAutoMergeMessage()) > 1000 {
+		return nil, fmt.Errorf("auto merge message is too long (max 1000 characters)")
+	}
+	if len(newSettings.GetAutoCloseOnConflictMessage()) > 1000 {
+		return nil, fmt.Errorf("auto close on conflict message is too long (max 1000 characters)")
+	}
+
+	if newSettings.GetIdlePollInterval() < 0 {
+		return nil, fmt.Errorf("idle poll interval must be positive")
+	}
+	if newSettings.GetActivePollInterval() < 0 {
+		return nil, fmt.Errorf("active poll interval must be positive")
+	}
+
 	profileId := newSettings.ProfileId
 	if profileId == "" {
 		profileId = "default"
