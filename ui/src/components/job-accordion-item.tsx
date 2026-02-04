@@ -374,13 +374,40 @@ const JobAccordionItemComponent = ({
 };
 
 function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next: JobAccordionItemProps) {
-  // 1. Check strict equality for all props except 'selectedSessionIds' and progress props
+  // 1. Check strict equality for all props except 'selectedSessionIds', progress props, 'sessionMap', and 'job'
   const keys = Object.keys(prev) as (keyof JobAccordionItemProps)[];
   for (const key of keys) {
       if (key === 'selectedSessionIds') continue;
       if (key === 'progressCurrent') continue;
       if (key === 'progressTotal') continue;
+      if (key === 'sessionMap') continue;
+      if (key === 'job') continue;
       if (prev[key] !== next[key]) return false;
+  }
+
+  // Check 'job' deep equality (since useLocalStorage creates new objects on update)
+  if (JSON.stringify(prev.job) !== JSON.stringify(next.job)) return false;
+
+  // Check 'sessionMap' - only compare sessions relevant to THIS job
+  if (prev.sessionMap !== next.sessionMap) {
+      const prevSessions = prev.job.sessionIds.map(id => prev.sessionMap.get(id));
+      const nextSessions = next.job.sessionIds.map(id => next.sessionMap.get(id));
+
+      if (prevSessions.length !== nextSessions.length) return false;
+
+      for (let i = 0; i < prevSessions.length; i++) {
+          const s1 = prevSessions[i];
+          const s2 = nextSessions[i];
+
+          if (s1 === s2) continue; // Same reference
+          if (!s1 || !s2) return false; // One is undefined (and not equal)
+
+          // Fast path: check updateTime if available
+          if (s1.updateTime && s2.updateTime && s1.updateTime === s2.updateTime) continue;
+
+          // Deep compare as fallback
+          if (JSON.stringify(s1) !== JSON.stringify(s2)) return false;
+      }
   }
 
   // 2. Check 'progressCurrent' and 'progressTotal' ONLY if this job is active.
