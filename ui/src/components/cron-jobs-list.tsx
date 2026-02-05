@@ -4,8 +4,9 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2, PlayCircle, PauseCircle, Clock, CheckCircle2, Plus } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, PlayCircle, PauseCircle, Clock, CheckCircle2, Plus, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CronJobDialog } from "@/components/cron-job-dialog";
 import type { CronJob } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +27,7 @@ export function CronJobsList() {
     const [cronJobs, setCronJobs] = useState<CronJob[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [jobToDelete, setJobToDelete] = useState<string | null>(null);
+    const [executingJobIds, setExecutingJobIds] = useState<Set<string>>(new Set());
     const { toast } = useToast();
 
     const fetchCronJobs = async () => {
@@ -87,6 +89,7 @@ export function CronJobsList() {
     }
 
     const handleExecuteNow = async (id: string) => {
+        setExecutingJobIds(prev => new Set(prev).add(id));
         try {
             const response = await fetch(`/api/cron-jobs/${id}/execute`, {
                 method: 'POST'
@@ -99,6 +102,12 @@ export function CronJobsList() {
         } catch (error) {
             console.error("Failed to execute cron job", error);
             toast({ variant: "destructive", title: "Failed to execute cron job" });
+        } finally {
+            setExecutingJobIds(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
         }
     }
 
@@ -145,7 +154,7 @@ export function CronJobsList() {
                                     <TableHead>Repository</TableHead>
                                     <TableHead>Last Run</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="w-[80px] text-right">Actions</TableHead>
+                                    <TableHead className="w-[120px] text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -169,23 +178,43 @@ export function CronJobsList() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" aria-label={`Open menu for ${job.name}`}>
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => handleExecuteNow(job.id)}>
-                                                        <PlayCircle className="mr-2 h-4 w-4" /> Execute Now
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                                        <CronJobDialog mode="edit" initialValues={job} onSuccess={fetchCronJobs}>
-                                                             <div className="flex items-center w-full cursor-pointer">
-                                                                <Edit className="mr-2 h-4 w-4" /> Edit
-                                                             </div>
-                                                        </CronJobDialog>
-                                                    </DropdownMenuItem>
+                                            <div className="flex items-center justify-end">
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleExecuteNow(job.id)}
+                                                                disabled={executingJobIds.has(job.id)}
+                                                                aria-label={`Execute ${job.name} now`}
+                                                            >
+                                                                {executingJobIds.has(job.id) ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <PlayCircle className="h-4 w-4" />
+                                                                )}
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Execute Now</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" aria-label={`Open menu for ${job.name}`}>
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent>
+                                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                            <CronJobDialog mode="edit" initialValues={job} onSuccess={fetchCronJobs}>
+                                                                <div className="flex items-center w-full cursor-pointer">
+                                                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                                                </div>
+                                                            </CronJobDialog>
+                                                        </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleToggle(job.id, job.enabled)}>
                                                         {job.enabled ? <><PauseCircle className="mr-2 h-4 w-4" /> Disable</> : <><PlayCircle className="mr-2 h-4 w-4" /> Enable</>}
                                                     </DropdownMenuItem>
@@ -194,6 +223,7 @@ export function CronJobsList() {
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
