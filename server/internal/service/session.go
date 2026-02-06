@@ -299,7 +299,11 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 
 	if resp.StatusCode != http.StatusOK {
 		respBytes, _ := io.ReadAll(resp.Body)
-		logger.Warn("Remote create returned status %d (continuing locally): %s", resp.StatusCode, string(respBytes))
+		logMsg := string(respBytes)
+		if len(logMsg) > 200 {
+			logMsg = logMsg[:200] + "... (truncated)"
+		}
+		logger.Warn("Remote create returned status %d (continuing locally): %s", resp.StatusCode, logMsg)
 		return nil, nil
 	}
 

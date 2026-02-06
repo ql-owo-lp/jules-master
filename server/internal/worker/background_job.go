@@ -140,7 +140,7 @@ func (w *BackgroundJobWorker) processJob(ctx context.Context, jobID string, sess
 		})
 		if err != nil {
 			logger.Error("%s: Failed to create session for job %s: %s", w.Name(), jobID, err.Error())
-			logger.Error("Job prompt: %s, Profile: %s", job.Prompt, job.ProfileId)
+			logger.Error("Job prompt length: %d, Profile: %s", len(job.Prompt), job.ProfileId)
 			success = false
 			break
 		}
