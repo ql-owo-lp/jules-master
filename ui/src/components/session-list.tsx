@@ -116,13 +116,7 @@ export function SessionList({
       return { completed, working, pending, total: sessionIds.length };
   }, [sessionMap]);
 
-  const jobDetailsMap = useMemo(() => {
-    const map = new Map<string, { completed: number; working: number; pending: string[]; total: number }>();
-    for (const job of jobs) {
-      map.set(job.id, getDetails(job.sessionIds));
-    }
-    return map;
-  }, [jobs, getDetails]);
+  // Removed jobDetailsMap as calculation is moved to JobAccordionItem
   
   const unknownSessionsDetails = useMemo(() => {
     return getDetails(unknownSessions.map(s => s.id));
@@ -267,7 +261,6 @@ export function SessionList({
                     <JobAccordionItem
                       key={job.id}
                       job={job}
-                      details={jobDetailsMap.get(job.id)}
                       sessionMap={sessionMap}
                       statusFilter={statusFilter}
                       selectedSessionIds={selectedSessionIds}

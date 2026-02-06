@@ -19,7 +19,6 @@ import type { Job, Session, PredefinedPrompt } from "@/lib/types";
 
 interface JobAccordionItemProps {
   job: Job;
-  details: { completed: number; working: number; pending: string[]; total: number } | undefined;
   sessionMap: Map<string, Session>;
   statusFilter: string;
   selectedSessionIds: string[];
@@ -44,7 +43,6 @@ interface JobAccordionItemProps {
 
 const JobAccordionItemComponent = ({
   job,
-  details,
   sessionMap,
   statusFilter,
   selectedSessionIds,
@@ -96,6 +94,35 @@ const JobAccordionItemComponent = ({
       .filter((s): s is Session => !!s)
       .filter(s => statusFilter === 'all' || s.state === statusFilter);
   }, [job.sessionIds, sessionMap, statusFilter]);
+
+  // Calculate details internally to avoid passing new object props from parent
+  const details = useMemo(() => {
+    let completed = 0;
+    let working = 0;
+    const pending: string[] = [];
+
+    // Iterate over sessions from the map based on job IDs
+    for (const sessionId of job.sessionIds) {
+      const session = sessionMap.get(sessionId);
+      if (session) {
+        switch (session.state) {
+          case 'COMPLETED':
+            completed++;
+            break;
+          case 'AWAITING_PLAN_APPROVAL':
+          case 'AWAITING_USER_FEEDBACK':
+            pending.push(session.id);
+            break;
+          case 'FAILED':
+            break;
+          default:
+            working++;
+            break;
+        }
+      }
+    }
+    return { completed, working, pending, total: job.sessionIds.length };
+  }, [job.sessionIds, sessionMap]);
 
   // Memoize derived list of IDs for selection logic
   const filteredSessionIds = useMemo(() => sessionsForJob.map(s => s.id), [sessionsForJob]);
@@ -374,34 +401,65 @@ const JobAccordionItemComponent = ({
 };
 
 function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next: JobAccordionItemProps) {
-  // 1. Check strict equality for all props except 'selectedSessionIds' and progress props
+  // 1. Check strict equality for all props except 'selectedSessionIds', progress props, 'sessionMap', and 'job'
   const keys = Object.keys(prev) as (keyof JobAccordionItemProps)[];
   for (const key of keys) {
       if (key === 'selectedSessionIds') continue;
       if (key === 'progressCurrent') continue;
       if (key === 'progressTotal') continue;
+      if (key === 'sessionMap') continue;
+      if (key === 'job') continue;
       if (prev[key] !== next[key]) return false;
   }
 
-  // 2. Check 'progressCurrent' and 'progressTotal' ONLY if this job is active.
-  // If the job is NOT active, changes to these props don't affect the render.
-  // Note: activeJobId change is caught in the loop above.
+  // 2. Deep check 'job' if reference differs
+  if (prev.job !== next.job) {
+     if (prev.job.id !== next.job.id) return false;
+     if (prev.job.name !== next.job.name) return false;
+     if (prev.job.status !== next.job.status) return false;
+     if (prev.job.repo !== next.job.repo) return false;
+     if (prev.job.branch !== next.job.branch) return false;
+
+     if (prev.job.sessionIds.length !== next.job.sessionIds.length) return false;
+     for(let i=0; i<prev.job.sessionIds.length; i++) {
+        if (prev.job.sessionIds[i] !== next.job.sessionIds[i]) return false;
+     }
+  }
+
+  // 3. Smart check 'sessionMap'
+  // If sessionMap reference changed, we check if any session RELEVANT to this job has changed.
+  if (prev.sessionMap !== next.sessionMap) {
+      for (const id of next.job.sessionIds) {
+          const prevSession = prev.sessionMap.get(id);
+          const nextSession = next.sessionMap.get(id);
+
+          if (prevSession !== nextSession) {
+              // If references differ, check updateTime to see if data actually changed
+              if (!prevSession || !nextSession) return false; // Added/Removed or broken state
+
+              if (prevSession.updateTime !== nextSession.updateTime) {
+                  return false; // Real data change
+              }
+              // If updateTime matches, we assume no change (even if ref changed)
+          }
+      }
+  }
+
+  // 4. Check 'progressCurrent' and 'progressTotal' ONLY if this job is active.
   if (next.activeJobId === next.job.id) {
       if (prev.progressCurrent !== next.progressCurrent) return false;
       if (prev.progressTotal !== next.progressTotal) return false;
   }
 
-  // 3. Check 'selectedSessionIds'
-  if (prev.selectedSessionIds === next.selectedSessionIds) return true;
+  // 5. Check 'selectedSessionIds'
+  if (prev.selectedSessionIds !== next.selectedSessionIds) {
+      const prevSelectedSet = new Set(prev.selectedSessionIds);
+      const nextSelectedSet = new Set(next.selectedSessionIds);
 
-  // If array refs differ, check if it affects THIS job.
-  const prevSelectedSet = new Set(prev.selectedSessionIds);
-  const nextSelectedSet = new Set(next.selectedSessionIds);
-
-  // We use next.job.sessionIds (assuming job didn't change, checked above)
-  for (const sessionId of next.job.sessionIds) {
-      if (prevSelectedSet.has(sessionId) !== nextSelectedSet.has(sessionId)) {
-          return false;
+      for (const sessionId of next.job.sessionIds) {
+          if (prevSelectedSet.has(sessionId) !== nextSelectedSet.has(sessionId)) {
+              return false;
+          }
       }
   }
 
