@@ -5,7 +5,7 @@ import React, { useEffect, useState, useTransition } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { listSources } from '@/app/sessions/actions';
 import type { Source } from '@/lib/types';
-import { AlertCircle, GitMerge } from 'lucide-react';
+import { AlertCircle, GitMerge, Lock, Globe } from 'lucide-react';
 import { Combobox } from './ui/combobox';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 
@@ -67,7 +67,8 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue, sou
   
   const options = sources.map(source => ({
     value: source.name,
-    label: `${source.githubRepo.owner}/${source.githubRepo.repo}`
+    label: `${source.githubRepo.owner}/${source.githubRepo.repo}`,
+    isPrivate: source.githubRepo.isPrivate
   }));
 
   const handleSourceSelected = (sourceName: string | null) => {
@@ -86,6 +87,16 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue, sou
         searchPlaceholder='Search repositories...'
         disabled={disabled || sources.length === 0}
         icon={<GitMerge className="h-4 w-4 text-muted-foreground" />}
+        renderOption={(option) => (
+          <div className="flex items-center gap-2">
+            {option.isPrivate ? (
+              <Lock className="h-3 w-3 text-muted-foreground" />
+            ) : (
+              <Globe className="h-3 w-3 text-muted-foreground" />
+            )}
+            <span>{option.label}</span>
+          </div>
+        )}
       />
     </div>
   );
