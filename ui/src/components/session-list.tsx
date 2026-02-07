@@ -195,11 +195,11 @@ export function SessionList({
   const isSomeUnknownSelected = unknownSessionIds.some(id => selectedSessionIds.includes(id));
   const selectAllUnknownState = isAllUnknownSelected ? true : (isSomeUnknownSelected ? 'indeterminate' : false);
 
-  const quickReplyOptions = quickReplies.map(reply => ({
+  const quickReplyOptions = useMemo(() => quickReplies.map(reply => ({
     value: reply.id,
     label: reply.title,
     content: reply.prompt,
-  }));
+  })), [quickReplies]);
 
   return (
     <>
@@ -280,6 +280,7 @@ export function SessionList({
                       progressTotal={progressTotal}
                       titleTruncateLength={titleTruncateLength}
                       quickReplies={quickReplies}
+                      quickReplyOptions={quickReplyOptions}
                       onSelectAllForJob={handleSelectAllForJob}
                       onSelectRow={handleSelectRow}
                       onSessionPageChange={handleSessionPageChange}
@@ -368,6 +369,7 @@ export function SessionList({
                               dialogDescription={`This message will be sent to all ${unknownSessionIds.length} uncategorized sessions.`}
                               isActionPending={isActionPending}
                               quickReplies={quickReplies}
+                              quickReplyOptions={quickReplyOptions}
                           />
                            <Popover>
                                 <Tooltip>
@@ -420,6 +422,7 @@ export function SessionList({
                         onApprovePlan={onApprovePlan}
                         onSendMessage={onSendMessage}
                         quickReplies={quickReplies}
+                        quickReplyOptions={quickReplyOptions}
                         jobIdParam={jobIdParam}
                       />
                     </AccordionContent>
@@ -479,6 +482,7 @@ export function SessionList({
                         dialogDescription={`This message will be sent to all ${selectedSessionIds.length} selected sessions.`}
                         isActionPending={isActionPending}
                         quickReplies={quickReplies}
+                        quickReplyOptions={quickReplyOptions}
                     />
                     {selectedPendingIds.length > 0 && (
                         <Button 
