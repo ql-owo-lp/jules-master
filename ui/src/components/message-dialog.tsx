@@ -33,6 +33,7 @@ type MessageDialogProps = {
     isActionPending?: boolean;
     predefinedPrompts?: PredefinedPrompt[];
     quickReplies?: PredefinedPrompt[];
+    quickReplyOptions?: { value: string; label: string; content: string }[];
     tooltip?: string;
 }
 
@@ -45,6 +46,7 @@ export function MessageDialog({
     isActionPending,
     predefinedPrompts: initialPrompts = [],
     quickReplies: initialReplies = [],
+    quickReplyOptions,
     tooltip
 }: MessageDialogProps) {
     const [open, setOpen] = useState(false);
@@ -65,11 +67,11 @@ export function MessageDialog({
                     // ignore if parsing fails
                 }
             }
-             // Also fetch latest prompts/replies if not provided
+             // Also fetch latest prompts/replies if not provided and options are not provided
             if (initialPrompts.length === 0) {
                 getPredefinedPrompts().then(setPredefinedPrompts);
             }
-            if (initialReplies.length === 0) {
+            if (initialReplies.length === 0 && !quickReplyOptions) {
                 getQuickReplies().then(setQuickReplies);
             }
         }
@@ -98,7 +100,7 @@ export function MessageDialog({
     }
     
     const promptOptions = predefinedPrompts.map(p => ({ value: p.id, label: p.title, content: p.prompt }));
-    const replyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
+    const replyOptions = quickReplyOptions || quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
 
     const dialogTrigger = (
          <DialogTrigger asChild onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
@@ -151,8 +153,13 @@ export function MessageDialog({
                                 <Combobox
                                     options={replyOptions}
                                     onValueChange={(val) => {
-                                        const selected = quickReplies.find(r => r.id === val);
-                                        if (selected) setMessage(selected.prompt);
+                                        if (quickReplyOptions) {
+                                            const selected = quickReplyOptions.find(r => r.value === val);
+                                            if (selected) setMessage(selected.content);
+                                        } else {
+                                            const selected = quickReplies.find(r => r.id === val);
+                                            if (selected) setMessage(selected.prompt);
+                                        }
                                     }}
                                     selectedValue={null}
                                     placeholder="Select a quick reply..."
