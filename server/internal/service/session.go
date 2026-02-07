@@ -88,7 +88,7 @@ func (s *SessionServer) SendMessage(ctx context.Context, req *pb.SendMessageRequ
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("sendMessage failed %d: %s", resp.StatusCode, string(b))
+		return nil, fmt.Errorf("sendMessage failed %d: %s", resp.StatusCode, sanitizeErrorBody(b))
 	}
 
 	// Update local interaction time?
@@ -252,6 +252,28 @@ func (s *SessionServer) getAPIKey() string {
 	return os.Getenv("JULES_API_KEY")
 }
 
+type googleError struct {
+	Error struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Status  string `json:"status"`
+	} `json:"error"`
+}
+
+func sanitizeErrorBody(body []byte) string {
+	var ge googleError
+	if err := json.Unmarshal(body, &ge); err == nil && ge.Error.Message != "" {
+		return ge.Error.Message
+	}
+
+	// Fallback: truncate
+	const maxLen = 200
+	if len(body) > maxLen {
+		return string(body[:maxLen]) + "..."
+	}
+	return string(body)
+}
+
 func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.Session, error) {
 	apiKey := s.getAPIKey()
 	if apiKey == "" {
@@ -299,7 +321,7 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 
 	if resp.StatusCode != http.StatusOK {
 		respBytes, _ := io.ReadAll(resp.Body)
-		logger.Warn("Remote create returned status %d (continuing locally): %s", resp.StatusCode, string(respBytes))
+		logger.Warn("Remote create returned status %d (continuing locally): %s", resp.StatusCode, sanitizeErrorBody(respBytes))
 		return nil, nil
 	}
 
@@ -356,7 +378,7 @@ func (s *SessionServer) approveRemotePlan(id string) error {
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("remote approve failed %d: %s", resp.StatusCode, string(b))
+		return fmt.Errorf("remote approve failed %d: %s", resp.StatusCode, sanitizeErrorBody(b))
 	}
 	return nil
 }
