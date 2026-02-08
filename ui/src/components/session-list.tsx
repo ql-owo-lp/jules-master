@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -90,6 +90,18 @@ export function SessionList({
   const [sessionsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
   const [sessionPages, setSessionPages] = useState<Record<string, number>>({});
 
+  const jobsRef = useRef(jobs);
+  const sessionMapRef = useRef(sessionMap);
+  const statusFilterRef = useRef(statusFilter);
+  const unknownSessionsRef = useRef(unknownSessions);
+
+  useEffect(() => {
+    jobsRef.current = jobs;
+    sessionMapRef.current = sessionMap;
+    statusFilterRef.current = statusFilter;
+    unknownSessionsRef.current = unknownSessions;
+  });
+
   const getDetails = useCallback((sessionIds: string[]) => {
       let completed = 0;
       let working = 0;
@@ -130,13 +142,13 @@ export function SessionList({
 
   // Handle selection logic
   const handleSelectAllForJob = useCallback((jobId: string, checked: boolean) => {
-    const job = jobs.find(j => j.id === jobId);
+    const job = jobsRef.current.find(j => j.id === jobId);
     if (!job) return;
 
     const sessionsForJob = job.sessionIds
-      .map(id => sessionMap.get(id))
+      .map(id => sessionMapRef.current.get(id))
       .filter((s): s is Session => !!s)
-      .filter(s => statusFilter === 'all' || s.state === statusFilter);
+      .filter(s => statusFilterRef.current === 'all' || s.state === statusFilterRef.current);
 
     const filteredSessionIds = sessionsForJob.map(s => s.id);
 
@@ -145,16 +157,16 @@ export function SessionList({
     } else {
       setSelectedSessionIds(ids => ids.filter(id => !filteredSessionIds.includes(id)));
     }
-  }, [jobs, sessionMap, statusFilter]);
+  }, []);
 
   const handleSelectAllForUnknown = useCallback((checked: boolean) => {
-    const unknownSessionIds = unknownSessions.map(s => s.id);
+    const unknownSessionIds = unknownSessionsRef.current.map(s => s.id);
     if (checked) {
         setSelectedSessionIds(ids => [...new Set([...ids, ...unknownSessionIds])]);
     } else {
         setSelectedSessionIds(ids => ids.filter(id => !unknownSessionIds.includes(id)));
     }
-  }, [unknownSessions]);
+  }, []);
 
   const handleSelectRow = useCallback((sessionId: string, checked: boolean) => {
     if (checked) {

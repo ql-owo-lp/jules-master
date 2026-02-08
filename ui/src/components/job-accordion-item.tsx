@@ -374,12 +374,14 @@ const JobAccordionItemComponent = ({
 };
 
 function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next: JobAccordionItemProps) {
-  // 1. Check strict equality for all props except 'selectedSessionIds' and progress props
+  // 1. Check strict equality for all props except excluded ones
   const keys = Object.keys(prev) as (keyof JobAccordionItemProps)[];
   for (const key of keys) {
       if (key === 'selectedSessionIds') continue;
       if (key === 'progressCurrent') continue;
       if (key === 'progressTotal') continue;
+      if (key === 'sessionMap') continue;
+      if (key === 'details') continue;
       if (prev[key] !== next[key]) return false;
   }
 
@@ -392,16 +394,36 @@ function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next: JobAcc
   }
 
   // 3. Check 'selectedSessionIds'
-  if (prev.selectedSessionIds === next.selectedSessionIds) return true;
+  if (prev.selectedSessionIds !== next.selectedSessionIds) {
+      const prevSelectedSet = new Set(prev.selectedSessionIds);
+      const nextSelectedSet = new Set(next.selectedSessionIds);
 
-  // If array refs differ, check if it affects THIS job.
-  const prevSelectedSet = new Set(prev.selectedSessionIds);
-  const nextSelectedSet = new Set(next.selectedSessionIds);
+      // We use next.job.sessionIds (assuming job didn't change, checked above)
+      for (const sessionId of next.job.sessionIds) {
+          if (prevSelectedSet.has(sessionId) !== nextSelectedSet.has(sessionId)) {
+              return false;
+          }
+      }
+  }
 
-  // We use next.job.sessionIds (assuming job didn't change, checked above)
-  for (const sessionId of next.job.sessionIds) {
-      if (prevSelectedSet.has(sessionId) !== nextSelectedSet.has(sessionId)) {
-          return false;
+  // 4. Check 'details' (deep equality)
+  if (prev.details !== next.details) {
+      if (!prev.details || !next.details) return false;
+      if (prev.details.completed !== next.details.completed) return false;
+      if (prev.details.working !== next.details.working) return false;
+      if (prev.details.total !== next.details.total) return false;
+      if (prev.details.pending.length !== next.details.pending.length) return false;
+      for (let i = 0; i < prev.details.pending.length; i++) {
+          if (prev.details.pending[i] !== next.details.pending[i]) return false;
+      }
+  }
+
+  // 5. Check 'sessionMap' (smart equality)
+  if (prev.sessionMap !== next.sessionMap) {
+      for (const id of next.job.sessionIds) {
+          if (prev.sessionMap.get(id) !== next.sessionMap.get(id)) {
+              return false;
+          }
       }
   }
 
@@ -409,3 +431,5 @@ function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next: JobAcc
 }
 
 export const JobAccordionItem = memo(JobAccordionItemComponent, areJobAccordionItemPropsEqual);
+
+export { areJobAccordionItemPropsEqual };
