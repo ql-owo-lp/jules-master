@@ -2,6 +2,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -98,17 +99,13 @@ export function SettingsSheet() {
         </SheetHeader>
         <div className="space-y-4">
             <div className="space-y-6">
-                 <div className="grid gap-2">
-                    <Label>Auto Merge</Label>
-                    <div className="flex items-center space-x-2">
-                        <Button
-                            variant={settings.autoMergeEnabled ? "default" : "outline"}
-                            onClick={() => setSettings({ ...settings, autoMergeEnabled: !settings.autoMergeEnabled })}
-                            className="justify-start w-full"
-                        >
-                            {settings.autoMergeEnabled ? "Enabled" : "Disabled"}
-                        </Button>
-                    </div>
+                 <div className="flex items-center justify-between">
+                    <Label htmlFor="auto-merge">Auto Merge</Label>
+                    <Switch
+                        id="auto-merge"
+                        checked={settings.autoMergeEnabled}
+                        onCheckedChange={(checked) => setSettings({ ...settings, autoMergeEnabled: checked })}
+                    />
                 </div>
 
                 {settings.autoMergeEnabled && (
@@ -143,17 +140,13 @@ export function SettingsSheet() {
                     </div>
                 )}
 
-                <div className="grid gap-2">
-                    <Label>Auto Close Stale/Conflicted PRs</Label>
-                    <div className="flex items-center space-x-2">
-                        <Button
-                            variant={settings.closePrOnConflictEnabled ? "default" : "outline"}
-                            onClick={() => setSettings({ ...settings, closePrOnConflictEnabled: !settings.closePrOnConflictEnabled })}
-                            className="justify-start w-full"
-                        >
-                            {settings.closePrOnConflictEnabled ? "Enabled" : "Disabled"}
-                        </Button>
-                    </div>
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="close-conflict">Auto Close Stale/Conflicted PRs</Label>
+                    <Switch
+                        id="close-conflict"
+                        checked={settings.closePrOnConflictEnabled}
+                        onCheckedChange={(checked) => setSettings({ ...settings, closePrOnConflictEnabled: checked })}
+                    />
                 </div>
 
                 {settings.closePrOnConflictEnabled && (
