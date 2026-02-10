@@ -1,20 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { secureCompare } from '@/lib/security';
 
-export function secureCompare(a: string, b: string): boolean {
-  let mismatch = 0;
-  if (a.length !== b.length) {
-    mismatch = 1;
-  }
-
-  for (let i = 0; i < b.length; i++) {
-    const charCodeA = i < a.length ? a.charCodeAt(i) : 0;
-    const charCodeB = b.charCodeAt(i);
-    mismatch |= charCodeA ^ charCodeB;
-  }
-  return mismatch === 0;
-}
-
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const nonce = crypto.randomUUID();
   const basicAuthUser = process.env.BASIC_AUTH_USER;
   const basicAuthPassword = process.env.BASIC_AUTH_PASSWORD;
@@ -57,7 +44,7 @@ export function middleware(req: NextRequest) {
             // In Node/Next.js Edge, btoa is available.
             const expectedValue = btoa(`${basicAuthUser}:${basicAuthPassword}`);
 
-            if (secureCompare(authValue, expectedValue)) {
+            if (await secureCompare(authValue, expectedValue)) {
               authorized = true;
             }
         }
