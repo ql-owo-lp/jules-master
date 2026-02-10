@@ -373,35 +373,63 @@ const JobAccordionItemComponent = ({
   );
 };
 
-function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next: JobAccordionItemProps) {
-  // 1. Check strict equality for all props except 'selectedSessionIds' and progress props
-  const keys = Object.keys(prev) as (keyof JobAccordionItemProps)[];
-  for (const key of keys) {
-      if (key === 'selectedSessionIds') continue;
-      if (key === 'progressCurrent') continue;
-      if (key === 'progressTotal') continue;
-      if (prev[key] !== next[key]) return false;
-  }
-
-  // 2. Check 'progressCurrent' and 'progressTotal' ONLY if this job is active.
-  // If the job is NOT active, changes to these props don't affect the render.
-  // Note: activeJobId change is caught in the loop above.
+export function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next: JobAccordionItemProps) {
+  // Check active job progress (existing logic)
   if (next.activeJobId === next.job.id) {
       if (prev.progressCurrent !== next.progressCurrent) return false;
       if (prev.progressTotal !== next.progressTotal) return false;
   }
 
-  // 3. Check 'selectedSessionIds'
-  if (prev.selectedSessionIds === next.selectedSessionIds) return true;
+  // Check selectedSessionIds (existing logic)
+  if (prev.selectedSessionIds !== next.selectedSessionIds) {
+      const prevSelectedSet = new Set(prev.selectedSessionIds);
+      const nextSelectedSet = new Set(next.selectedSessionIds);
+      for (const sessionId of next.job.sessionIds) {
+          if (prevSelectedSet.has(sessionId) !== nextSelectedSet.has(sessionId)) {
+              return false;
+          }
+      }
+  }
 
-  // If array refs differ, check if it affects THIS job.
-  const prevSelectedSet = new Set(prev.selectedSessionIds);
-  const nextSelectedSet = new Set(next.selectedSessionIds);
+  // Check other simple props
+  if (prev.job !== next.job) return false;
+  if (prev.statusFilter !== next.statusFilter) return false;
+  if (prev.sessionsPerPage !== next.sessionsPerPage) return false;
+  if (prev.page !== next.page) return false;
+  if (prev.isRefreshing !== next.isRefreshing) return false;
+  if (prev.activeJobId !== next.activeJobId) return false;
+  if (prev.isActionPending !== next.isActionPending) return false;
+  if (prev.titleTruncateLength !== next.titleTruncateLength) return false;
+  if (prev.quickReplies !== next.quickReplies) return false;
+  if (prev.jobIdParam !== next.jobIdParam) return false;
 
-  // We use next.job.sessionIds (assuming job didn't change, checked above)
-  for (const sessionId of next.job.sessionIds) {
-      if (prevSelectedSet.has(sessionId) !== nextSelectedSet.has(sessionId)) {
-          return false;
+  if (prev.onSelectAllForJob !== next.onSelectAllForJob) return false;
+  if (prev.onSelectRow !== next.onSelectRow) return false;
+  if (prev.onSessionPageChange !== next.onSessionPageChange) return false;
+  if (prev.onApprovePlan !== next.onApprovePlan) return false;
+  if (prev.onBulkSendMessage !== next.onBulkSendMessage) return false;
+  if (prev.onSendMessage !== next.onSendMessage) return false;
+  if (prev.setActiveJobId !== next.setActiveJobId) return false;
+
+  // Check details (deep check)
+  if (prev.details !== next.details) {
+      if (!prev.details || !next.details) return false; // One is undefined
+      if (prev.details.completed !== next.details.completed) return false;
+      if (prev.details.working !== next.details.working) return false;
+      if (prev.details.total !== next.details.total) return false;
+      // Check pending array
+      if (prev.details.pending.length !== next.details.pending.length) return false;
+      for (let i = 0; i < prev.details.pending.length; i++) {
+          if (prev.details.pending[i] !== next.details.pending[i]) return false;
+      }
+  }
+
+  // Check sessionMap (smart check)
+  if (prev.sessionMap !== next.sessionMap) {
+      for (const id of next.job.sessionIds) {
+          if (prev.sessionMap.get(id) !== next.sessionMap.get(id)) {
+              return false;
+          }
       }
   }
 
