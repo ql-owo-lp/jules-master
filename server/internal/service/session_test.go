@@ -107,7 +107,7 @@ func TestSessionService_CRUD(t *testing.T) {
 	assert.NoError(t, err)
 	// Order is DESC create_time
 	assert.Len(t, list.Sessions, 2)
-	assert.Equal(t, s2.Id, list.Sessions[0].Id) 
+	assert.Equal(t, s2.Id, list.Sessions[0].Id)
 
 	// List by Profile
 	listP1, err := svc.ListSessions(ctx, &pb.ListSessionsRequest{ProfileId: "p1"})

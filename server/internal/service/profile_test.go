@@ -37,7 +37,7 @@ func TestProfileService_ListAndDelete(t *testing.T) {
 	defer db.Close()
 	svc := &ProfileServer{DB: db}
 	ctx := context.Background()
-	
+
 	// Create P1
 	p1, err := svc.CreateProfile(ctx, &pb.CreateProfileRequest{Name: "P1"})
 	assert.NoError(t, err)
@@ -45,7 +45,7 @@ func TestProfileService_ListAndDelete(t *testing.T) {
 	// List
 	list, err := svc.ListProfiles(ctx, &emptypb.Empty{})
 	assert.NoError(t, err)
-	
+
 	found := false
 	for _, p := range list.Profiles {
 		if p.Id == p1.Id {

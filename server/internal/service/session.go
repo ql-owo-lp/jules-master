@@ -62,7 +62,7 @@ func (s *SessionServer) SendMessage(ctx context.Context, req *pb.SendMessageRequ
 	}
 
 	url := fmt.Sprintf("%s/sessions/%s:sendMessage", s.getBaseURL(), req.Id)
-	
+
 	body := map[string]interface{}{
 		"message": req.Message,
 	}
@@ -88,7 +88,8 @@ func (s *SessionServer) SendMessage(ctx context.Context, req *pb.SendMessageRequ
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("sendMessage failed %d: %s", resp.StatusCode, string(b))
+		sanitized := sanitizeErrorBody(b)
+		return nil, fmt.Errorf("sendMessage failed %d: %s", resp.StatusCode, sanitized)
 	}
 
 	// Update local interaction time?
@@ -289,7 +290,6 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("X-Goog-Api-Key", apiKey)
 
-
 	resp, err := client.Do(r)
 	if err != nil {
 		logger.Warn("Failed to create remote session (continuing locally): %v", err)
@@ -299,7 +299,8 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 
 	if resp.StatusCode != http.StatusOK {
 		respBytes, _ := io.ReadAll(resp.Body)
-		logger.Warn("Remote create returned status %d (continuing locally): %s", resp.StatusCode, string(respBytes))
+		sanitized := sanitizeErrorBody(respBytes)
+		logger.Warn("Remote create returned status %d (continuing locally): %s", resp.StatusCode, sanitized)
 		return nil, nil
 	}
 
@@ -356,7 +357,32 @@ func (s *SessionServer) approveRemotePlan(id string) error {
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("remote approve failed %d: %s", resp.StatusCode, string(b))
+		sanitized := sanitizeErrorBody(b)
+		return fmt.Errorf("remote approve failed %d: %s", resp.StatusCode, sanitized)
 	}
 	return nil
+}
+
+// sanitizeErrorBody attempts to extract a clean error message from the response body.
+// It avoids logging the full body which might contain sensitive information.
+func sanitizeErrorBody(body []byte) string {
+	// Try to parse as common Google API error format
+	// { "error": { "code": 400, "message": "...", "status": "..." } }
+	var ge struct {
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &ge); err == nil && ge.Error.Message != "" {
+		return ge.Error.Message
+	}
+
+	// Fallback: truncate string
+	const maxLen = 200
+	runes := []rune(string(body))
+	if len(runes) > maxLen {
+		return string(runes[:maxLen]) + "..."
+	}
+	return string(runes)
 }
