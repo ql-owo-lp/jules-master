@@ -93,7 +93,7 @@ jobs:
             echo "Processing PR #$pr_number..."
 
             # Retry mechanism
-            max_retries=2
+            max_retries=3
             retry_count=0
             success=false
 
