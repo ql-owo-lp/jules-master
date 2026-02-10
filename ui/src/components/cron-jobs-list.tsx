@@ -11,6 +11,7 @@ import type { CronJob } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { getScheduleDescription } from "@/lib/cron-utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -152,7 +153,16 @@ export function CronJobsList() {
                                 {cronJobs.map((job) => (
                                     <TableRow key={job.id}>
                                         <TableCell className="font-medium">{job.name}</TableCell>
-                                        <TableCell>{job.schedule}</TableCell>
+                                        <TableCell>
+                                            {getScheduleDescription(job.schedule) ? (
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{getScheduleDescription(job.schedule)}</span>
+                                                    <span className="text-muted-foreground text-xs font-mono">{job.schedule}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="font-mono">{job.schedule}</span>
+                                            )}
+                                        </TableCell>
                                         <TableCell>{job.repo} ({job.branch})</TableCell>
                                         <TableCell>{job.lastRunAt ? new Date(job.lastRunAt).toLocaleString() : 'Never'}</TableCell>
                                         <TableCell>
