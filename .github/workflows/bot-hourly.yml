@@ -86,6 +86,8 @@ jobs:
           gh pr list \
             --repo ${{ github.repository }} \
             --base main \
+            --sort updated \
+            --order desc \
             --search "is:pr is:open author:@me" \
             --json number \
             --jq '.[].number' | \
@@ -93,7 +95,7 @@ jobs:
             echo "Processing PR #$pr_number..."
 
             # Retry mechanism
-            max_retries=3
+            max_retries=2
             retry_count=0
             success=false
 
