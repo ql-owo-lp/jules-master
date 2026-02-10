@@ -170,6 +170,12 @@ func (s *JobServer) CreateJob(ctx context.Context, req *pb.CreateJobRequest) (*p
 	if len(req.Prompt) > 50000 {
 		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
 	}
+	if err := ValidateRepo(req.Repo); err != nil {
+		return nil, err
+	}
+	if err := ValidateBranch(req.Branch); err != nil {
+		return nil, err
+	}
 
 	id := req.Id
 	if id == "" {
@@ -249,6 +255,12 @@ func (s *JobServer) CreateManyJobs(ctx context.Context, req *pb.CreateManyJobsRe
 		}
 		if len(j.Prompt) > 50000 {
 			return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+		}
+		if err := ValidateRepo(j.Repo); err != nil {
+			return nil, err
+		}
+		if err := ValidateBranch(j.Branch); err != nil {
+			return nil, err
 		}
 
 		sessionIdsJSON, _ := json.Marshal(j.SessionIds)
