@@ -7,8 +7,8 @@ test("Job filter should be preserved after viewing a session", async ({ page }) 
   // Mock jobs and sessions data
   await page.evaluate(() => {
     window.localStorage.setItem("jules-jobs", JSON.stringify([
-      { id: "job-1", name: "Job 1", sessionIds: ["session-1"], repo: "test/repo", branch: "main" },
-      { id: "job-2", name: "Job 2", sessionIds: ["session-2"], repo: "test/repo", branch: "main" },
+      { id: "job-1", name: "Job 1", sessionIds: ["session-1"], repo: "test/repo", branch: "main", createdAt: new Date().toISOString() },
+      { id: "job-2", name: "Job 2", sessionIds: ["session-2"], repo: "test/repo", branch: "main", createdAt: new Date().toISOString() },
     ]));
     window.localStorage.setItem("jules-sessions", JSON.stringify([
       { id: "session-1", title: "Session 1", state: "COMPLETED", createTime: new Date().toISOString() },
@@ -40,7 +40,7 @@ test("Job filter should be correctly displayed when loading with jobId in URL", 
     localStorage.setItem(
       "jules-jobs",
       JSON.stringify([
-        { id: "job-1", name: "Job 1", sessionIds: ["session-1"] },
+        { id: "job-1", name: "Job 1", sessionIds: ["session-1"], createdAt: new Date().toISOString() },
       ])
     );
     localStorage.setItem(
