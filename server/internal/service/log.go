@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/logger"
+	pb "github.com/mcpany/jules/proto"
 )
 
 type LogServer struct {
