@@ -497,8 +497,15 @@ export function JobCreationForm({
                 id="session-count"
                 type="number"
                 min="1"
-                value={sessionCount}
-                onChange={(e) => setSessionCount(parseInt(e.target.value, 10))}
+                value={isNaN(sessionCount) ? "" : sessionCount}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setSessionCount(NaN);
+                  } else {
+                    setSessionCount(parseInt(val, 10));
+                  }
+                }}
                 disabled={isPending || disabled}
                 aria-describedby="session-count-help"
               />
@@ -684,23 +691,43 @@ export function JobCreationForm({
           </div>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button
-            type="submit"
-            disabled={isPending || disabled || !finalPrompt.trim()}
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Wand2 className="mr-2 h-4 w-4" />
-                Create Job
-              </>
-            )}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className="inline-block"
+                tabIndex={isPending || disabled || !finalPrompt.trim() ? 0 : -1}
+              >
+                <Button
+                  type="submit"
+                  disabled={isPending || disabled || !finalPrompt.trim()}
+                  className="bg-accent text-accent-foreground hover:bg-accent/90"
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="mr-2 h-4 w-4" />
+                      Create Job
+                    </>
+                  )}
+                </Button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isPending ? (
+                <p>Creating job...</p>
+              ) : disabled ? (
+                <p>Form is disabled</p>
+              ) : !finalPrompt.trim() ? (
+                <p>Please enter a prompt to create a job</p>
+              ) : (
+                <p>Create new job</p>
+              )}
+            </TooltipContent>
+          </Tooltip>
         </CardFooter>
       </form>
       </TooltipProvider>

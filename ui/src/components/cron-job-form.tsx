@@ -523,8 +523,15 @@ export function CronJobForm({
                 id="session-count"
                 type="number"
                 min="1"
-                value={sessionCount}
-                onChange={(e) => setSessionCount(parseInt(e.target.value, 10))}
+                value={isNaN(sessionCount) ? "" : sessionCount}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setSessionCount(NaN);
+                  } else {
+                    setSessionCount(parseInt(val, 10));
+                  }
+                }}
                 disabled={isPending}
                 aria-describedby="session-count-help"
               />
