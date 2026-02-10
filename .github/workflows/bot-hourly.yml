@@ -86,7 +86,7 @@ jobs:
           gh pr list \
             --repo ${{ github.repository }} \
             --base main \
-            --search "is:pr is:open status:success author:@me" \
+            --search "is:pr is:open status:success" \
             --json number \
             --jq '.[].number' | \
           while read pr_number; do
