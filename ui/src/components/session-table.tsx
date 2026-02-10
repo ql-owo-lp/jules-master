@@ -36,6 +36,7 @@ interface SessionTableProps {
   onApprovePlan: (sessionIds: string[]) => void;
   onSendMessage: (sessionId: string, message: string) => void;
   quickReplies: PredefinedPrompt[];
+  quickReplyOptions?: { value: string; label: string; content: string }[];
   jobIdParam: string | null;
 }
 
@@ -66,6 +67,7 @@ interface SessionRowProps {
   onApprovePlan: (sessionIds: string[]) => void;
   onSendMessage: (sessionId: string, message: string) => void;
   quickReplies: PredefinedPrompt[];
+  quickReplyOptions?: { value: string; label: string; content: string }[];
   jobIdParam: string | null;
   prStatus?: PullRequestStatus | null;
 }
@@ -81,6 +83,7 @@ const SessionRowComponent = ({
   onApprovePlan,
   onSendMessage,
   quickReplies,
+  quickReplyOptions: providedQuickReplyOptions,
   jobIdParam,
   prStatus
 }: SessionRowProps) => {
@@ -88,11 +91,14 @@ const SessionRowComponent = ({
   const prUrl = getPullRequestUrl(session);
   const backPath = isUncategorized ? '' : `?jobId=${jobId || jobIdParam}`;
 
-  const quickReplyOptions = useMemo(() => quickReplies.map(reply => ({
-    value: reply.id,
-    label: reply.title,
-    content: reply.prompt,
-  })), [quickReplies]);
+  const quickReplyOptions = useMemo(() => {
+    if (providedQuickReplyOptions) return providedQuickReplyOptions;
+    return quickReplies.map(reply => ({
+      value: reply.id,
+      label: reply.title,
+      content: reply.prompt,
+    }));
+  }, [quickReplies, providedQuickReplyOptions]);
 
   return (
     <TableRow
@@ -164,6 +170,7 @@ const SessionRowComponent = ({
                       dialogDescription={truncate(session.title, titleTruncateLength)}
                       isActionPending={isActionPending}
                       quickReplies={quickReplies}
+                      quickReplyOptions={quickReplyOptions}
                   />
                   <Popover>
                      <Tooltip>
@@ -235,6 +242,8 @@ const areSessionPropsEqual = (prev: SessionRowProps, next: SessionRowProps) => {
   }
   if (!isQuickRepliesEqual) return false;
 
+  if (prev.quickReplyOptions !== next.quickReplyOptions) return false;
+
   return (
     prev.isUncategorized === next.isUncategorized &&
     prev.jobId === next.jobId &&
@@ -262,6 +271,7 @@ const SessionTableComponent = ({
   onApprovePlan,
   onSendMessage,
   quickReplies,
+  quickReplyOptions,
   jobIdParam
 }: SessionTableProps) => {
   // Memoize the selected session set for O(1) lookups instead of O(N) includes check
@@ -348,6 +358,7 @@ const SessionTableComponent = ({
               onApprovePlan={onApprovePlan}
               onSendMessage={onSendMessage}
               quickReplies={quickReplies}
+              quickReplyOptions={quickReplyOptions}
               jobIdParam={jobIdParam}
               prStatus={prUrl ? prStatuses[prUrl] : undefined}
             />
