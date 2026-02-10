@@ -129,39 +129,152 @@ jobs:
           path: ui/playwright-report/
           retention-days: 30
 
-  comment-on-failure:
-    runs-on: ubuntu-latest
+  ci-success:
+    runs-on: ubuntu-slim
     needs: [backend-test, test, e2e]
-    if: failure() && github.event_name == 'pull_request'
+    if: always()
     permissions:
+      contents: write
       pull-requests: write
+      actions: read
     steps:
-      - name: Comment on PR
+      - name: Install gh CLI
+        run: |
+          install_dependencies() {
+            if ! command -v curl &> /dev/null; then
+              echo "curl not found. Installing..."
+              if command -v apt-get &> /dev/null; then
+                sudo apt-get update && sudo apt-get install -y curl ca-certificates
+              elif command -v apk &> /dev/null; then
+                sudo apk add --no-cache curl ca-certificates
+              elif command -v yum &> /dev/null; then
+                sudo yum install -y curl ca-certificates
+              elif command -v dnf &> /dev/null; then
+                sudo dnf install -y curl ca-certificates
+              else
+                echo "Could not find package manager to install curl. Trying to proceed..."
+              fi
+            fi
+          }
+
+          if ! command -v gh &> /dev/null; then
+            echo "gh not found. Installing..."
+            install_dependencies
+
+            GH_VERSION="2.65.0"
+            ARCH=$(uname -m)
+            case $ARCH in
+              x86_64) ARCH_STR="amd64" ;;
+              aarch64) ARCH_STR="arm64" ;;
+              *) echo "Unsupported arch: $ARCH"; exit 1 ;;
+            esac
+
+            mkdir -p /tmp/gh-install
+            if command -v curl &> /dev/null; then
+              curl -fsSL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH_STR}.tar.gz | tar xz -C /tmp/gh-install
+            elif command -v wget &> /dev/null; then
+              wget -qO- https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH_STR}.tar.gz | tar xz -C /tmp/gh-install
+            else
+              echo "Neither curl nor wget found. Cannot install gh."
+              exit 1
+            fi
+
+            BIN_PATH="/tmp/gh-install/gh_${GH_VERSION}_linux_${ARCH_STR}/bin/gh"
+
+            if [ -w /usr/local/bin ]; then
+               cp "$BIN_PATH" /usr/local/bin/
+            elif command -v sudo &> /dev/null; then
+               sudo cp "$BIN_PATH" /usr/local/bin/
+            else
+               mkdir -p "$HOME/.local/bin"
+               cp "$BIN_PATH" "$HOME/.local/bin/"
+               echo "$HOME/.local/bin" >> $GITHUB_PATH
+            fi
+
+            rm -rf /tmp/gh-install
+            echo "gh installed successfully."
+          else
+            echo "gh is already installed."
+          fi
+
+      - name: Auto-Squash
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge --auto --squash "${{ github.event.pull_request.html_url }}" || echo "Failed to enable auto-merge (check permissions/settings)"
+
+      - name: Check Results and Comment
         uses: actions/github-script@v8
         with:
+          github-token: ${{ secrets.ORG_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
+            // 1. Check for Failures
             const needs = ${{ toJson(needs) }};
-            const { repo, owner } = context.repo;
+            const failedJobNames = Object.keys(needs).filter(key => needs[key].result === 'failure' || needs[key].result === 'cancelled');
+            const { owner, repo } = context.repo;
             const run_id = context.runId;
             const run_url = `https://github.com/${owner}/${repo}/actions/runs/${run_id}`;
+            const pull_number = context.issue.number;
 
-            const failedJobs = Object.entries(needs)
-              .filter(([_, job]) => job.result === 'failure')
-              .map(([name]) => name);
+            if (failedJobNames.length === 0) {
+              console.log('All required jobs passed successfully (or were skipped).');
+              return;
+            }
 
-            const list = failedJobs.map(job => `- **${job}**`).join('\n');
+            // 2. Prepare Comment Logic (only if PR)
+            if (pull_number) {
+              let failuresDetails = [];
+              try {
+                // We use github.rest instead of github.actions for v7 compat if needed, but octokit is global
+                // List jobs to find step failures
+                const jobsResponse = await github.rest.actions.listJobsForWorkflowRun({
+                  owner,
+                  repo,
+                  run_id,
+                });
+                const failedJobs = jobsResponse.data.jobs.filter(job => job.conclusion === 'failure');
 
-            const body = `❌ **CI Checks Failed** @jules
+                for (const job of failedJobs) {
+                   const failedSteps = job.steps
+                     .filter(step => step.conclusion === 'failure')
+                     .map(step => step.name)
+                     .join(', ');
+                   const msg = failedSteps ? `${job.name}: Failed at step(s) "${failedSteps}"` : `${job.name}: Failed`;
+                   failuresDetails.push(msg);
+                }
+              } catch (e) {
+                console.log('Error fetching job details:', e);
+                failuresDetails = failedJobNames.map(name => `${name}: Failed`);
+              }
 
-            The following checks failed in this run:
-            ${list}
+              const list = failuresDetails.map(detail => `- **${detail}**`).join('\n');
+              const agentPrompt = `
+              Please investigate the failures above.
+              1. Check the [Action logs](${run_url}) for the specific error messages (e.g., failed tests, lint errors, build issues).
+              2. Analyze the root cause.
+              3. Apply fixes to the codebase.
+              `;
 
-            Please check the [Action logs](${run_url}) for more details.
-            `;
+              const body = `❌ **CI Checks Failed**
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number: context.issue.number,
-              body
-            });
+              The following GitHub Actions checks failed in this run:
+              ${list}
+
+              ---
+              ${agentPrompt}
+              `;
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pull_number,
+                body
+              });
+            } else {
+              console.log('Not a PR, skipping failure comment.');
+            }
+
+            // 3. Fail the workflow
+            const msg = 'The following required jobs did not pass: ' + failedJobNames.join(', ');
+            core.setFailed(msg);
