@@ -27,14 +27,7 @@ import { Combobox, ComboboxGroup } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import cronParser from "cron-parser";
 import { format } from "date-fns";
-
-const CRON_PRESETS = [
-    { label: "Every Hour", value: "0 * * * *" },
-    { label: "Every Day", value: "0 0 * * *" },
-    { label: "Every Week", value: "0 0 * * 0" },
-    { label: "Every Month", value: "0 0 1 * *" },
-    { label: "Weekdays", value: "0 0 * * 1-5" },
-];
+import { CRON_PRESETS, getScheduleDescription } from "@/lib/cron-utils";
 
 type CronJobFormProps = {
   onCronJobCreated: () => void;
@@ -403,7 +396,7 @@ export function CronJobForm({
               />
               <div className="flex justify-between items-start">
                 <p id="schedule-help" className="text-xs text-muted-foreground">
-                  Format: Minute Hour Day Month DayOfWeek
+                  {getScheduleDescription(schedule) || "Format: Minute Hour Day Month DayOfWeek"}
                 </p>
                 {scheduleError ? (
                   <p className="text-xs text-destructive font-medium animate-in fade-in slide-in-from-top-1">
