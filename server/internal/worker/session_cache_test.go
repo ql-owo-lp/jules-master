@@ -44,6 +44,8 @@ func TestSessionCacheWorker_RunCheck(t *testing.T) {
 			ProfileId:                      "default",
 			SessionCacheInProgressInterval: 1, // 1 second for test
 			SessionCacheMaxAgeDays:         7,
+			Theme:                          "system",
+			AutoMergeMethod:                "squash",
 		},
 	})
 	assert.NoError(t, err)

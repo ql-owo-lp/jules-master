@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	pb "github.com/mcpany/jules/proto"
@@ -45,4 +46,41 @@ func TestSettingsService_GetUpdate(t *testing.T) {
 	// Error path
 	_, err = svc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{Settings: nil})
 	assert.Error(t, err)
+}
+
+func TestSettingsService_Validation(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	svc := &SettingsServer{DB: db}
+	ctx := context.Background()
+
+	base, _ := svc.GetSettings(ctx, &pb.GetSettingsRequest{ProfileId: "default"})
+
+	// Test 1: Invalid Theme
+	invalidTheme := *base
+	invalidTheme.Theme = "hacker-green"
+	_, err := svc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{Settings: &invalidTheme})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid theme")
+
+	// Test 2: Invalid AutoMergeMethod
+	invalidMerge := *base
+	invalidMerge.AutoMergeMethod = "force-push"
+	_, err = svc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{Settings: &invalidMerge})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid auto merge method")
+
+	// Test 3: Message too long
+	longMsg := *base
+	longMsg.AutoRetryMessage = strings.Repeat("a", 1001)
+	_, err = svc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{Settings: &longMsg})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "too long")
+
+	// Test 4: Negative interval
+	negInterval := *base
+	negInterval.IdlePollInterval = -1
+	_, err = svc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{Settings: &negInterval})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "must be positive")
 }

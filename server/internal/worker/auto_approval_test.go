@@ -24,10 +24,12 @@ func TestAutoApprovalWorker_RunCheck(t *testing.T) {
 	// 1. Setup Settings (Enabled)
 	_, err := settingsSvc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{
 		Settings: &pb.Settings{
-			ProfileId:            "default",
-			AutoApprovalEnabled:      true,
-			AutoApprovalInterval:     1,
-			AutoApprovalAllSessions:  true,
+			ProfileId:               "default",
+			AutoApprovalEnabled:     true,
+			AutoApprovalInterval:    1,
+			AutoApprovalAllSessions: true,
+			Theme:                   "system",
+			AutoMergeMethod:         "squash",
 		},
 	})
 	if err != nil {
@@ -70,11 +72,12 @@ func TestAutoApprovalWorker_RunCheck_Disabled(t *testing.T) {
 	ctx := context.Background()
 
 	// 1. Setup Settings (Disabled)
-	// 1. Setup Settings (Disabled)
 	_, err := settingsSvc.UpdateSettings(ctx, &pb.UpdateSettingsRequest{
 		Settings: &pb.Settings{
 			ProfileId:           "default",
 			AutoApprovalEnabled: false,
+			Theme:               "system",
+			AutoMergeMethod:     "squash",
 		},
 	})
 	if err != nil {
@@ -123,6 +126,8 @@ func TestAutoApprovalWorker_GetInterval(t *testing.T) {
 		Settings: &pb.Settings{
 			ProfileId:            "default",
 			AutoApprovalInterval: 120,
+			Theme:                "system",
+			AutoMergeMethod:      "squash",
 		},
 	})
 	assert.NoError(t, err)
