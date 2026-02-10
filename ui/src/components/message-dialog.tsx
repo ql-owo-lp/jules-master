@@ -34,6 +34,7 @@ type MessageDialogProps = {
     predefinedPrompts?: PredefinedPrompt[];
     quickReplies?: PredefinedPrompt[];
     tooltip?: string;
+    quickReplyOptions?: { value: string; label: string; content: string }[];
 }
 
 export function MessageDialog({ 
@@ -45,7 +46,8 @@ export function MessageDialog({
     isActionPending,
     predefinedPrompts: initialPrompts = [],
     quickReplies: initialReplies = [],
-    tooltip
+    tooltip,
+    quickReplyOptions: providedQuickReplyOptions
 }: MessageDialogProps) {
     const [open, setOpen] = useState(false);
     const [message, setMessage] = useLocalStorage(storageKey, "");
@@ -98,7 +100,7 @@ export function MessageDialog({
     }
     
     const promptOptions = predefinedPrompts.map(p => ({ value: p.id, label: p.title, content: p.prompt }));
-    const replyOptions = quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
+    const replyOptions = providedQuickReplyOptions || quickReplies.map(r => ({ value: r.id, label: r.title, content: r.prompt }));
 
     const dialogTrigger = (
          <DialogTrigger asChild onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
@@ -151,6 +153,13 @@ export function MessageDialog({
                                 <Combobox
                                     options={replyOptions}
                                     onValueChange={(val) => {
+                                        if (providedQuickReplyOptions) {
+                                            const selected = providedQuickReplyOptions.find(o => o.value === val);
+                                            if (selected) {
+                                                setMessage(selected.content);
+                                                return;
+                                            }
+                                        }
                                         const selected = quickReplies.find(r => r.id === val);
                                         if (selected) setMessage(selected.prompt);
                                     }}

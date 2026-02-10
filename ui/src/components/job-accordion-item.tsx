@@ -32,6 +32,7 @@ interface JobAccordionItemProps {
   progressTotal?: number;
   titleTruncateLength: number;
   quickReplies: PredefinedPrompt[];
+  quickReplyOptions?: { value: string; label: string; content: string }[];
   onSelectAllForJob: (jobId: string, checked: boolean) => void;
   onSelectRow: (sessionId: string, checked: boolean) => void;
   onSessionPageChange: (jobId: string, page: number) => void;
@@ -57,6 +58,7 @@ const JobAccordionItemComponent = ({
   progressTotal = 0,
   titleTruncateLength,
   quickReplies,
+  quickReplyOptions: providedQuickReplyOptions,
   onSelectAllForJob,
   onSelectRow,
   onSessionPageChange,
@@ -130,12 +132,13 @@ const JobAccordionItemComponent = ({
 
   // Memoize quick reply options mapping
   const quickReplyOptions = useMemo(() => {
+      if (providedQuickReplyOptions) return providedQuickReplyOptions;
       return quickReplies.map(reply => ({
         value: reply.id,
         label: reply.title,
         content: reply.prompt,
       }));
-  }, [quickReplies]);
+  }, [quickReplies, providedQuickReplyOptions]);
 
   const truncate = (str: string, length: number) => {
     if (!str) return '';
@@ -263,6 +266,7 @@ const JobAccordionItemComponent = ({
                 dialogDescription={`This message will be sent to all ${job.sessionIds.length} sessions in this job.`}
                 isActionPending={isActionPending}
                 quickReplies={quickReplies}
+                quickReplyOptions={quickReplyOptions}
             />
              <Popover>
                 <Tooltip>
@@ -338,6 +342,7 @@ const JobAccordionItemComponent = ({
                 onApprovePlan={onApprovePlan}
                 onSendMessage={onSendMessage}
                 quickReplies={quickReplies}
+                quickReplyOptions={quickReplyOptions}
                 jobIdParam={jobIdParam}
               />
             </div>
