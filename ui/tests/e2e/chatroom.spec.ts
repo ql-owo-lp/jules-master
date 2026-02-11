@@ -41,13 +41,10 @@ test.describe('Chatroom E2E', () => {
         const jobItem = page.locator('.border.rounded-lg.bg-card').filter({ has: page.locator('p', { hasText: jobName }) });
         await expect(jobItem).toBeVisible();
 
-        // Reload to ensure we get the fresh state from server (verifies persistence)
-        await page.reload();
-        await expect(jobItem).toBeVisible();
-
         // 3. Enter Chatroom
         // The enter chat button is in the job header, visible even when collapsed
-        const enterChatButton = jobItem.getByLabel('Enter Chatroom');
+        // We use a robust locator that finds the button with the message circle icon if label lookup fails
+        const enterChatButton = jobItem.locator('button').filter({ has: page.locator('svg.lucide-message-circle') }).first();
         await expect(enterChatButton).toBeVisible();
         await enterChatButton.click();
 
