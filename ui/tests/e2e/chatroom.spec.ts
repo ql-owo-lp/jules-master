@@ -42,6 +42,9 @@ test.describe('Chatroom E2E', () => {
         await expect(jobItem).toBeVisible();
 
         // 3. Enter Chatroom
+        // Wait for redirect to happen
+        await page.waitForURL((url) => url.searchParams.has('jobId'));
+
         // Extract jobId from URL and navigate directly to chat page to avoid flaky button visibility checks in E2E
         const url = page.url();
         const jobId = new URL(url).searchParams.get('jobId');
