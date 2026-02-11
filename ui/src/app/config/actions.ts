@@ -5,7 +5,11 @@ import { Job, PredefinedPrompt, HistoryPrompt, AutomationMode, Settings, Session
 import { Job as LocalJob } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
-const MOCK_JOBS: LocalJob[] = [];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const globalForMocks = globalThis as unknown as { MOCK_JOBS: LocalJob[] };
+const MOCK_JOBS: LocalJob[] = globalForMocks.MOCK_JOBS || [];
+globalForMocks.MOCK_JOBS = MOCK_JOBS;
+
 const MOCK_SETTINGS: Settings = {
     id: 0,
     defaultSessionCount: 20,
@@ -80,6 +84,7 @@ export async function addJob(job: LocalJob): Promise<void> {
     return new Promise((resolve, reject) => {
         if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
              MOCK_JOBS.push(job);
+             // Ensure global is synced if pushing to local const ref (though they share ref)
              return resolve();
         }
         const req = {
