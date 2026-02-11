@@ -1541,6 +1541,7 @@ type Job struct {
 	RequirePlanApproval bool                   `protobuf:"varint,13,opt,name=require_plan_approval,json=requirePlanApproval,proto3" json:"require_plan_approval,omitempty"`
 	CronJobId           string                 `protobuf:"bytes,14,opt,name=cron_job_id,json=cronJobId,proto3" json:"cron_job_id,omitempty"`
 	ProfileId           string                 `protobuf:"bytes,15,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	ChatEnabled         bool                   `protobuf:"varint,16,opt,name=chat_enabled,json=chatEnabled,proto3" json:"chat_enabled,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1680,6 +1681,13 @@ func (x *Job) GetProfileId() string {
 	return ""
 }
 
+func (x *Job) GetChatEnabled() bool {
+	if x != nil {
+		return x.ChatEnabled
+	}
+	return false
+}
+
 type ListJobsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Jobs          []*Job                 `protobuf:"bytes,1,rep,name=jobs,proto3" json:"jobs,omitempty"`
@@ -1785,6 +1793,7 @@ type CreateJobRequest struct {
 	RequirePlanApproval bool                   `protobuf:"varint,13,opt,name=require_plan_approval,json=requirePlanApproval,proto3" json:"require_plan_approval,omitempty"`
 	CronJobId           string                 `protobuf:"bytes,14,opt,name=cron_job_id,json=cronJobId,proto3" json:"cron_job_id,omitempty"`
 	ProfileId           string                 `protobuf:"bytes,15,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	ChatEnabled         bool                   `protobuf:"varint,16,opt,name=chat_enabled,json=chatEnabled,proto3" json:"chat_enabled,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1922,6 +1931,13 @@ func (x *CreateJobRequest) GetProfileId() string {
 		return x.ProfileId
 	}
 	return ""
+}
+
+func (x *CreateJobRequest) GetChatEnabled() bool {
+	if x != nil {
+		return x.ChatEnabled
+	}
+	return false
 }
 
 type CreateManyJobsRequest struct {
@@ -3465,6 +3481,466 @@ func (x *SendMessageRequest) GetForce() bool {
 	return false
 }
 
+type ChatConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	AgentName     string                 `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"` // Unique name for the agent in this job
+	ApiKey        string                 `protobuf:"bytes,3,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`          // Unique secret key for this agent
+	CreatedAt     string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChatConfig) Reset() {
+	*x = ChatConfig{}
+	mi := &file_jules_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatConfig) ProtoMessage() {}
+
+func (x *ChatConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_jules_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatConfig.ProtoReflect.Descriptor instead.
+func (*ChatConfig) Descriptor() ([]byte, []int) {
+	return file_jules_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *ChatConfig) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *ChatConfig) GetAgentName() string {
+	if x != nil {
+		return x.AgentName
+	}
+	return ""
+}
+
+func (x *ChatConfig) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *ChatConfig) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+type ChatMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	JobId         string                 `protobuf:"bytes,2,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	SenderName    string                 `protobuf:"bytes,3,opt,name=sender_name,json=senderName,proto3" json:"sender_name,omitempty"`
+	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	IsHuman       bool                   `protobuf:"varint,6,opt,name=is_human,json=isHuman,proto3" json:"is_human,omitempty"`
+	Recipient     string                 `protobuf:"bytes,7,opt,name=recipient,proto3" json:"recipient,omitempty"` // Optional: if set, only visible to this recipient (and sender)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChatMessage) Reset() {
+	*x = ChatMessage{}
+	mi := &file_jules_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatMessage) ProtoMessage() {}
+
+func (x *ChatMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_jules_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatMessage.ProtoReflect.Descriptor instead.
+func (*ChatMessage) Descriptor() ([]byte, []int) {
+	return file_jules_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *ChatMessage) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ChatMessage) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *ChatMessage) GetSenderName() string {
+	if x != nil {
+		return x.SenderName
+	}
+	return ""
+}
+
+func (x *ChatMessage) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *ChatMessage) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *ChatMessage) GetIsHuman() bool {
+	if x != nil {
+		return x.IsHuman
+	}
+	return false
+}
+
+func (x *ChatMessage) GetRecipient() string {
+	if x != nil {
+		return x.Recipient
+	}
+	return ""
+}
+
+type GetChatConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	AgentName     string                 `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"` // Retrieve config for specific agent
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetChatConfigRequest) Reset() {
+	*x = GetChatConfigRequest{}
+	mi := &file_jules_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChatConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChatConfigRequest) ProtoMessage() {}
+
+func (x *GetChatConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_jules_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetChatConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetChatConfigRequest) Descriptor() ([]byte, []int) {
+	return file_jules_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *GetChatConfigRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *GetChatConfigRequest) GetAgentName() string {
+	if x != nil {
+		return x.AgentName
+	}
+	return ""
+}
+
+type CreateChatConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	AgentName     string                 `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateChatConfigRequest) Reset() {
+	*x = CreateChatConfigRequest{}
+	mi := &file_jules_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateChatConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateChatConfigRequest) ProtoMessage() {}
+
+func (x *CreateChatConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_jules_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateChatConfigRequest.ProtoReflect.Descriptor instead.
+func (*CreateChatConfigRequest) Descriptor() ([]byte, []int) {
+	return file_jules_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *CreateChatConfigRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *CreateChatConfigRequest) GetAgentName() string {
+	if x != nil {
+		return x.AgentName
+	}
+	return ""
+}
+
+type SendChatMessageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	ApiKey        string                 `protobuf:"bytes,3,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"` // Used to identify sender
+	IsHuman       bool                   `protobuf:"varint,4,opt,name=is_human,json=isHuman,proto3" json:"is_human,omitempty"`
+	SenderName    string                 `protobuf:"bytes,5,opt,name=sender_name,json=senderName,proto3" json:"sender_name,omitempty"` // Optional, only for Human
+	Recipient     string                 `protobuf:"bytes,6,opt,name=recipient,proto3" json:"recipient,omitempty"`                     // Optional: target specific agent or "Human"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendChatMessageRequest) Reset() {
+	*x = SendChatMessageRequest{}
+	mi := &file_jules_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendChatMessageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendChatMessageRequest) ProtoMessage() {}
+
+func (x *SendChatMessageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_jules_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendChatMessageRequest.ProtoReflect.Descriptor instead.
+func (*SendChatMessageRequest) Descriptor() ([]byte, []int) {
+	return file_jules_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *SendChatMessageRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *SendChatMessageRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *SendChatMessageRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *SendChatMessageRequest) GetIsHuman() bool {
+	if x != nil {
+		return x.IsHuman
+	}
+	return false
+}
+
+func (x *SendChatMessageRequest) GetSenderName() string {
+	if x != nil {
+		return x.SenderName
+	}
+	return ""
+}
+
+func (x *SendChatMessageRequest) GetRecipient() string {
+	if x != nil {
+		return x.Recipient
+	}
+	return ""
+}
+
+type ListChatMessagesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Since         string                 `protobuf:"bytes,2,opt,name=since,proto3" json:"since,omitempty"` // ISO timestamp to fetch only new messages
+	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	ViewerName    string                 `protobuf:"bytes,4,opt,name=viewer_name,json=viewerName,proto3" json:"viewer_name,omitempty"` // Optional: strictly filter messages visible to this viewer (Agent Name or "Human")
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListChatMessagesRequest) Reset() {
+	*x = ListChatMessagesRequest{}
+	mi := &file_jules_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListChatMessagesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListChatMessagesRequest) ProtoMessage() {}
+
+func (x *ListChatMessagesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_jules_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListChatMessagesRequest.ProtoReflect.Descriptor instead.
+func (*ListChatMessagesRequest) Descriptor() ([]byte, []int) {
+	return file_jules_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *ListChatMessagesRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *ListChatMessagesRequest) GetSince() string {
+	if x != nil {
+		return x.Since
+	}
+	return ""
+}
+
+func (x *ListChatMessagesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListChatMessagesRequest) GetViewerName() string {
+	if x != nil {
+		return x.ViewerName
+	}
+	return ""
+}
+
+type ListChatMessagesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Messages      []*ChatMessage         `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListChatMessagesResponse) Reset() {
+	*x = ListChatMessagesResponse{}
+	mi := &file_jules_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListChatMessagesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListChatMessagesResponse) ProtoMessage() {}
+
+func (x *ListChatMessagesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_jules_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListChatMessagesResponse.ProtoReflect.Descriptor instead.
+func (*ListChatMessagesResponse) Descriptor() ([]byte, []int) {
+	return file_jules_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *ListChatMessagesResponse) GetMessages() []*ChatMessage {
+	if x != nil {
+		return x.Messages
+	}
+	return nil
+}
+
 var File_jules_proto protoreflect.FileDescriptor
 
 const file_jules_proto_rawDesc = "" +
@@ -3604,7 +4080,7 @@ const file_jules_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"@\n" +
 	"\x14ToggleCronJobRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
-	"\aenabled\x18\x02 \x01(\bR\aenabled\"\xe2\x03\n" +
+	"\aenabled\x18\x02 \x01(\bR\aenabled\"\x85\x04\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -3626,12 +4102,13 @@ const file_jules_proto_rawDesc = "" +
 	"\x15require_plan_approval\x18\r \x01(\bR\x13requirePlanApproval\x12\x1e\n" +
 	"\vcron_job_id\x18\x0e \x01(\tR\tcronJobId\x12\x1d\n" +
 	"\n" +
-	"profile_id\x18\x0f \x01(\tR\tprofileId\"2\n" +
+	"profile_id\x18\x0f \x01(\tR\tprofileId\x12!\n" +
+	"\fchat_enabled\x18\x10 \x01(\bR\vchatEnabled\"2\n" +
 	"\x10ListJobsResponse\x12\x1e\n" +
 	"\x04jobs\x18\x01 \x03(\v2\n" +
 	".jules.JobR\x04jobs\"\x1f\n" +
 	"\rGetJobRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xef\x03\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x92\x04\n" +
 	"\x10CreateJobRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -3653,7 +4130,8 @@ const file_jules_proto_rawDesc = "" +
 	"\x15require_plan_approval\x18\r \x01(\bR\x13requirePlanApproval\x12\x1e\n" +
 	"\vcron_job_id\x18\x0e \x01(\tR\tcronJobId\x12\x1d\n" +
 	"\n" +
-	"profile_id\x18\x0f \x01(\tR\tprofileId\"D\n" +
+	"profile_id\x18\x0f \x01(\tR\tprofileId\x12!\n" +
+	"\fchat_enabled\x18\x10 \x01(\bR\vchatEnabled\"D\n" +
 	"\x15CreateManyJobsRequest\x12+\n" +
 	"\x04jobs\x18\x01 \x03(\v2\x17.jules.CreateJobRequestR\x04jobs\"\xb6\x01\n" +
 	"\x10UpdateJobRequest\x12\x0e\n" +
@@ -3767,7 +4245,49 @@ const file_jules_proto_rawDesc = "" +
 	"\x12SendMessageRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x14\n" +
-	"\x05force\x18\x03 \x01(\bR\x05force*Q\n" +
+	"\x05force\x18\x03 \x01(\bR\x05force\"z\n" +
+	"\n" +
+	"ChatConfig\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1d\n" +
+	"\n" +
+	"agent_name\x18\x02 \x01(\tR\tagentName\x12\x17\n" +
+	"\aapi_key\x18\x03 \x01(\tR\x06apiKey\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\tR\tcreatedAt\"\xc7\x01\n" +
+	"\vChatMessage\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
+	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x1f\n" +
+	"\vsender_name\x18\x03 \x01(\tR\n" +
+	"senderName\x12\x18\n" +
+	"\acontent\x18\x04 \x01(\tR\acontent\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x19\n" +
+	"\bis_human\x18\x06 \x01(\bR\aisHuman\x12\x1c\n" +
+	"\trecipient\x18\a \x01(\tR\trecipient\"L\n" +
+	"\x14GetChatConfigRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1d\n" +
+	"\n" +
+	"agent_name\x18\x02 \x01(\tR\tagentName\"O\n" +
+	"\x17CreateChatConfigRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1d\n" +
+	"\n" +
+	"agent_name\x18\x02 \x01(\tR\tagentName\"\xbc\x01\n" +
+	"\x16SendChatMessageRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\x12\x17\n" +
+	"\aapi_key\x18\x03 \x01(\tR\x06apiKey\x12\x19\n" +
+	"\bis_human\x18\x04 \x01(\bR\aisHuman\x12\x1f\n" +
+	"\vsender_name\x18\x05 \x01(\tR\n" +
+	"senderName\x12\x1c\n" +
+	"\trecipient\x18\x06 \x01(\tR\trecipient\"}\n" +
+	"\x17ListChatMessagesRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x14\n" +
+	"\x05since\x18\x02 \x01(\tR\x05since\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x1f\n" +
+	"\vviewer_name\x18\x04 \x01(\tR\n" +
+	"viewerName\"J\n" +
+	"\x18ListChatMessagesResponse\x12.\n" +
+	"\bmessages\x18\x01 \x03(\v2\x12.jules.ChatMessageR\bmessages*Q\n" +
 	"\x05Theme\x12\x15\n" +
 	"\x11THEME_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vTHEME_LIGHT\x10\x01\x12\x0e\n" +
@@ -3832,7 +4352,12 @@ const file_jules_proto_rawDesc = "" +
 	"\rUpdateSession\x12\x1b.jules.UpdateSessionRequest\x1a\x16.google.protobuf.Empty\x12D\n" +
 	"\rDeleteSession\x12\x1b.jules.DeleteSessionRequest\x1a\x16.google.protobuf.Empty\x12@\n" +
 	"\vApprovePlan\x12\x19.jules.ApprovePlanRequest\x1a\x16.google.protobuf.Empty\x12@\n" +
-	"\vSendMessage\x12\x19.jules.SendMessageRequest\x1a\x16.google.protobuf.EmptyB\x1fZ\x1dgithub.com/mcpany/jules/protob\x06proto3"
+	"\vSendMessage\x12\x19.jules.SendMessageRequest\x1a\x16.google.protobuf.Empty2\xb4\x02\n" +
+	"\vChatService\x12?\n" +
+	"\rGetChatConfig\x12\x1b.jules.GetChatConfigRequest\x1a\x11.jules.ChatConfig\x12E\n" +
+	"\x10CreateChatConfig\x12\x1e.jules.CreateChatConfigRequest\x1a\x11.jules.ChatConfig\x12H\n" +
+	"\x0fSendChatMessage\x12\x1d.jules.SendChatMessageRequest\x1a\x16.google.protobuf.Empty\x12S\n" +
+	"\x10ListChatMessages\x12\x1e.jules.ListChatMessagesRequest\x1a\x1f.jules.ListChatMessagesResponseB\x1fZ\x1dgithub.com/mcpany/jules/protob\x06proto3"
 
 var (
 	file_jules_proto_rawDescOnce sync.Once
@@ -3847,7 +4372,7 @@ func file_jules_proto_rawDescGZIP() []byte {
 }
 
 var file_jules_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_jules_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
+var file_jules_proto_msgTypes = make([]protoimpl.MessageInfo, 57)
 var file_jules_proto_goTypes = []any{
 	(Theme)(0),                            // 0: jules.Theme
 	(AutomationMode)(0),                   // 1: jules.AutomationMode
@@ -3901,7 +4426,14 @@ var file_jules_proto_goTypes = []any{
 	(*DeleteSessionRequest)(nil),          // 49: jules.DeleteSessionRequest
 	(*ApprovePlanRequest)(nil),            // 50: jules.ApprovePlanRequest
 	(*SendMessageRequest)(nil),            // 51: jules.SendMessageRequest
-	(*emptypb.Empty)(nil),                 // 52: google.protobuf.Empty
+	(*ChatConfig)(nil),                    // 52: jules.ChatConfig
+	(*ChatMessage)(nil),                   // 53: jules.ChatMessage
+	(*GetChatConfigRequest)(nil),          // 54: jules.GetChatConfigRequest
+	(*CreateChatConfigRequest)(nil),       // 55: jules.CreateChatConfigRequest
+	(*SendChatMessageRequest)(nil),        // 56: jules.SendChatMessageRequest
+	(*ListChatMessagesRequest)(nil),       // 57: jules.ListChatMessagesRequest
+	(*ListChatMessagesResponse)(nil),      // 58: jules.ListChatMessagesResponse
+	(*emptypb.Empty)(nil),                 // 59: google.protobuf.Empty
 }
 var file_jules_proto_depIdxs = []int32{
 	2,  // 0: jules.UpdateSettingsRequest.settings:type_name -> jules.Settings
@@ -3920,99 +4452,108 @@ var file_jules_proto_depIdxs = []int32{
 	36, // 13: jules.ListHistoryPromptsResponse.prompts:type_name -> jules.HistoryPrompt
 	1,  // 14: jules.Session.automation_mode:type_name -> jules.AutomationMode
 	43, // 15: jules.ListSessionsResponse.sessions:type_name -> jules.Session
-	3,  // 16: jules.SettingsService.GetSettings:input_type -> jules.GetSettingsRequest
-	4,  // 17: jules.SettingsService.UpdateSettings:input_type -> jules.UpdateSettingsRequest
-	52, // 18: jules.ProfileService.ListProfiles:input_type -> google.protobuf.Empty
-	8,  // 19: jules.ProfileService.CreateProfile:input_type -> jules.CreateProfileRequest
-	9,  // 20: jules.ProfileService.DeleteProfile:input_type -> jules.DeleteProfileRequest
-	11, // 21: jules.LogService.GetLogs:input_type -> jules.GetLogsRequest
-	52, // 22: jules.CronJobService.ListCronJobs:input_type -> google.protobuf.Empty
-	15, // 23: jules.CronJobService.CreateCronJob:input_type -> jules.CreateCronJobRequest
-	16, // 24: jules.CronJobService.UpdateCronJob:input_type -> jules.UpdateCronJobRequest
-	17, // 25: jules.CronJobService.DeleteCronJob:input_type -> jules.DeleteCronJobRequest
-	18, // 26: jules.CronJobService.ExecuteCronJob:input_type -> jules.ExecuteCronJobRequest
-	19, // 27: jules.CronJobService.ToggleCronJob:input_type -> jules.ToggleCronJobRequest
-	52, // 28: jules.JobService.ListJobs:input_type -> google.protobuf.Empty
-	22, // 29: jules.JobService.GetJob:input_type -> jules.GetJobRequest
-	23, // 30: jules.JobService.CreateJob:input_type -> jules.CreateJobRequest
-	24, // 31: jules.JobService.CreateManyJobs:input_type -> jules.CreateManyJobsRequest
-	25, // 32: jules.JobService.UpdateJob:input_type -> jules.UpdateJobRequest
-	26, // 33: jules.JobService.DeleteJob:input_type -> jules.DeleteJobRequest
-	52, // 34: jules.PromptService.ListPredefinedPrompts:input_type -> google.protobuf.Empty
-	29, // 35: jules.PromptService.GetPredefinedPrompt:input_type -> jules.GetPromptRequest
-	30, // 36: jules.PromptService.CreatePredefinedPrompt:input_type -> jules.CreatePromptRequest
-	31, // 37: jules.PromptService.CreateManyPredefinedPrompts:input_type -> jules.CreateManyPromptsRequest
-	32, // 38: jules.PromptService.UpdatePredefinedPrompt:input_type -> jules.UpdatePromptRequest
-	33, // 39: jules.PromptService.DeletePredefinedPrompt:input_type -> jules.DeletePromptRequest
-	52, // 40: jules.PromptService.ListQuickReplies:input_type -> google.protobuf.Empty
-	29, // 41: jules.PromptService.GetQuickReply:input_type -> jules.GetPromptRequest
-	30, // 42: jules.PromptService.CreateQuickReply:input_type -> jules.CreatePromptRequest
-	31, // 43: jules.PromptService.CreateManyQuickReplies:input_type -> jules.CreateManyPromptsRequest
-	32, // 44: jules.PromptService.UpdateQuickReply:input_type -> jules.UpdatePromptRequest
-	33, // 45: jules.PromptService.DeleteQuickReply:input_type -> jules.DeletePromptRequest
-	52, // 46: jules.PromptService.GetGlobalPrompt:input_type -> google.protobuf.Empty
-	35, // 47: jules.PromptService.SaveGlobalPrompt:input_type -> jules.SaveGlobalPromptRequest
-	52, // 48: jules.PromptService.ListHistoryPrompts:input_type -> google.protobuf.Empty
-	38, // 49: jules.PromptService.GetRecentHistoryPrompts:input_type -> jules.GetRecentRequest
-	39, // 50: jules.PromptService.SaveHistoryPrompt:input_type -> jules.SaveHistoryPromptRequest
-	41, // 51: jules.PromptService.GetRepoPrompt:input_type -> jules.GetRepoPromptRequest
-	42, // 52: jules.PromptService.SaveRepoPrompt:input_type -> jules.SaveRepoPromptRequest
-	44, // 53: jules.SessionService.ListSessions:input_type -> jules.ListSessionsRequest
-	46, // 54: jules.SessionService.GetSession:input_type -> jules.GetSessionRequest
-	47, // 55: jules.SessionService.CreateSession:input_type -> jules.CreateSessionRequest
-	48, // 56: jules.SessionService.UpdateSession:input_type -> jules.UpdateSessionRequest
-	49, // 57: jules.SessionService.DeleteSession:input_type -> jules.DeleteSessionRequest
-	50, // 58: jules.SessionService.ApprovePlan:input_type -> jules.ApprovePlanRequest
-	51, // 59: jules.SessionService.SendMessage:input_type -> jules.SendMessageRequest
-	2,  // 60: jules.SettingsService.GetSettings:output_type -> jules.Settings
-	5,  // 61: jules.SettingsService.UpdateSettings:output_type -> jules.UpdateSettingsResponse
-	7,  // 62: jules.ProfileService.ListProfiles:output_type -> jules.ListProfilesResponse
-	6,  // 63: jules.ProfileService.CreateProfile:output_type -> jules.Profile
-	52, // 64: jules.ProfileService.DeleteProfile:output_type -> google.protobuf.Empty
-	12, // 65: jules.LogService.GetLogs:output_type -> jules.GetLogsResponse
-	14, // 66: jules.CronJobService.ListCronJobs:output_type -> jules.ListCronJobsResponse
-	13, // 67: jules.CronJobService.CreateCronJob:output_type -> jules.CronJob
-	52, // 68: jules.CronJobService.UpdateCronJob:output_type -> google.protobuf.Empty
-	52, // 69: jules.CronJobService.DeleteCronJob:output_type -> google.protobuf.Empty
-	52, // 70: jules.CronJobService.ExecuteCronJob:output_type -> google.protobuf.Empty
-	52, // 71: jules.CronJobService.ToggleCronJob:output_type -> google.protobuf.Empty
-	21, // 72: jules.JobService.ListJobs:output_type -> jules.ListJobsResponse
-	20, // 73: jules.JobService.GetJob:output_type -> jules.Job
-	20, // 74: jules.JobService.CreateJob:output_type -> jules.Job
-	52, // 75: jules.JobService.CreateManyJobs:output_type -> google.protobuf.Empty
-	52, // 76: jules.JobService.UpdateJob:output_type -> google.protobuf.Empty
-	52, // 77: jules.JobService.DeleteJob:output_type -> google.protobuf.Empty
-	28, // 78: jules.PromptService.ListPredefinedPrompts:output_type -> jules.ListPredefinedPromptsResponse
-	27, // 79: jules.PromptService.GetPredefinedPrompt:output_type -> jules.PredefinedPrompt
-	27, // 80: jules.PromptService.CreatePredefinedPrompt:output_type -> jules.PredefinedPrompt
-	52, // 81: jules.PromptService.CreateManyPredefinedPrompts:output_type -> google.protobuf.Empty
-	52, // 82: jules.PromptService.UpdatePredefinedPrompt:output_type -> google.protobuf.Empty
-	52, // 83: jules.PromptService.DeletePredefinedPrompt:output_type -> google.protobuf.Empty
-	28, // 84: jules.PromptService.ListQuickReplies:output_type -> jules.ListPredefinedPromptsResponse
-	27, // 85: jules.PromptService.GetQuickReply:output_type -> jules.PredefinedPrompt
-	27, // 86: jules.PromptService.CreateQuickReply:output_type -> jules.PredefinedPrompt
-	52, // 87: jules.PromptService.CreateManyQuickReplies:output_type -> google.protobuf.Empty
-	52, // 88: jules.PromptService.UpdateQuickReply:output_type -> google.protobuf.Empty
-	52, // 89: jules.PromptService.DeleteQuickReply:output_type -> google.protobuf.Empty
-	34, // 90: jules.PromptService.GetGlobalPrompt:output_type -> jules.GlobalPrompt
-	52, // 91: jules.PromptService.SaveGlobalPrompt:output_type -> google.protobuf.Empty
-	37, // 92: jules.PromptService.ListHistoryPrompts:output_type -> jules.ListHistoryPromptsResponse
-	37, // 93: jules.PromptService.GetRecentHistoryPrompts:output_type -> jules.ListHistoryPromptsResponse
-	52, // 94: jules.PromptService.SaveHistoryPrompt:output_type -> google.protobuf.Empty
-	40, // 95: jules.PromptService.GetRepoPrompt:output_type -> jules.RepoPrompt
-	52, // 96: jules.PromptService.SaveRepoPrompt:output_type -> google.protobuf.Empty
-	45, // 97: jules.SessionService.ListSessions:output_type -> jules.ListSessionsResponse
-	43, // 98: jules.SessionService.GetSession:output_type -> jules.Session
-	43, // 99: jules.SessionService.CreateSession:output_type -> jules.Session
-	52, // 100: jules.SessionService.UpdateSession:output_type -> google.protobuf.Empty
-	52, // 101: jules.SessionService.DeleteSession:output_type -> google.protobuf.Empty
-	52, // 102: jules.SessionService.ApprovePlan:output_type -> google.protobuf.Empty
-	52, // 103: jules.SessionService.SendMessage:output_type -> google.protobuf.Empty
-	60, // [60:104] is the sub-list for method output_type
-	16, // [16:60] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	53, // 16: jules.ListChatMessagesResponse.messages:type_name -> jules.ChatMessage
+	3,  // 17: jules.SettingsService.GetSettings:input_type -> jules.GetSettingsRequest
+	4,  // 18: jules.SettingsService.UpdateSettings:input_type -> jules.UpdateSettingsRequest
+	59, // 19: jules.ProfileService.ListProfiles:input_type -> google.protobuf.Empty
+	8,  // 20: jules.ProfileService.CreateProfile:input_type -> jules.CreateProfileRequest
+	9,  // 21: jules.ProfileService.DeleteProfile:input_type -> jules.DeleteProfileRequest
+	11, // 22: jules.LogService.GetLogs:input_type -> jules.GetLogsRequest
+	59, // 23: jules.CronJobService.ListCronJobs:input_type -> google.protobuf.Empty
+	15, // 24: jules.CronJobService.CreateCronJob:input_type -> jules.CreateCronJobRequest
+	16, // 25: jules.CronJobService.UpdateCronJob:input_type -> jules.UpdateCronJobRequest
+	17, // 26: jules.CronJobService.DeleteCronJob:input_type -> jules.DeleteCronJobRequest
+	18, // 27: jules.CronJobService.ExecuteCronJob:input_type -> jules.ExecuteCronJobRequest
+	19, // 28: jules.CronJobService.ToggleCronJob:input_type -> jules.ToggleCronJobRequest
+	59, // 29: jules.JobService.ListJobs:input_type -> google.protobuf.Empty
+	22, // 30: jules.JobService.GetJob:input_type -> jules.GetJobRequest
+	23, // 31: jules.JobService.CreateJob:input_type -> jules.CreateJobRequest
+	24, // 32: jules.JobService.CreateManyJobs:input_type -> jules.CreateManyJobsRequest
+	25, // 33: jules.JobService.UpdateJob:input_type -> jules.UpdateJobRequest
+	26, // 34: jules.JobService.DeleteJob:input_type -> jules.DeleteJobRequest
+	59, // 35: jules.PromptService.ListPredefinedPrompts:input_type -> google.protobuf.Empty
+	29, // 36: jules.PromptService.GetPredefinedPrompt:input_type -> jules.GetPromptRequest
+	30, // 37: jules.PromptService.CreatePredefinedPrompt:input_type -> jules.CreatePromptRequest
+	31, // 38: jules.PromptService.CreateManyPredefinedPrompts:input_type -> jules.CreateManyPromptsRequest
+	32, // 39: jules.PromptService.UpdatePredefinedPrompt:input_type -> jules.UpdatePromptRequest
+	33, // 40: jules.PromptService.DeletePredefinedPrompt:input_type -> jules.DeletePromptRequest
+	59, // 41: jules.PromptService.ListQuickReplies:input_type -> google.protobuf.Empty
+	29, // 42: jules.PromptService.GetQuickReply:input_type -> jules.GetPromptRequest
+	30, // 43: jules.PromptService.CreateQuickReply:input_type -> jules.CreatePromptRequest
+	31, // 44: jules.PromptService.CreateManyQuickReplies:input_type -> jules.CreateManyPromptsRequest
+	32, // 45: jules.PromptService.UpdateQuickReply:input_type -> jules.UpdatePromptRequest
+	33, // 46: jules.PromptService.DeleteQuickReply:input_type -> jules.DeletePromptRequest
+	59, // 47: jules.PromptService.GetGlobalPrompt:input_type -> google.protobuf.Empty
+	35, // 48: jules.PromptService.SaveGlobalPrompt:input_type -> jules.SaveGlobalPromptRequest
+	59, // 49: jules.PromptService.ListHistoryPrompts:input_type -> google.protobuf.Empty
+	38, // 50: jules.PromptService.GetRecentHistoryPrompts:input_type -> jules.GetRecentRequest
+	39, // 51: jules.PromptService.SaveHistoryPrompt:input_type -> jules.SaveHistoryPromptRequest
+	41, // 52: jules.PromptService.GetRepoPrompt:input_type -> jules.GetRepoPromptRequest
+	42, // 53: jules.PromptService.SaveRepoPrompt:input_type -> jules.SaveRepoPromptRequest
+	44, // 54: jules.SessionService.ListSessions:input_type -> jules.ListSessionsRequest
+	46, // 55: jules.SessionService.GetSession:input_type -> jules.GetSessionRequest
+	47, // 56: jules.SessionService.CreateSession:input_type -> jules.CreateSessionRequest
+	48, // 57: jules.SessionService.UpdateSession:input_type -> jules.UpdateSessionRequest
+	49, // 58: jules.SessionService.DeleteSession:input_type -> jules.DeleteSessionRequest
+	50, // 59: jules.SessionService.ApprovePlan:input_type -> jules.ApprovePlanRequest
+	51, // 60: jules.SessionService.SendMessage:input_type -> jules.SendMessageRequest
+	54, // 61: jules.ChatService.GetChatConfig:input_type -> jules.GetChatConfigRequest
+	55, // 62: jules.ChatService.CreateChatConfig:input_type -> jules.CreateChatConfigRequest
+	56, // 63: jules.ChatService.SendChatMessage:input_type -> jules.SendChatMessageRequest
+	57, // 64: jules.ChatService.ListChatMessages:input_type -> jules.ListChatMessagesRequest
+	2,  // 65: jules.SettingsService.GetSettings:output_type -> jules.Settings
+	5,  // 66: jules.SettingsService.UpdateSettings:output_type -> jules.UpdateSettingsResponse
+	7,  // 67: jules.ProfileService.ListProfiles:output_type -> jules.ListProfilesResponse
+	6,  // 68: jules.ProfileService.CreateProfile:output_type -> jules.Profile
+	59, // 69: jules.ProfileService.DeleteProfile:output_type -> google.protobuf.Empty
+	12, // 70: jules.LogService.GetLogs:output_type -> jules.GetLogsResponse
+	14, // 71: jules.CronJobService.ListCronJobs:output_type -> jules.ListCronJobsResponse
+	13, // 72: jules.CronJobService.CreateCronJob:output_type -> jules.CronJob
+	59, // 73: jules.CronJobService.UpdateCronJob:output_type -> google.protobuf.Empty
+	59, // 74: jules.CronJobService.DeleteCronJob:output_type -> google.protobuf.Empty
+	59, // 75: jules.CronJobService.ExecuteCronJob:output_type -> google.protobuf.Empty
+	59, // 76: jules.CronJobService.ToggleCronJob:output_type -> google.protobuf.Empty
+	21, // 77: jules.JobService.ListJobs:output_type -> jules.ListJobsResponse
+	20, // 78: jules.JobService.GetJob:output_type -> jules.Job
+	20, // 79: jules.JobService.CreateJob:output_type -> jules.Job
+	59, // 80: jules.JobService.CreateManyJobs:output_type -> google.protobuf.Empty
+	59, // 81: jules.JobService.UpdateJob:output_type -> google.protobuf.Empty
+	59, // 82: jules.JobService.DeleteJob:output_type -> google.protobuf.Empty
+	28, // 83: jules.PromptService.ListPredefinedPrompts:output_type -> jules.ListPredefinedPromptsResponse
+	27, // 84: jules.PromptService.GetPredefinedPrompt:output_type -> jules.PredefinedPrompt
+	27, // 85: jules.PromptService.CreatePredefinedPrompt:output_type -> jules.PredefinedPrompt
+	59, // 86: jules.PromptService.CreateManyPredefinedPrompts:output_type -> google.protobuf.Empty
+	59, // 87: jules.PromptService.UpdatePredefinedPrompt:output_type -> google.protobuf.Empty
+	59, // 88: jules.PromptService.DeletePredefinedPrompt:output_type -> google.protobuf.Empty
+	28, // 89: jules.PromptService.ListQuickReplies:output_type -> jules.ListPredefinedPromptsResponse
+	27, // 90: jules.PromptService.GetQuickReply:output_type -> jules.PredefinedPrompt
+	27, // 91: jules.PromptService.CreateQuickReply:output_type -> jules.PredefinedPrompt
+	59, // 92: jules.PromptService.CreateManyQuickReplies:output_type -> google.protobuf.Empty
+	59, // 93: jules.PromptService.UpdateQuickReply:output_type -> google.protobuf.Empty
+	59, // 94: jules.PromptService.DeleteQuickReply:output_type -> google.protobuf.Empty
+	34, // 95: jules.PromptService.GetGlobalPrompt:output_type -> jules.GlobalPrompt
+	59, // 96: jules.PromptService.SaveGlobalPrompt:output_type -> google.protobuf.Empty
+	37, // 97: jules.PromptService.ListHistoryPrompts:output_type -> jules.ListHistoryPromptsResponse
+	37, // 98: jules.PromptService.GetRecentHistoryPrompts:output_type -> jules.ListHistoryPromptsResponse
+	59, // 99: jules.PromptService.SaveHistoryPrompt:output_type -> google.protobuf.Empty
+	40, // 100: jules.PromptService.GetRepoPrompt:output_type -> jules.RepoPrompt
+	59, // 101: jules.PromptService.SaveRepoPrompt:output_type -> google.protobuf.Empty
+	45, // 102: jules.SessionService.ListSessions:output_type -> jules.ListSessionsResponse
+	43, // 103: jules.SessionService.GetSession:output_type -> jules.Session
+	43, // 104: jules.SessionService.CreateSession:output_type -> jules.Session
+	59, // 105: jules.SessionService.UpdateSession:output_type -> google.protobuf.Empty
+	59, // 106: jules.SessionService.DeleteSession:output_type -> google.protobuf.Empty
+	59, // 107: jules.SessionService.ApprovePlan:output_type -> google.protobuf.Empty
+	59, // 108: jules.SessionService.SendMessage:output_type -> google.protobuf.Empty
+	52, // 109: jules.ChatService.GetChatConfig:output_type -> jules.ChatConfig
+	52, // 110: jules.ChatService.CreateChatConfig:output_type -> jules.ChatConfig
+	59, // 111: jules.ChatService.SendChatMessage:output_type -> google.protobuf.Empty
+	58, // 112: jules.ChatService.ListChatMessages:output_type -> jules.ListChatMessagesResponse
+	65, // [65:113] is the sub-list for method output_type
+	17, // [17:65] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_jules_proto_init() }
@@ -4029,9 +4570,9 @@ func file_jules_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_jules_proto_rawDesc), len(file_jules_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   50,
+			NumMessages:   57,
 			NumExtensions: 0,
-			NumServices:   7,
+			NumServices:   8,
 		},
 		GoTypes:           file_jules_proto_goTypes,
 		DependencyIndexes: file_jules_proto_depIdxs,

@@ -23,6 +23,7 @@ export const jobs = sqliteTable('jobs', {
   requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
   cronJobId: text('cron_job_id'),
   profileId: text('profile_id').references(() => profiles.id).notNull().default('default'),
+  chatEnabled: integer('chat_enabled', { mode: 'boolean' }).notNull().default(false),
 }, (table) => ({
   // Optimization: Add composite index on profileId and createdAt to speed up job listing queries.
   // This helps when filtering jobs by profile and sorting by creation time.
@@ -156,6 +157,25 @@ export const sessions = sqliteTable('sessions', {
   // This helps when filtering sessions by profile and sorting by creation time, which is a very common operation.
   profileIdCreateTimeIdx: index('sessions_profile_id_create_time_idx').on(table.profileId, table.createTime),
 }));
+
+export const chatConfigs = sqliteTable('chat_configs', {
+  jobId: text('job_id').notNull(),
+  apiKey: text('api_key').notNull(),
+  agentName: text('agent_name').notNull(),
+  createdAt: text('created_at').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.jobId, table.agentName] }),
+}));
+
+export const chatMessages = sqliteTable('chat_messages', {
+  id: text('id').primaryKey(),
+  jobId: text('job_id').notNull(),
+  senderName: text('sender_name').notNull(),
+  content: text('content').notNull(),
+  createdAt: text('created_at').notNull(),
+  isHuman: integer('is_human', { mode: 'boolean' }).default(false),
+  recipient: text('recipient'),
+});
 
 export const locks = sqliteTable('locks', {
   id: text('id').primaryKey(),

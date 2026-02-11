@@ -82,7 +82,8 @@ func createTables(t *testing.T, conn *sql.DB) {
             automation_mode TEXT,
             require_plan_approval BOOLEAN DEFAULT 0,
             cron_job_id TEXT,
-            profile_id TEXT NOT NULL DEFAULT 'default'
+            profile_id TEXT NOT NULL DEFAULT 'default',
+            chat_enabled BOOLEAN DEFAULT 0
         );`,
 		`CREATE TABLE cron_jobs (
             id TEXT PRIMARY KEY,

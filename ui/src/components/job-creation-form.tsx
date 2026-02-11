@@ -39,7 +39,9 @@ type JobCreationFormProps = {
     branch: string | undefined,
     requirePlanApproval: boolean,
     automationMode: AutomationMode,
-    settings: Settings | null
+    settings: Settings | null,
+    chatEnabled: boolean,
+    jobId: string
   ) => Promise<Session | null>;
   disabled?: boolean;
   onReset?: () => void;
@@ -70,6 +72,7 @@ export function JobCreationForm({
   const [automationMode, setAutomationMode] = useState<AutomationMode>("AUTO_CREATE_PR");
   const [backgroundJob, setBackgroundJob] = useState(true);
   const [applyGlobalPrompt, setApplyGlobalPrompt] = useState(true);
+  const [enableChatroom, setEnableChatroom] = useState(true);
 
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, startRefreshTransition] = useTransition();
@@ -256,10 +259,11 @@ export function JobCreationForm({
       const createdSessions: Session[] = [];
       const sessionIds: string[] = [];
       const title = jobName.trim() || new Date().toLocaleString();
+      const jobId = crypto.randomUUID();
 
       if (backgroundJob) {
         const newJob: Job = {
-            id: crypto.randomUUID(),
+          id: jobId,
             name: title,
             sessionIds: [],
             createdAt: new Date().toISOString(),
@@ -272,7 +276,8 @@ export function JobCreationForm({
             status: 'PENDING',
             automationMode: automationMode,
             requirePlanApproval: requirePlanApproval,
-            profileId: currentProfileId
+          profileId: currentProfileId,
+          chatEnabled: enableChatroom
         };
         await addJob(newJob);
         toast({
@@ -302,7 +307,7 @@ export function JobCreationForm({
         let retries = 3;
         let newSession: Session | null = null;
         while (retries > 0 && !newSession) {
-            newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode, settings);
+          newSession = await onCreateJob(title, finalPrompt, selectedSource, selectedBranch, requirePlanApproval, automationMode, settings, enableChatroom, jobId);
             if (!newSession) {
                 console.error(`Failed to create session ${sessionIndex + 1}. Retries remaining: ${retries - 1}`);
                 retries--;
@@ -328,7 +333,7 @@ export function JobCreationForm({
       }
       
       const newJob: Job = {
-        id: crypto.randomUUID(),
+        id: jobId,
         name: title,
         sessionIds,
         createdAt: new Date().toISOString(),
@@ -341,6 +346,7 @@ export function JobCreationForm({
         status: 'COMPLETED',
         automationMode: automationMode,
         requirePlanApproval: requirePlanApproval,
+        chatEnabled: enableChatroom
       };
       
       await addJob(newJob);
@@ -662,6 +668,27 @@ export function JobCreationForm({
                   </Tooltip>
               </div>
             </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="enable-chatroom"
+                  checked={enableChatroom}
+                  onCheckedChange={setEnableChatroom}
+                  disabled={isPending || disabled}
+                />
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="enable-chatroom">Enable Chatroom</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Create a chatroom for agents to communicate with each other.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
              <div className="space-y-2">
                 <div className="flex items-center gap-1">
                   <Label htmlFor="automation-mode">Automation Mode</Label>
