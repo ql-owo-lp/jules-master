@@ -7,7 +7,6 @@ import {
     JobServiceClient,
     PromptServiceClient,
     SessionServiceClient,
-    SessionServiceClient,
     ChatServiceClient
 } from '@/proto/jules';
 
