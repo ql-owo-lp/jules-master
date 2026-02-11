@@ -69,6 +69,7 @@ export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]
             // Local Job expects automationMode as string union, Proto has Enum
             const mapped = filtered.map(j => ({
                 ...j,
+                chatEnabled: j.chatEnabled,
                 automationMode: AutomationMode[j.automationMode] as LocalJob['automationMode']
             }));
             resolve(mapped);

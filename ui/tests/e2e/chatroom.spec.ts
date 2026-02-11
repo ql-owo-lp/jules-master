@@ -19,6 +19,9 @@ test.describe('Chatroom E2E', () => {
         await page.getByRole('textbox', { name: 'Session Prompts' }).fill('Test Prompt for Chat');
         await page.getByLabel('Number of sessions').fill('1');
 
+        // Disable Background Job to ensure synchronous creation for test stability
+        await page.getByLabel('Background Job').click();
+
         // Enable Chatroom (ensure it's checked)
         const chatSwitch = page.getByLabel('Enable Chatroom');
         if (await chatSwitch.getAttribute('aria-checked') === 'false') {
