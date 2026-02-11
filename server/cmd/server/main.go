@@ -108,6 +108,7 @@ func main() {
 	pb.RegisterJobServiceServer(grpcServer, jobService)
 	pb.RegisterPromptServiceServer(grpcServer, promptService)
 	pb.RegisterSessionServiceServer(grpcServer, sessionService)
+	pb.RegisterChatServiceServer(grpcServer, &service.ChatServer{DB: dbConn})
 
 	// Enable reflection for grpcurl
 	reflection.Register(grpcServer)

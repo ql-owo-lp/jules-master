@@ -157,6 +157,22 @@ export const sessions = sqliteTable('sessions', {
   profileIdCreateTimeIdx: index('sessions_profile_id_create_time_idx').on(table.profileId, table.createTime),
 }));
 
+export const chatConfigs = sqliteTable('chat_configs', {
+  jobId: text('job_id').primaryKey(),
+  apiKey: text('api_key').notNull(),
+  agentName: text('agent_name').notNull(),
+  createdAt: text('created_at').notNull(),
+});
+
+export const chatMessages = sqliteTable('chat_messages', {
+  id: text('id').primaryKey(),
+  jobId: text('job_id').notNull(),
+  senderName: text('sender_name').notNull(),
+  content: text('content').notNull(),
+  createdAt: text('created_at').notNull(),
+  isHuman: integer('is_human', { mode: 'boolean' }).default(false),
+});
+
 export const locks = sqliteTable('locks', {
   id: text('id').primaryKey(),
   expiresAt: integer('expires_at').notNull(),

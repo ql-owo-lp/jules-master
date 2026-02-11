@@ -89,7 +89,8 @@ func createTables(t *testing.T, conn *sql.DB) {
             automation_mode TEXT,
             require_plan_approval BOOLEAN,
             cron_job_id TEXT,
-            profile_id TEXT NOT NULL DEFAULT 'default'
+            profile_id TEXT NOT NULL DEFAULT 'default',
+            chat_enabled BOOLEAN DEFAULT 0
         );`,
 		`CREATE TABLE cron_jobs (
             id TEXT PRIMARY KEY,
@@ -135,7 +136,7 @@ func createTables(t *testing.T, conn *sql.DB) {
             prompt TEXT NOT NULL,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-		`CREATE TABLE sessions (
+        `CREATE TABLE sessions (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             title TEXT,
@@ -151,6 +152,20 @@ func createTables(t *testing.T, conn *sql.DB) {
             last_error TEXT,
             last_interaction_at INTEGER,
             profile_id TEXT NOT NULL DEFAULT 'default'
+        );`,
+		`CREATE TABLE chat_configs (
+            job_id TEXT PRIMARY KEY,
+            api_key TEXT NOT NULL,
+            agent_name TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );`,
+		`CREATE TABLE chat_messages (
+            id TEXT PRIMARY KEY,
+            job_id TEXT NOT NULL,
+            sender_name TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            is_human BOOLEAN DEFAULT 0
         );`,
 	}
 

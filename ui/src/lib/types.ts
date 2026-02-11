@@ -37,7 +37,24 @@ export type Job = {
     requirePlanApproval?: boolean;
     cronJobId?: string | null;
     profileId?: string;
+  chatEnabled?: boolean;
 }
+
+export type ChatConfig = {
+  jobId: string;
+  agentName: string;
+  apiKey: string;
+  createdAt: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  jobId: string;
+  sender: string;
+  role: string;
+  content: string;
+  createdAt: string;
+};
 
 export type CronJob = {
     id: string;

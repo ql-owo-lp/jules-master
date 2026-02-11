@@ -6,7 +6,9 @@ import {
     CronJobServiceClient,
     JobServiceClient,
     PromptServiceClient,
-    SessionServiceClient
+    SessionServiceClient,
+    SessionServiceClient,
+    ChatServiceClient
 } from '@/proto/jules';
 
 const PORT = 50051;
@@ -32,3 +34,5 @@ export const cronJobClient = new CronJobServiceClient(TARGET, creds);
 export const jobClient = new JobServiceClient(TARGET, creds);
 export const promptClient = new PromptServiceClient(TARGET, creds);
 export const sessionClient = new SessionServiceClient(TARGET, creds);
+export const chatClient = new ChatServiceClient(TARGET, creds);
+export function getChatClient() { return chatClient; }

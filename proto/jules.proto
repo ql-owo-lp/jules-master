@@ -100,6 +100,14 @@ service SessionService {
     rpc SendMessage(SendMessageRequest) returns (google.protobuf.Empty);
 }
 
+service ChatService {
+  rpc GetChatConfig(GetChatConfigRequest) returns (ChatConfig);
+  rpc CreateChatConfig(CreateChatConfigRequest) returns (ChatConfig);
+  rpc SendChatMessage(SendChatMessageRequest) returns (google.protobuf.Empty);
+  rpc ListChatMessages(ListChatMessagesRequest) returns (ListChatMessagesResponse);
+  // We can add Streaming later if needed, starting with polling for simplicity in MVP.
+}
+
 // ---------------------------------------------------------
 // Message Definitions
 // ---------------------------------------------------------
@@ -308,6 +316,7 @@ message CreateJobRequest {
     bool require_plan_approval = 13;
     string cron_job_id = 14;
     string profile_id = 15;
+    bool chat_enabled = 16;
 }
 
 message CreateManyJobsRequest {
@@ -465,4 +474,50 @@ message SendMessageRequest {
     string id = 1;
     string message = 2;
     bool force = 3; 
+}
+
+// Chat
+
+message ChatConfig {
+    string job_id = 1;
+    string agent_name = 2; // Unique name for the agent in this job
+    string api_key = 3; // Unique secret key for this agent
+    string created_at = 4;
+}
+
+message ChatMessage {
+    string id = 1;
+    string job_id = 2;
+    string sender_name = 3;
+    string content = 4;
+    string created_at = 5;
+    bool is_human = 6;
+}
+
+message GetChatConfigRequest {
+    string job_id = 1;
+    string agent_name = 2; // Retrieve config for specific agent
+}
+
+message CreateChatConfigRequest {
+    string job_id = 1;
+    string agent_name = 2;
+}
+
+message SendChatMessageRequest {
+    string job_id = 1;
+    string content = 2;
+    string api_key = 3; // Used to identify sender
+    bool is_human = 4;
+    string sender_name = 5; // Optional, only for Human
+}
+
+message ListChatMessagesRequest {
+    string job_id = 1;
+    string since = 2; // ISO timestamp to fetch only new messages
+    int32 limit = 3;
+}
+
+message ListChatMessagesResponse {
+    repeated ChatMessage messages = 1;
 }
