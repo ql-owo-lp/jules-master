@@ -262,6 +262,7 @@ const JobAccordionItemComponent = ({
                   size="icon"
                   onClick={(e) => { e.stopPropagation(); router.push(`/jobs/${job.id}/chat`); }}
                   aria-label="Enter Chatroom"
+                  data-testid="enter-chat-button"
                   className={!job.chatEnabled ? "opacity-50" : ""}
                 >
                   <MessageCircle className="h-4 w-4" />

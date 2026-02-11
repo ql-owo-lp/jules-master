@@ -43,8 +43,8 @@ test.describe('Chatroom E2E', () => {
 
         // 3. Enter Chatroom
         // The enter chat button is in the job header, visible even when collapsed
-        // We use a robust locator that finds the button with the message circle icon if label lookup fails
-        const enterChatButton = jobItem.locator('button').filter({ has: page.locator('svg.lucide-message-circle') }).first();
+        // We use a robust data-testid locator to avoid ambiguity and ensure we target the correct element
+        const enterChatButton = jobItem.getByTestId('enter-chat-button');
         await expect(enterChatButton).toBeVisible();
         await enterChatButton.click();
 
