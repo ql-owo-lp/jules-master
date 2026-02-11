@@ -19,6 +19,33 @@ export async function createSession(
   apiKey?: string | null,
   profileId: string = "default"
 ): Promise<Session | null> {
+  if (process.env.MOCK_API === 'true') {
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     const globalForMocks = globalThis as unknown as { MOCK_SESSIONS: Session[] };
+     const sessions = globalForMocks.MOCK_SESSIONS || [];
+
+     const newSession: Session = {
+        id: crypto.randomUUID(),
+        name: `sessions/${crypto.randomUUID()}`,
+        title: sessionData.title || 'New Mock Session',
+        createTime: new Date().toISOString(),
+        updateTime: new Date().toISOString(),
+        state: 'CREATED',
+        prompt: sessionData.prompt,
+        sourceContext: sessionData.sourceContext,
+        profileId,
+        url: '',
+        lastUpdated: Date.now(),
+        lastInteractionAt: Date.now(),
+        retryCount: 0,
+        lastError: '',
+        requirePlanApproval: sessionData.requirePlanApproval ?? false,
+        automationMode: sessionData.automationMode || 'AUTOMATION_MODE_UNSPECIFIED',
+     };
+     sessions.push(newSession);
+     return newSession;
+  }
+
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
