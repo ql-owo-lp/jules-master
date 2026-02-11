@@ -262,9 +262,37 @@ func (s *JobServer) CreateManyJobs(ctx context.Context, req *pb.CreateManyJobsRe
 	defer stmt.Close()
 
 	for _, j := range req.Jobs {
-		// ... (validation unchanged)
+		if len(j.Name) > 255 {
+			return nil, fmt.Errorf("name is too long (max 255 characters)")
+		}
+		if len(j.Prompt) > 50000 {
+			return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
+		}
+		if err := ValidateRepo(j.Repo); err != nil {
+			return nil, err
+		}
+		if err := ValidateBranch(j.Branch); err != nil {
+			return nil, err
+		}
 
-		// ... (logic unchanged)
+		sessionIdsJSON, _ := json.Marshal(j.SessionIds)
+		if j.SessionIds == nil {
+			sessionIdsJSON = []byte("[]")
+		}
+
+		automationModeStr := "AUTOMATION_MODE_UNSPECIFIED"
+		if j.AutomationMode == pb.AutomationMode_AUTO_CREATE_PR {
+			automationModeStr = "AUTO_CREATE_PR"
+		}
+
+		id := j.Id
+		if id == "" {
+			id = uuid.New().String()
+		}
+		createdAt := j.CreatedAt
+		if createdAt == "" {
+			createdAt = time.Now().Format(time.RFC3339)
+		}
 
 		if _, err := stmt.Exec(id, j.Name, string(sessionIdsJSON), createdAt, j.Repo, j.Branch, j.AutoApproval,
 			j.Background, j.Prompt, j.SessionCount, j.Status, automationModeStr,
