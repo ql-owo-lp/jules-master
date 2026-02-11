@@ -46,7 +46,7 @@ test.describe('Chatroom E2E', () => {
         // The button is in the row header, always visible if enabled.
         // Find the specific 'Enter Chatroom' button associated with this job row.
         const jobRow = page.locator('.border.rounded-lg.bg-card', { has: jobTitle });
-        const enterChatButton = jobRow.getByRole('button', { name: 'Enter Chatroom' });
+        const enterChatButton = jobRow.getByTestId('enter-chatroom-button');
 
         // Wait for the button to be attached and visible.
         await expect(enterChatButton).toBeVisible();
