@@ -93,7 +93,8 @@ export async function addJob(job: LocalJob): Promise<void> {
             sessionCount: job.sessionCount ?? 0,
             status: job.status ?? 'PENDING',
             cronJobId: job.cronJobId || '',
-            prompt: job.prompt || ''
+            prompt: job.prompt || '',
+            chatEnabled: job.chatEnabled || false
         };
         jobClient.createJob(req, (err) => {
             if (err) return reject(err);

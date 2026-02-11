@@ -19,9 +19,12 @@ test.describe('Chatroom E2E', () => {
         await page.getByRole('textbox', { name: 'Session Prompts' }).fill('Test Prompt for Chat');
         await page.getByLabel('Number of sessions').fill('1');
 
-        // Enable Chatroom (click the switch)
-        await page.getByLabel('Enable Chatroom').click();
-        await expect(page.getByLabel('Enable Chatroom')).toBeChecked();
+        // Enable Chatroom (ensure it's checked)
+        const chatSwitch = page.getByLabel('Enable Chatroom');
+        if (await chatSwitch.getAttribute('aria-checked') === 'false') {
+            await chatSwitch.click();
+        }
+        await expect(chatSwitch).toBeChecked();
 
         // Select Repo/Branch
         const repoCombobox = page.getByRole('combobox').filter({ hasText: /test-owner\/test-repo/ }).first();
