@@ -20,13 +20,15 @@ test.describe('Chatroom E2E', () => {
         await page.getByLabel('Number of sessions').fill('1');
 
         // Enable Chatroom
-        // Ensure it is unchecked initially (default state)
-        const chatSwitch = page.getByLabel('Enable Chatroom');
+        // Use getByRole for better interaction with Radix Switch
+        const chatSwitch = page.getByRole('switch', { name: 'Enable Chatroom' });
+        await expect(chatSwitch).toBeVisible();
         await expect(chatSwitch).not.toBeChecked();
-        await chatSwitch.click({ force: true });
-        await expect(chatSwitch).toBeChecked();
 
-        // Wait a bit for state to settle
+        await chatSwitch.click({ force: true });
+
+        // Wait for state update
+        await expect(chatSwitch).toBeChecked();
         await page.waitForTimeout(500);
 
         // Select Repo/Branch
@@ -44,7 +46,7 @@ test.describe('Chatroom E2E', () => {
         // The button is in the row header, always visible if enabled.
         // Find the specific 'Enter Chatroom' button associated with this job row.
         const jobRow = page.locator('.border.rounded-lg.bg-card', { has: jobTitle });
-        const enterChatButton = jobRow.getByLabel('Enter Chatroom');
+        const enterChatButton = jobRow.getByRole('button', { name: 'Enter Chatroom' });
 
         // Wait for the button to be attached and visible.
         await expect(enterChatButton).toBeVisible();
