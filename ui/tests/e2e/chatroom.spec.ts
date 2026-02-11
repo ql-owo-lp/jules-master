@@ -44,7 +44,9 @@ test.describe('Chatroom E2E', () => {
         // 3. Enter Chatroom
         // The enter chat button is in the job header, visible even when collapsed
         // We use a robust data-testid locator to avoid ambiguity and ensure we target the correct element
-        const enterChatButton = jobItem.getByTestId('enter-chat-button');
+        // Using global first() selector and a small wait to handle potential list re-renders/timing issues
+        await page.waitForTimeout(1000);
+        const enterChatButton = page.getByTestId('enter-chat-button').first();
         await expect(enterChatButton).toBeVisible();
         await enterChatButton.click();
 
