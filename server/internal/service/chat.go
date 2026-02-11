@@ -105,8 +105,11 @@ func (s *ChatServer) SendChatMessage(ctx context.Context, req *pb.SendChatMessag
 	id := uuid.New().String()
 	createdAt := time.Now().Format(time.RFC3339)
 
-	_, err := s.DB.Exec("INSERT INTO chat_messages (id, job_id, sender_name, content, created_at, is_human) VALUES (?, ?, ?, ?, ?, ?)",
-		id, req.JobId, senderName, req.Content, createdAt, req.IsHuman)
+	// Explicitly handle recipient
+	recipient := req.Recipient
+
+	_, err := s.DB.Exec("INSERT INTO chat_messages (id, job_id, sender_name, content, created_at, is_human, recipient) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		id, req.JobId, senderName, req.Content, createdAt, req.IsHuman, recipient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save message: %w", err)
 	}
@@ -119,12 +122,22 @@ func (s *ChatServer) ListChatMessages(ctx context.Context, req *pb.ListChatMessa
 		return nil, fmt.Errorf("job_id is required")
 	}
 
-	query := "SELECT id, job_id, sender_name, content, created_at, is_human FROM chat_messages WHERE job_id = ?"
+	query := "SELECT id, job_id, sender_name, content, created_at, is_human, recipient FROM chat_messages WHERE job_id = ?"
 	args := []interface{}{req.JobId}
 
 	if req.Since != "" {
 		query += " AND created_at > ?"
 		args = append(args, req.Since)
+	}
+
+	// Filter by viewer if provided
+	if req.ViewerName != "" {
+		// Visible if:
+		// 1. Recipient is NULL/Empty (Public)
+		// 2. Recipient matches ViewerName
+		// 3. Sender matches ViewerName (I can see my own messages)
+		query += " AND (recipient IS NULL OR recipient = '' OR recipient = ? OR sender_name = ?)"
+		args = append(args, req.ViewerName, req.ViewerName)
 	}
 
 	query += " ORDER BY created_at ASC"
@@ -143,8 +156,12 @@ func (s *ChatServer) ListChatMessages(ctx context.Context, req *pb.ListChatMessa
 	var messages []*pb.ChatMessage
 	for rows.Next() {
 		var m pb.ChatMessage
-		if err := rows.Scan(&m.Id, &m.JobId, &m.SenderName, &m.Content, &m.CreatedAt, &m.IsHuman); err != nil {
+		var recipient sql.NullString
+		if err := rows.Scan(&m.Id, &m.JobId, &m.SenderName, &m.Content, &m.CreatedAt, &m.IsHuman, &recipient); err != nil {
 			return nil, fmt.Errorf("failed to scan message: %w", err)
+		}
+		if recipient.Valid {
+			m.Recipient = recipient.String
 		}
 		messages = append(messages, &m)
 	}

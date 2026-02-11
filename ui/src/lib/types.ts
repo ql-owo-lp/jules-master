@@ -54,6 +54,7 @@ export type ChatMessage = {
   role: string;
   content: string;
   createdAt: string;
+  recipient?: string;
 };
 
 export type CronJob = {

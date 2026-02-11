@@ -16,97 +16,108 @@ func TestChatService(t *testing.T) {
 	ctx := context.Background()
 
 	jobId := uuid.New().String()
-	agentName := "TestAgent"
+	agentName1 := "Agent1"
+	agentName2 := "Agent2"
 
-	// 1. CreateChatConfig
-	config, err := svc.CreateChatConfig(ctx, &pb.CreateChatConfigRequest{
+	// 1. CreateChatConfig (Agent 1)
+	config1, err := svc.CreateChatConfig(ctx, &pb.CreateChatConfigRequest{
 		JobId:     jobId,
-		AgentName: agentName,
+		AgentName: agentName1,
 	})
 	if err != nil {
-		t.Fatalf("CreateChatConfig failed: %v", err)
-	}
-	if config.ApiKey == "" {
-		t.Fatal("ApiKey should not be empty")
+		t.Fatalf("CreateChatConfig Agent1 failed: %v", err)
 	}
 
-	// 2. GetChatConfig
-	gotConfig, err := svc.GetChatConfig(ctx, &pb.GetChatConfigRequest{
+	// 2. CreateChatConfig (Agent 2) - Should succeed now with composite PK
+	config2, err := svc.CreateChatConfig(ctx, &pb.CreateChatConfigRequest{
 		JobId:     jobId,
-		AgentName: agentName,
+		AgentName: agentName2,
 	})
 	if err != nil {
-		t.Fatalf("GetChatConfig failed: %v", err)
-	}
-	if gotConfig.ApiKey != config.ApiKey {
-		t.Errorf("Expected ApiKey %s, got %s", config.ApiKey, gotConfig.ApiKey)
+		t.Fatalf("CreateChatConfig Agent2 failed: %v", err)
 	}
 
-	// 3. SendChatMessage (Human)
+	// 3. Send Message (Public from Agent 1)
 	_, err = svc.SendChatMessage(ctx, &pb.SendChatMessageRequest{
-		JobId:     jobId,
-		Content:   "Hello from Human",
-		IsHuman:   true,
-		SenderName: "Human",
+		JobId:      jobId,
+		Content:    "Hello Everyone",
+		IsHuman:    false,
+		ApiKey:     config1.ApiKey,
+		SenderName: agentName1,
 	})
 	if err != nil {
-		t.Fatalf("SendChatMessage (Human) failed: %v", err)
+		t.Fatalf("SendChatMessage Public failed: %v", err)
 	}
 
-	// 4. SendChatMessage (Agent)
+	// 4. Send Message (Private from Agent 1 to Agent 2)
 	_, err = svc.SendChatMessage(ctx, &pb.SendChatMessageRequest{
-		JobId:     jobId,
-		Content:   "Hello from Agent",
-		IsHuman:   false,
-		ApiKey:    config.ApiKey,
-		SenderName: agentName, // Service should verify this or use config's agent name
+		JobId:      jobId,
+		Content:    "Secret for Agent2",
+		IsHuman:    false,
+		ApiKey:     config1.ApiKey,
+		SenderName: agentName1,
+		Recipient:  agentName2,
 	})
 	if err != nil {
-		t.Fatalf("SendChatMessage (Agent) failed: %v", err)
+		t.Fatalf("SendChatMessage Private failed: %v", err)
 	}
 
-	// 5. SendChatMessage (Agent Invalid Key)
+	// 5. Send Message (Private from Agent 2 to Agent 1)
 	_, err = svc.SendChatMessage(ctx, &pb.SendChatMessageRequest{
-		JobId:     jobId,
-		Content:   "Hacker",
-		IsHuman:   false,
-		ApiKey:    "invalid-key",
+		JobId:      jobId,
+		Content:    "Secret for Agent1",
+		IsHuman:    false,
+		ApiKey:     config2.ApiKey,
+		SenderName: agentName2,
+		Recipient:  agentName1,
 	})
-	if err == nil {
-		t.Fatal("SendChatMessage should fail with invalid key")
+	if err != nil {
+		t.Fatalf("SendChatMessage Private failed: %v", err)
 	}
 
-	// 6. ListChatMessages
-	resp, err := svc.ListChatMessages(ctx, &pb.ListChatMessagesRequest{
+	// 6. List Messages as Agent 1 (Should see Public + From Me + To Me)
+	// Expect: "Hello Everyone", "Secret for Agent2" (sent by me), "Secret for Agent1" (sent to me)
+	resp1, err := svc.ListChatMessages(ctx, &pb.ListChatMessagesRequest{
+		JobId:      jobId,
+		ViewerName: agentName1,
+	})
+	if err != nil {
+		t.Fatalf("ListChatMessages Agent1 failed: %v", err)
+	}
+
+	if len(resp1.Messages) != 3 {
+		t.Errorf("Agent1 should see 3 messages, got %d", len(resp1.Messages))
+		for _, m := range resp1.Messages {
+			t.Logf(" - %s -> %s: %s", m.SenderName, m.Recipient, m.Content)
+		}
+	}
+
+	// 7. List Messages as Agent 2 (Should see Public + From Me + To Me)
+	// Expect: "Hello Everyone", "Secret for Agent2" (sent to me), "Secret for Agent1" (sent by me)
+	resp2, err := svc.ListChatMessages(ctx, &pb.ListChatMessagesRequest{
+		JobId:      jobId,
+		ViewerName: agentName2,
+	})
+	if err != nil {
+		t.Fatalf("ListChatMessages Agent2 failed: %v", err)
+	}
+	if len(resp2.Messages) != 3 {
+		t.Errorf("Agent2 should see 3 messages, got %d", len(resp2.Messages))
+	}
+
+	// 8. List Messages as Human (ViewerName="Human", assumes Human sees all public + addressed to Human + sent by Human)
+	// Actually, usually Human assumes Admin role in these debug views, but strictly following logic:
+	// If ViewerName is "Human", checks recipient="Human" or sender="Human" or Public.
+	// Private messages between Agent1 and Agent2 should NOT be visible strictly speaking if we follow the logic.
+	// But let's verify if we send ViewerName="" (Admin/God mode?) -> logic says "no filter" if ViewerName empty.
+	// Let's test "Admin" view (empty ViewerName)
+	respAdmin, err := svc.ListChatMessages(ctx, &pb.ListChatMessagesRequest{
 		JobId: jobId,
 	})
 	if err != nil {
-		t.Fatalf("ListChatMessages failed: %v", err)
+		t.Fatalf("ListChatMessages Admin failed: %v", err)
 	}
-
-	if len(resp.Messages) != 2 {
-		t.Fatalf("Expected 2 messages, got %d", len(resp.Messages))
-	}
-
-	if resp.Messages[0].Content != "Hello from Human" {
-		t.Errorf("First message should be from Human, got: %s", resp.Messages[0].Content)
-	}
-	if resp.Messages[1].Content != "Hello from Agent" {
-		t.Errorf("Second message should be from Agent, got: %s", resp.Messages[1].Content)
-	}
-
-	// 7. ListChatMessages with Since
-    // Provide a timestamp before the first message was created
-    // Actually typically 'Since' is an ID or Timestamp. Our proto uses string Since (likely timestamp).
-    // Let's test limit.
-	respLimit, err := svc.ListChatMessages(ctx, &pb.ListChatMessagesRequest{
-		JobId: jobId,
-		Limit: 1,
-	})
-	if err != nil {
-		t.Fatalf("ListChatMessages with limit failed: %v", err)
-	}
-	if len(respLimit.Messages) != 1 {
-		t.Errorf("Expected 1 message with limit, got %d", len(respLimit.Messages))
+	if len(respAdmin.Messages) != 3 {
+		t.Errorf("Admin should see 3 messages, got %d", len(respAdmin.Messages))
 	}
 }

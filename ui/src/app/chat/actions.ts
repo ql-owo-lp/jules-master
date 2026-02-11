@@ -12,6 +12,7 @@ function mapChatMessage(m: any): ChatMessage {
     role: m.getIsHuman() ? 'user' : 'agent',
     content: m.getContent(),
     createdAt: m.getCreatedAt(),
+    recipient: m.getRecipient(),
   };
 }
 
@@ -33,7 +34,7 @@ export async function createChatConfig(jobId: string, agentName: string): Promis
   });
 }
 
-export async function sendChatMessage(jobId: string, content: string, isHuman: boolean, senderName: string): Promise<void> {
+export async function sendChatMessage(jobId: string, content: string, isHuman: boolean, senderName: string, recipient?: string): Promise<void> {
   const client = chatClient;
   return new Promise((resolve, reject) => {
     client.sendChatMessage({
@@ -41,7 +42,8 @@ export async function sendChatMessage(jobId: string, content: string, isHuman: b
       content,
       isHuman,
       senderName,
-      apiKey: '' // Not needed for human
+      apiKey: '', // Not needed for human
+      recipient: recipient || ""
     }, (err: any, response: any) => {
       if (err) {
         reject(err);
@@ -57,8 +59,9 @@ export async function listChatMessages(jobId: string, since?: string, limit?: nu
   return new Promise((resolve, reject) => {
     client.listChatMessages({
       jobId,
-      since,
-      limit
+      since: since || "",
+      limit: limit || 50,
+      viewerName: "" // Default to empty (admin/all) or handle properly if we want to filter for human
     }, (err: any, response: any) => {
       if (err) {
         reject(err);

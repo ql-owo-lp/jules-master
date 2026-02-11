@@ -493,6 +493,7 @@ message ChatMessage {
     string content = 4;
     string created_at = 5;
     bool is_human = 6;
+    string recipient = 7; // Optional: if set, only visible to this recipient (and sender)
 }
 
 message GetChatConfigRequest {
@@ -511,12 +512,14 @@ message SendChatMessageRequest {
     string api_key = 3; // Used to identify sender
     bool is_human = 4;
     string sender_name = 5; // Optional, only for Human
+    string recipient = 6; // Optional: target specific agent or "Human"
 }
 
 message ListChatMessagesRequest {
     string job_id = 1;
     string since = 2; // ISO timestamp to fetch only new messages
     int32 limit = 3;
+    string viewer_name = 4; // Optional: strictly filter messages visible to this viewer (Agent Name or "Human")
 }
 
 message ListChatMessagesResponse {

@@ -276,6 +276,7 @@ export interface Job {
   requirePlanApproval: boolean;
   cronJobId: string;
   profileId: string;
+  chatEnabled: boolean;
 }
 
 export interface ListJobsResponse {
@@ -302,6 +303,7 @@ export interface CreateJobRequest {
   requirePlanApproval: boolean;
   cronJobId: string;
   profileId: string;
+  chatEnabled: boolean;
 }
 
 export interface CreateManyJobsRequest {
@@ -458,6 +460,62 @@ export interface SendMessageRequest {
   id: string;
   message: string;
   force: boolean;
+}
+
+export interface ChatConfig {
+  jobId: string;
+  /** Unique name for the agent in this job */
+  agentName: string;
+  /** Unique secret key for this agent */
+  apiKey: string;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  jobId: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
+  isHuman: boolean;
+  /** Optional: if set, only visible to this recipient (and sender) */
+  recipient: string;
+}
+
+export interface GetChatConfigRequest {
+  jobId: string;
+  /** Retrieve config for specific agent */
+  agentName: string;
+}
+
+export interface CreateChatConfigRequest {
+  jobId: string;
+  agentName: string;
+}
+
+export interface SendChatMessageRequest {
+  jobId: string;
+  content: string;
+  /** Used to identify sender */
+  apiKey: string;
+  isHuman: boolean;
+  /** Optional, only for Human */
+  senderName: string;
+  /** Optional: target specific agent or "Human" */
+  recipient: string;
+}
+
+export interface ListChatMessagesRequest {
+  jobId: string;
+  /** ISO timestamp to fetch only new messages */
+  since: string;
+  limit: number;
+  /** Optional: strictly filter messages visible to this viewer (Agent Name or "Human") */
+  viewerName: string;
+}
+
+export interface ListChatMessagesResponse {
+  messages: ChatMessage[];
 }
 
 function createBaseSettings(): Settings {
@@ -3066,6 +3124,7 @@ function createBaseJob(): Job {
     requirePlanApproval: false,
     cronJobId: "",
     profileId: "",
+    chatEnabled: false,
   };
 }
 
@@ -3115,6 +3174,9 @@ export const Job: MessageFns<Job> = {
     }
     if (message.profileId !== "") {
       writer.uint32(122).string(message.profileId);
+    }
+    if (message.chatEnabled !== false) {
+      writer.uint32(128).bool(message.chatEnabled);
     }
     return writer;
   },
@@ -3246,6 +3308,14 @@ export const Job: MessageFns<Job> = {
           message.profileId = reader.string();
           continue;
         }
+        case 16: {
+          if (tag !== 128) {
+            break;
+          }
+
+          message.chatEnabled = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3304,6 +3374,11 @@ export const Job: MessageFns<Job> = {
         : isSet(object.profile_id)
         ? globalThis.String(object.profile_id)
         : "",
+      chatEnabled: isSet(object.chatEnabled)
+        ? globalThis.Boolean(object.chatEnabled)
+        : isSet(object.chat_enabled)
+        ? globalThis.Boolean(object.chat_enabled)
+        : false,
     };
   },
 
@@ -3354,6 +3429,9 @@ export const Job: MessageFns<Job> = {
     if (message.profileId !== "") {
       obj.profileId = message.profileId;
     }
+    if (message.chatEnabled !== false) {
+      obj.chatEnabled = message.chatEnabled;
+    }
     return obj;
   },
 
@@ -3377,6 +3455,7 @@ export const Job: MessageFns<Job> = {
     message.requirePlanApproval = object.requirePlanApproval ?? false;
     message.cronJobId = object.cronJobId ?? "";
     message.profileId = object.profileId ?? "";
+    message.chatEnabled = object.chatEnabled ?? false;
     return message;
   },
 };
@@ -3514,6 +3593,7 @@ function createBaseCreateJobRequest(): CreateJobRequest {
     requirePlanApproval: false,
     cronJobId: "",
     profileId: "",
+    chatEnabled: false,
   };
 }
 
@@ -3563,6 +3643,9 @@ export const CreateJobRequest: MessageFns<CreateJobRequest> = {
     }
     if (message.profileId !== "") {
       writer.uint32(122).string(message.profileId);
+    }
+    if (message.chatEnabled !== false) {
+      writer.uint32(128).bool(message.chatEnabled);
     }
     return writer;
   },
@@ -3694,6 +3777,14 @@ export const CreateJobRequest: MessageFns<CreateJobRequest> = {
           message.profileId = reader.string();
           continue;
         }
+        case 16: {
+          if (tag !== 128) {
+            break;
+          }
+
+          message.chatEnabled = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3752,6 +3843,11 @@ export const CreateJobRequest: MessageFns<CreateJobRequest> = {
         : isSet(object.profile_id)
         ? globalThis.String(object.profile_id)
         : "",
+      chatEnabled: isSet(object.chatEnabled)
+        ? globalThis.Boolean(object.chatEnabled)
+        : isSet(object.chat_enabled)
+        ? globalThis.Boolean(object.chat_enabled)
+        : false,
     };
   },
 
@@ -3802,6 +3898,9 @@ export const CreateJobRequest: MessageFns<CreateJobRequest> = {
     if (message.profileId !== "") {
       obj.profileId = message.profileId;
     }
+    if (message.chatEnabled !== false) {
+      obj.chatEnabled = message.chatEnabled;
+    }
     return obj;
   },
 
@@ -3825,6 +3924,7 @@ export const CreateJobRequest: MessageFns<CreateJobRequest> = {
     message.requirePlanApproval = object.requirePlanApproval ?? false;
     message.cronJobId = object.cronJobId ?? "";
     message.profileId = object.profileId ?? "";
+    message.chatEnabled = object.chatEnabled ?? false;
     return message;
   },
 };
@@ -6181,6 +6281,804 @@ export const SendMessageRequest: MessageFns<SendMessageRequest> = {
   },
 };
 
+function createBaseChatConfig(): ChatConfig {
+  return { jobId: "", agentName: "", apiKey: "", createdAt: "" };
+}
+
+export const ChatConfig: MessageFns<ChatConfig> = {
+  encode(message: ChatConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.jobId !== "") {
+      writer.uint32(10).string(message.jobId);
+    }
+    if (message.agentName !== "") {
+      writer.uint32(18).string(message.agentName);
+    }
+    if (message.apiKey !== "") {
+      writer.uint32(26).string(message.apiKey);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(34).string(message.createdAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ChatConfig {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseChatConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.jobId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.agentName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.apiKey = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ChatConfig {
+    return {
+      jobId: isSet(object.jobId)
+        ? globalThis.String(object.jobId)
+        : isSet(object.job_id)
+        ? globalThis.String(object.job_id)
+        : "",
+      agentName: isSet(object.agentName)
+        ? globalThis.String(object.agentName)
+        : isSet(object.agent_name)
+        ? globalThis.String(object.agent_name)
+        : "",
+      apiKey: isSet(object.apiKey)
+        ? globalThis.String(object.apiKey)
+        : isSet(object.api_key)
+        ? globalThis.String(object.api_key)
+        : "",
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+    };
+  },
+
+  toJSON(message: ChatConfig): unknown {
+    const obj: any = {};
+    if (message.jobId !== "") {
+      obj.jobId = message.jobId;
+    }
+    if (message.agentName !== "") {
+      obj.agentName = message.agentName;
+    }
+    if (message.apiKey !== "") {
+      obj.apiKey = message.apiKey;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ChatConfig>, I>>(base?: I): ChatConfig {
+    return ChatConfig.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ChatConfig>, I>>(object: I): ChatConfig {
+    const message = createBaseChatConfig();
+    message.jobId = object.jobId ?? "";
+    message.agentName = object.agentName ?? "";
+    message.apiKey = object.apiKey ?? "";
+    message.createdAt = object.createdAt ?? "";
+    return message;
+  },
+};
+
+function createBaseChatMessage(): ChatMessage {
+  return { id: "", jobId: "", senderName: "", content: "", createdAt: "", isHuman: false, recipient: "" };
+}
+
+export const ChatMessage: MessageFns<ChatMessage> = {
+  encode(message: ChatMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.jobId !== "") {
+      writer.uint32(18).string(message.jobId);
+    }
+    if (message.senderName !== "") {
+      writer.uint32(26).string(message.senderName);
+    }
+    if (message.content !== "") {
+      writer.uint32(34).string(message.content);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(42).string(message.createdAt);
+    }
+    if (message.isHuman !== false) {
+      writer.uint32(48).bool(message.isHuman);
+    }
+    if (message.recipient !== "") {
+      writer.uint32(58).string(message.recipient);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ChatMessage {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseChatMessage();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.jobId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.senderName = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.content = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.isHuman = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.recipient = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ChatMessage {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      jobId: isSet(object.jobId)
+        ? globalThis.String(object.jobId)
+        : isSet(object.job_id)
+        ? globalThis.String(object.job_id)
+        : "",
+      senderName: isSet(object.senderName)
+        ? globalThis.String(object.senderName)
+        : isSet(object.sender_name)
+        ? globalThis.String(object.sender_name)
+        : "",
+      content: isSet(object.content) ? globalThis.String(object.content) : "",
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+      isHuman: isSet(object.isHuman)
+        ? globalThis.Boolean(object.isHuman)
+        : isSet(object.is_human)
+        ? globalThis.Boolean(object.is_human)
+        : false,
+      recipient: isSet(object.recipient) ? globalThis.String(object.recipient) : "",
+    };
+  },
+
+  toJSON(message: ChatMessage): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.jobId !== "") {
+      obj.jobId = message.jobId;
+    }
+    if (message.senderName !== "") {
+      obj.senderName = message.senderName;
+    }
+    if (message.content !== "") {
+      obj.content = message.content;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.isHuman !== false) {
+      obj.isHuman = message.isHuman;
+    }
+    if (message.recipient !== "") {
+      obj.recipient = message.recipient;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ChatMessage>, I>>(base?: I): ChatMessage {
+    return ChatMessage.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ChatMessage>, I>>(object: I): ChatMessage {
+    const message = createBaseChatMessage();
+    message.id = object.id ?? "";
+    message.jobId = object.jobId ?? "";
+    message.senderName = object.senderName ?? "";
+    message.content = object.content ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.isHuman = object.isHuman ?? false;
+    message.recipient = object.recipient ?? "";
+    return message;
+  },
+};
+
+function createBaseGetChatConfigRequest(): GetChatConfigRequest {
+  return { jobId: "", agentName: "" };
+}
+
+export const GetChatConfigRequest: MessageFns<GetChatConfigRequest> = {
+  encode(message: GetChatConfigRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.jobId !== "") {
+      writer.uint32(10).string(message.jobId);
+    }
+    if (message.agentName !== "") {
+      writer.uint32(18).string(message.agentName);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetChatConfigRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetChatConfigRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.jobId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.agentName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetChatConfigRequest {
+    return {
+      jobId: isSet(object.jobId)
+        ? globalThis.String(object.jobId)
+        : isSet(object.job_id)
+        ? globalThis.String(object.job_id)
+        : "",
+      agentName: isSet(object.agentName)
+        ? globalThis.String(object.agentName)
+        : isSet(object.agent_name)
+        ? globalThis.String(object.agent_name)
+        : "",
+    };
+  },
+
+  toJSON(message: GetChatConfigRequest): unknown {
+    const obj: any = {};
+    if (message.jobId !== "") {
+      obj.jobId = message.jobId;
+    }
+    if (message.agentName !== "") {
+      obj.agentName = message.agentName;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetChatConfigRequest>, I>>(base?: I): GetChatConfigRequest {
+    return GetChatConfigRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetChatConfigRequest>, I>>(object: I): GetChatConfigRequest {
+    const message = createBaseGetChatConfigRequest();
+    message.jobId = object.jobId ?? "";
+    message.agentName = object.agentName ?? "";
+    return message;
+  },
+};
+
+function createBaseCreateChatConfigRequest(): CreateChatConfigRequest {
+  return { jobId: "", agentName: "" };
+}
+
+export const CreateChatConfigRequest: MessageFns<CreateChatConfigRequest> = {
+  encode(message: CreateChatConfigRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.jobId !== "") {
+      writer.uint32(10).string(message.jobId);
+    }
+    if (message.agentName !== "") {
+      writer.uint32(18).string(message.agentName);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateChatConfigRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateChatConfigRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.jobId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.agentName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateChatConfigRequest {
+    return {
+      jobId: isSet(object.jobId)
+        ? globalThis.String(object.jobId)
+        : isSet(object.job_id)
+        ? globalThis.String(object.job_id)
+        : "",
+      agentName: isSet(object.agentName)
+        ? globalThis.String(object.agentName)
+        : isSet(object.agent_name)
+        ? globalThis.String(object.agent_name)
+        : "",
+    };
+  },
+
+  toJSON(message: CreateChatConfigRequest): unknown {
+    const obj: any = {};
+    if (message.jobId !== "") {
+      obj.jobId = message.jobId;
+    }
+    if (message.agentName !== "") {
+      obj.agentName = message.agentName;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateChatConfigRequest>, I>>(base?: I): CreateChatConfigRequest {
+    return CreateChatConfigRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateChatConfigRequest>, I>>(object: I): CreateChatConfigRequest {
+    const message = createBaseCreateChatConfigRequest();
+    message.jobId = object.jobId ?? "";
+    message.agentName = object.agentName ?? "";
+    return message;
+  },
+};
+
+function createBaseSendChatMessageRequest(): SendChatMessageRequest {
+  return { jobId: "", content: "", apiKey: "", isHuman: false, senderName: "", recipient: "" };
+}
+
+export const SendChatMessageRequest: MessageFns<SendChatMessageRequest> = {
+  encode(message: SendChatMessageRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.jobId !== "") {
+      writer.uint32(10).string(message.jobId);
+    }
+    if (message.content !== "") {
+      writer.uint32(18).string(message.content);
+    }
+    if (message.apiKey !== "") {
+      writer.uint32(26).string(message.apiKey);
+    }
+    if (message.isHuman !== false) {
+      writer.uint32(32).bool(message.isHuman);
+    }
+    if (message.senderName !== "") {
+      writer.uint32(42).string(message.senderName);
+    }
+    if (message.recipient !== "") {
+      writer.uint32(50).string(message.recipient);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SendChatMessageRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSendChatMessageRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.jobId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.content = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.apiKey = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.isHuman = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.senderName = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.recipient = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SendChatMessageRequest {
+    return {
+      jobId: isSet(object.jobId)
+        ? globalThis.String(object.jobId)
+        : isSet(object.job_id)
+        ? globalThis.String(object.job_id)
+        : "",
+      content: isSet(object.content) ? globalThis.String(object.content) : "",
+      apiKey: isSet(object.apiKey)
+        ? globalThis.String(object.apiKey)
+        : isSet(object.api_key)
+        ? globalThis.String(object.api_key)
+        : "",
+      isHuman: isSet(object.isHuman)
+        ? globalThis.Boolean(object.isHuman)
+        : isSet(object.is_human)
+        ? globalThis.Boolean(object.is_human)
+        : false,
+      senderName: isSet(object.senderName)
+        ? globalThis.String(object.senderName)
+        : isSet(object.sender_name)
+        ? globalThis.String(object.sender_name)
+        : "",
+      recipient: isSet(object.recipient) ? globalThis.String(object.recipient) : "",
+    };
+  },
+
+  toJSON(message: SendChatMessageRequest): unknown {
+    const obj: any = {};
+    if (message.jobId !== "") {
+      obj.jobId = message.jobId;
+    }
+    if (message.content !== "") {
+      obj.content = message.content;
+    }
+    if (message.apiKey !== "") {
+      obj.apiKey = message.apiKey;
+    }
+    if (message.isHuman !== false) {
+      obj.isHuman = message.isHuman;
+    }
+    if (message.senderName !== "") {
+      obj.senderName = message.senderName;
+    }
+    if (message.recipient !== "") {
+      obj.recipient = message.recipient;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SendChatMessageRequest>, I>>(base?: I): SendChatMessageRequest {
+    return SendChatMessageRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SendChatMessageRequest>, I>>(object: I): SendChatMessageRequest {
+    const message = createBaseSendChatMessageRequest();
+    message.jobId = object.jobId ?? "";
+    message.content = object.content ?? "";
+    message.apiKey = object.apiKey ?? "";
+    message.isHuman = object.isHuman ?? false;
+    message.senderName = object.senderName ?? "";
+    message.recipient = object.recipient ?? "";
+    return message;
+  },
+};
+
+function createBaseListChatMessagesRequest(): ListChatMessagesRequest {
+  return { jobId: "", since: "", limit: 0, viewerName: "" };
+}
+
+export const ListChatMessagesRequest: MessageFns<ListChatMessagesRequest> = {
+  encode(message: ListChatMessagesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.jobId !== "") {
+      writer.uint32(10).string(message.jobId);
+    }
+    if (message.since !== "") {
+      writer.uint32(18).string(message.since);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(24).int32(message.limit);
+    }
+    if (message.viewerName !== "") {
+      writer.uint32(34).string(message.viewerName);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListChatMessagesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListChatMessagesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.jobId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.since = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.limit = reader.int32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.viewerName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListChatMessagesRequest {
+    return {
+      jobId: isSet(object.jobId)
+        ? globalThis.String(object.jobId)
+        : isSet(object.job_id)
+        ? globalThis.String(object.job_id)
+        : "",
+      since: isSet(object.since) ? globalThis.String(object.since) : "",
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+      viewerName: isSet(object.viewerName)
+        ? globalThis.String(object.viewerName)
+        : isSet(object.viewer_name)
+        ? globalThis.String(object.viewer_name)
+        : "",
+    };
+  },
+
+  toJSON(message: ListChatMessagesRequest): unknown {
+    const obj: any = {};
+    if (message.jobId !== "") {
+      obj.jobId = message.jobId;
+    }
+    if (message.since !== "") {
+      obj.since = message.since;
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    if (message.viewerName !== "") {
+      obj.viewerName = message.viewerName;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListChatMessagesRequest>, I>>(base?: I): ListChatMessagesRequest {
+    return ListChatMessagesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListChatMessagesRequest>, I>>(object: I): ListChatMessagesRequest {
+    const message = createBaseListChatMessagesRequest();
+    message.jobId = object.jobId ?? "";
+    message.since = object.since ?? "";
+    message.limit = object.limit ?? 0;
+    message.viewerName = object.viewerName ?? "";
+    return message;
+  },
+};
+
+function createBaseListChatMessagesResponse(): ListChatMessagesResponse {
+  return { messages: [] };
+}
+
+export const ListChatMessagesResponse: MessageFns<ListChatMessagesResponse> = {
+  encode(message: ListChatMessagesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.messages) {
+      ChatMessage.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListChatMessagesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListChatMessagesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.messages.push(ChatMessage.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListChatMessagesResponse {
+    return {
+      messages: globalThis.Array.isArray(object?.messages)
+        ? object.messages.map((e: any) => ChatMessage.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListChatMessagesResponse): unknown {
+    const obj: any = {};
+    if (message.messages?.length) {
+      obj.messages = message.messages.map((e) => ChatMessage.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListChatMessagesResponse>, I>>(base?: I): ListChatMessagesResponse {
+    return ListChatMessagesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListChatMessagesResponse>, I>>(object: I): ListChatMessagesResponse {
+    const message = createBaseListChatMessagesResponse();
+    message.messages = object.messages?.map((e) => ChatMessage.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 export type SettingsServiceService = typeof SettingsServiceService;
 export const SettingsServiceService = {
   getSettings: {
@@ -7427,6 +8325,129 @@ export const SessionServiceClient = makeGenericClientConstructor(
 ) as unknown as {
   new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): SessionServiceClient;
   service: typeof SessionServiceService;
+  serviceName: string;
+};
+
+export type ChatServiceService = typeof ChatServiceService;
+export const ChatServiceService = {
+  getChatConfig: {
+    path: "/jules.ChatService/GetChatConfig",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: GetChatConfigRequest): Buffer => Buffer.from(GetChatConfigRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetChatConfigRequest => GetChatConfigRequest.decode(value),
+    responseSerialize: (value: ChatConfig): Buffer => Buffer.from(ChatConfig.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ChatConfig => ChatConfig.decode(value),
+  },
+  createChatConfig: {
+    path: "/jules.ChatService/CreateChatConfig",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: CreateChatConfigRequest): Buffer =>
+      Buffer.from(CreateChatConfigRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateChatConfigRequest => CreateChatConfigRequest.decode(value),
+    responseSerialize: (value: ChatConfig): Buffer => Buffer.from(ChatConfig.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ChatConfig => ChatConfig.decode(value),
+  },
+  sendChatMessage: {
+    path: "/jules.ChatService/SendChatMessage",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: SendChatMessageRequest): Buffer =>
+      Buffer.from(SendChatMessageRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): SendChatMessageRequest => SendChatMessageRequest.decode(value),
+    responseSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
+    responseDeserialize: (value: Buffer): Empty => Empty.decode(value),
+  },
+  /** We can add Streaming later if needed, starting with polling for simplicity in MVP. */
+  listChatMessages: {
+    path: "/jules.ChatService/ListChatMessages",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: ListChatMessagesRequest): Buffer =>
+      Buffer.from(ListChatMessagesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListChatMessagesRequest => ListChatMessagesRequest.decode(value),
+    responseSerialize: (value: ListChatMessagesResponse): Buffer =>
+      Buffer.from(ListChatMessagesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListChatMessagesResponse => ListChatMessagesResponse.decode(value),
+  },
+} as const;
+
+export interface ChatServiceServer extends UntypedServiceImplementation {
+  getChatConfig: handleUnaryCall<GetChatConfigRequest, ChatConfig>;
+  createChatConfig: handleUnaryCall<CreateChatConfigRequest, ChatConfig>;
+  sendChatMessage: handleUnaryCall<SendChatMessageRequest, Empty>;
+  /** We can add Streaming later if needed, starting with polling for simplicity in MVP. */
+  listChatMessages: handleUnaryCall<ListChatMessagesRequest, ListChatMessagesResponse>;
+}
+
+export interface ChatServiceClient extends Client {
+  getChatConfig(
+    request: GetChatConfigRequest,
+    callback: (error: ServiceError | null, response: ChatConfig) => void,
+  ): ClientUnaryCall;
+  getChatConfig(
+    request: GetChatConfigRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ChatConfig) => void,
+  ): ClientUnaryCall;
+  getChatConfig(
+    request: GetChatConfigRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ChatConfig) => void,
+  ): ClientUnaryCall;
+  createChatConfig(
+    request: CreateChatConfigRequest,
+    callback: (error: ServiceError | null, response: ChatConfig) => void,
+  ): ClientUnaryCall;
+  createChatConfig(
+    request: CreateChatConfigRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ChatConfig) => void,
+  ): ClientUnaryCall;
+  createChatConfig(
+    request: CreateChatConfigRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ChatConfig) => void,
+  ): ClientUnaryCall;
+  sendChatMessage(
+    request: SendChatMessageRequest,
+    callback: (error: ServiceError | null, response: Empty) => void,
+  ): ClientUnaryCall;
+  sendChatMessage(
+    request: SendChatMessageRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: Empty) => void,
+  ): ClientUnaryCall;
+  sendChatMessage(
+    request: SendChatMessageRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: Empty) => void,
+  ): ClientUnaryCall;
+  /** We can add Streaming later if needed, starting with polling for simplicity in MVP. */
+  listChatMessages(
+    request: ListChatMessagesRequest,
+    callback: (error: ServiceError | null, response: ListChatMessagesResponse) => void,
+  ): ClientUnaryCall;
+  listChatMessages(
+    request: ListChatMessagesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListChatMessagesResponse) => void,
+  ): ClientUnaryCall;
+  listChatMessages(
+    request: ListChatMessagesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListChatMessagesResponse) => void,
+  ): ClientUnaryCall;
+}
+
+export const ChatServiceClient = makeGenericClientConstructor(ChatServiceService, "jules.ChatService") as unknown as {
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): ChatServiceClient;
+  service: typeof ChatServiceService;
   serviceName: string;
 };
 

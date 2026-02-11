@@ -159,11 +159,13 @@ export const sessions = sqliteTable('sessions', {
 }));
 
 export const chatConfigs = sqliteTable('chat_configs', {
-  jobId: text('job_id').primaryKey(),
+  jobId: text('job_id').notNull(),
   apiKey: text('api_key').notNull(),
   agentName: text('agent_name').notNull(),
   createdAt: text('created_at').notNull(),
-});
+}, (table) => ({
+  pk: primaryKey({ columns: [table.jobId, table.agentName] }),
+}));
 
 export const chatMessages = sqliteTable('chat_messages', {
   id: text('id').primaryKey(),
@@ -172,6 +174,7 @@ export const chatMessages = sqliteTable('chat_messages', {
   content: text('content').notNull(),
   createdAt: text('created_at').notNull(),
   isHuman: integer('is_human', { mode: 'boolean' }).default(false),
+  recipient: text('recipient'),
 });
 
 export const locks = sqliteTable('locks', {

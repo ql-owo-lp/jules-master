@@ -154,10 +154,11 @@ func createTables(t *testing.T, conn *sql.DB) {
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
 		`CREATE TABLE chat_configs (
-            job_id TEXT PRIMARY KEY,
+            job_id TEXT NOT NULL,
             api_key TEXT NOT NULL,
             agent_name TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (job_id, agent_name)
         );`,
 		`CREATE TABLE chat_messages (
             id TEXT PRIMARY KEY,
@@ -165,7 +166,8 @@ func createTables(t *testing.T, conn *sql.DB) {
             sender_name TEXT NOT NULL,
             content TEXT NOT NULL,
             created_at TEXT NOT NULL,
-            is_human BOOLEAN DEFAULT 0
+            is_human BOOLEAN DEFAULT 0,
+            recipient TEXT
         );`,
 	}
 

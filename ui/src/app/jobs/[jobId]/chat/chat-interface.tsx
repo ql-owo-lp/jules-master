@@ -59,19 +59,18 @@ export function ChatInterface({ jobId }: ChatInterfaceProps) {
         }
     }, [messages]);
 
+    const [recipient, setRecipient] = useState("");
+
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inputValue.trim()) return;
 
         const content = inputValue;
         setInputValue(""); // Clear immediately for better UX via optimistic update?
-        // Actually we should wait or optimistic update.
-        // Let's just optimistic update the UI?
-        // No, let's wait for send to complete basically.
         
         startSendingTransition(async () => {
             try {
-                await sendChatMessage(jobId, content, true, "User");
+                await sendChatMessage(jobId, content, true, "User", recipient || undefined);
                 // The poll will pick it up, or we can fetch immediately
                 const msgs = await listChatMessages(jobId, undefined, 50);
                 setMessages(msgs);
@@ -89,11 +88,19 @@ export function ChatInterface({ jobId }: ChatInterfaceProps) {
 
     return (
         <Card className="flex flex-col h-full">
-            <CardHeader>
+            <CardHeader className="pb-3 border-b">
                 <CardTitle className="flex items-center gap-2">
                     <Bot className="w-5 h-5" />
                     Agent Chat
                 </CardTitle>
+                <div className="flex gap-2 items-center mt-2">
+                    <Input
+                        placeholder="Recipient (Optional: Agent Name)"
+                        value={recipient}
+                        onChange={(e) => setRecipient(e.target.value)}
+                        className="text-sm h-8 w-64"
+                    />
+                </div>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden p-0">
                 <ScrollArea className="h-full p-4">
@@ -127,6 +134,13 @@ export function ChatInterface({ jobId }: ChatInterfaceProps) {
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="text-xs font-semibold">
                                                 {msg.sender}
+                                                {msg.recipient && (
+                                                    <span className="text-muted-foreground ml-1">
+                                                        Wait, if I send checks out, I want to see "-> Recipient"
+                                                        If I receive, I want to see "private"
+                                                    </span>
+                                                )}
+                                                {msg.recipient ? ` -> ${msg.recipient}` : ""}
                                             </span>
                                             <span className="text-xs text-muted-foreground">
                                                 {new Date(msg.createdAt).toLocaleTimeString()}
