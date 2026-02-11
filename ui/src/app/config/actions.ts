@@ -61,7 +61,7 @@ const MOCK_QUICK_REPLIES: PredefinedPrompt[] = [
 // --- Jobs ---
 export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]> {
     return new Promise((resolve, reject) => {
-        if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
+        if (process.env.MOCK_API === 'true') {
              return resolve(MOCK_JOBS);
         }
         // ListJobs currently returns all, we might filter by profileId client-side
@@ -82,7 +82,7 @@ export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]
 
 export async function addJob(job: LocalJob): Promise<void> {
     return new Promise((resolve, reject) => {
-        if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
+        if (process.env.MOCK_API === 'true') {
              MOCK_JOBS.push(job);
              // Ensure global is synced if pushing to local const ref (though they share ref)
              return resolve();
