@@ -449,9 +449,20 @@ export function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next:
   // Check sessionMap (smart check)
   if (prev.sessionMap !== next.sessionMap) {
       for (const id of next.job.sessionIds) {
-          if (prev.sessionMap.get(id) !== next.sessionMap.get(id)) {
-              return false;
+          const prevSession = prev.sessionMap.get(id);
+          const nextSession = next.sessionMap.get(id);
+
+          if (prevSession === nextSession) continue;
+          if (!prevSession || !nextSession) return false; // One is undefined
+
+          // Optimization: If updateTime matches, assume session is unchanged
+          // This avoids re-rendering all jobs when one session in one job changes
+          // (which causes sessionMap reference to change for everyone)
+          if (prevSession.updateTime && nextSession.updateTime && prevSession.updateTime === nextSession.updateTime) {
+              continue;
           }
+
+          return false;
       }
   }
 
