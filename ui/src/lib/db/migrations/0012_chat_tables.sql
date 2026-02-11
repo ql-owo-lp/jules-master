@@ -13,3 +13,5 @@ CREATE TABLE `chat_messages` (
 	`created_at` text NOT NULL,
 	`is_human` integer DEFAULT false
 );
+--> statement-breakpoint
+ALTER TABLE jobs ADD COLUMN `chat_enabled` integer DEFAULT 0;

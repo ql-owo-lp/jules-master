@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v5.29.3
-// source: jules.proto
+// source: proto/jules.proto
 
 package proto
 
@@ -156,7 +156,7 @@ var SettingsService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "jules.proto",
+	Metadata: "proto/jules.proto",
 }
 
 const (
@@ -334,7 +334,7 @@ var ProfileService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "jules.proto",
+	Metadata: "proto/jules.proto",
 }
 
 const (
@@ -436,7 +436,7 @@ var LogService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "jules.proto",
+	Metadata: "proto/jules.proto",
 }
 
 const (
@@ -728,7 +728,7 @@ var CronJobService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "jules.proto",
+	Metadata: "proto/jules.proto",
 }
 
 const (
@@ -1020,7 +1020,7 @@ var JobService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "jules.proto",
+	Metadata: "proto/jules.proto",
 }
 
 const (
@@ -1816,7 +1816,7 @@ var PromptService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "jules.proto",
+	Metadata: "proto/jules.proto",
 }
 
 const (
@@ -2146,7 +2146,7 @@ var SessionService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "jules.proto",
+	Metadata: "proto/jules.proto",
 }
 
 const (
@@ -2362,5 +2362,5 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "jules.proto",
+	Metadata: "proto/jules.proto",
 }

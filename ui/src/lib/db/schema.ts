@@ -23,6 +23,7 @@ export const jobs = sqliteTable('jobs', {
   requirePlanApproval: integer('require_plan_approval', { mode: 'boolean' }),
   cronJobId: text('cron_job_id'),
   profileId: text('profile_id').references(() => profiles.id).notNull().default('default'),
+  chatEnabled: integer('chat_enabled', { mode: 'boolean' }).notNull().default(false),
 }, (table) => ({
   // Optimization: Add composite index on profileId and createdAt to speed up job listing queries.
   // This helps when filtering jobs by profile and sorting by creation time.

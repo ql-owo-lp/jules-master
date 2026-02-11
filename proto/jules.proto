@@ -290,6 +290,7 @@ message Job {
   bool require_plan_approval = 13;
   string cron_job_id = 14;
   string profile_id = 15;
+  bool chat_enabled = 16;
 }
 
 message ListJobsResponse {
