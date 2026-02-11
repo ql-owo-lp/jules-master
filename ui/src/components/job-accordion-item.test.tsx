@@ -70,7 +70,8 @@ describe('areJobAccordionItemPropsEqual', () => {
   });
 
   it('should return false if relevant session data changes', () => {
-    const updatedSession1 = { ...mockSession1, state: 'COMPLETED' as const };
+    // We must update updateTime to simulate a real change, as the optimization relies on it
+    const updatedSession1 = { ...mockSession1, state: 'COMPLETED' as const, updateTime: new Date(Date.now() + 1000).toISOString() };
     const newSessionMap = new Map([['session-1', updatedSession1]]);
     const newProps = { ...baseProps, sessionMap: newSessionMap };
 

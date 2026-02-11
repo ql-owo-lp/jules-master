@@ -255,23 +255,16 @@ const JobAccordionItemComponent = ({
                     </TooltipContent>
                 </Tooltip>
              )}
-          {job.chatEnabled && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => { e.stopPropagation(); router.push(`/jobs/${job.id}/chat`); }}
-                  aria-label="Enter Chatroom"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Enter Chatroom</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); router.push(`/jobs/${job.id}/chat`); }}
+              aria-label="Enter Chatroom"
+              data-testid="enter-chat-button"
+              className={!job.chatEnabled ? "opacity-50" : ""}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </Button>
              <MessageDialog
                 trigger={
                     <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message"><MessageSquare className="h-4 w-4" /></Button>
@@ -449,9 +442,20 @@ export function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next:
   // Check sessionMap (smart check)
   if (prev.sessionMap !== next.sessionMap) {
       for (const id of next.job.sessionIds) {
-          if (prev.sessionMap.get(id) !== next.sessionMap.get(id)) {
-              return false;
+          const prevSession = prev.sessionMap.get(id);
+          const nextSession = next.sessionMap.get(id);
+
+          if (prevSession === nextSession) continue;
+          if (!prevSession || !nextSession) return false; // One is undefined
+
+          // Optimization: If updateTime matches, assume session is unchanged
+          // This avoids re-rendering all jobs when one session in one job changes
+          // (which causes sessionMap reference to change for everyone)
+          if (prevSession.updateTime && nextSession.updateTime && prevSession.updateTime === nextSession.updateTime) {
+              continue;
           }
+
+          return false;
       }
   }
 

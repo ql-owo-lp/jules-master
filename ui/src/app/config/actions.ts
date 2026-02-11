@@ -69,6 +69,8 @@ export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]
             // Local Job expects automationMode as string union, Proto has Enum
             const mapped = filtered.map(j => ({
                 ...j,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                chatEnabled: j.chatEnabled !== undefined ? j.chatEnabled : ((j as any).chat_enabled !== undefined ? (j as any).chat_enabled : true),
                 automationMode: AutomationMode[j.automationMode] as LocalJob['automationMode']
             }));
             resolve(mapped);
@@ -93,7 +95,8 @@ export async function addJob(job: LocalJob): Promise<void> {
             sessionCount: job.sessionCount ?? 0,
             status: job.status ?? 'PENDING',
             cronJobId: job.cronJobId || '',
-            prompt: job.prompt || ''
+            prompt: job.prompt || '',
+            chatEnabled: job.chatEnabled !== undefined ? job.chatEnabled : true
         };
         jobClient.createJob(req, (err) => {
             if (err) return reject(err);

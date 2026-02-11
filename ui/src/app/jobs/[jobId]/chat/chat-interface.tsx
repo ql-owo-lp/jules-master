@@ -134,12 +134,6 @@ export function ChatInterface({ jobId }: ChatInterfaceProps) {
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="text-xs font-semibold">
                                                 {msg.sender}
-                                                {msg.recipient && (
-                                                    <span className="text-muted-foreground ml-1">
-                                                        Wait, if I send checks out, I want to see "-> Recipient"
-                                                        If I receive, I want to see "private"
-                                                    </span>
-                                                )}
                                                 {msg.recipient ? ` -> ${msg.recipient}` : ""}
                                             </span>
                                             <span className="text-xs text-muted-foreground">
