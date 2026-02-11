@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { MessageDialog } from "./message-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Clock, Loader2, CheckCircle2, Hand, MessageSquare, MessageSquareReply, Clipboard, ClipboardCheck } from "lucide-react";
+import { Clock, Loader2, CheckCircle2, Hand, MessageSquare, MessageSquareReply, Clipboard, ClipboardCheck, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { SessionTable } from "./session-table";
@@ -255,6 +255,23 @@ const JobAccordionItemComponent = ({
                     </TooltipContent>
                 </Tooltip>
              )}
+          {job.chatEnabled && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => { e.stopPropagation(); router.push(`/jobs/${job.id}/chat`); }}
+                  aria-label="Enter Chatroom"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Enter Chatroom</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
              <MessageDialog
                 trigger={
                     <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message"><MessageSquare className="h-4 w-4" /></Button>

@@ -9,6 +9,7 @@ import type { Session, Source, AutomationMode, Job, Settings } from "@/lib/types
 import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/sessions/new/actions";
 import { revalidateSessions } from "@/app/sessions/actions";
+import { createChatConfig } from "@/app/chat/actions";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useEnv } from "@/components/env-provider";
 
@@ -39,7 +40,9 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
         branch: string | undefined,
         requirePlanApproval: boolean,
         automationMode: AutomationMode,
-        settings: Settings | null
+        settings: Settings | null,
+        chatEnabled: boolean,
+        jobId: string
     ): Promise<Session | null> => {
         if (!source || !branch) {
             toast({
@@ -50,10 +53,34 @@ export function NewJobDialog({ isPage = false, children, initialValues }: NewJob
         }
 
         const effectiveApiKey = apiKey || null;
+        let finalPrompt = prompt;
+
+        if (chatEnabled) {
+            try {
+                // Generate a unique agent name
+                const agentName = "Agent-" + crypto.randomUUID().slice(0, 8);
+                const chatConfig = await createChatConfig(jobId, agentName);
+
+                // Inject into prompt
+                // Use a relative URL or configured app URL
+                const appUrl = window.location.origin;
+                const chatUrl = `${appUrl}/jobs/${jobId}/chat`;
+
+                finalPrompt += `\n\n[SYSTEM: CHATROOM ENABLED]\nYou have access to a realtime chatroom with other agents and the user.\nURL: ${chatUrl}\nAPI_KEY: ${chatConfig.apiKey}\nUsage: Use the provided API Key to authenticate when sending messages to the chatroom. Call the ChatService.SendChatMessage RPC or use the REST endpoint if available.`;
+            } catch (e) {
+                console.error("Failed to create chat config", e);
+                toast({
+                    variant: "destructive",
+                    title: "Failed to setup chat",
+                    description: "Chatroom configuration could not be created."
+                });
+                return null;
+            }
+        }
 
         const newSession = await createSession({
             title: title,
-            prompt: prompt,
+            prompt: finalPrompt,
             sourceContext: {
                 source: source.name,
                 githubRepoContext: {
