@@ -19,8 +19,12 @@ test.describe('Chatroom E2E', () => {
         await page.getByRole('textbox', { name: 'Session Prompts' }).fill('Test Prompt for Chat');
         await page.getByLabel('Number of sessions').fill('1');
 
-        // Enable Chatroom (click the switch)
-        await page.getByLabel('Enable Chatroom').click();
+        // Enable Chatroom
+        // Ensure it is unchecked initially (default state)
+        const chatSwitch = page.getByLabel('Enable Chatroom');
+        await expect(chatSwitch).not.toBeChecked();
+        await chatSwitch.click();
+        await expect(chatSwitch).toBeChecked();
 
         // Select Repo/Branch
         const repoCombobox = page.getByRole('combobox').filter({ hasText: /test-owner\/test-repo/ }).first();
@@ -35,10 +39,16 @@ test.describe('Chatroom E2E', () => {
         await expect(jobTitle).toBeVisible();
 
         // 3. Enter Chatroom
-        // Click the job header to ensure it's expanded or just to focus it
-        await jobTitle.click();
+        // The button is in the row header, always visible if enabled.
+        // We verify it exists near the job title.
+        // We use a locator chained from the row container to be safe, but since jobName is unique enough:
+
+        // Find the specific 'Enter Chatroom' button associated with this job row.
+        // The structure is: AccordionItem -> div(header) -> div(actions) -> Button
+        // We can find the AccordionItem that contains the jobTitle
+        const jobRow = page.locator('.border.rounded-lg.bg-card', { has: jobTitle });
+        const enterChatButton = jobRow.getByLabel('Enter Chatroom');
         
-        const enterChatButton = page.getByLabel('Enter Chatroom').first();
         await expect(enterChatButton).toBeVisible();
         await enterChatButton.click();
 
@@ -53,7 +63,8 @@ test.describe('Chatroom E2E', () => {
         await page.getByRole('button', { name: 'Send' }).click();
 
         // 6. Verify Message appears
-        await expect(page.getByText('Hello Agent!')).toBeVisible();
+        // Wait for it to appear in the list
+        await expect(page.locator('.rounded-lg', { hasText: 'Hello Agent!' })).toBeVisible();
         await expect(page.getByText('User')).toBeVisible(); // Sender name
     });
 });
