@@ -14,11 +14,21 @@ type ListActivitiesResponse = {
   nextPageToken?: string;
 };
 
+// --- Mock Helpers ---
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const globalForMocks = globalThis as unknown as { MOCK_SESSIONS: Session[] };
+
 export async function getSession(
   sessionId: string,
   apiKey?: string | null,
   retryOptions?: Pick<FetchOptions, 'retries' | 'backoff'>
 ): Promise<Session | null> {
+  if (process.env.MOCK_API === 'true') {
+      const allSessions = globalForMocks.MOCK_SESSIONS || [];
+      const session = allSessions.find(s => s.id === sessionId);
+      return session || null;
+  }
+
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
@@ -73,6 +83,10 @@ export async function listActivities(
   sessionId: string,
   apiKey?: string | null
 ): Promise<Activity[]> {
+  if (process.env.MOCK_API === 'true') {
+      return []; // Return empty activity list for mocks
+  }
+
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
@@ -109,6 +123,18 @@ export async function approvePlan(
   sessionId: string,
   apiKey?: string | null
 ): Promise<Session | null> {
+  if (process.env.MOCK_API === 'true') {
+      const allSessions = globalForMocks.MOCK_SESSIONS || [];
+      const session = allSessions.find(s => s.id === sessionId);
+      if (session) {
+          session.state = 'RUNNING'; // Simulate state change
+          revalidatePath(`/sessions/${sessionId}`);
+          revalidatePath(`/`);
+          return session;
+      }
+      return null;
+  }
+
   const effectiveApiKey = apiKey || process.env.JULES_API_KEY;
   if (!effectiveApiKey) {
     console.error("Jules API key is not configured.");
@@ -149,6 +175,21 @@ export async function sendMessage(
   apiKey?: string | null,
   skipRevalidation: boolean = false
 ): Promise<Session | null> {
+  if (process.env.MOCK_API === 'true') {
+      const allSessions = globalForMocks.MOCK_SESSIONS || [];
+      const session = allSessions.find(s => s.id === sessionId);
+      if (session) {
+          // Mock behavior: Maybe change state or just return
+          session.lastInteractionAt = Date.now();
+          if (!skipRevalidation) {
+             revalidatePath(`/sessions/${sessionId}`);
+             revalidatePath(`/`);
+          }
+          return session;
+      }
+      return null;
+  }
+
   // Rate Limit Check
   const localSession = await db.select({ lastInteractionAt: sessions.lastInteractionAt })
       .from(sessions)
