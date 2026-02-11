@@ -30,11 +30,12 @@ test.describe('Chatroom E2E', () => {
 
         // 2. Wait for Job to appear in list
         // It should redirect or close dialog and show the job.
-        await expect(page.getByText(jobName)).toBeVisible();
+        // We target the paragraph tag to avoid matching the filter dropdown trigger which uses a span
+        await expect(page.locator('p').filter({ hasText: jobName })).toBeVisible();
 
         // 3. Enter Chatroom
         // Click the job header to ensure it's expanded or just to focus it
-        await page.getByText(jobName).click();
+        await page.locator('p').filter({ hasText: jobName }).click();
         
         const enterChatButton = page.getByLabel('Enter Chatroom').first();
         await expect(enterChatButton).toBeVisible();
