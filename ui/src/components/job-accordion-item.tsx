@@ -255,7 +255,6 @@ const JobAccordionItemComponent = ({
                     </TooltipContent>
                 </Tooltip>
              )}
-          {job.chatEnabled && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -263,6 +262,7 @@ const JobAccordionItemComponent = ({
                   size="icon"
                   onClick={(e) => { e.stopPropagation(); router.push(`/jobs/${job.id}/chat`); }}
                   aria-label="Enter Chatroom"
+                  className={!job.chatEnabled ? "opacity-50" : ""}
                 >
                   <MessageCircle className="h-4 w-4" />
                 </Button>
@@ -271,7 +271,6 @@ const JobAccordionItemComponent = ({
                 <p>Enter Chatroom</p>
               </TooltipContent>
             </Tooltip>
-          )}
              <MessageDialog
                 trigger={
                     <Button variant="ghost" size="icon" disabled={isActionPending} aria-label="Send Message"><MessageSquare className="h-4 w-4" /></Button>
