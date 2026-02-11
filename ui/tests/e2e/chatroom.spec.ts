@@ -41,14 +41,15 @@ test.describe('Chatroom E2E', () => {
         // 3. Enter Chatroom
         // The button is in the row header, always visible if enabled.
         // We verify it exists near the job title.
-        // We use a locator chained from the row container to be safe, but since jobName is unique enough:
 
         // Find the specific 'Enter Chatroom' button associated with this job row.
         // The structure is: AccordionItem -> div(header) -> div(actions) -> Button
-        // We can find the AccordionItem that contains the jobTitle
+        // We use the jobTitle to find the common ancestor row
         const jobRow = page.locator('.border.rounded-lg.bg-card', { has: jobTitle });
         const enterChatButton = jobRow.getByLabel('Enter Chatroom');
-        
+
+        // Wait for the button to be attached and visible.
+        // If the job was created without chat enabled (due to toggle failure), this will timeout.
         await expect(enterChatButton).toBeVisible();
         await enterChatButton.click();
 
