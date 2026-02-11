@@ -79,6 +79,7 @@ export async function getJobs(profileId: string = 'default'): Promise<LocalJob[]
 export async function addJob(job: LocalJob): Promise<void> {
     return new Promise((resolve, reject) => {
         if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
+             MOCK_JOBS.push(job);
              return resolve();
         }
         const req = {
