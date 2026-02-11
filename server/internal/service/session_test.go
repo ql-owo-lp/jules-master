@@ -32,6 +32,15 @@ func TestSessionService_CreateSession(t *testing.T) {
 	_, err = svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: longName, Prompt: "Valid"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "name is too long")
+
+	// Invalid Repo/Branch
+	_, err = svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "Valid", Prompt: "Valid", Repo: "invalid repo"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid repo format")
+
+	_, err = svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "Valid", Prompt: "Valid", Branch: "invalid branch!"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid branch format")
 }
 
 func TestSessionService_Validation(t *testing.T) {
