@@ -81,7 +81,7 @@ func TestBackgroundJobWorker_ProcessJob_Partial(t *testing.T) {
 	sessionsJSON, _ := json.Marshal(existingSessionIDs)
 
 	_, err := db.Exec(`INSERT INTO jobs (id, name, status, session_count, session_ids, created_at, repo, branch, prompt) 
-        VALUES ('job-partial', 'partial-job', 'PENDING', 3, ?, '2023-01-01T00:00:00Z', 'r', 'b', 'p')`, string(sessionsJSON))
+        VALUES ('job-partial', 'partial-job', 'PENDING', 3, ?, '2023-01-01T00:00:00Z', 'owner/repo', 'main', 'p')`, string(sessionsJSON))
 	assert.NoError(t, err)
 
 	// Run
