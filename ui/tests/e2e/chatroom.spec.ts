@@ -21,6 +21,7 @@ test.describe('Chatroom E2E', () => {
 
         // Enable Chatroom (click the switch)
         await page.getByLabel('Enable Chatroom').click();
+        await expect(page.getByLabel('Enable Chatroom')).toBeChecked();
 
         // Select Repo/Branch
         const repoCombobox = page.getByRole('combobox').filter({ hasText: /test-owner\/test-repo/ }).first();
