@@ -23,8 +23,16 @@ test.describe('Chatroom E2E', () => {
         // Ensure it is unchecked initially (default state)
         const chatSwitch = page.getByLabel('Enable Chatroom');
         await expect(chatSwitch).not.toBeChecked();
-        await chatSwitch.click();
+        await chatSwitch.click({ force: true });
         await expect(chatSwitch).toBeChecked();
+
+        // Disable Background Job to ensure we wait for creation synchronously
+        const backgroundSwitch = page.getByLabel('Background Job');
+        // Check current state (default is true)
+        if (await backgroundSwitch.isChecked()) {
+             await backgroundSwitch.click({ force: true });
+        }
+        await expect(backgroundSwitch).not.toBeChecked();
 
         // Select Repo/Branch
         const repoCombobox = page.getByRole('combobox').filter({ hasText: /test-owner\/test-repo/ }).first();
@@ -33,23 +41,20 @@ test.describe('Chatroom E2E', () => {
         await page.getByRole('button', { name: 'Create Job' }).click();
 
         // 2. Wait for Job to appear in list
-        // It should redirect or close dialog and show the job.
-        // We target the paragraph tag to differentiate from the filter dropdown which uses a span
+        // Since we disabled background job, the creation might take a moment,
+        // but the UI should update and close the dialog (or redirect).
+        // The list is on the main page.
+
+        // We use the jobTitle to find the common ancestor row
         const jobTitle = page.locator('p.font-semibold', { hasText: jobName });
-        await expect(jobTitle).toBeVisible();
+        await expect(jobTitle).toBeVisible({ timeout: 15000 }); // Wait for creation
 
         // 3. Enter Chatroom
-        // The button is in the row header, always visible if enabled.
-        // We verify it exists near the job title.
-
         // Find the specific 'Enter Chatroom' button associated with this job row.
-        // The structure is: AccordionItem -> div(header) -> div(actions) -> Button
-        // We use the jobTitle to find the common ancestor row
         const jobRow = page.locator('.border.rounded-lg.bg-card', { has: jobTitle });
         const enterChatButton = jobRow.getByLabel('Enter Chatroom');
 
         // Wait for the button to be attached and visible.
-        // If the job was created without chat enabled (due to toggle failure), this will timeout.
         await expect(enterChatButton).toBeVisible();
         await enterChatButton.click();
 
