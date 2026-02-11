@@ -181,6 +181,13 @@ func (s *SessionServer) CreateSession(ctx context.Context, req *pb.CreateSession
 		return nil, fmt.Errorf("prompt is too long (max 50000 characters)")
 	}
 
+	if err := ValidateRepo(req.Repo); err != nil {
+		return nil, err
+	}
+	if err := ValidateBranch(req.Branch); err != nil {
+		return nil, err
+	}
+
 	// Try remote creation first
 	remoteSess, err := s.createRemoteSession(req)
 	if err != nil {
