@@ -534,6 +534,7 @@ function HomePageContent() {
                 <div className="space-y-2">
                   <Label htmlFor="filter-repo">Repository</Label>
                   <Combobox 
+                    id="filter-repo"
                     options={repoOptions}
                     selectedValue={repoFilter}
                     onValueChange={(val) => onRepoFilterChange(val || 'all')}
@@ -546,6 +547,7 @@ function HomePageContent() {
                 <div className="space-y-2">
                   <Label htmlFor="filter-status">Session Status</Label>
                   <Combobox 
+                    id="filter-status"
                     options={statusOptions}
                     selectedValue={statusFilter}
                     onValueChange={(val) => onStatusFilterChange(val || 'all')}
@@ -558,6 +560,7 @@ function HomePageContent() {
                 <div className="space-y-2">
                   <Label htmlFor="filter-job">Job Name</Label>
                    <Combobox 
+                    id="filter-job"
                     options={allJobOptions}
                     selectedValue={jobFilter}
                     onValueChange={(val) => onJobFilterChange(val === 'all' ? null : val)}
