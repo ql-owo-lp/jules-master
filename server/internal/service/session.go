@@ -33,11 +33,12 @@ func isValidSessionID(id string) bool {
 
 type SessionServer struct {
 	pb.UnimplementedSessionServiceServer
-	DB              *sql.DB
-	BaseURL         string
-	HTTPClient      *http.Client
-	RateLimitMu     sync.Mutex
-	LastRequestTime time.Time
+	DB                *sql.DB
+	BaseURL           string
+	HTTPClient        *http.Client
+	RateLimitMu       sync.Mutex
+	LastRequestTime   time.Time
+	RateLimitDuration time.Duration
 }
 
 // checkRateLimit enforces a global rate limit of 10 requests per second.
@@ -46,9 +47,14 @@ func (s *SessionServer) checkRateLimit() error {
 	s.RateLimitMu.Lock()
 	defer s.RateLimitMu.Unlock()
 
+	limit := s.RateLimitDuration
+	if limit == 0 {
+		limit = 100 * time.Millisecond
+	}
+
 	now := time.Now()
-	// Allow 1 request every 100ms
-	if now.Sub(s.LastRequestTime) < 100*time.Millisecond {
+	// Allow 1 request every limit duration
+	if now.Sub(s.LastRequestTime) < limit {
 		return fmt.Errorf("rate limit exceeded: please slow down")
 	}
 

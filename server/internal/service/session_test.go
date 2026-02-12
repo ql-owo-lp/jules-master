@@ -13,7 +13,7 @@ import (
 func TestSessionService_CreateSession(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	svc := &SessionServer{DB: db}
+	svc := &SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
 	ctx := context.Background()
 
 	// Valid creation
@@ -25,23 +25,19 @@ func TestSessionService_CreateSession(t *testing.T) {
 	longPrompt := strings.Repeat("a", 50001)
 	longName := strings.Repeat("a", 256)
 
-	time.Sleep(110 * time.Millisecond)
 	_, err = svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "Valid", Prompt: longPrompt})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "prompt is too long")
 
-	time.Sleep(110 * time.Millisecond)
 	_, err = svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: longName, Prompt: "Valid"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "name is too long")
 
 	// Invalid Repo/Branch
-	time.Sleep(110 * time.Millisecond)
 	_, err = svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "Valid", Prompt: "Valid", Repo: "invalid repo"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid repo format")
 
-	time.Sleep(110 * time.Millisecond)
 	_, err = svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "Valid", Prompt: "Valid", Branch: "invalid branch!"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid branch format")
@@ -50,7 +46,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 func TestSessionService_Validation(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	svc := &SessionServer{DB: db}
+	svc := &SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
 	ctx := context.Background()
 
 	// Invalid IDs
@@ -62,7 +58,6 @@ func TestSessionService_Validation(t *testing.T) {
 	}
 
 	for _, id := range invalidIDs {
-		time.Sleep(110 * time.Millisecond)
 		_, err := svc.SendMessage(ctx, &pb.SendMessageRequest{Id: id, Message: "test"})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid session id", "SendMessage should reject id: "+id)
@@ -89,7 +84,6 @@ func TestSessionService_Validation(t *testing.T) {
 	assert.NoError(t, err)
 
 	// For SendMessage, it checks API key
-	time.Sleep(110 * time.Millisecond)
 	_, err = svc.SendMessage(ctx, &pb.SendMessageRequest{Id: validID, Message: "test"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "JULES_API_KEY not set")
@@ -98,13 +92,12 @@ func TestSessionService_Validation(t *testing.T) {
 func TestSessionService_CRUD(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	svc := &SessionServer{DB: db}
+	svc := &SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
 	ctx := context.Background()
 
 	// Create
 	s1, err := svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "Session 1", ProfileId: "p1"})
 	assert.NoError(t, err)
-	time.Sleep(110 * time.Millisecond)
 	s2, err := svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "Session 2", ProfileId: "default"})
 	assert.NoError(t, err)
 
