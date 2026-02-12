@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/mcpany/jules/internal/service"
 	pb "github.com/mcpany/jules/proto"
@@ -15,7 +16,7 @@ func TestBackgroundJobWorker_ProcessJob(t *testing.T) {
 	defer db.Close()
 
 	jobSvc := &service.JobServer{DB: db}
-	sessionSvc := &service.SessionServer{DB: db}
+	sessionSvc := &service.SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
 	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc, &service.SettingsServer{DB: db})
 	ctx := context.Background()
 
@@ -71,7 +72,7 @@ func TestBackgroundJobWorker_ProcessJob_Partial(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	jobSvc := &service.JobServer{DB: db}
-	sessionSvc := &service.SessionServer{DB: db}
+	sessionSvc := &service.SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
 	settingsSvc := &service.SettingsServer{DB: db}
 	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc, settingsSvc)
 	ctx := context.Background()
@@ -106,7 +107,7 @@ func TestBackgroundJobWorker_ScheduleAndProcess(t *testing.T) {
 	defer db.Close()
 
 	jobSvc := &service.JobServer{DB: db}
-	sessionSvc := &service.SessionServer{DB: db}
+	sessionSvc := &service.SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
 	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc, &service.SettingsServer{DB: db})
 	ctx := context.Background()
 
