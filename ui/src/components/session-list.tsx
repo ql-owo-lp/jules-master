@@ -23,20 +23,20 @@ import { SessionTable } from "./session-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem, CommandList } from "./ui/command";
+import { PollCountdown } from "./poll-countdown";
 
 type SessionListProps = {
   sessionMap: Map<string, Session>;
   jobs: Job[];
   unknownSessions: Session[];
   quickReplies: PredefinedPrompt[];
-  lastUpdatedAt: Date | null;
+  lastUpdatedAt: number | null;
   onRefresh: () => void;
   isRefreshing?: boolean;
   isActionPending?: boolean;
   onApprovePlan: (sessionIds: string[]) => void;
   onSendMessage: (sessionId: string, message: string) => void;
   onBulkSendMessage: (sessionIds: string[], message: string) => void;
-  countdown: number;
   pollInterval: number;
   jobIdParam: string | null;
   statusFilter: string;
@@ -64,7 +64,6 @@ export function SessionList({
   onApprovePlan,
   onSendMessage,
   onBulkSendMessage,
-  countdown,
   pollInterval,
   jobIdParam,
   statusFilter,
@@ -247,11 +246,7 @@ export function SessionList({
                   Last updated:{" "}
                   {new Date(lastUpdatedAt).toLocaleTimeString()}
                 </div>
-                {pollInterval > 0 && (
-                  <div>
-                    Next poll in: {countdown}s
-                  </div>
-                )}
+                <PollCountdown pollInterval={pollInterval} lastUpdatedAt={lastUpdatedAt} />
               </div>
             )}
           </div>
