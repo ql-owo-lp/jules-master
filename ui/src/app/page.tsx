@@ -44,7 +44,6 @@ function HomePageContent() {
   const [isActionPending, startActionTransition] = useTransition();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(sessionListPollInterval);
   const [titleTruncateLength] = useLocalStorage<number>("jules-title-truncate-length", 50);
   const [jobsPerPage] = useLocalStorage<number>("jules-jobs-per-page", 5);
 
@@ -170,7 +169,6 @@ function HomePageContent() {
           setPendingBackgroundWork(fetchedPendingWork);
         }
         setLastUpdatedAt(Date.now());
-        setCountdown(sessionListPollInterval);
       } catch {
           // Ignore abort errors
       } finally {
@@ -219,19 +217,7 @@ function HomePageContent() {
   }, [isClient, apiKey, sessionListPollInterval, currentProfileId]);
   
 
-  // Countdown timer
-  useEffect(() => {
-    if (!isClient || (!apiKey && !hasJulesApiKey) || sessionListPollInterval <= 0) return;
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isClient, apiKey, hasJulesApiKey, sessionListPollInterval, lastUpdatedAt]);
-
-
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     // If we want to force refresh all sessions shown, we could call refreshSession for each.
     // However, the prompt says "unless user clicks on the refresh icon to manually refresh it".
     // This implies per-session refresh or a global refresh that bypasses the cache rules?
@@ -273,7 +259,7 @@ function HomePageContent() {
     // I'll update `listSessions` in `src/app/sessions/actions.ts` to allow forcing refresh if I can.
 
     fetchAllData({ isRefresh: true });
-  };
+  }, [fetchAllData]);
 
   const handleApprovePlan = useCallback((sessionIds: string[]) => {
     startActionTransition(async () => {
@@ -511,14 +497,13 @@ function HomePageContent() {
             jobs={paginatedJobs}
             unknownSessions={unknownSessions}
             quickReplies={quickReplies}
-            lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt) : null}
+            lastUpdatedAt={lastUpdatedAt}
             onRefresh={handleRefresh}
             isRefreshing={isFetching}
             isActionPending={isActionPending}
             onApprovePlan={handleApprovePlan}
             onSendMessage={handleSendMessage}
             onBulkSendMessage={handleBulkSendMessage}
-            countdown={countdown}
             pollInterval={sessionListPollInterval}
             jobIdParam={jobIdParam}
             statusFilter={statusFilter}
