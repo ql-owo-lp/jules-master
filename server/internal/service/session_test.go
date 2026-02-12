@@ -13,7 +13,7 @@ import (
 func TestSessionService_CreateSession(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	svc := &SessionServer{DB: db}
+	svc := &SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
 	ctx := context.Background()
 
 	// Valid creation
@@ -46,7 +46,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 func TestSessionService_Validation(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	svc := &SessionServer{DB: db}
+	svc := &SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
 	ctx := context.Background()
 
 	// Invalid IDs
@@ -92,7 +92,7 @@ func TestSessionService_Validation(t *testing.T) {
 func TestSessionService_CRUD(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	svc := &SessionServer{DB: db}
+	svc := &SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
 	ctx := context.Background()
 
 	// Create
