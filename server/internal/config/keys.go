@@ -11,7 +11,7 @@ import (
 // Keys are sorted: JULES_API_KEY first, then numeric suffixes in ascending order.
 func GetAllAPIKeys() []string {
 	keys := []string{}
-	
+
 	// Primary key
 	if val := os.Getenv("JULES_API_KEY"); val != "" {
 		keys = append(keys, val)
@@ -20,19 +20,19 @@ func GetAllAPIKeys() []string {
 	// Environment variables are not easily listable in Go unless we iterate os.Environ()
 	// or we assume a certain range.
 	// Iterating os.Environ() is safer to find all JULES_API_KEY_*
-	
+
 	environ := os.Environ()
 	type keyEntry struct {
 		key   string
 		index int // 0 for primary, otherwise x
 	}
-	
+
 	// We want to collect all keys and then sort them.
 	// JULES_API_KEY is already added, but let's just collect everything and uniq/sort.
 	// Actually, let's just create a list of non-empty keys.
-	
+
 	additionalKeys := []string{}
-	
+
 	for _, env := range environ {
 		pair := strings.SplitN(env, "=", 2)
 		if len(pair) != 2 {
@@ -42,20 +42,20 @@ func GetAllAPIKeys() []string {
 		if v == "" {
 			continue
 		}
-		
+
 		if strings.HasPrefix(k, "JULES_API_KEY_") {
 			additionalKeys = append(additionalKeys, v)
 		}
 	}
-	
-	// Sort additional keys to be deterministic? 
+
+	// Sort additional keys to be deterministic?
 	// Or should we respect the numeric suffix?
 	// The requirement: "merge the sessions... then, all these background workers... will work on all jules apis automatically"
 	// Order might not strictly matter for "all", but deterministic is good for testing.
 	sort.Strings(additionalKeys)
-	
+
 	keys = append(keys, additionalKeys...)
-	
+
 	// Simple deduplication if needed?
 	// Users might set JULES_API_KEY and JULES_API_KEY_1 to same value.
 	uniqueKeys := []string{}
@@ -66,6 +66,6 @@ func GetAllAPIKeys() []string {
 			seen[k] = true
 		}
 	}
-	
+
 	return uniqueKeys
 }

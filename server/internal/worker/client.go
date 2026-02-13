@@ -48,14 +48,14 @@ type RemoteSession struct {
 	Messages []struct {
 		Text string `json:"text"`
 		Type string `json:"type"` // "HUMAN" or "AI" or "SYSTEM"
-        // Adjust fields based on actual API. Assuming typical structure.
-        // Actually usually it's `author` or `role`. 
-        // Let's assume simple structure or check if I can see it in other files.
-        // I'll stick to a generic map or json.RawMessage if unsure, but let's try strict.
-        // Based on `sendMessage` payload, it's `message` (string)?
-        // No, typically list of messages has structure.
-        // Let's use simplified struct and generic check.
-    } `json:"messages"`
+		// Adjust fields based on actual API. Assuming typical structure.
+		// Actually usually it's `author` or `role`.
+		// Let's assume simple structure or check if I can see it in other files.
+		// I'll stick to a generic map or json.RawMessage if unsure, but let's try strict.
+		// Based on `sendMessage` payload, it's `message` (string)?
+		// No, typically list of messages has structure.
+		// Let's use simplified struct and generic check.
+	} `json:"messages"`
 }
 
 func (f *RetryableRemoteSessionFetcher) GetSession(ctx context.Context, id, apiKey string) (*RemoteSession, error) {
@@ -105,8 +105,8 @@ type ListSourcesResponse struct {
 
 // SessionFetcher defines the interface for fetching sessions/sources
 type SessionFetcher interface {
-    GetSession(ctx context.Context, id, apiKey string) (*RemoteSession, error)
-    ListSources(ctx context.Context, apiKey string) ([]Source, error)
+	GetSession(ctx context.Context, id, apiKey string) (*RemoteSession, error)
+	ListSources(ctx context.Context, apiKey string) ([]Source, error)
 }
 
 // Ensure RetryableRemoteSessionFetcher implements SessionFetcher
@@ -138,8 +138,8 @@ func (f *RetryableRemoteSessionFetcher) ListSources(ctx context.Context, apiKey 
 		return nil, err
 	}
 
-    // Pagination could be handled here if we want to fetch all pages, 
-    // but for now let's just return the first page as per initial requirement
-    // or we could loop. Let's start with single page.
+	// Pagination could be handled here if we want to fetch all pages,
+	// but for now let's just return the first page as per initial requirement
+	// or we could loop. Let's start with single page.
 	return listResp.Sources, nil
 }

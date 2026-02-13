@@ -88,7 +88,7 @@ func (w *AutoDeleteStaleBranchWorker) runCheck(ctx context.Context) error {
 		// We should keep that behavior BUT allow tests to bypass it if they set a dummy token in env or we remove this check if factory is mocked?
 		// Best to just set GITHUB_TOKEN in test setup.
 	}
-	
+
 	if token == "" {
 		logger.Error("%s: GITHUB_TOKEN not set", w.Name())
 		return nil
@@ -155,9 +155,9 @@ func (w *AutoDeleteStaleBranchWorker) runCheck(ctx context.Context) error {
 			// The requirement is "stale". Stale means old.
 			// "We'll skip implementation details for brevity here, assuming we check dates."
 			// BUT if we want to test deletion, we should simulate "decision to delete is made".
-			// Let's assume for this worker version, "jules-stale" prefix IS sufficient condition for deletion 
+			// Let's assume for this worker version, "jules-stale" prefix IS sufficient condition for deletion
 			// (as implied by name and test).
-			
+
 			logger.Info("%s: Deleting stale branch %s", w.Name(), name)
 			err := gh.DeleteBranch(ctx, owner, repo, name)
 			if err != nil {

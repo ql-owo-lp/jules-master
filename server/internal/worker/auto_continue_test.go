@@ -118,7 +118,7 @@ func TestAutoContinueWorker_RunCheck_SkipsIfPRExists(t *testing.T) {
 
 	sess, _ := sessionService.CreateSession(context.Background(), &pb.CreateSessionRequest{Name: "test-session-pr"})
 	db.Exec("UPDATE sessions SET state = 'COMPLETED' WHERE id = ?", sess.Id)
-	db.Exec("INSERT INTO jobs (id, repo, name, created_at, session_ids, prompt) VALUES (?, ?, ?, ?, ?, ?)", 
+	db.Exec("INSERT INTO jobs (id, repo, name, created_at, session_ids, prompt) VALUES (?, ?, ?, ?, ?, ?)",
 		"job-pr", "owner/repo", "test-job", time.Now(), "[\""+sess.Id+"\"]", "test prompt")
 	db.Exec(`INSERT INTO settings (profile_id, auto_continue_enabled, auto_approval_interval, theme, auto_retry_message, auto_continue_message, auto_continue_all_sessions) 
 		VALUES ('default', 1, 60, 'system', '', '', 0)`)
@@ -132,13 +132,15 @@ func TestAutoContinueWorker_RunCheck_SkipsIfPRExists(t *testing.T) {
 					Url string `json:"url"`
 				} `json:"pullRequest"`
 			}{
-				{PullRequest: &struct{Url string `json:"url"`}{Url: "http://pr"}},
+				{PullRequest: &struct {
+					Url string `json:"url"`
+				}{Url: "http://pr"}},
 			},
 		},
 	}
 
 	worker := NewAutoContinueWorker(db, settingsService, sessionService, mockFetcher, "test-api-key")
-	
+
 	err := worker.runCheck(context.Background())
 	if err != nil {
 		t.Errorf("runCheck failed: %v", err)
