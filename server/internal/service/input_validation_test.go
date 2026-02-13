@@ -33,10 +33,10 @@ func TestValidation_Reproduction(t *testing.T) {
 	// 2. Test CreateJob with invalid branch
 	invalidBranch := "branch with spaces"
 	reqJob2 := &pb.CreateJobRequest{
-		Name:       "Test Job 2",
-		Repo:       "owner/repo",
-		Branch:     invalidBranch,
-		Prompt:     "Do something",
+		Name:   "Test Job 2",
+		Repo:   "owner/repo",
+		Branch: invalidBranch,
+		Prompt: "Do something",
 	}
 	_, err = jobSvc.CreateJob(ctx, reqJob2)
 	assert.Error(t, err)

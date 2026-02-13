@@ -171,7 +171,7 @@ func (s *JobServer) GetJob(ctx context.Context, req *pb.GetJobRequest) (*pb.Job,
 	return &j, nil
 }
 
-// I need to update proto first. 
+// I need to update proto first.
 // CreateJob creates a new job
 func (s *JobServer) CreateJob(ctx context.Context, req *pb.CreateJobRequest) (*pb.Job, error) {
 	// Validation

@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 var (
@@ -17,6 +18,9 @@ func ValidateRepo(repo string) error {
 	if !repoRegex.MatchString(repo) {
 		return fmt.Errorf("invalid repo format: must be 'owner/repo' and contain only alphanumeric, '-', '_', '.'")
 	}
+	if strings.Contains(repo, "..") {
+		return fmt.Errorf("repo cannot contain '..'")
+	}
 	return nil
 }
 
@@ -26,6 +30,15 @@ func ValidateBranch(branch string) error {
 	}
 	if !branchRegex.MatchString(branch) {
 		return fmt.Errorf("invalid branch format: contain only alphanumeric, '-', '_', '.', '/'")
+	}
+	if strings.Contains(branch, "..") {
+		return fmt.Errorf("branch cannot contain '..'")
+	}
+	if strings.Contains(branch, "//") {
+		return fmt.Errorf("branch cannot contain '//'")
+	}
+	if strings.HasPrefix(branch, "/") || strings.HasSuffix(branch, "/") {
+		return fmt.Errorf("branch cannot start or end with '/'")
 	}
 	return nil
 }

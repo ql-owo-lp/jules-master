@@ -61,7 +61,7 @@ func TestAutoDeleteStaleBranchWorker_RunCheck_DeletesStale(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	settingsSvc := &service.SettingsServer{DB: db}
-	
+
 	// Enable
 	_, err := settingsSvc.UpdateSettings(context.Background(), &pb.UpdateSettingsRequest{
 		Settings: &pb.Settings{
@@ -93,7 +93,7 @@ func TestAutoDeleteStaleBranchWorker_RunCheck_DeletesStale(t *testing.T) {
 		c.SetBaseURL(server.URL + "/")
 		return c
 	}
-	
+
 	// Insert job to define repo
 	db.Exec("INSERT INTO jobs (id, repo, name) VALUES (?, ?, ?)", "req1", "owner/repo", "job1")
 

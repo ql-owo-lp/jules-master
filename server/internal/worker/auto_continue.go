@@ -141,7 +141,7 @@ func (w *AutoContinueWorker) runCheck(ctx context.Context) error {
 
 		var remoteSess *RemoteSession
 		var fetchErr error
-		
+
 		apiKeys := config.GetAllAPIKeys()
 		if len(apiKeys) == 0 && w.apiKey != "" {
 			apiKeys = []string{w.apiKey}
