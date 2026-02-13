@@ -35,36 +35,36 @@ func (m *MockGitHubClient) GetCombinedStatus(ctx context.Context, owner, repo, r
 }
 
 func (m *MockGitHubClient) ListPullRequests(ctx context.Context, owner, repo string, opts *github.PullRequestListOptions) ([]*github.PullRequest, *github.Response, error) {
-    if m.PullRequests == nil {
-        return []*github.PullRequest{}, &github.Response{}, nil
-    }
-    // Simple pagination mock
-    page := 1
-    perPage := 30
-    if opts != nil {
-        if opts.Page > 0 {
-            page = opts.Page
-        }
-        if opts.PerPage > 0 {
-            perPage = opts.PerPage
-        }
-    }
-    
-    start := (page - 1) * perPage
-    if start >= len(m.PullRequests) {
-        return []*github.PullRequest{}, &github.Response{}, nil
-    }
-    end := start + perPage
-    if end > len(m.PullRequests) {
-        end = len(m.PullRequests)
-    }
+	if m.PullRequests == nil {
+		return []*github.PullRequest{}, &github.Response{}, nil
+	}
+	// Simple pagination mock
+	page := 1
+	perPage := 30
+	if opts != nil {
+		if opts.Page > 0 {
+			page = opts.Page
+		}
+		if opts.PerPage > 0 {
+			perPage = opts.PerPage
+		}
+	}
 
-    resp := &github.Response{}
-    if end < len(m.PullRequests) {
-         resp.NextPage = page + 1
-    } else {
-         resp.NextPage = 0
-    }
+	start := (page - 1) * perPage
+	if start >= len(m.PullRequests) {
+		return []*github.PullRequest{}, &github.Response{}, nil
+	}
+	end := start + perPage
+	if end > len(m.PullRequests) {
+		end = len(m.PullRequests)
+	}
+
+	resp := &github.Response{}
+	if end < len(m.PullRequests) {
+		resp.NextPage = page + 1
+	} else {
+		resp.NextPage = 0
+	}
 
 	return m.PullRequests[start:end], resp, nil
 }
@@ -87,7 +87,7 @@ func (m *MockGitHubClient) ListCheckRunsForRef(ctx context.Context, owner, repo,
 	// Default values
 	page := 1
 	perPage := 30
-	
+
 	if m.CheckRuns == nil {
 		return &github.ListCheckRunsResults{CheckRuns: []*github.CheckRun{}}, &github.Response{}, nil
 	}
@@ -109,14 +109,14 @@ func (m *MockGitHubClient) ListCheckRunsForRef(ctx context.Context, owner, repo,
 	if end > len(m.CheckRuns.CheckRuns) {
 		end = len(m.CheckRuns.CheckRuns)
 	}
-	
+
 	resp := &github.Response{}
 	if end < len(m.CheckRuns.CheckRuns) {
 		resp.NextPage = page + 1
 	} else {
-        resp.NextPage = 0
-    }
-	
+		resp.NextPage = 0
+	}
+
 	return &github.ListCheckRunsResults{
 		CheckRuns: m.CheckRuns.CheckRuns[start:end],
 		Total:     m.CheckRuns.Total, // Should be set in mock setup
@@ -157,8 +157,8 @@ func (m *MockGitHubClient) MarkPullRequestReadyForReview(ctx context.Context, ow
 }
 
 func (m *MockGitHubClient) MergePullRequest(ctx context.Context, owner, repo string, number int, message string, method string) error {
-    m.CreatedComments = append(m.CreatedComments, fmt.Sprintf("MERGED_PR_%d_%s", number, method))
-    return nil
+	m.CreatedComments = append(m.CreatedComments, fmt.Sprintf("MERGED_PR_%d_%s", number, method))
+	return nil
 }
 
 func (m *MockGitHubClient) SearchIssues(ctx context.Context, query string, opts *github.SearchOptions) (*github.IssuesSearchResult, *github.Response, error) {
@@ -183,9 +183,9 @@ func (m *MockGitHubClient) SearchIssues(ctx context.Context, query string, opts 
 }
 
 type MockSessionFetcher struct {
-	Session *RemoteSession
-    Sources []Source
-	Err     error
+	Session          *RemoteSession
+	Sources          []Source
+	Err              error
 	ListSourcesCalls []string
 }
 
@@ -195,7 +195,7 @@ func (m *MockSessionFetcher) GetSession(ctx context.Context, id, apiKey string) 
 
 func (m *MockSessionFetcher) ListSources(ctx context.Context, apiKey string) ([]Source, error) {
 	m.ListSourcesCalls = append(m.ListSourcesCalls, apiKey)
-    return m.Sources, m.Err
+	return m.Sources, m.Err
 }
 
 func TestRunCheck_CommentsOnFailure(t *testing.T) {
@@ -686,7 +686,7 @@ func TestRunCheck_ClosesConflictPR(t *testing.T) {
 				State:     github.String("open"),
 				Number:    github.Int(55),
 				HTMLURL:   github.String("https://github.com/owner/repo/pull/55"),
-				Mergeable: github.Bool(false), // Conflicting!
+				Mergeable: github.Bool(false),                                    // Conflicting!
 				UpdatedAt: &github.Timestamp{Time: time.Now().AddDate(0, 0, -6)}, // Stale!
 				Head: &github.PullRequestBranch{
 					SHA: github.String("sha-conflict"),
@@ -734,8 +734,8 @@ func TestRunCheck_ClosesConflictPR_WithCustomMessage(t *testing.T) {
 	nowMilli := time.Now().UnixMilli()
 	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
 	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-conflict-custom", "owner/repo", "test-job", time.Now(), "main", "test prompt")
-	
-    // Enable AutoCloseStaleConflictedPrs AND Custom Message
+
+	// Enable AutoCloseStaleConflictedPrs AND Custom Message
 	db.Exec(`INSERT INTO settings (
 		profile_id, auto_close_stale_conflicted_prs, auto_close_on_conflict_message, theme, auto_retry_message, auto_continue_message
 	) VALUES ('default', 1, 'Custom conflict message', 'system', '', '')`)
@@ -875,7 +875,7 @@ func TestRunCheck_AutoMergesPR(t *testing.T) {
 	nowMilli := time.Now().UnixMilli()
 	db.Exec("UPDATE sessions SET state = 'IN_PROGRESS', last_interaction_at = ? WHERE id = ?", nowMilli, sess.Id)
 	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES (?, ?, ?, ?, ?, ?)", "job-merge", "owner/repo", "test-job", time.Now(), "main", "test prompt")
-	
+
 	// Enable Auto Merge
 	_, err = db.Exec(`INSERT INTO settings (
 		profile_id, auto_merge_enabled, auto_merge_method, theme, auto_retry_message, auto_continue_message
@@ -950,14 +950,20 @@ func TestRunCheck_AutoMerge_SkipsUnmergeable(t *testing.T) {
 	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES ('job-un', 'owner/repo', 'job', ?, 'main', 'prompt')", time.Now())
 	db.Exec(`INSERT INTO settings (profile_id, auto_merge_enabled, auto_merge_method, theme, auto_retry_message, auto_continue_message) VALUES ('default', 1, 'squash', 'system', '', '')`)
 
-	mockFetcher := &MockSessionFetcher{Session: &RemoteSession{Id: sess.Id, State: "IN_PROGRESS", Outputs: []struct { PullRequest *struct { Url string `json:"url"` } `json:"pullRequest"` }{{PullRequest: &struct { Url string `json:"url"` }{Url: "https://g/o/r/pull/8"}}}}}
+	mockFetcher := &MockSessionFetcher{Session: &RemoteSession{Id: sess.Id, State: "IN_PROGRESS", Outputs: []struct {
+		PullRequest *struct {
+			Url string `json:"url"`
+		} `json:"pullRequest"`
+	}{{PullRequest: &struct {
+		Url string `json:"url"`
+	}{Url: "https://g/o/r/pull/8"}}}}}
 	mockGH := &MockGitHubClient{
 		CombinedStatus: &github.CombinedStatus{State: github.String("success")},
 		PullRequests: []*github.PullRequest{{
 			Number: github.Int(8), HTMLURL: github.String("https://g/o/r/pull/8"), State: github.String("open"),
 			Mergeable: github.Bool(false), // UNMERGEABLE
-			Head: &github.PullRequestBranch{SHA: github.String("sha-8")},
-			User: &github.User{Login: github.String("google-labs-jules")},
+			Head:      &github.PullRequestBranch{SHA: github.String("sha-8")},
+			User:      &github.User{Login: github.String("google-labs-jules")},
 		}},
 	}
 
@@ -979,14 +985,20 @@ func TestRunCheck_AutoMerge_SkipsFailedChecks(t *testing.T) {
 	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES ('job-fail', 'owner/repo', 'job', ?, 'main', 'prompt')", time.Now())
 	db.Exec(`INSERT INTO settings (profile_id, auto_merge_enabled, auto_merge_method, theme, auto_retry_message, auto_continue_message) VALUES ('default', 1, 'squash', 'system', '', '')`)
 
-	mockFetcher := &MockSessionFetcher{Session: &RemoteSession{Id: sess.Id, State: "IN_PROGRESS", Outputs: []struct { PullRequest *struct { Url string `json:"url"` } `json:"pullRequest"` }{{PullRequest: &struct { Url string `json:"url"` }{Url: "https://g/o/r/pull/9"}}}}}
+	mockFetcher := &MockSessionFetcher{Session: &RemoteSession{Id: sess.Id, State: "IN_PROGRESS", Outputs: []struct {
+		PullRequest *struct {
+			Url string `json:"url"`
+		} `json:"pullRequest"`
+	}{{PullRequest: &struct {
+		Url string `json:"url"`
+	}{Url: "https://g/o/r/pull/9"}}}}}
 	mockGH := &MockGitHubClient{
 		CombinedStatus: &github.CombinedStatus{State: github.String("failure")}, // FAILED CHECKS
 		PullRequests: []*github.PullRequest{{
 			Number: github.Int(9), HTMLURL: github.String("https://g/o/r/pull/9"), State: github.String("open"),
 			Mergeable: github.Bool(true),
-			Head: &github.PullRequestBranch{SHA: github.String("sha-9")},
-			User: &github.User{Login: github.String("google-labs-jules")},
+			Head:      &github.PullRequestBranch{SHA: github.String("sha-9")},
+			User:      &github.User{Login: github.String("google-labs-jules")},
 		}},
 		CheckRuns: &github.ListCheckRunsResults{CheckRuns: []*github.CheckRun{{Status: github.String("completed"), Conclusion: github.String("failure"), Name: github.String("fail")}}},
 	}
@@ -1012,25 +1024,31 @@ func TestRunCheck_AutoMerge_CommitMessageCleaning(t *testing.T) {
 	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES ('job-clean', 'owner/repo', 'job', ?, 'main', 'prompt')", time.Now())
 	db.Exec(`INSERT INTO settings (profile_id, auto_merge_enabled, auto_merge_method, theme, auto_retry_message, auto_continue_message) VALUES ('default', 1, 'squash', 'system', '', '')`)
 
-	mockFetcher := &MockSessionFetcher{Session: &RemoteSession{Id: sess.Id, State: "IN_PROGRESS", Outputs: []struct { PullRequest *struct { Url string `json:"url"` } `json:"pullRequest"` }{{PullRequest: &struct { Url string `json:"url"` }{Url: "https://g/o/r/pull/10"}}}}}
+	mockFetcher := &MockSessionFetcher{Session: &RemoteSession{Id: sess.Id, State: "IN_PROGRESS", Outputs: []struct {
+		PullRequest *struct {
+			Url string `json:"url"`
+		} `json:"pullRequest"`
+	}{{PullRequest: &struct {
+		Url string `json:"url"`
+	}{Url: "https://g/o/r/pull/10"}}}}}
 	mockGH := &MockGitHubClient{
 		CombinedStatus: &github.CombinedStatus{State: github.String("success")},
 		PullRequests: []*github.PullRequest{{
 			Number: github.Int(10), HTMLURL: github.String("https://g/o/r/pull/10"), State: github.String("open"),
 			Mergeable: github.Bool(true),
-			Head: &github.PullRequestBranch{SHA: github.String("sha-10")},
-			Title: github.String("Clean Title"),
-			Body: github.String("Line 1\nPR created automatically by Jules\nLine 2\nCo-authored-by: someone"),
-			User: &github.User{Login: github.String("google-labs-jules")},
+			Head:      &github.PullRequestBranch{SHA: github.String("sha-10")},
+			Title:     github.String("Clean Title"),
+			Body:      github.String("Line 1\nPR created automatically by Jules\nLine 2\nCo-authored-by: someone"),
+			User:      &github.User{Login: github.String("google-labs-jules")},
 		}},
 	}
-    // We need to capture the message passed to MergePullRequest. Since our mock just appends MERGED_PR_..., we can't easily check the body.
+	// We need to capture the message passed to MergePullRequest. Since our mock just appends MERGED_PR_..., we can't easily check the body.
 	// But we can check that it called Merge.
 	// To test cleaning logic strictly, we should probably unit test `attemptAutoMerge` or expose cleaning logic, or update Mock to store message.
-	
+
 	// Let's update Mock to store the message map? Or just trust it runs coverage.
 	// We want coverage. Running this triggers the cleaning logic lines.
-	
+
 	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "k")
 	worker.runCheck(context.Background())
 
@@ -1055,15 +1073,21 @@ func TestRunCheck_AutoMerge_AlreadyMerged(t *testing.T) {
 	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES ('job-merged', 'owner/repo', 'job', ?, 'main', 'prompt')", time.Now())
 	db.Exec(`INSERT INTO settings (profile_id, auto_merge_enabled, auto_merge_method, theme, auto_retry_message, auto_continue_message) VALUES ('default', 1, 'squash', 'system', '', '')`)
 
-	mockFetcher := &MockSessionFetcher{Session: &RemoteSession{Id: sess.Id, State: "IN_PROGRESS", Outputs: []struct { PullRequest *struct { Url string `json:"url"` } `json:"pullRequest"` }{{PullRequest: &struct { Url string `json:"url"` }{Url: "https://g/o/r/pull/11"}}}}}
+	mockFetcher := &MockSessionFetcher{Session: &RemoteSession{Id: sess.Id, State: "IN_PROGRESS", Outputs: []struct {
+		PullRequest *struct {
+			Url string `json:"url"`
+		} `json:"pullRequest"`
+	}{{PullRequest: &struct {
+		Url string `json:"url"`
+	}{Url: "https://g/o/r/pull/11"}}}}}
 	mockGH := &MockGitHubClient{
 		CombinedStatus: &github.CombinedStatus{State: github.String("success")},
 		PullRequests: []*github.PullRequest{{
 			Number: github.Int(11), HTMLURL: github.String("https://g/o/r/pull/11"), State: github.String("open"),
 			Mergeable: github.Bool(true),
 			Merged:    github.Bool(true), // ALREADY MERGED
-			Head: &github.PullRequestBranch{SHA: github.String("sha-11")},
-			User: &github.User{Login: github.String("google-labs-jules")},
+			Head:      &github.PullRequestBranch{SHA: github.String("sha-11")},
+			User:      &github.User{Login: github.String("google-labs-jules")},
 		}},
 	}
 
@@ -1086,20 +1110,26 @@ func TestRunCheck_AutoMerge_GetStatusError(t *testing.T) {
 	db.Exec("INSERT INTO jobs (id, repo, name, created_at, branch, prompt) VALUES ('job-err', 'owner/repo', 'job', ?, 'main', 'prompt')", time.Now())
 	db.Exec(`INSERT INTO settings (profile_id, auto_merge_enabled, auto_merge_method, theme, auto_retry_message, auto_continue_message) VALUES ('default', 1, 'squash', 'system', '', '')`)
 
-	mockFetcher := &MockSessionFetcher{Session: &RemoteSession{Id: sess.Id, State: "IN_PROGRESS", Outputs: []struct { PullRequest *struct { Url string `json:"url"` } `json:"pullRequest"` }{{PullRequest: &struct { Url string `json:"url"` }{Url: "https://g/o/r/pull/12"}}}}}
-	
+	mockFetcher := &MockSessionFetcher{Session: &RemoteSession{Id: sess.Id, State: "IN_PROGRESS", Outputs: []struct {
+		PullRequest *struct {
+			Url string `json:"url"`
+		} `json:"pullRequest"`
+	}{{PullRequest: &struct {
+		Url string `json:"url"`
+	}{Url: "https://g/o/r/pull/12"}}}}}
+
 	// Mock client that returns error for GetCombinedStatus
 	// We need to modify MockGitHubClient to support injecting errors or sub-class it?
 	// The current MockGitHubClient struct doesn't have an error field for Status.
 	// I'll add one.
-	
+
 	mockGH := &MockGitHubClient{
 		CombinedStatusError: fmt.Errorf("github api error"),
 		PullRequests: []*github.PullRequest{{
 			Number: github.Int(12), HTMLURL: github.String("https://g/o/r/pull/12"), State: github.String("open"),
 			Mergeable: github.Bool(true),
-			Head: &github.PullRequestBranch{SHA: github.String("sha-12")},
-			User: &github.User{Login: github.String("google-labs-jules")},
+			Head:      &github.PullRequestBranch{SHA: github.String("sha-12")},
+			User:      &github.User{Login: github.String("google-labs-jules")},
 		}},
 	}
 
@@ -1281,17 +1311,17 @@ func TestPRMonitorWorker_RunCheck_MultiKey(t *testing.T) {
 			{GithubRepo: GithubRepo{Owner: "owner", Repo: "repo1"}},
 		},
 	}
-	
+
 	// Setup Mock GitHub
 	mockGH := &MockGitHubClient{
 		IssuesSearchResult: &github.IssuesSearchResult{
 			Issues: []*github.Issue{},
-			Total: github.Int(0),
+			Total:  github.Int(0),
 		},
 	}
 
 	worker := NewPRMonitorWorker(db, settingsService, sessionService, mockGH, mockFetcher, "default-key")
-	
+
 	err := worker.runCheck(context.Background())
 	assert.NoError(t, err)
 

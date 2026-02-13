@@ -136,7 +136,7 @@ func createTables(t *testing.T, conn *sql.DB) {
             prompt TEXT NOT NULL,
             profile_id TEXT NOT NULL DEFAULT 'default'
         );`,
-        `CREATE TABLE sessions (
+		`CREATE TABLE sessions (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             title TEXT,

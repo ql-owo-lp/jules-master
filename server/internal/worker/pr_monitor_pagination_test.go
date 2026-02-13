@@ -93,10 +93,10 @@ func TestRunCheck_PaginatedCheckRuns(t *testing.T) {
 	if len(mockGH.CreatedComments) != 1 {
 		t.Errorf("expected 1 comment, got %d", len(mockGH.CreatedComments))
 	} else {
-        // Optional: verify the comment mentions the specific failed check
-        expected := failureCommentPrefix + "\n- test-fail-page-2\n\n@jules"
-        if mockGH.CreatedComments[0] != expected {
-             t.Errorf("Unexpected comment content: %s \nExpected: %s", mockGH.CreatedComments[0], expected)
-        }
-    }
+		// Optional: verify the comment mentions the specific failed check
+		expected := failureCommentPrefix + "\n- test-fail-page-2\n\n@jules"
+		if mockGH.CreatedComments[0] != expected {
+			t.Errorf("Unexpected comment content: %s \nExpected: %s", mockGH.CreatedComments[0], expected)
+		}
+	}
 }

@@ -94,13 +94,13 @@ func TestSessionCacheWorker_SyncSession_MultiKey(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
 		apiKey := r.Header.Get("X-Goog-Api-Key")
-		
+
 		if apiKey == "bad-key" {
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte("Forbidden"))
 			return
 		}
-		
+
 		if apiKey == "good-key" {
 			w.WriteHeader(http.StatusOK)
 			resp := map[string]string{
@@ -110,7 +110,7 @@ func TestSessionCacheWorker_SyncSession_MultiKey(t *testing.T) {
 			json.NewEncoder(w).Encode(resp)
 			return
 		}
-		
+
 		w.WriteHeader(http.StatusBadRequest)
 	}))
 	defer server.Close()

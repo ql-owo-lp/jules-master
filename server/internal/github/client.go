@@ -127,7 +127,6 @@ func (c *Client) MergePullRequest(ctx context.Context, owner, repo string, numbe
 	return err
 }
 
-
 func (c *Client) SearchIssues(ctx context.Context, query string, opts *github.SearchOptions) (*github.IssuesSearchResult, *github.Response, error) {
 	return c.client.Search.Issues(ctx, query, opts)
 }

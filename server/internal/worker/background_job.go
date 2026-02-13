@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/logger"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 )
 
 type BackgroundJobWorker struct {

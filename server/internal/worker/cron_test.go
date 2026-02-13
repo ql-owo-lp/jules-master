@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	pb "github.com/mcpany/jules/proto"
 	"github.com/mcpany/jules/internal/service"
+	pb "github.com/mcpany/jules/proto"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/emptypb"
 )

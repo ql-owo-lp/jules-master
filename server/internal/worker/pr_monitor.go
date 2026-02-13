@@ -128,11 +128,10 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 	}
 	rows.Close()
 
-
 	// Fetch from Jules API
 	if w.fetcher != nil {
 		logger.Info("%s [%s]: Fetching sources from Jules API...", w.Name(), w.id)
-		
+
 		apiKeys := config.GetAllAPIKeys()
 		if len(apiKeys) == 0 && w.apiKey != "" {
 			apiKeys = []string{w.apiKey} // Fallback if GetAllAPIKeys missed it or if we want to support explicit single key injection
@@ -159,7 +158,7 @@ func (w *PRMonitorWorker) runCheck(ctx context.Context) error {
 				}
 			}
 		}
-		
+
 		if totalSourcesFound > 0 {
 			logger.Info("%s [%s]: Found %d total sources from %d keys", w.Name(), w.id, totalSourcesFound, len(apiKeys))
 		}
@@ -203,7 +202,7 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 	// default: is:pr state:open
 	// optimization: status:success
 	query := fmt.Sprintf("repo:%s is:pr state:open", repoFullName)
-	
+
 	opts := &github.SearchOptions{
 		ListOptions: github.ListOptions{
 			PerPage: 100,
@@ -231,7 +230,7 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 		if issue == nil || issue.Number == nil {
 			continue
 		}
-		
+
 		// Fetch full PR details
 		pr, _, err := w.githubClient.GetPullRequest(ctx, owner, repo, *issue.Number)
 		if err != nil {
@@ -259,7 +258,7 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 		// We'll keep the logic but expect it to trigger rarely with status:success filter.
 		if s.GetAutoCloseStaleConflictedPrs() {
 			conflictDays := 3 // Stale branch/conflict default
-			
+
 			if s.GetStaleConflictedPrsDurationDays() > 0 {
 				conflictDays = int(s.GetStaleConflictedPrsDurationDays())
 			}
@@ -283,7 +282,7 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 			if isStale {
 				reason := "it has merge conflicts and hasn't been updated"
 				logger.Info("%s [%s]: Closing stale PR %s because %s", w.Name(), w.id, *pr.HTMLURL, reason)
-				
+
 				msg := s.GetAutoCloseOnConflictMessage()
 				if msg == "" {
 					msg = "Closed due to merge conflict"
@@ -295,7 +294,6 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 				// "Auto Close on Conflict Message" usually implies the whole message.
 				// But we might want to keep the "reason" part if it's dynamic.
 				// Let's use the configured message as the main body.
-
 
 				if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
 					logger.Error("%s [%s]: Failed to comment on stale PR %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
@@ -328,7 +326,7 @@ func (w *PRMonitorWorker) checkRepo(ctx context.Context, repoFullName string, s 
 		}
 
 		// 3. Check Status and Actions (Update Branch for Bot, Comment for Failure)
-		// Since status is success, this mainly handles Update Branch if behind? 
+		// Since status is success, this mainly handles Update Branch if behind?
 		// Or if status is success it just logs.
 		w.checkPRStatus(ctx, owner, repo, *pr.Number, *pr.HTMLURL, pr.Head, isBot)
 	}
@@ -367,7 +365,7 @@ func (w *PRMonitorWorker) attemptAutoMerge(ctx context.Context, owner, repo stri
 	if msg == "" {
 		msg = "Automatically merged by bot as all checks passed"
 	}
-	
+
 	if msg != "" {
 		if err := w.githubClient.CreateComment(ctx, owner, repo, *pr.Number, msg); err != nil {
 			logger.Error("%s [%s]: Failed to post auto-merge comment on %s: %v", w.Name(), w.id, *pr.HTMLURL, err)
@@ -389,11 +387,11 @@ func (w *PRMonitorWorker) attemptAutoMerge(ctx context.Context, owner, repo stri
 	// For now, just use title + body as requested, maybe removing the "automated" footer if present.
 	// The plan mentioned "specific automated lines removed".
 	// Common markers: "Co-authored-by:", "PR created automatically by..."
-	
+
 	// Regex for cleaning
 	// 1. Remove "PR created automatically..." lines
 	// 2. Remove "Co-authored-by: ..."
-	
+
 	lines := strings.Split(body, "\n")
 	var cleanLines []string
 	for _, line := range lines {
