@@ -57,7 +57,8 @@ describe("useLocalStorage", () => {
       result.current[1]("new-val");
     });
 
-    expect(emitSpy).toHaveBeenCalledWith("storage:perf-key", "new-val");
+    // The implementation now emits undefined payload as listeners re-read from cache
+    expect(emitSpy).toHaveBeenCalledWith("storage:perf-key", undefined);
     expect(emitSpy).not.toHaveBeenCalledWith("change", expect.anything());
   });
 });
