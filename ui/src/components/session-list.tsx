@@ -11,12 +11,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Session, Job, PredefinedPrompt } from "@/lib/types";
-import { RefreshCw, Briefcase, X, Loader2, MessageSquare, Hand, CheckCircle2, MessageSquareReply } from "lucide-react";
+import { RefreshCw, Briefcase, X, Loader2, MessageSquare, Hand, CheckCircle2, MessageSquareReply, Wand2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { NewJobDialog } from "@/components/new-job-dialog";
+import { useEnv } from "@/components/env-provider";
 import { MessageDialog } from "./message-dialog";
 import { JobAccordionItem } from "./job-accordion-item";
 import { SessionTable } from "./session-table";
@@ -86,6 +88,11 @@ export function SessionList({
     }
   }, [isActionPending]);
   
+  const { hasJulesApiKey: hasEnvJulesApiKey } = useEnv();
+  const [currentProfileId] = useLocalStorage<string>("jules-current-profile-id", "default");
+  const [apiKey] = useLocalStorage<string | null>(`jules-api-key-${currentProfileId}`, null);
+  const hasJulesApiKey = !!(hasEnvJulesApiKey || apiKey);
+
   const [sessionsPerPage] = useLocalStorage<number>("jules-session-items-per-page", 10);
   const [sessionPages, setSessionPages] = useState<Record<string, number>>({});
 
@@ -262,6 +269,14 @@ export function SessionList({
               <p className="text-sm">
                 Create a new job to see jobs and sessions here.
               </p>
+              <div className="mt-4">
+                <NewJobDialog>
+                  <Button disabled={!hasJulesApiKey}>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Create New Job
+                  </Button>
+                </NewJobDialog>
+              </div>
             </div>
           ) : (
             <Accordion 
