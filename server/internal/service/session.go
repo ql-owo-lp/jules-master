@@ -364,6 +364,11 @@ func (s *SessionServer) createRemoteSession(req *pb.CreateSessionRequest) (*pb.S
 		}
 	}
 
+	if !isValidSessionID(id) {
+		logger.Warn("Remote session returned invalid ID: %s (continuing locally)", id)
+		return nil, nil
+	}
+
 	return &pb.Session{
 		Id:         id,
 		Name:       remoteSess.Name,
