@@ -54,11 +54,11 @@ function HomePageContent() {
   const repoParam = searchParams.get("repo");
   const statusParam = searchParams.get("status");
 
-  const [jobFilter, setJobFilter] = useState<string | null>(jobIdParam);
-  const [repoFilter, setRepoFilter] = useState<string>(repoParam || 'all');
-  const [statusFilter, setStatusFilter] = useState<string>(statusParam || 'all');
-  
-  const [jobPage, setJobPage] = useState(jobPageParam ? parseInt(jobPageParam, 10) : 1);
+  const jobFilter = jobIdParam;
+  const repoFilter = repoParam || 'all';
+  const statusFilter = statusParam || 'all';
+
+  const jobPage = jobPageParam ? parseInt(jobPageParam, 10) : 1;
 
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
@@ -68,11 +68,6 @@ function HomePageContent() {
 
   const hasJulesApiKey = !!(hasEnvJulesApiKey || apiKey);
   const hasGithubToken = !!(hasEnvGithubToken || githubToken);
-
-  // Effect to sync job filter with URL param
-  useEffect(() => {
-    setJobFilter(jobIdParam);
-  }, [jobIdParam]);
 
   const sessionMap = useMemo(() => {
     return new Map(sessions.map(s => [s.id, s]));
@@ -116,8 +111,7 @@ function HomePageContent() {
 
   const handleJobPageChange = (page: number) => {
     if (page < 1 || page > totalJobPages) return;
-    setJobPage(page);
-     const newParams = new URLSearchParams(searchParams.toString());
+    const newParams = new URLSearchParams(searchParams.toString());
     newParams.set('jobPage', page.toString());
     router.push(`?${newParams.toString()}`);
   }
@@ -379,15 +373,15 @@ function HomePageContent() {
   }, [apiKey, fetchAllData, toast]);
 
   const handleClearFilters = () => {
-    onJobFilterChange(null);
-    onRepoFilterChange('all');
-    onStatusFilterChange('all');
-    setJobPage(1);
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.delete('jobId');
+    newParams.set('repo', 'all');
+    newParams.set('status', 'all');
+    newParams.delete('jobPage');
+    router.push(`?${newParams.toString()}`);
   }
 
   const onJobFilterChange = (value: string | null) => {
-    setJobFilter(value);
-    setJobPage(1);
     const newParams = new URLSearchParams(searchParams.toString());
     if (value) {
       newParams.set('jobId', value);
@@ -399,8 +393,6 @@ function HomePageContent() {
   }
 
   const onRepoFilterChange = (value: string) => {
-    setRepoFilter(value);
-    setJobPage(1);
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set('repo', value);
     newParams.delete('jobPage');
@@ -408,8 +400,6 @@ function HomePageContent() {
   };
 
   const onStatusFilterChange = (value: string) => {
-    setStatusFilter(value);
-    setJobPage(1);
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set('status', value);
     newParams.delete('jobPage');
