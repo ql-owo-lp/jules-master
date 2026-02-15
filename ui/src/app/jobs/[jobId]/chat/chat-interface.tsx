@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, User, Bot, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTransition } from "react";
@@ -23,7 +23,7 @@ export function ChatInterface({ jobId }: ChatInterfaceProps) {
     const [isSending, startSendingTransition] = useTransition();
     const scrollRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
-    const [lastPoll, setLastPoll] = useState(Date.now());
+    // const [lastPoll, setLastPoll] = useState(Date.now());
 
     // Poll for messages
     useEffect(() => {

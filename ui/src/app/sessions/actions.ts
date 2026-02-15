@@ -252,7 +252,7 @@ export async function listSources(apiKey?: string | null): Promise<Source[]> {
     return [];
   }
 
-  let allSources: Source[] = [];
+  const allSources: Source[] = [];
   const sourceIds = new Set<string>();
 
   for (const key of apiKeys) {
