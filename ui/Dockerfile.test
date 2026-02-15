@@ -17,6 +17,10 @@ COPY ui/package.json ./
 
 # Install dependencies
 RUN npm install --unsafe-perm --build-from-source=better-sqlite3
+# Explicitly rebuild to ensure binary is generated
+RUN npm rebuild better-sqlite3 --build-from-source
+# Verify binary existence
+RUN [ -f node_modules/better-sqlite3/build/Release/better_sqlite3.node ] && echo "Binary exists" || (echo "Binary missing" && exit 1)
 RUN ln -s /app/node_modules /node_modules
 
 # Copy source code
