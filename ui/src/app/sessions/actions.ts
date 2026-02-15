@@ -22,7 +22,9 @@ export async function revalidateSessions() {
 }
 
 // --- Mock Data ---
-const MOCK_SESSIONS: Session[] = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const globalForMocks = globalThis as unknown as { MOCK_SESSIONS: Session[] };
+const MOCK_SESSIONS: Session[] = globalForMocks.MOCK_SESSIONS || [
   {
     name: 'sessions/mock-1',
     id: 'session-1',
@@ -52,6 +54,7 @@ const MOCK_SESSIONS: Session[] = [
     prompt: "This is a mock prompt for session 2",
   },
 ];
+globalForMocks.MOCK_SESSIONS = MOCK_SESSIONS;
 
 const MOCK_SOURCES: Source[] = [
   {
@@ -81,7 +84,7 @@ export async function listSessions(
   requestId?: string,
   profileId: string = 'default'
 ): Promise<{ sessions: Session[], error?: string }> {
-  if (process.env.MOCK_API === 'true' && process.env.HYBRID_MOCK !== 'true') {
+  if (process.env.MOCK_API === 'true') {
      return { sessions: MOCK_SESSIONS };
   }
 

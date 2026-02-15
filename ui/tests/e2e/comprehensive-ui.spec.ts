@@ -146,14 +146,18 @@ test.describe('Comprehensive UI Tests', () => {
       await expect(filterArea.getByText('Session Status', { exact: true })).toBeVisible();
       await expect(filterArea.getByText('Job Name', { exact: true })).toBeVisible();
 
-      // Verify "Uncategorized Sessions" accordion or Empty State
+      // Verify "Uncategorized Sessions" accordion OR Empty State OR Job List
+      // We don't enforce empty state here because the environment might have seeded data.
+      // We just check that the main area loaded without error.
       const emptyState = page.getByText('No jobs found');
+      const accordion = page.locator('[data-state="closed"], [data-state="open"]'); // Rudimentary check for accordion items
 
-      if (await emptyState.isVisible()) {
-          await expect(emptyState).toBeVisible();
-      } else {
-         // Should be fine
-      }
+      // Wait for either empty state OR accordion items to appear (indicating load complete)
+      await expect(async () => {
+          const emptyVisible = await emptyState.isVisible();
+          const itemsVisible = await accordion.count() > 0;
+          expect(emptyVisible || itemsVisible).toBeTruthy();
+      }).toPass();
     });
   });
 

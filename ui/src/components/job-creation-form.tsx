@@ -72,7 +72,7 @@ export function JobCreationForm({
   const [automationMode, setAutomationMode] = useState<AutomationMode>("AUTO_CREATE_PR");
   const [backgroundJob, setBackgroundJob] = useState(true);
   const [applyGlobalPrompt, setApplyGlobalPrompt] = useState(true);
-  const [enableChatroom, setEnableChatroom] = useState(true);
+  const [enableChatroom, setEnableChatroom] = useState(false);
 
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, startRefreshTransition] = useTransition();

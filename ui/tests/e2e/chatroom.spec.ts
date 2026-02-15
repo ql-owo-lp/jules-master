@@ -19,8 +19,17 @@ test.describe('Chatroom E2E', () => {
         await page.getByRole('textbox', { name: 'Session Prompts' }).fill('Test Prompt for Chat');
         await page.getByLabel('Number of sessions').fill('1');
 
-        // Enable Chatroom (click the switch)
-        await page.getByLabel('Enable Chatroom').click();
+        // Enable Chatroom
+        // Use getByRole for better interaction with Radix Switch
+        const chatSwitch = page.getByRole('switch', { name: 'Enable Chatroom' });
+        await expect(chatSwitch).toBeVisible();
+        await expect(chatSwitch).not.toBeChecked();
+
+        await chatSwitch.click({ force: true });
+
+        // Wait for state update
+        await expect(chatSwitch).toBeChecked();
+        await page.waitForTimeout(500);
 
         // Select Repo/Branch
         const repoCombobox = page.getByRole('combobox').filter({ hasText: /test-owner\/test-repo/ }).first();
@@ -29,14 +38,17 @@ test.describe('Chatroom E2E', () => {
         await page.getByRole('button', { name: 'Create Job' }).click();
 
         // 2. Wait for Job to appear in list
-        // It should redirect or close dialog and show the job.
-        await expect(page.getByText(jobName)).toBeVisible();
+        // We target the paragraph tag to differentiate from the filter dropdown which uses a span
+        const jobTitle = page.locator('p.font-semibold', { hasText: jobName });
+        await expect(jobTitle).toBeVisible({ timeout: 15000 });
 
         // 3. Enter Chatroom
-        // Click the job header to ensure it's expanded or just to focus it
-        await page.getByText(jobName).click();
+        // The button is in the row header, always visible if enabled.
+        // Find the specific 'Enter Chatroom' button associated with this job row.
+        const jobRow = page.locator('.border.rounded-lg.bg-card', { has: jobTitle });
+        const enterChatButton = jobRow.getByTestId('enter-chatroom-button');
         
-        const enterChatButton = page.getByLabel('Enter Chatroom').first();
+        // Wait for the button to be attached and visible.
         await expect(enterChatButton).toBeVisible();
         await enterChatButton.click();
 
@@ -51,7 +63,8 @@ test.describe('Chatroom E2E', () => {
         await page.getByRole('button', { name: 'Send' }).click();
 
         // 6. Verify Message appears
-        await expect(page.getByText('Hello Agent!')).toBeVisible();
+        // Wait for it to appear in the list
+        await expect(page.locator('.rounded-lg', { hasText: 'Hello Agent!' })).toBeVisible();
         await expect(page.getByText('User')).toBeVisible(); // Sender name
     });
 });
