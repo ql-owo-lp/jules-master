@@ -124,7 +124,7 @@ jobs:
             -e MOCK_API=true \
             -e JULES_API_KEY=mock-api-key \
             jules-test:latest \
-            npm run test:e2e
+            pnpm run test:e2e
 
       - uses: actions/upload-artifact@v4
         if: always()
