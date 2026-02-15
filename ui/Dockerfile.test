@@ -17,6 +17,8 @@ COPY ui/package.json ./
 
 # Install dependencies
 RUN npm install
+# Force rebuild of better-sqlite3 to ensure binding exists
+RUN npm rebuild better-sqlite3 --build-from-source
 RUN ln -s /app/node_modules /node_modules
 
 # Copy source code
