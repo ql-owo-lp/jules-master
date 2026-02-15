@@ -1,7 +1,7 @@
-FROM mcr.microsoft.com/playwright:v1.57.0-noble
+FROM mcr.microsoft.com/playwright:v1.57.0-jammy
 
 # Install Go
-RUN apt-get update && apt-get install -y wget build-essential && \
+RUN apt-get update && apt-get install -y wget build-essential python3 python-is-python3 make g++ && \
     wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
     rm go1.24.0.linux-amd64.tar.gz
@@ -13,10 +13,14 @@ ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # Copy package files
-COPY ui/package.json ui/package-lock.json ./
+COPY ui/package.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install --unsafe-perm --build-from-source=better-sqlite3
+# Explicitly rebuild to ensure binary is generated
+RUN npm rebuild better-sqlite3 --build-from-source
+# Verify binary existence
+RUN [ -f node_modules/better-sqlite3/build/Release/better_sqlite3.node ] && echo "Binary exists" || (echo "Binary missing" && exit 1)
 RUN ln -s /app/node_modules /node_modules
 
 # Copy source code

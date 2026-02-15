@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useEffect, useState, useMemo } from "react";
+import React, { memo, useEffect, useState, useMemo, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -294,6 +294,12 @@ const SessionTableComponent = ({
     return Array.from(urls).sort();
   }, [sessions]);
 
+  // Keep track of current statuses to filter out redundant fetches
+  const prStatusesRef = useRef(prStatuses);
+  useEffect(() => {
+      prStatusesRef.current = prStatuses;
+  }, [prStatuses]);
+
   // Batch fetch PR statuses
   useEffect(() => {
     if (prUrls.length === 0) return;
@@ -303,8 +309,19 @@ const SessionTableComponent = ({
 
     const fetchStatuses = async () => {
         try {
+            // Optimization: Filter out PRs that are already MERGED to save API calls
+            const currentStatuses = prStatusesRef.current;
+            const urlsToFetch = prUrls.filter(url => {
+                const status = currentStatuses[url];
+                // If status is MERGED, we don't need to poll anymore
+                if (status?.state === 'MERGED') return false;
+                return true;
+            });
+
+            if (urlsToFetch.length === 0) return;
+
              // Pass null if using env token, so server action uses process.env
-            const results = await getPullRequestStatuses(prUrls, githubToken || (hasEnvGithubToken ? null : ""));
+            const results = await getPullRequestStatuses(urlsToFetch, githubToken || (hasEnvGithubToken ? null : ""));
             if (isMounted) {
                 setPrStatuses(prev => ({ ...prev, ...results }));
             }
