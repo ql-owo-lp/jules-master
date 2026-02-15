@@ -12,16 +12,11 @@ WORKDIR /app
 ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Install pnpm
-RUN npm install -g pnpm
-
 # Copy package files
-COPY ui/package.json ui/pnpm-lock.yaml ./
+COPY ui/package.json ./
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
-# Rebuild native modules to ensure they match the container environment
-RUN pnpm rebuild
+RUN npm install
 RUN ln -s /app/node_modules /node_modules
 
 # Copy source code
@@ -33,4 +28,4 @@ COPY server/ /server/
 RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go
 
 # Run E2E tests
-CMD ["pnpm", "run", "test:e2e"]
+CMD ["npm", "run", "test:e2e"]
