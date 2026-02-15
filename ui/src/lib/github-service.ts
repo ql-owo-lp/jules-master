@@ -586,7 +586,9 @@ export async function searchOpenPullRequests(
     const data = await response.json();
     
     const prs: GitHubPullRequestSimple[] = data.items
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((item: any) => item.pull_request)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((item: any) => ({
         number: item.number,
         title: item.title,

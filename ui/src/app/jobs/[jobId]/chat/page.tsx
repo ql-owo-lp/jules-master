@@ -1,5 +1,5 @@
 import { ChatInterface } from "./chat-interface";
-import { jobClient } from "@/lib/grpc-client"; // We might need to verify job exists?
+// import { jobClient } from "@/lib/grpc-client"; // We might need to verify job exists?
 // Actually we can just render the interface. The interface handles logic.
 
 export default function ChatPage({ params }: { params: { jobId: string } }) {

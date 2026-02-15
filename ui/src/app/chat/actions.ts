@@ -4,6 +4,7 @@ import { chatClient } from "@/lib/grpc-client";
 import { ChatConfig, ChatMessage } from "@/lib/types";
 
 // Helper to map gRPC message to our type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapChatMessage(m: any): ChatMessage {
   return {
     id: m.getId(),
@@ -19,6 +20,7 @@ function mapChatMessage(m: any): ChatMessage {
 export async function createChatConfig(jobId: string, agentName: string): Promise<ChatConfig> {
   const client = chatClient;
   return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     client.createChatConfig({ jobId, agentName }, (err: any, response: any) => {
       if (err) {
         reject(err);
@@ -44,7 +46,8 @@ export async function sendChatMessage(jobId: string, content: string, isHuman: b
       senderName,
       apiKey: '', // Not needed for human
       recipient: recipient || ""
-    }, (err: any, response: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+    }, (err: any, _response: any) => {
       if (err) {
         reject(err);
       } else {
@@ -62,6 +65,7 @@ export async function listChatMessages(jobId: string, since?: string, limit?: nu
       since: since || "",
       limit: limit || 50,
       viewerName: "" // Default to empty (admin/all) or handle properly if we want to filter for human
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }, (err: any, response: any) => {
       if (err) {
         reject(err);

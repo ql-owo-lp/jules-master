@@ -1,10 +1,12 @@
 FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
-# Install Go
+# Install Go and pnpm
 RUN apt-get update && apt-get install -y wget build-essential && \
     wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
-    rm go1.24.0.linux-amd64.tar.gz
+    rm go1.24.0.linux-amd64.tar.gz && \
+    npm install -g pnpm
+
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 WORKDIR /app
@@ -13,10 +15,10 @@ ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # Copy package files
-COPY ui/package.json ui/package-lock.json ./
+COPY ui/package.json ui/pnpm-lock.yaml ./
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 RUN ln -s /app/node_modules /node_modules
 
 # Copy source code
@@ -28,4 +30,4 @@ COPY server/ /server/
 RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go
 
 # Run E2E tests
-CMD ["npm", "run", "test:e2e"]
+CMD ["pnpm", "run", "test:e2e"]

@@ -42,6 +42,7 @@ describe('listSessions Security Check', () => {
       json: async () => ({
         sessions: [remoteSession],
       }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     // 3. Call listSessions
