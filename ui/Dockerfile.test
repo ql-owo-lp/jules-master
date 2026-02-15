@@ -15,12 +15,8 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Copy package files
 COPY ui/package.json ./
 
-# Install dependencies
-RUN npm install --unsafe-perm
-# Force rebuild of better-sqlite3 to ensure binding exists
-RUN npm rebuild better-sqlite3 --build-from-source --unsafe-perm
-# List the build directory to verify existence in build logs
-RUN ls -R node_modules/better-sqlite3/build || true
+# Install dependencies with explicit build from source for better-sqlite3
+RUN npm install --unsafe-perm --build-from-source=better-sqlite3
 RUN ln -s /app/node_modules /node_modules
 
 # Copy source code
