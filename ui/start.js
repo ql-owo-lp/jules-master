@@ -1,5 +1,22 @@
 const { spawnSync } = require('child_process');
+const crypto = require('crypto');
 const nodePath = process.execPath;
+
+// Security: Enforce internal authentication for gRPC services
+// If no token is provided, generate a secure random token and inject it into the environment
+// for both the backend and frontend processes to use.
+if (!process.env.JULES_INTERNAL_TOKEN) {
+  console.log('NOTICE: JULES_INTERNAL_TOKEN not set. Generating a secure internal token for gRPC authentication.');
+  try {
+    process.env.JULES_INTERNAL_TOKEN = crypto.randomUUID();
+  } catch (e) {
+    // Fallback for older Node versions (though Docker uses v24) or unexpected issues
+    console.warn('WARNING: crypto.randomUUID() failed, falling back to randomBytes hex string.');
+    process.env.JULES_INTERNAL_TOKEN = crypto.randomBytes(32).toString('hex');
+  }
+} else {
+  console.log('NOTICE: Using provided JULES_INTERNAL_TOKEN for gRPC authentication.');
+}
 
 // Run migration
 console.log('Running database migrations...');
@@ -27,6 +44,7 @@ if (migrationResult.status !== 0) {
 // Start Go Backend
 console.log('Starting Go backend...');
 const { spawn } = require('child_process');
+// Pass the modified environment (including JULES_INTERNAL_TOKEN) to the backend
 const backend = spawn('/app/server', [], {
   stdio: 'inherit',
   env: { ...process.env, PORT: '50051' } // Force backend to internal port, avoiding conflict with frontend
@@ -55,6 +73,7 @@ process.on('SIGTERM', () => { cleanup(); process.exit(); });
 
 // Start Next.js server
 console.log('Starting Next.js application...');
+// spawnSync inherits process.env by default, so it picks up JULES_INTERNAL_TOKEN
 const appResult = spawnSync(
   nodePath,
   [
