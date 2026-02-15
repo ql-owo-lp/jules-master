@@ -15,14 +15,12 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV npm_config_build_from_source=true
 ENV PYTHON=/usr/bin/python3
 
-# Install pnpm
-RUN npm install -g pnpm
-
 # Copy package files
-COPY ui/package.json ui/pnpm-lock.yaml ./
+COPY ui/package.json ./
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN npm install -g node-gyp
+RUN npm install --unsafe-perm --build-from-source=better-sqlite3
 RUN ln -s /app/node_modules /node_modules
 
 # Copy source code
@@ -34,4 +32,4 @@ COPY server/ /server/
 RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go
 
 # Run E2E tests
-CMD ["pnpm", "run", "test:e2e"]
+CMD ["npm", "run", "test:e2e"]
