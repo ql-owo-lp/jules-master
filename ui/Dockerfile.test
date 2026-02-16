@@ -19,6 +19,9 @@ COPY ui/package.json ./
 # Install dependencies (forcing build from source to avoid EEXIST/binding issues)
 RUN npm install --build-from-source=better-sqlite3
 
+# Install Playwright browsers matching the installed version
+RUN npx playwright install
+
 # Copy source code
 COPY ui/ .
 # Proto and Server are copied from root context
