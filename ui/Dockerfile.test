@@ -29,12 +29,8 @@ COPY server/ /server/
 # Build frontend
 RUN npm run build
 
-# Pre-build backend
-RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go && chmod +x /app/server_bin
-
-# Verify backend binary
-RUN ldd /app/server_bin
-RUN /app/server_bin -help || true
+# Download backend dependencies
+RUN cd /server && go mod download
 
 # Run E2E tests
 CMD ["npm", "run", "test:e2e"]
