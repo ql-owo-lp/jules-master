@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
-# Install Go
-RUN apt-get update && apt-get install -y wget build-essential && \
+# Install Go and build tools for native modules (better-sqlite3)
+RUN apt-get update && apt-get install -y wget build-essential python3 g++ make && \
     wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
     rm go1.24.0.linux-amd64.tar.gz
@@ -20,6 +20,9 @@ COPY ui/package.json ui/pnpm-lock.yaml ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
+
+# Rebuild better-sqlite3 to ensure bindings match the container environment
+RUN npm rebuild better-sqlite3 --build-from-source
 
 # Copy source code
 COPY ui/ .
