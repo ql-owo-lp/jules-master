@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y wget build-essential python3 g++ make &
     tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
     rm go1.24.0.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
+ENV PYTHON=/usr/bin/python3
 
 WORKDIR /app
 
@@ -15,11 +16,8 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Copy package files (use npm to avoid pnpm/node-gyp/symlink complexity in this test container)
 COPY ui/package.json ./
 
-# Install dependencies
-RUN npm install
-
-# Rebuild better-sqlite3
-RUN npm rebuild better-sqlite3 --build-from-source
+# Install dependencies (forcing build from source to avoid EEXIST/binding issues)
+RUN npm install --build-from-source=better-sqlite3
 
 # Copy source code
 COPY ui/ .
