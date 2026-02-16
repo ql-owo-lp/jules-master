@@ -7,25 +7,32 @@ RUN apt-get update && apt-get install -y wget build-essential && \
     rm go1.24.0.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
+# Install pnpm
+RUN npm install -g pnpm@10
+
 WORKDIR /app
 
 ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # Copy package files
-COPY ui/package.json ui/package-lock.json ./
+COPY ui/package.json ui/pnpm-lock.yaml ./
 
 # Install dependencies
-RUN npm ci
-RUN ln -s /app/node_modules /node_modules
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY ui/ .
+# Proto and Server are copied from root context
 COPY proto/ /proto/
 COPY server/ /server/
 
-# Pre-build backend
+# Pre-build backend (if needed for e2e tests to run it?)
+# The previous Dockerfile had this:
+# RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go
+# But wait, the COPY command above copies `server/` to `/server/` (root).
+# Let's keep it consistent.
 RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go
 
 # Run E2E tests
-CMD ["npm", "run", "test:e2e"]
+CMD ["pnpm", "run", "test:e2e"]
