@@ -24,7 +24,7 @@ export default defineConfig({
       },
     ],
     webServer: process.env.TEST_SKIP_WEBSERVER ? undefined : {
-      command: `rm -f /tmp/e2e_jules.db* && export DATABASE_URL=/tmp/e2e_jules.db; sh -c "./node_modules/.bin/tsx src/lib/db/migrate.ts && ./node_modules/.bin/tsx scripts/seed-e2e.ts && (cd ../server && CGO_ENABLED=1 go run cmd/server/main.go 2>&1 | tee /app/backend.log &) && ./node_modules/.bin/tsx scripts/wait-for-backend.ts && MOCK_API=false PORT=50051 JULES_API_KEY='${process.env.JULES_API_KEY || 'mock-api-key'}' DATABASE_URL=/tmp/e2e_jules.db npm start -- -H 127.0.0.1 -p ${port}"`,
+      command: `sh scripts/start-e2e.sh ${port}`,
       url: baseURL,
       reuseExistingServer: !process.env.CI,
       stdout: 'ignore',
