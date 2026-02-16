@@ -49,6 +49,7 @@ func authInterceptor(validToken string) grpc.UnaryServerInterceptor {
 }
 
 func main() {
+	log.Println("Server process starting...")
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "50051"
