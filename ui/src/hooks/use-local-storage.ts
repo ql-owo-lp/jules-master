@@ -107,8 +107,25 @@ export function useLocalStorage<T>(
   const setValue = useCallback(
     (value: T) => {
       try {
-        const valueToStore = value instanceof Function ? value(JSON.parse(store)) : value;
+        let currentValue: T | undefined;
+        try {
+          currentValue = JSON.parse(store);
+        } catch {
+          // If parsing fails, and the value is a function, re-throw to maintain original behavior
+          if (value instanceof Function) throw new Error("Cannot update state based on invalid JSON in storage");
+        }
+
+        const valueToStore = value instanceof Function ? value(currentValue as T) : value;
+
+        // Optimization: If the new value is strictly equal to the current value, skip update.
+        // We only do this if currentValue was successfully parsed.
+        if (currentValue !== undefined && valueToStore === currentValue) return;
+
         const jsonValue = JSON.stringify(valueToStore);
+
+        // Optimization: If the stringified value is the same as the current store, skip update.
+        if (jsonValue === store) return;
+
         if (typeof window !== "undefined") {
           // This call goes through the monkey-patched setItem,
           // which updates the cache and emits the event.
