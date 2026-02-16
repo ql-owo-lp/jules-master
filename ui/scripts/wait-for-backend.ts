@@ -3,16 +3,17 @@ import fs from 'fs';
 import { execSync } from 'child_process';
 
 const port = 50051;
-const host = '127.0.0.1';
+const hosts = ['127.0.0.1', 'localhost'];
 const maxRetries = 300;
 const logPath = '/app/backend.log';
 let attempts = 0;
 
 function printLogs() {
     if (fs.existsSync(logPath)) {
-        console.log(`\n--- Last 20 lines of ${logPath} ---`);
+        console.log(`\n--- Last 100 lines of ${logPath} ---`);
         try {
-            const logs = execSync(`tail -n 20 ${logPath}`).toString();
+            // Try to read the whole file if small, or tail 100
+            const logs = execSync(`tail -n 100 ${logPath}`).toString();
             console.log(logs);
         } catch (e) {
             console.error(`Failed to read logs: ${e}`);
@@ -23,8 +24,8 @@ function printLogs() {
     }
 }
 
-function checkPort() {
-    attempts++;
+function checkPort(hostIndex = 0) {
+    const host = hosts[hostIndex];
     const socket = new net.Socket();
     
     socket.setTimeout(1000);
@@ -36,28 +37,40 @@ function checkPort() {
     });
     
     socket.on('error', (err) => {
+        socket.destroy();
+        if (hostIndex < hosts.length - 1) {
+            // Try next host immediately
+            checkPort(hostIndex + 1);
+            return;
+        }
+
+        attempts++;
         if (attempts >= maxRetries) {
-            console.error(`[Wait] Backend failed to start on ${host}:${port} after ${attempts} attempts:`, err.message);
+            console.error(`[Wait] Backend failed to start on ${port} (tried ${hosts.join(', ')}) after ${attempts} attempts:`, err.message);
             printLogs();
             process.exit(1);
         }
-        // console.log(`[Wait] Waiting for backend on ${host}:${port}... (Attempt ${attempts}/${maxRetries})`);
-        socket.destroy();
-        setTimeout(checkPort, 1000);
+        setTimeout(() => checkPort(0), 1000);
     });
     
     socket.on('timeout', () => {
+        socket.destroy();
+        if (hostIndex < hosts.length - 1) {
+            checkPort(hostIndex + 1);
+            return;
+        }
+
+        attempts++;
         if (attempts >= maxRetries) {
-            console.error(`[Wait] Backend connection timed out on ${host}:${port} after ${attempts} attempts.`);
+            console.error(`[Wait] Backend connection timed out on ${port} after ${attempts} attempts.`);
             printLogs();
             process.exit(1);
         }
-        socket.destroy();
-        setTimeout(checkPort, 1000);
+        setTimeout(() => checkPort(0), 1000);
     });
     
     socket.connect(port, host);
 }
 
-console.log(`[Wait] Starting wait for backend on ${host}:${port}...`);
+console.log(`[Wait] Starting wait for backend on ${port} (trying ${hosts.join(', ')})...`);
 checkPort();
