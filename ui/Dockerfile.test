@@ -21,6 +21,9 @@ COPY ui/package.json ui/pnpm-lock.yaml ./
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
+# Force rebuild better-sqlite3 to ensure bindings match the container environment
+RUN pnpm rebuild better-sqlite3
+
 # Copy source code
 COPY ui/ .
 # Proto and Server are copied from root context
