@@ -1,6 +1,13 @@
 #!/bin/sh
 set -e
 
+cleanup() {
+  echo "--- Backend Logs (/app/backend.log) ---"
+  cat /app/backend.log || echo "No backend log found."
+  echo "--- End Backend Logs ---"
+}
+trap cleanup EXIT
+
 # Cleanup DB
 rm -f /tmp/e2e_jules.db*
 export DATABASE_URL=/tmp/e2e_jules.db
@@ -18,12 +25,10 @@ export JULES_API_KEY='mock-api-key'
 (cd ../server && CGO_ENABLED=1 /usr/local/go/bin/go run cmd/server/main.go 2>&1 | tee /app/backend.log) &
 
 # Wait for backend to be ready
-if ! ./node_modules/.bin/tsx scripts/wait-for-backend.ts; then
-  echo "Wait failed. Backend logs:"
-  cat /app/backend.log
-  exit 1
-fi
+# Note: trap will print logs on exit, so we don't need to cat here explicitly if we exit 1, but harmless to keep or rely on trap
+./node_modules/.bin/tsx scripts/wait-for-backend.ts
 
 # Start frontend
+echo "Frontend starting on port $1..."
 # $1 is the port passed from playwright config
 npm start -- -H 0.0.0.0 -p $1
