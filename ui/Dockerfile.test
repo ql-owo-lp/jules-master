@@ -18,6 +18,9 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Copy package files
 COPY ui/package.json ui/pnpm-lock.yaml ./
 
+# Use hoisted linker to avoid symlink issues with better-sqlite3 bindings
+RUN echo "node-linker=hoisted" > .npmrc
+
 # Install dependencies (force build from source for better-sqlite3 to ensure compatibility)
 RUN pnpm install --frozen-lockfile --config.build-from-source=better-sqlite3
 
