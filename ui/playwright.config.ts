@@ -27,8 +27,8 @@ export default defineConfig({
       command: `rm -f /tmp/e2e_jules.db && export DATABASE_URL=/tmp/e2e_jules.db; sh -c "npx -y tsx src/lib/db/migrate.ts && npx -y tsx scripts/seed-e2e.ts && (([ -f /app/server_bin ] && /app/server_bin > /tmp/backend.log 2>&1) || ([ -f ./server_bin ] && ./server_bin > /tmp/backend.log 2>&1) || (cd ../server && go run cmd/server/main.go > /tmp/backend.log 2>&1) &) && npx -y tsx scripts/wait-for-backend.ts && MOCK_API=false JULES_API_KEY=${process.env.JULES_API_KEY || 'mock-api-key'} DATABASE_URL=/tmp/e2e_jules.db next dev -p ${port}"`,
       url: baseURL,
       reuseExistingServer: !process.env.CI,
-      stdout: 'pipe',
-      stderr: 'pipe',
+      stdout: 'ignore',
+      stderr: 'ignore',
       timeout: 300 * 1000,
     },
 });
