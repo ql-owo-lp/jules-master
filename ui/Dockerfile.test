@@ -22,7 +22,7 @@ COPY ui/package.json ui/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Rebuild better-sqlite3 to ensure bindings match the container environment
-RUN npm rebuild better-sqlite3 --build-from-source
+RUN pnpm rebuild better-sqlite3
 
 # Copy source code
 COPY ui/ .
