@@ -4,7 +4,7 @@ import { execSync } from 'child_process';
 
 const port = 50051;
 const host = '127.0.0.1';
-const maxRetries = 60;
+const maxRetries = 300;
 const logPath = '/tmp/backend.log';
 let attempts = 0;
 
