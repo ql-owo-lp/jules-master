@@ -39,13 +39,16 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Install pnpm
+        run: npm install -g pnpm
+
       - name: Install Dependencies
         working-directory: ./ui
-        run: npm ci
+        run: pnpm install
 
       - name: Run Unit Tests
         working-directory: ./ui
-        run: npm run test:unit
+        run: pnpm run test:unit
 
   e2e:
     timeout-minutes: 20
@@ -120,7 +123,7 @@ jobs:
             -e MOCK_API=true \
             -e JULES_API_KEY=mock-api-key \
             jules-test:latest \
-            npm run test:e2e
+            pnpm run test:e2e
 
       - uses: actions/upload-artifact@v4
         if: always()
