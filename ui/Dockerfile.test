@@ -26,6 +26,9 @@ COPY ui/ .
 COPY proto/ /proto/
 COPY server/ /server/
 
+# Build frontend
+RUN npm run build
+
 # Pre-build backend
 RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go && chmod +x /app/server_bin
 
