@@ -18,8 +18,12 @@ export JULES_API_KEY='mock-api-key'
 (cd ../server && CGO_ENABLED=1 /usr/local/go/bin/go run cmd/server/main.go 2>&1 | tee /app/backend.log) &
 
 # Wait for backend to be ready
-./node_modules/.bin/tsx scripts/wait-for-backend.ts
+if ! ./node_modules/.bin/tsx scripts/wait-for-backend.ts; then
+  echo "Wait failed. Backend logs:"
+  cat /app/backend.log
+  exit 1
+fi
 
 # Start frontend
 # $1 is the port passed from playwright config
-npm start -- -H 127.0.0.1 -p $1
+npm start -- -H 0.0.0.0 -p $1

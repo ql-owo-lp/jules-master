@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
 # Install Go
-RUN apt-get update && apt-get install -y wget build-essential && \
+RUN apt-get update && apt-get install -y wget build-essential sqlite3 && \
     wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
     rm go1.24.0.linux-amd64.tar.gz
