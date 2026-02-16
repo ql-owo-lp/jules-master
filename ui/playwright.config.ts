@@ -26,6 +26,9 @@ export default defineConfig({
     webServer: process.env.TEST_SKIP_WEBSERVER ? undefined : {
       command: `sh scripts/start-e2e.sh ${port}`,
       url: baseURL,
+      env: {
+        DATABASE_URL: 'e2e_jules.db', // Ensure consistency if passed down
+      },
       reuseExistingServer: !process.env.CI,
       stdout: 'ignore',
       stderr: 'ignore',
