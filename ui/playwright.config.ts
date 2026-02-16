@@ -24,7 +24,7 @@ export default defineConfig({
       },
     ],
     webServer: process.env.TEST_SKIP_WEBSERVER ? undefined : {
-      command: `rm -f e2e_jules.db && export DATABASE_URL=e2e_jules.db; sh -c "./node_modules/.bin/tsx src/lib/db/migrate.ts && ./node_modules/.bin/tsx scripts/seed-e2e.ts && (([ -f /app/server_bin ] && /app/server_bin > /app/backend.log 2>&1) || ([ -f ./server_bin ] && ./server_bin > /app/backend.log 2>&1) || (cd ../server && go run cmd/server/main.go > /app/backend.log 2>&1) &) && ./node_modules/.bin/tsx scripts/wait-for-backend.ts && MOCK_API=false JULES_API_KEY=${process.env.JULES_API_KEY || 'mock-api-key'} DATABASE_URL=e2e_jules.db ./node_modules/.bin/next dev -p ${port}"`,
+      command: `rm -f e2e_jules.db && export DATABASE_URL=e2e_jules.db; sh -c "./node_modules/.bin/tsx src/lib/db/migrate.ts && ./node_modules/.bin/tsx scripts/seed-e2e.ts && (([ -f /app/server_bin ] && /app/server_bin > /app/backend.log 2>&1) || ([ -f ./server_bin ] && ./server_bin > /app/backend.log 2>&1) || (cd ../server && go run cmd/server/main.go > /app/backend.log 2>&1) &) && ./node_modules/.bin/tsx scripts/wait-for-backend.ts && MOCK_API=false JULES_API_KEY=${process.env.JULES_API_KEY || 'mock-api-key'} DATABASE_URL=e2e_jules.db ./node_modules/.bin/next dev -H 127.0.0.1 -p ${port}"`,
       url: baseURL,
       reuseExistingServer: !process.env.CI,
       stdout: 'ignore',
