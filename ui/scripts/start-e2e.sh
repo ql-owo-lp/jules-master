@@ -8,6 +8,7 @@ cleanup() {
   echo "--- System Info ---"
   ps aux || echo "ps failed"
   node --version
+  /usr/local/go/bin/go version || echo "go not found"
   ./node_modules/.bin/next --version
 }
 trap cleanup EXIT
@@ -41,4 +42,4 @@ echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
 # Use next start directly
-exec ./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE
+./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE

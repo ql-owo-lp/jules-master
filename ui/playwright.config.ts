@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 const port = process.env.PLAYWRIGHT_PORT ? parseInt(process.env.PLAYWRIGHT_PORT) : 3000;
-const baseURL = process.env.TEST_TARGET_URL || `http://127.0.0.1:${port}`;
+const baseURL = process.env.TEST_TARGET_URL || `http://localhost:${port}`;
 
 export default defineConfig({
     testDir: './tests/e2e',
@@ -35,6 +35,6 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       stdout: 'ignore',
       stderr: 'ignore',
-      timeout: 300 * 1000,
+      timeout: 600 * 1000,
     },
 });
