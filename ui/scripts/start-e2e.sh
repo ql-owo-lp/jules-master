@@ -40,5 +40,5 @@ PORT_TO_USE=${1:-3000}
 echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
-# Use npm start to ensure environment is correct, passing args
-exec npm start -- -H 0.0.0.0 -p $PORT_TO_USE
+# Use next start directly
+exec ./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE
