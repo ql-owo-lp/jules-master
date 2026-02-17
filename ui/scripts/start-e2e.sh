@@ -23,17 +23,8 @@ cleanup() {
     echo "Killing backend PID $BACKEND_PID"
     kill $BACKEND_PID 2>/dev/null || true
   fi
-
-  # Aggressive cleanup of ports
-  fuser -k 3000/tcp 2>/dev/null || true
-  fuser -k 50051/tcp 2>/dev/null || true
 }
 trap cleanup EXIT
-
-# Ensure clean state
-echo "Cleaning up ports 3000 and 50051..."
-fuser -k 3000/tcp 2>/dev/null || true
-fuser -k 50051/tcp 2>/dev/null || true
 
 # Cleanup DB
 echo "Cleaning up DB..."
