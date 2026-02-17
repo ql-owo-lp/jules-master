@@ -49,9 +49,7 @@ export JULES_API_KEY='mock-api-key'
 
 # Start backend in background with logging (using exec to keep PID valid)
 echo "Starting backend..."
-# Use relative path to server directory, but handle case where module download is redundant
-# because Dockerfile already did it.
-(cd ../server && CGO_ENABLED=1 exec /usr/local/go/bin/go run cmd/server/main.go > /app/backend.log 2>&1) &
+(cd ../server && GOWORK=off go mod download && CGO_ENABLED=1 exec /usr/local/go/bin/go run cmd/server/main.go > /app/backend.log 2>&1) &
 BACKEND_PID=$!
 echo "Backend started with PID $BACKEND_PID"
 
@@ -69,8 +67,8 @@ echo "Frontend starting on port $PORT_TO_USE..."
 unset PORT
 
 # Start frontend in background
-# Use production build for faster startup and reliability
-./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
+# Use next dev to avoid potential issues with build artifacts in CI
+./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
