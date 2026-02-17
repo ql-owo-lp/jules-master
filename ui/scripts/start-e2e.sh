@@ -77,15 +77,11 @@ echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
 
-# Check if build exists, otherwise build
-if [ ! -d ".next" ]; then
-  echo ".next directory not found. Building..."
-  npm run build || { echo "Build failed"; exit 1; }
-fi
-
 # Start frontend in background
-# Use next start (production) for CI reliability
-./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
+# Use next dev to avoid potential build issues in CI container context
+# Force NODE_ENV=test just in case
+export NODE_ENV=test
+./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
@@ -93,6 +89,9 @@ echo "Frontend started with PID $FRONTEND_PID"
 echo "Waiting for frontend..."
 if ! ./node_modules/.bin/tsx scripts/wait-for-frontend.ts $PORT_TO_USE; then
   echo "Wait for frontend failed."
+  # Explicitly cat logs here if wait fails, though trap should handle it
+  echo "Frontend startup logs:"
+  cat /app/frontend.log
   exit 1
 fi
 
