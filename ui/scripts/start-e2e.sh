@@ -77,21 +77,21 @@ echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
 
-# Build and Start frontend (production mode)
-# This is safer for CI than next dev
-echo "Building frontend..."
-npm run build || { echo "Build failed"; exit 1; }
-
-echo "Starting frontend..."
-# Run npm start in background
-# Use nohup to ensure it stays alive? No, & is fine.
-npm start -- -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
+# Start frontend in background
+# Use npm run dev to leverage package.json scripts (includes 'db:migrate' but we did that manually, which is fine)
+# Set HOSTNAME explicitly to 0.0.0.0 for Next.js
+export NODE_ENV=development
+export HOSTNAME=0.0.0.0
+# We can't use -H/ -p with npm run dev unless the script supports it, so we rely on env vars or modify package.json
+# Assuming 'next dev --turbopack' from package.json might not support -H args passed through npm cleanly without --
+# Let's try passing the args after --
+npm run dev -- -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
 # Simple shell-based wait for frontend with better logging
 echo "Waiting for frontend (curl loop)..."
-MAX_WAIT_RETRIES=120 # 2 minutes
+MAX_WAIT_RETRIES=300 # 5 minutes
 WAIT_COUNT=0
 # Try both localhost and 127.0.0.1
 while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http://localhost:$PORT_TO_USE" > /dev/null; do
@@ -102,6 +102,9 @@ while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http:/
     # Diagnostic info
     echo "--- Process Status ---"
     ps aux | grep next || echo "Next process not found"
+
+    echo "--- Network Status (if available) ---"
+    netstat -tulpn 2>/dev/null || ss -tulpn 2>/dev/null || echo "Network tools not found"
 
     echo "Frontend startup logs:"
     cat /app/frontend.log
