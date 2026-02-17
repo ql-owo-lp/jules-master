@@ -58,8 +58,6 @@ export JULES_API_KEY='mock-api-key'
 
 # Start backend in background with logging (using exec to keep PID valid)
 echo "Starting backend..."
-# Use GOWORK=off and direct go run.
-# Ensure logs are redirected properly.
 (cd ../server && GOWORK=off go mod download && CGO_ENABLED=1 exec /usr/local/go/bin/go run cmd/server/main.go > /app/backend.log 2>&1) &
 BACKEND_PID=$!
 echo "Backend started with PID $BACKEND_PID"
@@ -77,9 +75,15 @@ echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
 
+# Check if build exists, otherwise build
+if [ ! -d ".next" ]; then
+  echo ".next directory not found. Building..."
+  npm run build
+fi
+
 # Start frontend in background
-# Use next dev to avoid potential build issues in CI container context
-./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
+# Use next start (production) for CI reliability
+./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
