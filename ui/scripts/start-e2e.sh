@@ -85,15 +85,18 @@ export NODE_ENV=test
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
-# Wait for frontend to be ready using the script
-echo "Waiting for frontend..."
-if ! ./node_modules/.bin/tsx scripts/wait-for-frontend.ts $PORT_TO_USE; then
-  echo "Wait for frontend failed."
-  # Explicitly cat logs here if wait fails, though trap should handle it
-  echo "Frontend startup logs:"
-  cat /app/frontend.log
-  exit 1
-fi
+# Simple shell-based wait for frontend
+echo "Waiting for frontend (curl loop)..."
+MAX_WAIT_RETRIES=120 # 2 minutes
+WAIT_COUNT=0
+while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null; do
+  WAIT_COUNT=$((WAIT_COUNT+1))
+  if [ $WAIT_COUNT -ge $MAX_WAIT_RETRIES ]; then
+    echo "Frontend failed to start after $MAX_WAIT_RETRIES attempts."
+    exit 1
+  fi
+  sleep 1
+done
 
 echo "Frontend is ready on port $PORT_TO_USE."
 
