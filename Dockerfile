@@ -13,7 +13,7 @@ RUN go build -o server cmd/server/main.go
 FROM node:24 AS node-builder
 RUN apt-get update && apt-get install -y curl unzip
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.28.0
 
 RUN PROTOC_VERSION="29.3" && \
     ARCH=$(uname -m) && \
