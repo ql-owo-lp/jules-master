@@ -22,23 +22,11 @@ export DATABASE_URL=/tmp/e2e_jules.db
 
 # Backend Setup
 export PORT=50051
-export JULES_API_KEY='mock-api-key'
-
-echo "Checking for gcc..."
-which gcc || echo "gcc not found"
-
-# Build backend first
-echo "Building backend..."
-cd ../server
-if ! GOWORK=off CGO_ENABLED=1 /usr/local/go/bin/go build -o /app/server_bin cmd/server/main.go; then
-  echo "Backend build failed."
-  exit 1
-fi
-cd ../ui
+export JULES_API_KEY='00000000-0000-0000-0000-000000000000'
 
 # Start backend in background with logging
 echo "Starting backend..."
-(/app/server_bin 2>&1 | tee /app/backend.log) &
+(cd ../server && GOWORK=off CGO_ENABLED=1 /usr/local/go/bin/go run cmd/server/main.go > /app/backend.log 2>&1) &
 
 # Wait for backend to be ready
 if ! ./node_modules/.bin/tsx scripts/wait-for-backend.ts; then
