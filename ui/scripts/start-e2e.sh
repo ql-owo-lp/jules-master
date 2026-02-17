@@ -10,8 +10,8 @@ cleanup() {
   cat /app/backend.log || echo "No backend log found."
   echo "--- End Backend Logs ---"
 
-  # Frontend logs are now in stdout, but if we had a file:
-  # cat /app/frontend.log || echo "No frontend log found."
+  # Frontend logs are in stdout, but if we redirected:
+  cat /app/frontend.log || echo "No frontend log found."
 
   echo "Cleaning up processes..."
   if [ -n "$FRONTEND_PID" ]; then
@@ -76,39 +76,61 @@ echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
 
-# Start frontend in background
-# Use next dev directly
-# Pipe to STDOUT directly so we see it in CI logs immediately
-# Set HOSTNAME explicitly to 0.0.0.0
-export NODE_ENV=development
+# Check environment
+echo "Node version:"
+node --version
+echo "Next.js info:"
+./node_modules/.bin/next info
+
+# Build frontend (production mode) for reliability
+echo "Building frontend..."
+export NODE_ENV=production
+npm run build || { echo "Build failed"; exit 1; }
+
+echo "Starting frontend..."
 export HOSTNAME=0.0.0.0
-echo "Starting frontend with next dev..."
-./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE &
+# Use next start (production) for CI reliability
+# Direct next start usage to avoid npm wrapping obscurity
+./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
-# Use npx wait-on if available, otherwise fallback to curl loop
-echo "Waiting for frontend..."
-# Timeout 300s (5m)
-if npx wait-on -t 300000 http://127.0.0.1:$PORT_TO_USE; then
-  echo "Frontend is ready."
-else
-  echo "wait-on failed, falling back to curl loop check..."
-  # Simple shell-based wait for frontend with better logging
-  MAX_WAIT_RETRIES=120 # 2 minutes
-  WAIT_COUNT=0
-  while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http://localhost:$PORT_TO_USE" > /dev/null; do
-    WAIT_COUNT=$((WAIT_COUNT+1))
-    if [ $WAIT_COUNT -ge $MAX_WAIT_RETRIES ]; then
-      echo "Frontend failed to start after curl retries."
-      # Diagnostic info
-      ps aux | grep next || echo "Next process not found"
-      netstat -tulpn 2>/dev/null || ss -tulpn 2>/dev/null || echo "Network tools not found"
-      exit 1
-    fi
-    sleep 1
-  done
-fi
+# Simple shell-based wait for frontend with better logging
+echo "Waiting for frontend (curl loop)..."
+MAX_WAIT_RETRIES=300 # 5 minutes
+WAIT_COUNT=0
+# Try both localhost and 127.0.0.1
+while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http://localhost:$PORT_TO_USE" > /dev/null; do
+  WAIT_COUNT=$((WAIT_COUNT+1))
+  if [ $WAIT_COUNT -ge $MAX_WAIT_RETRIES ]; then
+    echo "Frontend failed to start after $MAX_WAIT_RETRIES attempts."
+
+    # Diagnostic info
+    echo "--- Process Status ---"
+    ps aux | grep next || echo "Next process not found"
+
+    echo "--- Network Status (if available) ---"
+    netstat -tulpn 2>/dev/null || ss -tulpn 2>/dev/null || echo "Network tools not found"
+
+    echo "Frontend startup logs:"
+    cat /app/frontend.log
+    exit 1
+  fi
+
+  # Check if process is still alive
+  if ! kill -0 $FRONTEND_PID 2>/dev/null; then
+    echo "Frontend process $FRONTEND_PID died unexpectedly."
+    cat /app/frontend.log
+    exit 1
+  fi
+
+  if [ $((WAIT_COUNT % 60)) -eq 0 ]; then
+      echo "Waiting... ($WAIT_COUNT/$MAX_WAIT_RETRIES)"
+      # Dump last 10 lines of log to see progress
+      tail -n 10 /app/frontend.log
+  fi
+  sleep 1
+done
 
 echo "Frontend is ready on port $PORT_TO_USE."
 
