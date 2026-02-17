@@ -9,8 +9,8 @@ cleanup() {
 trap cleanup EXIT
 
 # Cleanup DB
-rm -f /app/e2e_jules.db*
-export DATABASE_URL=e2e_jules.db
+rm -f /tmp/e2e_jules.db*
+export DATABASE_URL=/tmp/e2e_jules.db
 
 # Run migrations and seed
 ./node_modules/.bin/tsx src/lib/db/migrate.ts
