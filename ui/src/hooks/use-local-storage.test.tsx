@@ -61,4 +61,17 @@ describe("useLocalStorage", () => {
     expect(emitSpy).toHaveBeenCalledWith("storage:perf-key", undefined);
     expect(emitSpy).not.toHaveBeenCalledWith("change", expect.anything());
   });
+
+  it("should prevent unnecessary writes to localStorage when value is unchanged", () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+    const { result } = renderHook(() => useLocalStorage("optimization-test", "initial"));
+
+    // First update with SAME value - currently writes, should NOT write after optimization
+    act(() => {
+      result.current[1]("initial");
+    });
+
+    // Expectation: writing the same value should NOT trigger setItem
+    expect(setItemSpy).not.toHaveBeenCalled();
+  });
 });
