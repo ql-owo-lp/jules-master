@@ -10,9 +10,8 @@ cleanup() {
   cat /app/backend.log || echo "No backend log found."
   echo "--- End Backend Logs ---"
 
-  echo "--- Frontend Logs (/app/frontend.log) ---"
-  cat /app/frontend.log || echo "No frontend log found."
-  echo "--- End Frontend Logs ---"
+  # Frontend logs are now in stdout, but if we had a file:
+  # cat /app/frontend.log || echo "No frontend log found."
 
   echo "Cleaning up processes..."
   if [ -n "$FRONTEND_PID" ]; then
@@ -78,10 +77,13 @@ echo "Frontend starting on port $PORT_TO_USE..."
 unset PORT
 
 # Start frontend in background
-# Disable turbopack (via direct next usage) to improve stability in CI/Docker
-# Ensure we bind to 0.0.0.0
+# Use next dev directly
+# Pipe to STDOUT directly so we see it in CI logs immediately
+# Set HOSTNAME explicitly to 0.0.0.0
+export NODE_ENV=development
 export HOSTNAME=0.0.0.0
-./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
+echo "Starting frontend with next dev..."
+./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
@@ -102,7 +104,6 @@ else
       # Diagnostic info
       ps aux | grep next || echo "Next process not found"
       netstat -tulpn 2>/dev/null || ss -tulpn 2>/dev/null || echo "Network tools not found"
-      cat /app/frontend.log
       exit 1
     fi
     sleep 1
