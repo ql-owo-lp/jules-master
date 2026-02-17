@@ -5,6 +5,10 @@ cleanup() {
   echo "--- Backend Logs (/app/backend.log) ---"
   cat /app/backend.log || echo "No backend log found."
   echo "--- End Backend Logs ---"
+  echo "--- System Info ---"
+  ps aux || echo "ps failed"
+  node --version
+  ./node_modules/.bin/next --version
 }
 trap cleanup EXIT
 
@@ -34,4 +38,4 @@ fi
 # Start frontend
 PORT_TO_USE=${1:-3000}
 echo "Frontend starting on port $PORT_TO_USE..."
-./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE
+exec ./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE
