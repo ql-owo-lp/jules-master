@@ -1,10 +1,10 @@
 FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
-# Install Go
+# Install Go (matching server/go.mod requirement)
 RUN apt-get update && apt-get install -y wget build-essential sqlite3 && \
-    wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
-    rm go1.24.0.linux-amd64.tar.gz
+    wget https://go.dev/dl/go1.24.8.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.24.8.linux-amd64.tar.gz && \
+    rm go1.24.8.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 WORKDIR /app
@@ -32,5 +32,6 @@ RUN npm run build
 # Download backend dependencies
 RUN cd /server && go mod download
 
-# Run E2E tests
-CMD ["npm", "run", "test:e2e"]
+# Run E2E tests via the startup script to manage services and logs
+ENV TEST_SKIP_WEBSERVER=true
+CMD ["sh", "scripts/start-e2e.sh", "npm", "run", "test:e2e"]

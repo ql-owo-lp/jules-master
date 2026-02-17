@@ -14,12 +14,6 @@ cleanup() {
   cat /app/frontend.log || echo "No frontend log found."
   echo "--- End Frontend Logs ---"
 
-  echo "--- System Info ---"
-  ps aux || echo "ps failed"
-  node --version
-  /usr/local/go/bin/go version || echo "go not found"
-  ./node_modules/.bin/next --version
-
   echo "Cleaning up processes..."
   if [ -n "$FRONTEND_PID" ]; then
     echo "Killing frontend PID $FRONTEND_PID"
@@ -65,7 +59,7 @@ if ! ./node_modules/.bin/tsx scripts/wait-for-backend.ts; then
 fi
 
 # Start frontend
-PORT_TO_USE=${1:-3000}
+PORT_TO_USE=3000
 echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
@@ -91,8 +85,17 @@ fi
 
 echo "Frontend is ready on port $PORT_TO_USE."
 
-# Wait for frontend process to exit
-wait $FRONTEND_PID
-EXIT_CODE=$?
-echo "Frontend exited with code $EXIT_CODE"
-exit $EXIT_CODE
+if [ "$#" -gt 0 ]; then
+  # Run the provided command (tests)
+  echo "Running provided command: $@"
+  "$@"
+  EXIT_CODE=$?
+  echo "Command exited with code $EXIT_CODE"
+  exit $EXIT_CODE
+else
+  # Wait for frontend process to exit (default behavior if no args)
+  wait $FRONTEND_PID
+  EXIT_CODE=$?
+  echo "Frontend exited with code $EXIT_CODE"
+  exit $EXIT_CODE
+fi
