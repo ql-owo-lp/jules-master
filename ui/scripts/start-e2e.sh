@@ -79,13 +79,13 @@ unset PORT
 
 # Start frontend in background
 # Use next dev to avoid potential build issues in CI container context
-# Force NODE_ENV=test just in case
-export NODE_ENV=test
+# Explicitly set NODE_ENV to development for next dev
+export NODE_ENV=development
 ./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
-# Simple shell-based wait for frontend
+# Simple shell-based wait for frontend with better logging
 echo "Waiting for frontend (curl loop)..."
 MAX_WAIT_RETRIES=120 # 2 minutes
 WAIT_COUNT=0
@@ -93,7 +93,13 @@ while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null; do
   WAIT_COUNT=$((WAIT_COUNT+1))
   if [ $WAIT_COUNT -ge $MAX_WAIT_RETRIES ]; then
     echo "Frontend failed to start after $MAX_WAIT_RETRIES attempts."
+    # Dump logs immediately on failure
+    echo "Frontend startup logs:"
+    cat /app/frontend.log
     exit 1
+  fi
+  if [ $((WAIT_COUNT % 10)) -eq 0 ]; then
+      echo "Waiting... ($WAIT_COUNT/$MAX_WAIT_RETRIES)"
   fi
   sleep 1
 done
