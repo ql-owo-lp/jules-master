@@ -33,12 +33,16 @@ cleanup() {
 trap cleanup EXIT
 
 # Cleanup DB
+echo "Cleaning up DB..."
 rm -f e2e_jules.db*
 export DATABASE_URL=e2e_jules.db
 
 # Run migrations and seed
-./node_modules/.bin/tsx src/lib/db/migrate.ts
-./node_modules/.bin/tsx scripts/seed-e2e.ts
+echo "Running migrations..."
+./node_modules/.bin/tsx src/lib/db/migrate.ts || { echo "Migration failed"; exit 1; }
+
+echo "Running seed..."
+./node_modules/.bin/tsx scripts/seed-e2e.ts || { echo "Seed failed"; exit 1; }
 
 # Ensure permissions
 chmod -R 777 .
