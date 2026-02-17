@@ -21,6 +21,9 @@ export DATABASE_URL=e2e_jules.db
 ./node_modules/.bin/tsx src/lib/db/migrate.ts
 ./node_modules/.bin/tsx scripts/seed-e2e.ts
 
+# Ensure permissions
+chmod -R 777 .
+
 # Backend Setup
 export PORT=50051
 export JULES_API_KEY='00000000-0000-0000-0000-000000000000'
@@ -41,5 +44,5 @@ PORT_TO_USE=${1:-3000}
 echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
-# Use next start directly
+# Use next start directly (without exec to ensure trap runs)
 ./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE
