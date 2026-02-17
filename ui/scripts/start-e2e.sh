@@ -80,7 +80,9 @@ unset PORT
 # Start frontend in background
 # Use next dev to avoid potential build issues in CI container context
 # Explicitly set NODE_ENV to development for next dev
+# Set HOSTNAME explicitly to 0.0.0.0 for Next.js 13.5+ reliability
 export NODE_ENV=development
+export HOSTNAME=0.0.0.0
 ./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
@@ -89,15 +91,31 @@ echo "Frontend started with PID $FRONTEND_PID"
 echo "Waiting for frontend (curl loop)..."
 MAX_WAIT_RETRIES=120 # 2 minutes
 WAIT_COUNT=0
-while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null; do
+# Try both localhost and 127.0.0.1
+while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http://localhost:$PORT_TO_USE" > /dev/null; do
   WAIT_COUNT=$((WAIT_COUNT+1))
   if [ $WAIT_COUNT -ge $MAX_WAIT_RETRIES ]; then
     echo "Frontend failed to start after $MAX_WAIT_RETRIES attempts."
-    # Dump logs immediately on failure
+
+    # Diagnostic info
+    echo "--- Process Status ---"
+    ps aux | grep next || echo "Next process not found"
+
+    echo "--- Network Status (if available) ---"
+    netstat -tulpn 2>/dev/null || ss -tulpn 2>/dev/null || echo "Network tools not found"
+
     echo "Frontend startup logs:"
     cat /app/frontend.log
     exit 1
   fi
+
+  # Check if process is still alive
+  if ! kill -0 $FRONTEND_PID 2>/dev/null; then
+    echo "Frontend process $FRONTEND_PID died unexpectedly."
+    cat /app/frontend.log
+    exit 1
+  fi
+
   if [ $((WAIT_COUNT % 10)) -eq 0 ]; then
       echo "Waiting... ($WAIT_COUNT/$MAX_WAIT_RETRIES)"
   fi
