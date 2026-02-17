@@ -44,5 +44,8 @@ PORT_TO_USE=${1:-3000}
 echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
-# Use next start directly (without exec to ensure trap runs)
-./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE
+# Use next dev directly (without exec to ensure trap runs)
+./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE
+EXIT_CODE=$?
+echo "Frontend exited with code $EXIT_CODE"
+exit $EXIT_CODE
