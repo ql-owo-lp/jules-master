@@ -23,8 +23,17 @@ cleanup() {
     echo "Killing backend PID $BACKEND_PID"
     kill $BACKEND_PID 2>/dev/null || true
   fi
+
+  # Aggressive cleanup of ports
+  fuser -k 3000/tcp 2>/dev/null || true
+  fuser -k 50051/tcp 2>/dev/null || true
 }
 trap cleanup EXIT
+
+# Ensure clean state
+echo "Cleaning up ports 3000 and 50051..."
+fuser -k 3000/tcp 2>/dev/null || true
+fuser -k 50051/tcp 2>/dev/null || true
 
 # Cleanup DB
 echo "Cleaning up DB..."
@@ -32,9 +41,19 @@ rm -f e2e_jules.db*
 # Use absolute path to ensure backend (running in different dir) connects to same DB
 export DATABASE_URL=$(pwd)/e2e_jules.db
 
-# Run migrations and seed
+# Run migrations and seed with retry
 echo "Running migrations..."
-./node_modules/.bin/tsx src/lib/db/migrate.ts || { echo "Migration failed"; exit 1; }
+MAX_RETRIES=3
+RETRY_COUNT=0
+until ./node_modules/.bin/tsx src/lib/db/migrate.ts; do
+  RETRY_COUNT=$((RETRY_COUNT+1))
+  if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+    echo "Migration failed after $MAX_RETRIES attempts"
+    exit 1
+  fi
+  echo "Migration failed, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
+  sleep 2
+done
 
 echo "Running seed..."
 ./node_modules/.bin/tsx scripts/seed-e2e.ts || { echo "Seed failed"; exit 1; }
