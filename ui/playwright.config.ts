@@ -29,12 +29,9 @@ export default defineConfig({
       env: {
         DATABASE_URL: 'e2e_jules.db', // Ensure consistency if passed down
       },
-      env: {
-        DATABASE_URL: 'e2e_jules.db', // Ensure consistency if passed down
-      },
       reuseExistingServer: !process.env.CI,
-      stdout: 'ignore',
-      stderr: 'ignore',
+      stdout: 'pipe',
+      stderr: 'pipe',
       timeout: 600 * 1000,
     },
 });
