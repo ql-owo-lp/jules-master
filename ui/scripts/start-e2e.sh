@@ -70,9 +70,15 @@ echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
 
+# Check if build exists
+if [ ! -d ".next" ]; then
+  echo "Error: .next directory not found. Running build..."
+  npm run build || { echo "Build failed"; exit 1; }
+fi
+
 # Start frontend in background
-# Use next dev to avoid potential issues with build artifacts in CI
-./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
+# Use next start (production build) for stability
+./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
