@@ -77,13 +77,15 @@ echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
 
-# Start frontend in background
-# Use next dev to avoid potential build issues in CI container context
-# Explicitly set NODE_ENV to development for next dev
-# Set HOSTNAME explicitly to 0.0.0.0 for Next.js 13.5+ reliability
-export NODE_ENV=development
-export HOSTNAME=0.0.0.0
-./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
+# Build and Start frontend (production mode)
+# This is safer for CI than next dev
+echo "Building frontend..."
+npm run build || { echo "Build failed"; exit 1; }
+
+echo "Starting frontend..."
+# Run npm start in background
+# Use nohup to ensure it stays alive? No, & is fine.
+npm start -- -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
@@ -100,9 +102,6 @@ while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http:/
     # Diagnostic info
     echo "--- Process Status ---"
     ps aux | grep next || echo "Next process not found"
-
-    echo "--- Network Status (if available) ---"
-    netstat -tulpn 2>/dev/null || ss -tulpn 2>/dev/null || echo "Network tools not found"
 
     echo "Frontend startup logs:"
     cat /app/frontend.log
