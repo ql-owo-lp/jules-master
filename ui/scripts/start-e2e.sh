@@ -29,7 +29,8 @@ trap cleanup EXIT
 # Cleanup DB
 echo "Cleaning up DB..."
 rm -f e2e_jules.db*
-export DATABASE_URL=e2e_jules.db
+# Use absolute path to ensure backend (running in different dir) connects to same DB
+export DATABASE_URL=$(pwd)/e2e_jules.db
 
 # Run migrations and seed
 echo "Running migrations..."
