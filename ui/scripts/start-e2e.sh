@@ -10,7 +10,7 @@ cleanup() {
   cat /app/backend.log || echo "No backend log found."
   echo "--- End Backend Logs ---"
 
-  # Frontend logs are in stdout, but if we redirected:
+  # Frontend logs are in stdout
   cat /app/frontend.log || echo "No frontend log found."
 
   echo "Cleaning up processes..."
@@ -71,6 +71,8 @@ if ! ./node_modules/.bin/tsx scripts/wait-for-backend.ts; then
 fi
 
 # Start frontend
+# Force IPv4 preference for node
+export NODE_OPTIONS="--dns-result-order=ipv4first"
 PORT_TO_USE=3000
 echo "Frontend starting on port $PORT_TO_USE..."
 # Unset PORT to avoid conflict with Next.js (which might use PORT env var)
@@ -90,7 +92,7 @@ npm run build || { echo "Build failed"; exit 1; }
 echo "Starting frontend..."
 export HOSTNAME=0.0.0.0
 # Use next start (production) for CI reliability
-# Direct next start usage to avoid npm wrapping obscurity
+# Direct next start usage
 ./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
@@ -99,8 +101,8 @@ echo "Frontend started with PID $FRONTEND_PID"
 echo "Waiting for frontend (curl loop)..."
 MAX_WAIT_RETRIES=300 # 5 minutes
 WAIT_COUNT=0
-# Try both localhost and 127.0.0.1
-while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http://localhost:$PORT_TO_USE" > /dev/null; do
+# Try localhost, 127.0.0.1, AND 0.0.0.0
+while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http://localhost:$PORT_TO_USE" > /dev/null && ! curl -s "http://0.0.0.0:$PORT_TO_USE" > /dev/null; do
   WAIT_COUNT=$((WAIT_COUNT+1))
   if [ $WAIT_COUNT -ge $MAX_WAIT_RETRIES ]; then
     echo "Frontend failed to start after $MAX_WAIT_RETRIES attempts."
