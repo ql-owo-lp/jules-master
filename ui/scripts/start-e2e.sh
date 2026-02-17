@@ -24,9 +24,21 @@ export DATABASE_URL=/tmp/e2e_jules.db
 export PORT=50051
 export JULES_API_KEY='mock-api-key'
 
+echo "Checking for gcc..."
+which gcc || echo "gcc not found"
+
+# Build backend first
+echo "Building backend..."
+cd ../server
+if ! GOWORK=off CGO_ENABLED=1 /usr/local/go/bin/go build -o /app/server_bin cmd/server/main.go; then
+  echo "Backend build failed."
+  exit 1
+fi
+cd ../ui
+
 # Start backend in background with logging
-# Use go run to ensure runtime compatibility and logging. GOWORK=off ensures we use go.mod.
-(cd ../server && GOWORK=off CGO_ENABLED=1 /usr/local/go/bin/go run cmd/server/main.go 2>&1 | tee /app/backend.log) &
+echo "Starting backend..."
+(/app/server_bin 2>&1 | tee /app/backend.log) &
 
 # Wait for backend to be ready
 if ! ./node_modules/.bin/tsx scripts/wait-for-backend.ts; then
