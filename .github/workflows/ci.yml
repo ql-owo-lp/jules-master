@@ -104,15 +104,13 @@ jobs:
       # Run Tests
       - name: Run E2E Tests
         run: |
-          # 1. Seed the DB using the test runner (mounting the same volume)
-          # We use the test runner because it has the tsx/scripts needed for seeding
+          # 1. Seed the DB using sqlite3 CLI (bypassing node binding issues)
           docker run --rm \
             --network host \
             -v shared-data:/app/data \
-            -e DATABASE_URL=/app/data/sqlite.db \
             --entrypoint /bin/sh \
             jules-test:latest \
-            -c "npx tsx scripts/seed-e2e.ts"
+            -c "sqlite3 /app/data/sqlite.db < scripts/seed.sql"
 
           # 2. Run Playwright Tests against network host (localhost:9002)
           docker run --rm \

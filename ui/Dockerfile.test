@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
-# Install Go and Python
-RUN apt-get update && apt-get install -y wget build-essential python3 && \
+# Install Go, Python, and sqlite3
+RUN apt-get update && apt-get install -y wget build-essential python3 sqlite3 && \
     wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
     rm go1.24.0.linux-amd64.tar.gz
@@ -26,7 +26,7 @@ RUN rm pnpm-lock.yaml || true
 # Install dependencies
 RUN pnpm install
 
-# Force rebuild better-sqlite3 just in case
+# Force rebuild better-sqlite3 just in case (though we will use sqlite3 CLI for seeding)
 RUN pnpm rebuild better-sqlite3
 
 RUN ln -s /app/node_modules /node_modules
