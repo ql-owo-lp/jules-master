@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
-# Install Go
-RUN apt-get update && apt-get install -y wget build-essential && \
+# Install Go, Python, and sqlite3
+RUN apt-get update && apt-get install -y wget build-essential python3 sqlite3 && \
     wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
     rm go1.24.0.linux-amd64.tar.gz
@@ -12,17 +12,20 @@ WORKDIR /app
 ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Copy package files
-COPY ui/package.json ui/package-lock.json ./
-
-# Install dependencies
-RUN npm ci
-RUN ln -s /app/node_modules /node_modules
-
-# Copy source code
+# Copy source code first
 COPY ui/ .
 COPY proto/ /proto/
 COPY server/ /server/
+
+# Ensure no existing lockfiles or node_modules interfere
+RUN rm -rf pnpm-lock.yaml package-lock.json node_modules
+
+# Install dependencies using npm (fresh resolution)
+# We use npm install directly which generates a fresh package-lock.json and installs
+RUN npm install
+
+# Rebuild native modules explicitly from source to match container arch
+RUN npm rebuild better-sqlite3 --build-from-source
 
 # Pre-build backend
 RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go
