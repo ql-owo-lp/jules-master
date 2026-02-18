@@ -32,9 +32,6 @@ WORKDIR /app
 
 # Copy UI package files and proto files
 COPY ui/package.json ui/package-lock.json ./
-# Debug npm availability before running it
-RUN echo "Checking npm..." && which npm && npm -v
-
 # Use npm ci instead of pnpm to avoid symlink issues in multi-stage builds
 # This installs ALL dependencies (dev + prod) for building
 RUN npm ci
@@ -63,8 +60,6 @@ RUN mkdir -p /app/data
 # and shares the same OS/Architecture as the runner stage (node:20-bookworm)
 WORKDIR /app/prod_deps
 COPY ui/package.json ui/package-lock.json ./
-# Debug npm availability in the new WORKDIR
-RUN echo "Checking npm in prod_deps..." && which npm && npm -v
 RUN npm ci --omit=dev
 
 # 3. Final Stage
