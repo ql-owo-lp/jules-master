@@ -65,7 +65,9 @@ COPY --from=node-builder /app/.next ./.next
 COPY --from=node-builder /app/node_modules ./node_modules
 COPY --from=node-builder /app/package.json ./package.json
 COPY --from=node-builder /app/start.js ./
-COPY --from=node-builder /app/src/lib/db ./src/lib/db
+# Copy entire src folder to ensure all dependencies for migrations/scripts are present
+COPY --from=node-builder /app/src ./src
+COPY --from=node-builder /app/tsconfig.json ./tsconfig.json
 COPY --from=node-builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=node-builder /app/data /app/data
 
