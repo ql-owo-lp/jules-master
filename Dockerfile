@@ -11,7 +11,6 @@ RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
 FROM node:24-bookworm AS node-builder
-RUN apt-get update && apt-get install -y curl unzip python3 make g++
 # Install pnpm (optional, but we use npm now)
 # RUN npm install -g pnpm
 
@@ -54,13 +53,6 @@ RUN ln -s /app/node_modules /node_modules
 RUN npm run build --debug
 RUN mkdir -p /app/data
 
-# Prepare production dependencies in a separate folder
-# We do this here because this stage definitely has working npm and build tools
-# and matches the OS of the runner stage (both node:24-bookworm)
-WORKDIR /app/prod_deps
-COPY ui/package.json ui/package-lock.json ./
-RUN npm ci --omit=dev
-
 # 3. Final Stage
 # Use full bookworm image to ensure all standard libraries are present for native modules
 FROM node:24-bookworm AS runner
@@ -68,15 +60,16 @@ WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
 
-# Install runtime dependencies and build tools for rebuilding native modules
-# This is crucial for better-sqlite3 if it needs to rebuild
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+# Copy package files to install production deps directly
+COPY --from=node-builder /app/package.json ./package.json
+COPY --from=node-builder /app/package-lock.json ./package-lock.json
+
+# Install production dependencies directly in the runner stage
+# This ensures native modules like better-sqlite3 are compiled for this specific environment
+RUN npm ci --omit=dev
 
 # Copy Next.js assets
 COPY --from=node-builder /app/.next ./.next
-# Copy production node_modules from the builder's prepared folder
-COPY --from=node-builder /app/prod_deps/node_modules ./node_modules
-COPY --from=node-builder /app/package.json ./package.json
 COPY --from=node-builder /app/start.js ./
 # Copy entire src folder to ensure all dependencies for migrations/scripts are present
 COPY --from=node-builder /app/src ./src
@@ -89,11 +82,6 @@ COPY --from=go-builder /app/server /app/server
 
 # Explicitly copy migrations folder to ensure it exists (redundant but safe)
 COPY --from=node-builder /app/src/lib/db/migrations ./src/lib/db/migrations
-
-# Rebuild native modules in the final environment to ensure compatibility
-# Using npm rebuild explicitly in the final stage
-# Rebuilding everything to be safe
-RUN npm rebuild --verbose
 
 # Expose ports (9002 for frontend, 50051 for backend (internal))
 EXPOSE 9002
