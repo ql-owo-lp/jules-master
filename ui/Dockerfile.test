@@ -1,5 +1,4 @@
-# Use Ubuntu Jammy (22.04) based image for better stability with native modules
-FROM mcr.microsoft.com/playwright:v1.48.1-jammy
+FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
 # Install Go, Python, and sqlite3
 RUN apt-get update && apt-get install -y wget build-essential python3 sqlite3 && \
@@ -18,13 +17,14 @@ COPY ui/ .
 COPY proto/ /proto/
 COPY server/ /server/
 
-# Remove lockfiles to force fresh install
-RUN rm pnpm-lock.yaml package-lock.json || true
+# Ensure no existing lockfiles or node_modules interfere
+RUN rm -rf pnpm-lock.yaml package-lock.json node_modules
 
-# Install dependencies using npm
+# Install dependencies using npm (fresh resolution)
+# We use npm install directly which generates a fresh package-lock.json and installs
 RUN npm install
 
-# Rebuild native modules explicitly from source
+# Rebuild native modules explicitly from source to match container arch
 RUN npm rebuild better-sqlite3 --build-from-source
 
 # Pre-build backend
