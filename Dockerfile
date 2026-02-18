@@ -11,7 +11,7 @@ RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
 FROM node:24-bookworm-slim AS node-builder
-RUN apt-get update && apt-get install -y curl unzip
+RUN apt-get update && apt-get install -y curl unzip python3 make g++
 # Install pnpm (optional, but we use npm now)
 # RUN npm install -g pnpm
 
@@ -32,6 +32,7 @@ WORKDIR /app
 # Copy UI package files and proto files
 COPY ui/package.json ui/package-lock.json ./
 # Use npm ci instead of pnpm to avoid symlink issues in multi-stage builds
+# This installs ALL dependencies (dev + prod) for building
 RUN npm ci
 
 # Copy source code and protos
@@ -53,26 +54,31 @@ RUN ln -s /app/node_modules /node_modules
 RUN npm run build --debug
 RUN mkdir -p /app/data
 
-# 3. Final Stage
+# 3. Production Dependencies Stage
+# Re-install only production dependencies in a clean directory to keep image size down
+# and ensure clean native builds.
+FROM node:24-bookworm-slim AS prod-deps
+WORKDIR /app
+RUN apt-get update && apt-get install -y python3 make g++
+COPY ui/package.json ui/package-lock.json ./
+RUN npm ci --omit=dev
+
+# 4. Final Stage
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
 
-# Install build tools for native modules (python3, make, g++) if needed for better-sqlite3 rebuild
-# For bookworm-slim, we might need these if prebuilt binaries don't match
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+# Install runtime dependencies for native modules if needed
+# better-sqlite3 usually needs python/make only for build, but runtime might need libsqlite3
+# bookworm-slim usually has what's needed for runtime execution of pre-compiled binaries
+# We don't install python/make here to keep image small
 
 # Copy Next.js assets
 COPY --from=node-builder /app/.next ./.next
-# Copy package files to install production deps
+# Copy production node_modules
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=node-builder /app/package.json ./package.json
-COPY --from=node-builder /app/package-lock.json ./package-lock.json
-
-# Install production dependencies directly in the runner stage
-# This ensures native modules like better-sqlite3 are compiled for this specific environment
-RUN npm ci --omit=dev
-
 COPY --from=node-builder /app/start.js ./
 # Copy entire src folder to ensure all dependencies for migrations/scripts are present
 COPY --from=node-builder /app/src ./src
