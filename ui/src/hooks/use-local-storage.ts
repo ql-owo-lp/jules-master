@@ -70,7 +70,7 @@ if (typeof window !== "undefined") {
 export function useLocalStorage<T>(
   key: string,
   initialValue: T
-): [T, (value: T) => void] {
+): [T, (value: T | ((val: T) => T)) => void] {
   const getSnapshot = useCallback(() => {
     if (typeof window === "undefined") return JSON.stringify(initialValue);
 
@@ -78,7 +78,10 @@ export function useLocalStorage<T>(
     if (storeCache.has(key)) {
         const cached = storeCache.get(key);
         // If cached is null (missing) or "undefined", return initialValue
-        return cached !== null && cached !== "undefined" ? cached : JSON.stringify(initialValue);
+        if (cached === undefined || cached === null || cached === "undefined") {
+            return JSON.stringify(initialValue);
+        }
+        return cached;
     }
 
     try {
@@ -105,10 +108,22 @@ export function useLocalStorage<T>(
   const store = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const setValue = useCallback(
-    (value: T) => {
+    (value: T | ((val: T) => T)) => {
       try {
-        const valueToStore = value instanceof Function ? value(JSON.parse(store)) : value;
+        let valueToStore: T;
+
+        if (value instanceof Function) {
+          const currentVal = store ? JSON.parse(store) : initialValue;
+          valueToStore = value(currentVal);
+          if (valueToStore === currentVal) return;
+        } else {
+          valueToStore = value;
+        }
+
         const jsonValue = JSON.stringify(valueToStore);
+
+        if (jsonValue === store) return;
+
         if (typeof window !== "undefined") {
           // This call goes through the monkey-patched setItem,
           // which updates the cache and emits the event.
@@ -118,7 +133,7 @@ export function useLocalStorage<T>(
         console.error(error);
       }
     },
-    [key, store]
+    [key, store, initialValue]
   );
 
   // Parse the store string back to T
