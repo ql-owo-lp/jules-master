@@ -10,7 +10,7 @@ COPY server/ .
 RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
-# Use Node 22 LTS (Jod) for stability. Node 24 might be unstable/future.
+# Use Node 22 LTS (Jod) for stability.
 FROM node:22-bookworm AS node-builder
 RUN apt-get update && apt-get install -y curl unzip python3 make g++
 # Install pnpm (optional, but we use npm now)
@@ -55,6 +55,13 @@ RUN ln -s /app/node_modules /node_modules
 RUN npm run build --debug
 RUN mkdir -p /app/data
 
+# Prepare production dependencies in a separate folder
+# We do this here because this stage definitely has working npm and build tools (python, make, g++)
+# and shares the same OS/Architecture as the runner stage (node:22-bookworm)
+WORKDIR /app/prod_deps
+COPY ui/package.json ui/package-lock.json ./
+RUN npm ci --omit=dev
+
 # 3. Final Stage
 # Use Node 22 LTS (Jod) for stability
 FROM node:22-bookworm AS runner
@@ -62,13 +69,13 @@ WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
 
-# Copy package files to install production deps directly
+# Copy package files (useful for reference, though modules are copied below)
 COPY --from=node-builder /app/package.json ./package.json
 COPY --from=node-builder /app/package-lock.json ./package-lock.json
 
-# Install production dependencies directly in the runner stage
-# This ensures native modules like better-sqlite3 are compiled for this specific environment
-RUN npm ci --omit=dev
+# Copy production node_modules from the builder's prepared folder
+# This bypasses running npm in the runner stage, avoiding "command not found" errors
+COPY --from=node-builder /app/prod_deps/node_modules ./node_modules
 
 # Copy Next.js assets
 COPY --from=node-builder /app/.next ./.next
