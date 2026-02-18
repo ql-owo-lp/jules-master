@@ -90,10 +90,10 @@ COPY --from=go-builder /app/server /app/server
 # Explicitly copy migrations folder to ensure it exists (redundant but safe)
 COPY --from=node-builder /app/src/lib/db/migrations ./src/lib/db/migrations
 
-# Attempt to rebuild better-sqlite3 with verbose logging to debug failure
-# If this fails, we will see why in the build logs.
-# If it passes, the native module is ready.
-RUN npm rebuild better-sqlite3 --verbose
+# Rebuild native modules in the final environment to ensure compatibility
+# Using npm rebuild explicitly in the final stage
+# Rebuilding everything to be safe
+RUN npm rebuild --verbose
 
 # Expose ports (9002 for frontend, 50051 for backend (internal))
 EXPOSE 9002
