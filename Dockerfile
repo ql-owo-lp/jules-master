@@ -10,8 +10,8 @@ COPY server/ .
 RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
-# Use Node 22 LTS (Jod) for stability.
-FROM node:22-bookworm AS node-builder
+# Use Node 20 LTS (Iron) for maximum stability and compatibility.
+FROM node:20-bookworm AS node-builder
 RUN apt-get update && apt-get install -y curl unzip python3 make g++
 # Install pnpm (optional, but we use npm now)
 # RUN npm install -g pnpm
@@ -56,8 +56,8 @@ RUN npm run build --debug
 RUN mkdir -p /app/data
 
 # 3. Final Stage
-# Use Node 22 LTS (Jod) for stability
-FROM node:22-bookworm AS runner
+# Use Node 20 LTS (Iron) for stability
+FROM node:20-bookworm AS runner
 WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
@@ -69,6 +69,9 @@ RUN apt-get update && apt-get install -y python3 make g++ sqlite3 && rm -rf /var
 # Copy package files to install production deps directly
 COPY --from=node-builder /app/package.json ./package.json
 COPY --from=node-builder /app/package-lock.json ./package-lock.json
+
+# Debugging: verify environment
+RUN echo "Checking environment..." && node -v && npm -v
 
 # Install production dependencies directly in the runner stage
 # This ensures native modules like better-sqlite3 are compiled for this specific environment
