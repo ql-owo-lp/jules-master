@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
-# Install Go
-RUN apt-get update && apt-get install -y wget build-essential && \
+# Install Go and Python (for node-gyp if needed)
+RUN apt-get update && apt-get install -y wget build-essential python3 && \
     wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
     rm go1.24.0.linux-amd64.tar.gz
@@ -20,14 +20,17 @@ COPY ui/package.json ui/pnpm-lock.yaml ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
-# Rebuild native modules to ensure they match the container's architecture
-RUN pnpm rebuild better-sqlite3
-RUN ln -s /app/node_modules /node_modules
 
 # Copy source code
 COPY ui/ .
 COPY proto/ /proto/
 COPY server/ /server/
+
+# Force rebuild of better-sqlite3 to ensure correct bindings
+# We remove and re-add to force a clean build for the current architecture
+RUN pnpm remove better-sqlite3 && pnpm add better-sqlite3
+
+RUN ln -s /app/node_modules /node_modules
 
 # Pre-build backend
 RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go
