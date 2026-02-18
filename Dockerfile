@@ -10,7 +10,7 @@ COPY server/ .
 RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
-FROM node:24-bookworm-slim AS node-builder
+FROM node:24-bookworm AS node-builder
 RUN apt-get update && apt-get install -y curl unzip python3 make g++
 # Install pnpm (optional, but we use npm now)
 # RUN npm install -g pnpm
@@ -56,19 +56,20 @@ RUN mkdir -p /app/data
 
 # Prepare production dependencies in a separate folder
 # We do this here because this stage definitely has working npm and build tools
-# and matches the OS of the runner stage (both node:24-bookworm-slim)
+# and matches the OS of the runner stage (both node:24-bookworm)
 WORKDIR /app/prod_deps
 COPY ui/package.json ui/package-lock.json ./
 RUN npm ci --omit=dev
 
 # 3. Final Stage
-FROM node:24-bookworm-slim AS runner
+# Use full bookworm image to ensure all standard libraries are present for native modules
+FROM node:24-bookworm AS runner
 WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
 
 # Install runtime dependencies and build tools for rebuilding native modules
-# This is crucial for better-sqlite3
+# This is crucial for better-sqlite3 if it needs to rebuild
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # Copy Next.js assets
@@ -90,6 +91,7 @@ COPY --from=go-builder /app/server /app/server
 COPY --from=node-builder /app/src/lib/db/migrations ./src/lib/db/migrations
 
 # Rebuild native modules in the final environment to ensure compatibility
+# Using npm rebuild explicitly in the final stage
 RUN npm rebuild better-sqlite3
 
 # Expose ports (9002 for frontend, 50051 for backend (internal))
