@@ -10,7 +10,7 @@ COPY server/ .
 RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
-FROM node:24 AS node-builder
+FROM node:24-bookworm-slim AS node-builder
 RUN apt-get update && apt-get install -y curl unzip
 # Install pnpm (optional, but we use npm now)
 # RUN npm install -g pnpm
@@ -54,17 +54,25 @@ RUN npm run build --debug
 RUN mkdir -p /app/data
 
 # 3. Final Stage
-# Switch from distroless to slim to ensure standard shell and libs for native modules (better-sqlite3)
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
 
+# Install build tools for native modules (python3, make, g++) if needed for better-sqlite3 rebuild
+# For bookworm-slim, we might need these if prebuilt binaries don't match
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
 # Copy Next.js assets
 COPY --from=node-builder /app/.next ./.next
-# Copy node_modules (npm structure is flat and safe to copy)
-COPY --from=node-builder /app/node_modules ./node_modules
+# Copy package files to install production deps
 COPY --from=node-builder /app/package.json ./package.json
+COPY --from=node-builder /app/package-lock.json ./package-lock.json
+
+# Install production dependencies directly in the runner stage
+# This ensures native modules like better-sqlite3 are compiled for this specific environment
+RUN npm ci --omit=dev
+
 COPY --from=node-builder /app/start.js ./
 # Copy entire src folder to ensure all dependencies for migrations/scripts are present
 COPY --from=node-builder /app/src ./src
@@ -75,7 +83,7 @@ COPY --from=node-builder /app/data /app/data
 # Copy Go backend binary
 COPY --from=go-builder /app/server /app/server
 
-# Explicitly copy migrations folder to ensure it exists
+# Explicitly copy migrations folder to ensure it exists (redundant but safe)
 COPY --from=node-builder /app/src/lib/db/migrations ./src/lib/db/migrations
 
 # Expose ports (9002 for frontend, 50051 for backend (internal))
