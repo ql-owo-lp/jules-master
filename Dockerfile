@@ -56,6 +56,7 @@ RUN mkdir -p /app/data
 
 # Prepare production dependencies in a separate folder
 # We do this here because this stage definitely has working npm and build tools
+# and matches the OS of the runner stage (both node:24-bookworm-slim)
 WORKDIR /app/prod_deps
 COPY ui/package.json ui/package-lock.json ./
 RUN npm ci --omit=dev
