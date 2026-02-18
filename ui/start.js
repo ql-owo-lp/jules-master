@@ -79,6 +79,7 @@ const appResult = spawnSync(
   [
     './node_modules/next/dist/bin/next',
     'start',
+    '-H', '0.0.0.0',
     '-p',
     process.env.PORT || '9002'
   ],

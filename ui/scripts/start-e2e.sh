@@ -79,14 +79,21 @@ unset PORT
 echo "Node version:"
 node --version
 
-echo "Starting frontend (next dev)..."
-export NODE_ENV=development
+echo "Starting frontend (next start)..."
+export NODE_ENV=production
 export HOSTNAME=0.0.0.0
 # Increase memory
 export NODE_OPTIONS="--max-old-space-size=4096"
 
+# Ensure build exists (if running locally/fresh)
+if [ ! -d ".next" ]; then
+  echo "Build not found. Building..."
+  npm run build || { echo "Build failed"; exit 1; }
+fi
+
 # Pipe to stdout for immediate visibility in CI
-./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE &
+# Use next start for production-like environment
+./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 

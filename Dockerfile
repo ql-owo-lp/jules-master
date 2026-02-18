@@ -12,8 +12,8 @@ RUN go build -o server cmd/server/main.go
 # 2. Node Builder Stage
 FROM node:24 AS node-builder
 RUN apt-get update && apt-get install -y curl unzip
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm (optional, but we use npm now)
+# RUN npm install -g pnpm
 
 RUN PROTOC_VERSION="29.3" && \
     ARCH=$(uname -m) && \
@@ -30,9 +30,9 @@ RUN PROTOC_VERSION="29.3" && \
 WORKDIR /app
 
 # Copy UI package files and proto files
-COPY ui/package.json ui/pnpm-lock.yaml ./
-# Use pnpm install instead of npm ci
-RUN pnpm install --frozen-lockfile
+COPY ui/package.json ui/package-lock.json ./
+# Use npm ci instead of pnpm to avoid symlink issues in multi-stage builds
+RUN npm ci
 
 # Copy source code and protos
 COPY ui/ .
@@ -61,12 +61,7 @@ ENV DATABASE_URL=/app/data/sqlite.db
 
 # Copy Next.js assets
 COPY --from=node-builder /app/.next ./.next
-# Copy pnpm-lock.yaml instead of package-lock.json if needed by runtime (Next.js sometimes checks lockfile for dependency resolution optimization)
-# But more importantly copy node_modules
-# Note: pnpm node_modules structure might contain symlinks. Distroless image might not handle copying symlinks well if the source is not present?
-# But `COPY` should dereference if we copy directories? No.
-# If `pnpm` uses hardlinks to store, copying across stages might break if store is not copied?
-# However, `pnpm install` in Docker without mount usually copies files into node_modules (hardlinked), so copying the folder should work as files.
+# Copy node_modules (npm structure is flat and safe to copy)
 COPY --from=node-builder /app/node_modules ./node_modules
 COPY --from=node-builder /app/package.json ./package.json
 COPY --from=node-builder /app/start.js ./
