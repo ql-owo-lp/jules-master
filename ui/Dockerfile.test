@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/playwright:v1.57.0-noble
+# Use Ubuntu Jammy (22.04) based image for better stability with native modules
+FROM mcr.microsoft.com/playwright:v1.48.1-jammy
 
 # Install Go, Python, and sqlite3
 RUN apt-get update && apt-get install -y wget build-essential python3 sqlite3 && \
@@ -29,5 +30,5 @@ RUN npm rebuild better-sqlite3 --build-from-source
 # Pre-build backend
 RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go
 
-# Run E2E tests with debug check for bindings
-CMD ["sh", "-c", "ls -R node_modules/better-sqlite3/build && npm run test:e2e"]
+# Run E2E tests
+CMD ["npm", "run", "test:e2e"]
