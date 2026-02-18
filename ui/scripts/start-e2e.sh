@@ -36,6 +36,10 @@ export DATABASE_URL=$(pwd)/e2e_jules.db
 echo "Running migrations..."
 MAX_RETRIES=3
 RETRY_COUNT=0
+# Ensure we are in ui directory or path is correct.
+# Script is run from /app, and ui is in /app/ui (if built that way) or /app (if Dockerfile copies ui content to /app)
+# Dockerfile copies ui/. to /app/.
+# So migrate.ts is at src/lib/db/migrate.ts
 until ./node_modules/.bin/tsx src/lib/db/migrate.ts; do
   RETRY_COUNT=$((RETRY_COUNT+1))
   if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
@@ -102,6 +106,7 @@ echo "Waiting for frontend (curl loop)..."
 MAX_WAIT_RETRIES=300 # 5 minutes
 WAIT_COUNT=0
 
+# Loop checking all interfaces
 while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http://localhost:$PORT_TO_USE" > /dev/null && ! curl -s "http://0.0.0.0:$PORT_TO_USE" > /dev/null; do
   WAIT_COUNT=$((WAIT_COUNT+1))
   if [ $WAIT_COUNT -ge $MAX_WAIT_RETRIES ]; then

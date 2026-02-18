@@ -74,7 +74,7 @@ COPY --from=node-builder /app/data /app/data
 # Copy Go backend binary
 COPY --from=go-builder /app/server /app/server
 
-# Copy migrations folder (redundant if src is copied, but safe to be explicit if structure changes)
+# Explicitly copy migrations folder to ensure it exists
 COPY --from=node-builder /app/src/lib/db/migrations ./src/lib/db/migrations
 
 # Expose ports (9002 for frontend, 50051 for backend (internal))

@@ -1,6 +1,7 @@
 const { spawnSync } = require('child_process');
 const crypto = require('crypto');
 const nodePath = process.execPath;
+const fs = require('fs');
 
 // Security: Enforce internal authentication for gRPC services
 // If no token is provided, generate a secure random token and inject it into the environment
