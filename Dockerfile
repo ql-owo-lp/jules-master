@@ -54,7 +54,8 @@ RUN npm run build --debug
 RUN mkdir -p /app/data
 
 # 3. Final Stage
-FROM gcr.io/distroless/nodejs24-debian12 AS runner
+# Switch from distroless to slim to ensure standard shell and libs for native modules (better-sqlite3)
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
@@ -84,4 +85,4 @@ EXPOSE 9002
 VOLUME /app/data
 
 
-CMD ["start.js"]
+CMD ["node", "start.js"]
