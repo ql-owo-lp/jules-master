@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -11,11 +10,10 @@ import {
   SheetTitle,
   SheetTrigger,
   SheetFooter,
-  SheetClose,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Settings, Moon, Sun } from "lucide-react";
+import { Settings, Moon, Sun, Loader2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -23,12 +21,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Settings as SettingsType } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 
 export function SettingsSheet() {
   const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<SettingsType>({});
+  const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   // We still need to respect if theme is in DB, but this sheet now mainly controls local runtime config
   // or simple quick toggles.
   // Actually, the user said "only leave the run-time config like Theme in the side-panel settings menu".
@@ -53,16 +56,19 @@ export function SettingsSheet() {
         console.error("Failed to fetch settings from DB", error);
       }
     };
-    fetchSettings();
-  }, [setTheme]);
+    if (isOpen) {
+        fetchSettings();
+    }
+  }, [setTheme, isOpen]);
 
   const handleSave = async () => {
+      setIsSaving(true);
       try {
         const response = await fetch('/api/settings');
         if (!response.ok) throw new Error("Failed to fetch current settings");
         const currentSettings = await response.json();
 
-        await fetch('/api/settings', {
+        const saveResponse = await fetch('/api/settings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -74,17 +80,31 @@ export function SettingsSheet() {
             }),
         });
         
-        // Update local settings with merged result in case server modified it?
-        // For now just keep local state.
+        if (!saveResponse.ok) {
+            throw new Error("Failed to save settings");
+        }
+
+        toast({
+            title: "Settings saved",
+            description: "Your preferences have been updated.",
+        });
+        setIsOpen(false);
 
       } catch (error) {
           console.error("Failed to save settings to DB", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to save settings.",
+          });
+      } finally {
+          setIsSaving(false);
       }
   };
 
 
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" aria-label="Open settings">
           <Settings className="h-5 w-5" />
@@ -189,15 +209,15 @@ export function SettingsSheet() {
             </div>
         </div>
          <SheetFooter className="mt-8">
-          <SheetClose asChild>
             <Button
               onClick={handleSave}
               type="submit"
               className="bg-accent text-accent-foreground hover:bg-accent/90 w-full"
+              disabled={isSaving}
             >
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Preference
             </Button>
-          </SheetClose>
         </SheetFooter>
       </SheetContent>
     </Sheet>
