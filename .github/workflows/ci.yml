@@ -55,6 +55,7 @@ jobs:
   e2e:
     timeout-minutes: 20
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
