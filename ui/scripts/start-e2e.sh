@@ -22,8 +22,16 @@ cleanup() {
     echo "Killing backend PID $BACKEND_PID"
     kill $BACKEND_PID 2>/dev/null || true
   fi
+
+  # Force kill any lingering processes on ports
+  fuser -k 3000/tcp 2>/dev/null || true
+  fuser -k 50051/tcp 2>/dev/null || true
 }
 trap cleanup EXIT
+
+# Pre-emptive cleanup
+fuser -k 3000/tcp 2>/dev/null || true
+fuser -k 50051/tcp 2>/dev/null || true
 
 # Cleanup DB
 echo "Cleaning up DB..."
@@ -79,23 +87,24 @@ unset PORT
 # Check environment
 echo "Node version:"
 node --version
-echo "Checking .next directory..."
-if [ -d ".next" ]; then
-  echo ".next directory exists."
-else
-  echo ".next directory MISSING! This will likely fail."
-  ls -la
-fi
+echo "Next version:"
+npm list next || true
 
-echo "Starting frontend (npm start)..."
+# Build frontend (production mode) for reliability
+echo "Cleaning previous build..."
+rm -rf .next
+
+echo "Building frontend..."
 export NODE_ENV=production
-export HOSTNAME=0.0.0.0
-# Tune memory to avoid OOM
-export NODE_OPTIONS="--max-old-space-size=2048"
+# Increase memory for build
+export NODE_OPTIONS="--max-old-space-size=4096"
+npm run build || { echo "Build failed"; exit 1; }
 
-# Use npm start (production) using existing artifacts from Docker build
-# Pass args via --
-npm start -- -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
+echo "Starting frontend..."
+export HOSTNAME=0.0.0.0
+# Use next start (production) for CI reliability
+# Direct next start usage to avoid npm wrapping obscurity
+./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
@@ -128,10 +137,10 @@ while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http:/
     exit 1
   fi
 
-  if [ $((WAIT_COUNT % 60)) -eq 0 ]; then
+  if [ $((WAIT_COUNT % 30)) -eq 0 ]; then
       echo "Waiting... ($WAIT_COUNT/$MAX_WAIT_RETRIES)"
-      # Dump last 10 lines of log to see progress
-      tail -n 10 /app/frontend.log
+      # Dump last 5 lines of log to see progress
+      tail -n 5 /app/frontend.log
   fi
   sleep 1
 done
