@@ -54,16 +54,13 @@ RUN ln -s /app/node_modules /node_modules
 RUN npm run build --debug
 RUN mkdir -p /app/data
 
-# 3. Production Dependencies Stage
-# Re-install only production dependencies in a clean directory to keep image size down
-# and ensure clean native builds.
-FROM node:24-bookworm-slim AS prod-deps
-WORKDIR /app
-RUN apt-get update && apt-get install -y python3 make g++
+# Prepare production dependencies in a separate folder
+# We do this here because this stage definitely has working npm and build tools
+WORKDIR /app/prod_deps
 COPY ui/package.json ui/package-lock.json ./
 RUN npm ci --omit=dev
 
-# 4. Final Stage
+# 3. Final Stage
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 # Set DB URL
@@ -76,8 +73,8 @@ ENV DATABASE_URL=/app/data/sqlite.db
 
 # Copy Next.js assets
 COPY --from=node-builder /app/.next ./.next
-# Copy production node_modules
-COPY --from=prod-deps /app/node_modules ./node_modules
+# Copy production node_modules from the builder's prepared folder
+COPY --from=node-builder /app/prod_deps/node_modules ./node_modules
 COPY --from=node-builder /app/package.json ./package.json
 COPY --from=node-builder /app/start.js ./
 # Copy entire src folder to ensure all dependencies for migrations/scripts are present
