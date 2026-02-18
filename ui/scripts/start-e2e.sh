@@ -6,14 +6,8 @@ BACKEND_PID=""
 FRONTEND_PID=""
 
 cleanup() {
-  echo "--- Backend Logs (/app/backend.log) ---"
-  cat /app/backend.log || echo "No backend log found."
-  echo "--- End Backend Logs ---"
+  echo "--- Cleanup initiated ---"
 
-  # Frontend logs are in stdout
-  cat /app/frontend.log || echo "No frontend log found."
-
-  echo "Cleaning up processes..."
   if [ -n "$FRONTEND_PID" ]; then
     echo "Killing frontend PID $FRONTEND_PID"
     kill $FRONTEND_PID 2>/dev/null || true
@@ -36,7 +30,6 @@ fuser -k 50051/tcp 2>/dev/null || true
 # Cleanup DB
 echo "Cleaning up DB..."
 rm -f e2e_jules.db*
-# Use absolute path to ensure backend (running in different dir) connects to same DB
 export DATABASE_URL=$(pwd)/e2e_jules.db
 
 # Run migrations and seed with retry
@@ -63,84 +56,70 @@ chmod -R 777 .
 export PORT=50051
 export JULES_API_KEY='mock-api-key'
 
-# Start backend in background with logging (using exec to keep PID valid)
+# Start backend
 echo "Starting backend..."
-# Use GOWORK=off and direct go run.
-# Ensure logs are redirected properly.
 (cd ../server && GOWORK=off go mod download && CGO_ENABLED=1 exec /usr/local/go/bin/go run cmd/server/main.go > /app/backend.log 2>&1) &
 BACKEND_PID=$!
 echo "Backend started with PID $BACKEND_PID"
 
-# Wait for backend to be ready
+# Wait for backend
 echo "Waiting for backend..."
 if ! ./node_modules/.bin/tsx scripts/wait-for-backend.ts; then
   echo "Wait for backend failed."
+  cat /app/backend.log
   exit 1
 fi
 
 # Start frontend
 PORT_TO_USE=3000
 echo "Frontend starting on port $PORT_TO_USE..."
-# Unset PORT to avoid conflict with Next.js (which might use PORT env var)
 unset PORT
 
 # Check environment
 echo "Node version:"
 node --version
-echo "Next version:"
-npm list next || true
 
-# Build frontend (production mode) for reliability
-echo "Cleaning previous build..."
-rm -rf .next
-
-echo "Building frontend..."
-export NODE_ENV=production
-# Increase memory for build
-export NODE_OPTIONS="--max-old-space-size=4096"
-npm run build || { echo "Build failed"; exit 1; }
-
-echo "Starting frontend..."
+echo "Starting frontend (next dev)..."
+export NODE_ENV=development
 export HOSTNAME=0.0.0.0
-# Use next start (production) for CI reliability
-# Direct next start usage to avoid npm wrapping obscurity
-./node_modules/.bin/next start -H 0.0.0.0 -p $PORT_TO_USE > /app/frontend.log 2>&1 &
+# Increase memory
+export NODE_OPTIONS="--max-old-space-size=4096"
+
+# Pipe to stdout for immediate visibility in CI
+./node_modules/.bin/next dev -H 0.0.0.0 -p $PORT_TO_USE &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID"
 
-# Simple shell-based wait for frontend with better logging
+# Wait for frontend
 echo "Waiting for frontend (curl loop)..."
 MAX_WAIT_RETRIES=300 # 5 minutes
 WAIT_COUNT=0
-# Try both localhost and 127.0.0.1
-while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http://localhost:$PORT_TO_USE" > /dev/null; do
+
+while ! curl -s "http://127.0.0.1:$PORT_TO_USE" > /dev/null && ! curl -s "http://localhost:$PORT_TO_USE" > /dev/null && ! curl -s "http://0.0.0.0:$PORT_TO_USE" > /dev/null; do
   WAIT_COUNT=$((WAIT_COUNT+1))
   if [ $WAIT_COUNT -ge $MAX_WAIT_RETRIES ]; then
     echo "Frontend failed to start after $MAX_WAIT_RETRIES attempts."
 
-    # Diagnostic info
     echo "--- Process Status ---"
     ps aux | grep next || echo "Next process not found"
 
-    echo "--- Network Status (if available) ---"
+    echo "--- Network Status ---"
     netstat -tulpn 2>/dev/null || ss -tulpn 2>/dev/null || echo "Network tools not found"
 
-    echo "Frontend startup logs:"
-    cat /app/frontend.log
+    # Logs are already in stdout, but we can dump backend log again
+    echo "--- Backend Log ---"
+    cat /app/backend.log
+
     exit 1
   fi
 
-  # Check if process is still alive
   if ! kill -0 $FRONTEND_PID 2>/dev/null; then
     echo "Frontend process $FRONTEND_PID died unexpectedly."
-    cat /app/frontend.log
     exit 1
   fi
 
-  if [ $((WAIT_COUNT % 30)) -eq 0 ]; then
+  if [ $((WAIT_COUNT % 10)) -eq 0 ]; then
       echo "Waiting... ($WAIT_COUNT/$MAX_WAIT_RETRIES)"
-      # Dump last 5 lines of log to see progress
-      tail -n 5 /app/frontend.log
   fi
   sleep 1
 done
@@ -148,14 +127,12 @@ done
 echo "Frontend is ready on port $PORT_TO_USE."
 
 if [ "$#" -gt 0 ]; then
-  # Run the provided command (tests)
   echo "Running provided command: $@"
   "$@"
   EXIT_CODE=$?
   echo "Command exited with code $EXIT_CODE"
   exit $EXIT_CODE
 else
-  # Wait for frontend process to exit (default behavior if no args)
   wait $FRONTEND_PID
   EXIT_CODE=$?
   echo "Frontend exited with code $EXIT_CODE"
