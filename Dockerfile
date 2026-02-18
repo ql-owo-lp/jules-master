@@ -67,10 +67,9 @@ WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
 
-# Install runtime dependencies for native modules if needed
-# better-sqlite3 usually needs python/make only for build, but runtime might need libsqlite3
-# bookworm-slim usually has what's needed for runtime execution of pre-compiled binaries
-# We don't install python/make here to keep image small
+# Install runtime dependencies and build tools for rebuilding native modules
+# This is crucial for better-sqlite3
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # Copy Next.js assets
 COPY --from=node-builder /app/.next ./.next
@@ -89,6 +88,9 @@ COPY --from=go-builder /app/server /app/server
 
 # Explicitly copy migrations folder to ensure it exists (redundant but safe)
 COPY --from=node-builder /app/src/lib/db/migrations ./src/lib/db/migrations
+
+# Rebuild native modules in the final environment to ensure compatibility
+RUN npm rebuild better-sqlite3
 
 # Expose ports (9002 for frontend, 50051 for backend (internal))
 EXPOSE 9002
