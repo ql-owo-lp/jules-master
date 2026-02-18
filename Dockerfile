@@ -10,8 +10,8 @@ COPY server/ .
 RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
-# Use Node 20 LTS (Iron) for maximum stability and compatibility.
-FROM node:20-bookworm AS node-builder
+# Use Node 18 LTS (Hydrogen) for maximum stability and compatibility.
+FROM node:18-bookworm AS node-builder
 RUN apt-get update && apt-get install -y curl unzip python3 make g++
 # Install pnpm (optional, but we use npm now)
 # RUN npm install -g pnpm
@@ -55,33 +55,29 @@ RUN ln -s /app/node_modules /node_modules
 RUN npm run build --debug
 RUN mkdir -p /app/data
 
-# Prepare production dependencies in a separate folder
-# We do this here because this stage definitely has working npm and build tools (python, make, g++)
-# and shares the same OS/Architecture as the runner stage (node:20-bookworm)
-WORKDIR /app/prod_deps
-COPY ui/package.json ui/package-lock.json ./
-RUN npm ci --omit=dev
-
 # 3. Final Stage
-# Use Node 20 LTS (Iron) for stability
-FROM node:20-bookworm AS runner
+# Use Node 18 LTS (Hydrogen) for stability
+FROM node:18-bookworm AS runner
 WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
 
-# Install runtime dependencies
-# sqlite3 CLI for debugging, others for better-sqlite3 runtime (if dynamic linking needed)
-RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
+# Install runtime dependencies and build tools for rebuilding native modules
+# This is crucial for better-sqlite3 if it needs to rebuild
+RUN apt-get update && apt-get install -y python3 make g++ sqlite3 && rm -rf /var/lib/apt/lists/*
 
-# Copy package files (useful for reference, though modules are copied below)
+# Copy package files to install production deps directly
 COPY --from=node-builder /app/package.json ./package.json
 COPY --from=node-builder /app/package-lock.json ./package-lock.json
 
-# Copy production node_modules from the builder's prepared folder
-# This bypasses running npm in the runner stage, avoiding "command not found" errors
-COPY --from=node-builder /app/prod_deps/node_modules ./node_modules
+# Debugging: verify environment (path and npm)
+RUN echo "PATH: $PATH" && which npm && npm -v && node -v
 
-# Verify better-sqlite3 installation immediately (using the pre-built binary)
+# Install production dependencies directly in the runner stage
+# This ensures native modules like better-sqlite3 are compiled for this specific environment
+RUN npm ci --omit=dev
+
+# Verify better-sqlite3 installation immediately
 RUN node -e "try { require('better-sqlite3'); console.log('better-sqlite3 verified'); } catch (e) { console.error(e); process.exit(1); }"
 
 # Copy Next.js assets
