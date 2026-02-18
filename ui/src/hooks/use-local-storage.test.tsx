@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 describe("useLocalStorage", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    vi.restoreAllMocks();
   });
 
   it("should initialize with default value", () => {
@@ -60,5 +61,22 @@ describe("useLocalStorage", () => {
     // The implementation now emits undefined payload as listeners re-read from cache
     expect(emitSpy).toHaveBeenCalledWith("storage:perf-key", undefined);
     expect(emitSpy).not.toHaveBeenCalledWith("change", expect.anything());
+  });
+
+  it("should NOT call setItem when setting the same value", () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+    const { result } = renderHook(() => useLocalStorage("same-val-key", "initial"));
+
+    act(() => {
+      result.current[1]("new-value");
+    });
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current[1]("new-value");
+    });
+    // Currently, it IS called again, so we expect 2.
+    // After optimization, this should be 1.
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
   });
 });
