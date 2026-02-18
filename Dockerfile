@@ -10,7 +10,9 @@ COPY server/ .
 RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
-FROM node:24-bookworm AS node-builder
+# Use Node 22 LTS (Jod) for stability. Node 24 might be unstable/future.
+FROM node:22-bookworm AS node-builder
+RUN apt-get update && apt-get install -y curl unzip python3 make g++
 # Install pnpm (optional, but we use npm now)
 # RUN npm install -g pnpm
 
@@ -54,8 +56,8 @@ RUN npm run build --debug
 RUN mkdir -p /app/data
 
 # 3. Final Stage
-# Use full bookworm image to ensure all standard libraries are present for native modules
-FROM node:24-bookworm AS runner
+# Use Node 22 LTS (Jod) for stability
+FROM node:22-bookworm AS runner
 WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
