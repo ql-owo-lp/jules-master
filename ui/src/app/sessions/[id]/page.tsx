@@ -6,6 +6,7 @@ import { useState, useEffect, useTransition, useRef, useCallback, useMemo } from
 import Link from "next/link";
 import { notFound, useSearchParams, useParams } from "next/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useAsyncLocalStorage } from "@/hooks/use-async-local-storage";
 import { useToast } from "@/hooks/use-toast";
 import type { Session, Job, Activity, PredefinedPrompt } from "@/lib/types";
 import { getSession, approvePlan, sendMessage, listActivities } from "./actions";
@@ -73,7 +74,9 @@ export default function SessionDetailPage() {
   const [quickReplies, setQuickReplies] = useState<PredefinedPrompt[]>([]);
   
   const [session, setSession] = useLocalStorage<Session | null>(`jules-session-${id}`, null);
-  const [activities, setActivities] = useLocalStorage<Activity[]>(`jules-activities-${id}`, []);
+  // Optimization: Use useAsyncLocalStorage instead of useLocalStorage for activities to avoid
+  // expensive serialization on every update blocking the main thread, while enabling reference equality optimizations.
+  const [activities, setActivities] = useAsyncLocalStorage<Activity[]>(`jules-activities-${id}`, []);
   
   const [isClient, setIsClient] = useState(false);
   const [isFetching, startFetching] = useTransition();
