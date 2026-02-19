@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/subtle"
+	"encoding/hex"
 	"log"
 	"net"
 	"os"
@@ -92,12 +94,22 @@ func main() {
 
 	// Create gRPC Server
 	opts := []grpc.ServerOption{}
-	if token := os.Getenv("JULES_INTERNAL_TOKEN"); token != "" {
-		log.Println("Enforcing internal authentication with JULES_INTERNAL_TOKEN")
-		opts = append(opts, grpc.UnaryInterceptor(authInterceptor(token)))
+	token := os.Getenv("JULES_INTERNAL_TOKEN")
+	if token == "" {
+		// Generate a secure random token if none is provided
+		bytes := make([]byte, 32)
+		if _, err := rand.Read(bytes); err != nil {
+			log.Fatalf("failed to generate secure token: %v", err)
+		}
+		token = hex.EncodeToString(bytes)
+		log.Println("WARNING: JULES_INTERNAL_TOKEN not set.")
+		log.Printf("Generated secure internal token: %s", token)
+		log.Println("Please set JULES_INTERNAL_TOKEN environment variable to persist authentication.")
 	} else {
-		log.Println("WARNING: JULES_INTERNAL_TOKEN not set. Server is open to unauthenticated access.")
+		log.Println("Enforcing internal authentication with JULES_INTERNAL_TOKEN")
 	}
+
+	opts = append(opts, grpc.UnaryInterceptor(authInterceptor(token)))
 	grpcServer := grpc.NewServer(opts...)
 
 	// Register Services

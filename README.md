@@ -22,6 +22,7 @@ To run the application, you may need to configure the following environment vari
 | Variable               | Description                                                              | Default          |
 | :--------------------- | :----------------------------------------------------------------------- | :--------------- |
 | `JULES_API_KEY`        | Your Jules API key for accessing the backend services.                   | _None_           |
+| `JULES_INTERNAL_TOKEN` | Secret token for securing communication between frontend and backend.    | _Generated_      |
 | `GOOGLE_GENAI_API_KEY` | API key for Google GenAI (required for AI features).                     | _None_           |
 | `DATABASE_URL`         | Path to the SQLite database file.                                        | `data/sqlite.db` |
 | `BASIC_AUTH_USER`      | Username for Basic Authentication. If set, basic auth is enabled.        | _None_           |
@@ -62,6 +63,7 @@ The `docs/` folder contains detailed documentation about the project's design an
     Create a `.env` file and add your keys:
     ```env
     JULES_API_KEY=your_jules_api_key
+    JULES_INTERNAL_TOKEN=your_secure_internal_token
     GOOGLE_GENAI_API_KEY=your_google_genai_key
     ```
 
