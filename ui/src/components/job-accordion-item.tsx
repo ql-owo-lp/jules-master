@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { MessageDialog } from "./message-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Clock, Loader2, CheckCircle2, Hand, MessageSquare, MessageSquareReply, Clipboard, ClipboardCheck, MessageCircle } from "lucide-react";
+import { Clock, Loader2, CheckCircle2, Hand, MessageSquare, MessageSquareReply, Clipboard, ClipboardCheck, MessageCircle, Copy, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { SessionTable } from "./session-table";
@@ -71,6 +71,30 @@ const JobAccordionItemComponent = ({
   const router = useRouter();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [branchCopied, setBranchCopied] = useState(false);
+
+  const copyBranch = () => {
+    if (!job.branch) return;
+    navigator.clipboard.writeText(job.branch)
+        .then(() => {
+            setBranchCopied(true);
+            toast({ title: "Branch name copied to clipboard" });
+            setTimeout(() => setBranchCopied(false), 2000);
+        })
+        .catch((err) => {
+            console.error("Failed to copy branch:", err);
+            toast({
+                variant: "destructive",
+                title: "Failed to copy",
+                description: "Could not copy branch name to clipboard."
+            });
+        });
+  };
+
+  const handleCopyBranchClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    copyBranch();
+  };
 
   const handleCopyPrompt = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -177,6 +201,25 @@ const JobAccordionItemComponent = ({
             </div>
         </AccordionTrigger>
         <div className="flex items-center gap-4 text-sm text-muted-foreground ml-auto px-4" >
+            {job.branch && (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 p-0"
+                            onClick={handleCopyBranchClick}
+                            disabled={isActionPending}
+                            aria-label="Copy Branch Name"
+                        >
+                            {branchCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Copy Branch Name: {job.branch}</p>
+                    </TooltipContent>
+                </Tooltip>
+            )}
             <Tooltip>
                 <TooltipTrigger asChild>
                     <div
