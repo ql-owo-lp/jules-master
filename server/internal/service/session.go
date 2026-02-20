@@ -37,15 +37,29 @@ type SessionServer struct {
 	BaseURL           string
 	HTTPClient        *http.Client
 	RateLimitMu       sync.Mutex
-	LastRequestTime   time.Time
+	LastRequestTimes  map[string]time.Time
 	RateLimitDuration time.Duration
 }
 
-// checkRateLimit enforces a global rate limit of 10 requests per second.
-// This is a basic protection against abuse of the external LLM API.
-func (s *SessionServer) checkRateLimit() error {
+// checkRateLimit enforces a rate limit per key (profile or session).
+// This isolates users and sessions to prevent DoS.
+func (s *SessionServer) checkRateLimit(key string) error {
 	s.RateLimitMu.Lock()
 	defer s.RateLimitMu.Unlock()
+
+	if s.LastRequestTimes == nil {
+		s.LastRequestTimes = make(map[string]time.Time)
+	}
+
+	// Simple cleanup to prevent memory leaks
+	if len(s.LastRequestTimes) > 5000 {
+		threshold := time.Now().Add(-1 * time.Minute)
+		for k, t := range s.LastRequestTimes {
+			if t.Before(threshold) {
+				delete(s.LastRequestTimes, k)
+			}
+		}
+	}
 
 	limit := s.RateLimitDuration
 	if limit == 0 {
@@ -53,12 +67,14 @@ func (s *SessionServer) checkRateLimit() error {
 	}
 
 	now := time.Now()
-	// Allow 1 request every limit duration
-	if now.Sub(s.LastRequestTime) < limit {
+	last, exists := s.LastRequestTimes[key]
+
+	// Allow 1 request every limit duration per key
+	if exists && now.Sub(last) < limit {
 		return fmt.Errorf("rate limit exceeded: please slow down")
 	}
 
-	s.LastRequestTime = now
+	s.LastRequestTimes[key] = now
 	return nil
 }
 
@@ -77,7 +93,7 @@ func (s *SessionServer) getClient() *http.Client {
 }
 
 func (s *SessionServer) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (*emptypb.Empty, error) {
-	if err := s.checkRateLimit(); err != nil {
+	if err := s.checkRateLimit("session:" + req.Id); err != nil {
 		return nil, err
 	}
 
@@ -202,7 +218,12 @@ func (s *SessionServer) GetSession(ctx context.Context, req *pb.GetSessionReques
 }
 
 func (s *SessionServer) CreateSession(ctx context.Context, req *pb.CreateSessionRequest) (*pb.Session, error) {
-	if err := s.checkRateLimit(); err != nil {
+	// Set default profile ID early for rate limiting
+	if req.ProfileId == "" {
+		req.ProfileId = "default"
+	}
+
+	if err := s.checkRateLimit("profile:" + req.ProfileId); err != nil {
 		return nil, err
 	}
 
@@ -253,9 +274,6 @@ func (s *SessionServer) CreateSession(ctx context.Context, req *pb.CreateSession
 		title = req.Name
 	}
 
-	if req.ProfileId == "" {
-		req.ProfileId = "default"
-	}
 	lastUpdated := time.Now().UnixMilli()
 
 	_, err = s.DB.Exec(`
