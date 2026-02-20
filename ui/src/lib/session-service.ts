@@ -1,8 +1,8 @@
 
 import { db } from './db';
 import { sessions, settings } from './db/schema';
-import { eq, sql, lt, and, gt } from 'drizzle-orm';
-import type { Session, State, SessionOutput } from '@/lib/types';
+import { eq, sql, lt, and, gt, or, inArray, notInArray } from 'drizzle-orm';
+import type { Session, SessionOutput } from '@/lib/types';
 import { fetchWithRetry } from './fetch-client';
 import { getApiKeys } from './config';
 
@@ -230,8 +230,12 @@ export async function syncStaleSessions(explicitApiKey?: string) {
 
     // Optimization: Select only necessary columns and filter by time in SQL
     // to reduce memory usage and DB load.
+    // Instead of fetching all potentially stale sessions and filtering in JS,
+    // we use a more complex WHERE clause to only fetch sessions that actually need updating.
     const now = Date.now();
-    const cutoff = now - settings.sessionCacheInProgressInterval * 1000;
+    const activeCutoff = now - settings.sessionCacheInProgressInterval * 1000;
+    const pendingCutoff = now - settings.sessionCachePendingApprovalInterval * 1000;
+    const completedCutoff = now - settings.sessionCacheCompletedNoPrInterval * 1000;
 
     // We also don't need to check sessions older than max age (approx)
     const maxAgeCutoff = now - settings.sessionCacheMaxAgeDays * 24 * 60 * 60 * 1000;
@@ -247,63 +251,46 @@ export async function syncStaleSessions(explicitApiKey?: string) {
     })
     .from(sessions)
     .where(and(
-      lt(sessions.lastUpdated, cutoff),
-      gt(sessions.createTime, maxAgeIso)
+      gt(sessions.createTime, maxAgeIso),
+      or(
+        // Active states: update frequently (default 60s)
+        and(
+            inArray(sessions.state, ['IN_PROGRESS', 'PLANNING', 'QUEUED']),
+            lt(sessions.lastUpdated, activeCutoff)
+        ),
+        // Pending states: update less frequently (default 300s)
+        and(
+            inArray(sessions.state, ['AWAITING_PLAN_APPROVAL', 'AWAITING_USER_FEEDBACK']),
+            lt(sessions.lastUpdated, pendingCutoff)
+        ),
+        // Completed: update infrequently (default 30m)
+        and(
+            eq(sessions.state, 'COMPLETED'),
+            lt(sessions.lastUpdated, completedCutoff)
+        ),
+        // Fallback for other/unknown states: use pending interval
+        and(
+            notInArray(sessions.state, ['IN_PROGRESS', 'PLANNING', 'QUEUED', 'AWAITING_PLAN_APPROVAL', 'AWAITING_USER_FEEDBACK', 'COMPLETED']),
+            lt(sessions.lastUpdated, pendingCutoff)
+        )
+      )
     ));
 
   const sessionsToUpdate: string[] = [];
 
   for (const session of cachedSessions) {
-    const age = now - session.lastUpdated;
-    const createTime = new Date(session.createTime || 0).getTime();
-    const daysSinceCreation = (now - createTime) / (1000 * 60 * 60 * 24);
+    // Double check specific logic that couldn't be easily put in SQL (e.g. JSON fields)
 
-    // Rule: Created > 3 days ago (configurable) -> Do not update automatically
-    if (daysSinceCreation > settings.sessionCacheMaxAgeDays) {
-      continue;
+    // Check if COMPLETED sessions have merged PRs
+    if (session.state === 'COMPLETED') {
+         if (isPrMerged(session as unknown as Session)) {
+            continue;
+         }
     }
 
-    let shouldUpdate = false;
-
-    switch (session.state as State) {
-      case 'IN_PROGRESS':
-      case 'PLANNING':
-      case 'QUEUED':
-        // Update every 60s
-        if (age > settings.sessionCacheInProgressInterval * 1000) {
-          shouldUpdate = true;
-        }
-        break;
-
-      case 'AWAITING_PLAN_APPROVAL':
-      case 'AWAITING_USER_FEEDBACK':
-        // Pending approval/feedback -> Update every 300s
-        if (age > settings.sessionCachePendingApprovalInterval * 1000) {
-          shouldUpdate = true;
-        }
-        break;
-
-      case 'COMPLETED':
-          if (isPrMerged(session as unknown as Session)) {
-          break;
-        }
-        // If completed and PR is not merged, update every 30 mins.
-        if (age > settings.sessionCacheCompletedNoPrInterval * 1000) {
-          shouldUpdate = true;
-        }
-        break;
-
-      default:
-        // Default fall back
-        if (age > settings.sessionCachePendingApprovalInterval * 1000) {
-            shouldUpdate = true;
-        }
-        break;
-    }
-
-    if (shouldUpdate) {
-      sessionsToUpdate.push(session.id);
-    }
+    // Since we already filtered by time/state in SQL, we can assume these need updates.
+    // The createTime check is also done in SQL.
+    sessionsToUpdate.push(session.id);
   }
 
   // Update sessions in batches/concurrency control
