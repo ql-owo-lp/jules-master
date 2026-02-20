@@ -12,11 +12,14 @@ WORKDIR /app
 ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Copy package files
-COPY ui/package.json ui/package-lock.json ./
+COPY ui/package.json ui/pnpm-lock.yaml ./
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install
 RUN ln -s /app/node_modules /node_modules
 
 # Copy source code
@@ -28,4 +31,4 @@ COPY server/ /server/
 RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go
 
 # Run E2E tests
-CMD ["npm", "run", "test:e2e"]
+CMD ["pnpm", "run", "test:e2e"]
