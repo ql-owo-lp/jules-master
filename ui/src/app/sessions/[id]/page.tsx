@@ -59,6 +59,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Combobox } from "@/components/ui/combobox";
+import { CopyButton } from "@/components/copy-button";
 
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -379,7 +380,10 @@ export default function SessionDetailPage() {
                                 <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div>
                                     <p className="font-semibold">Session ID</p>
-                                    <p className="text-muted-foreground font-mono text-xs">{session.id}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-muted-foreground font-mono text-xs">{session.id}</p>
+                                        <CopyButton value={session.id} label="Copy Session ID" className="h-4 w-4 p-0" />
+                                    </div>
                                 </div>
                             </div>
                             {repoContext && (
@@ -396,7 +400,10 @@ export default function SessionDetailPage() {
                                     <GitMerge className="h-5 w-5 text-muted-foreground mt-0.5" />
                                     <div>
                                         <p className="font-semibold">Starting Branch</p>
-                                        <p className="text-muted-foreground">{repoContext.startingBranch}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-muted-foreground">{repoContext.startingBranch}</p>
+                                            <CopyButton value={repoContext.startingBranch} label="Copy Branch Name" className="h-4 w-4 p-0" />
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -405,7 +412,10 @@ export default function SessionDetailPage() {
                                     <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
                                     <div>
                                         <p className="font-semibold">Full Source</p>
-                                        <p className="text-muted-foreground font-mono text-xs">{session.sourceContext.source}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-muted-foreground font-mono text-xs">{session.sourceContext.source}</p>
+                                            <CopyButton value={session.sourceContext.source} label="Copy Source" className="h-4 w-4 p-0" />
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -477,8 +487,11 @@ export default function SessionDetailPage() {
                     <div className="pt-4 mt-4 border-t">
                          <div className="flex items-start gap-3">
                             <Code className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                                <p className="font-semibold">Prompt</p>
+                            <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                    <p className="font-semibold">Prompt</p>
+                                    <CopyButton value={session.prompt} label="Copy Prompt" />
+                                </div>
                                 <p className="text-muted-foreground bg-muted p-3 rounded-md mt-1 whitespace-pre-wrap">{session.prompt}</p>
                             </div>
                         </div>
