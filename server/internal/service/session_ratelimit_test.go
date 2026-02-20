@@ -54,3 +54,44 @@ func TestSessionService_RateLimit_CreateSession(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "rate limit exceeded")
 }
+
+func TestSessionService_RateLimit_Isolation(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	svc := &SessionServer{DB: db}
+	ctx := context.Background()
+
+	// 1. Send Message - Session A
+	_, err := svc.SendMessage(ctx, &pb.SendMessageRequest{Id: "session-a"})
+	if err != nil {
+		assert.False(t, strings.Contains(err.Error(), "rate limit exceeded"))
+	}
+
+	// 2. Send Message - Session B (Should NOT be blocked)
+	_, err = svc.SendMessage(ctx, &pb.SendMessageRequest{Id: "session-b"})
+	if err != nil {
+		assert.False(t, strings.Contains(err.Error(), "rate limit exceeded"), "Different session should not be blocked")
+	}
+
+	// 3. Send Message - Session A again (Should be blocked)
+	_, err = svc.SendMessage(ctx, &pb.SendMessageRequest{Id: "session-a"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "rate limit exceeded")
+
+	// 4. Create Session - Profile A
+	_, err = svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "S1", ProfileId: "profile-a"})
+	if err != nil {
+		assert.False(t, strings.Contains(err.Error(), "rate limit exceeded"))
+	}
+
+	// 5. Create Session - Profile B (Should NOT be blocked)
+	_, err = svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "S2", ProfileId: "profile-b"})
+	if err != nil {
+		assert.False(t, strings.Contains(err.Error(), "rate limit exceeded"), "Different profile should not be blocked")
+	}
+
+	// 6. Create Session - Profile A again (Should be blocked)
+	_, err = svc.CreateSession(ctx, &pb.CreateSessionRequest{Name: "S3", ProfileId: "profile-a"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "rate limit exceeded")
+}
