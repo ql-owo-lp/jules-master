@@ -1,7 +1,7 @@
 
 import { db } from './db';
 import { sessions, settings } from './db/schema';
-import { eq, sql, lt, and, gt } from 'drizzle-orm';
+import { eq, sql, lt, and, gt, or, inArray, notInArray } from 'drizzle-orm';
 import type { Session, State, SessionOutput } from '@/lib/types';
 import { fetchWithRetry } from './fetch-client';
 import { getApiKeys } from './config';
@@ -231,13 +231,23 @@ export async function syncStaleSessions(explicitApiKey?: string) {
     // Optimization: Select only necessary columns and filter by time in SQL
     // to reduce memory usage and DB load.
     const now = Date.now();
-    const cutoff = now - settings.sessionCacheInProgressInterval * 1000;
-
-    // We also don't need to check sessions older than max age (approx)
     const maxAgeCutoff = now - settings.sessionCacheMaxAgeDays * 24 * 60 * 60 * 1000;
     // createTime is string ISO. Comparison works if format is standard.
     const maxAgeIso = new Date(maxAgeCutoff).toISOString();
 
+    // Specific cutoffs for different states
+    const activeCutoff = now - settings.sessionCacheInProgressInterval * 1000;
+    const pendingCutoff = now - settings.sessionCachePendingApprovalInterval * 1000;
+    const completedCutoff = now - settings.sessionCacheCompletedNoPrInterval * 1000;
+
+    const activeStates = ['IN_PROGRESS', 'PLANNING', 'QUEUED'];
+    const pendingStates = ['AWAITING_PLAN_APPROVAL', 'AWAITING_USER_FEEDBACK'];
+    const completedState = 'COMPLETED';
+    const allKnownStates = [...activeStates, ...pendingStates, completedState];
+
+    // Optimization: Instead of fetching all recent sessions and filtering in JS,
+    // we use a precise SQL query to only fetch sessions that ACTUALLY need updating.
+    // This reduces IO and CPU significantly, especially when many sessions are completed.
     const cachedSessions = await db.select({
       id: sessions.id,
       state: sessions.state,
@@ -247,13 +257,35 @@ export async function syncStaleSessions(explicitApiKey?: string) {
     })
     .from(sessions)
     .where(and(
-      lt(sessions.lastUpdated, cutoff),
-      gt(sessions.createTime, maxAgeIso)
+      gt(sessions.createTime, maxAgeIso),
+      or(
+        // Active sessions (update frequently, e.g. 60s)
+        and(
+            inArray(sessions.state, activeStates),
+            lt(sessions.lastUpdated, activeCutoff)
+        ),
+        // Pending approval/feedback (update less frequently, e.g. 5m)
+        and(
+            inArray(sessions.state, pendingStates),
+            lt(sessions.lastUpdated, pendingCutoff)
+        ),
+        // Completed sessions (update rarely, e.g. 30m)
+        and(
+            eq(sessions.state, completedState),
+            lt(sessions.lastUpdated, completedCutoff)
+        ),
+        // Fallback for other states (treat as pending)
+        and(
+            notInArray(sessions.state, allKnownStates),
+            lt(sessions.lastUpdated, pendingCutoff)
+        )
+      )
     ));
 
   const sessionsToUpdate: string[] = [];
 
   for (const session of cachedSessions) {
+    // Double check logic (mostly redundant now, but keeps PR merged logic)
     const age = now - session.lastUpdated;
     const createTime = new Date(session.createTime || 0).getTime();
     const daysSinceCreation = (now - createTime) / (1000 * 60 * 60 * 24);
