@@ -33,7 +33,6 @@ describe('SessionList', () => {
         onApprovePlan={() => {}}
         onSendMessage={() => {}}
         onBulkSendMessage={() => {}}
-        countdown={0}
         pollInterval={0}
         jobIdParam={null}
         statusFilter="all"
@@ -72,7 +71,6 @@ describe('SessionList', () => {
         onApprovePlan={() => {}}
         onSendMessage={() => {}}
         onBulkSendMessage={() => {}}
-        countdown={0}
         pollInterval={0}
         jobIdParam={null}
         statusFilter="all"
@@ -120,7 +118,6 @@ describe('SessionList', () => {
         onApprovePlan={() => {}}
         onSendMessage={() => {}}
         onBulkSendMessage={() => {}}
-        countdown={0}
         pollInterval={0}
         jobIdParam={null}
         statusFilter="all"
@@ -157,7 +154,6 @@ describe('SessionList', () => {
         onApprovePlan={() => {}}
         onSendMessage={() => {}}
         onBulkSendMessage={() => {}}
-        countdown={0}
         pollInterval={0}
         jobIdParam={null}
         statusFilter="all"
@@ -206,7 +202,6 @@ describe('SessionList', () => {
         onApprovePlan={() => {}}
         onSendMessage={() => {}}
         onBulkSendMessage={() => {}}
-        countdown={0}
         pollInterval={0}
         jobIdParam={null}
         statusFilter="all"
@@ -257,7 +252,6 @@ describe('SessionList', () => {
         onApprovePlan={() => {}}
         onSendMessage={() => {}}
         onBulkSendMessage={() => {}}
-        countdown={0}
         pollInterval={0}
         jobIdParam={null}
         statusFilter="AWAITING_PLAN_APPROVAL"
@@ -319,7 +313,6 @@ describe('SessionList', () => {
         onApprovePlan={() => {}}
         onSendMessage={() => {}}
         onBulkSendMessage={() => {}}
-        countdown={0}
         pollInterval={0}
         jobIdParam={null}
         statusFilter="COMPLETED"
