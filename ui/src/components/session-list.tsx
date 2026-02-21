@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Session, Job, PredefinedPrompt } from "@/lib/types";
-import { RefreshCw, Briefcase, X, Loader2, MessageSquare, Hand, CheckCircle2, MessageSquareReply, Wand2 } from "lucide-react";
+import { RefreshCw, Briefcase, X, Loader2, MessageSquare, Hand, CheckCircle2, MessageSquareReply, Wand2, SearchX } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -52,6 +52,8 @@ type SessionListProps = {
   progressCurrent?: number;
   progressTotal?: number;
   pendingBackgroundWork?: { pendingJobs: number, retryingSessions: number };
+  isAnyFilterActive?: boolean;
+  onClearFilters?: () => void;
 };
 
 export function SessionList({
@@ -77,6 +79,8 @@ export function SessionList({
   progressCurrent = 0,
   progressTotal = 0,
   pendingBackgroundWork,
+  isAnyFilterActive,
+  onClearFilters,
 }: SessionListProps) {
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
   const [openAccordionItems, setOpenAccordionItems] = useState<string[]>(jobIdParam ? [jobIdParam] : []);
@@ -263,21 +267,37 @@ export function SessionList({
         </CardHeader>
         <CardContent>
           {(jobs.length === 0 && unknownSessions.length === 0) ? (
-            <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
-              <Briefcase className="h-12 w-12 mb-4" />
-              <p className="font-semibold text-lg">No jobs found</p>
-              <p className="text-sm">
-                Create a new job to see jobs and sessions here.
-              </p>
-              <div className="mt-4">
-                <NewJobDialog>
-                  <Button disabled={!hasJulesApiKey}>
-                    <Wand2 className="mr-2 h-4 w-4" />
-                    Create New Job
+            isAnyFilterActive ? (
+              <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
+                <SearchX className="h-12 w-12 mb-4 text-muted-foreground/50" />
+                <p className="font-semibold text-lg">No matching jobs found</p>
+                <p className="text-sm mb-4">
+                  Try adjusting your filters or search terms.
+                </p>
+                {onClearFilters && (
+                  <Button variant="outline" onClick={onClearFilters}>
+                    <X className="mr-2 h-4 w-4" />
+                    Clear Filters
                   </Button>
-                </NewJobDialog>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10 border-2 border-dashed rounded-lg bg-background">
+                <Briefcase className="h-12 w-12 mb-4" />
+                <p className="font-semibold text-lg">No jobs found</p>
+                <p className="text-sm">
+                  Create a new job to see jobs and sessions here.
+                </p>
+                <div className="mt-4">
+                  <NewJobDialog>
+                    <Button disabled={!hasJulesApiKey}>
+                      <Wand2 className="mr-2 h-4 w-4" />
+                      Create New Job
+                    </Button>
+                  </NewJobDialog>
+                </div>
+              </div>
+            )
           ) : (
             <Accordion 
                 type="multiple" 
