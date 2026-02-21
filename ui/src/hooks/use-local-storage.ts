@@ -109,6 +109,13 @@ export function useLocalStorage<T>(
       try {
         const valueToStore = value instanceof Function ? value(JSON.parse(store)) : value;
         const jsonValue = JSON.stringify(valueToStore);
+
+        // Optimization: If the stringified value is the same as what's stored,
+        // skip writing to localStorage to prevent unnecessary events and re-renders.
+        if (jsonValue === store) {
+          return;
+        }
+
         if (typeof window !== "undefined") {
           // This call goes through the monkey-patched setItem,
           // which updates the cache and emits the event.
