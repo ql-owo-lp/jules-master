@@ -95,5 +95,13 @@
     "vite": "^7.2.6",
     "vitest": "^4.0.15",
     "vitest-fetch-mock": "^0.4.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild",
+      "protobufjs",
+      "sharp"
+    ]
   }
 }
