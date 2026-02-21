@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mcpany/jules/internal/ratelimit"
 	pb "github.com/mcpany/jules/proto"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,7 +14,7 @@ import (
 func TestSessionService_RateLimit(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	svc := &SessionServer{DB: db}
+	svc := &SessionServer{DB: db, Limiter: ratelimit.New(100 * time.Millisecond)}
 	ctx := context.Background()
 
 	// Request 1: Should pass rate limit check.
@@ -39,7 +40,7 @@ func TestSessionService_RateLimit(t *testing.T) {
 func TestSessionService_RateLimit_CreateSession(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	svc := &SessionServer{DB: db}
+	svc := &SessionServer{DB: db, Limiter: ratelimit.New(100 * time.Millisecond)}
 	ctx := context.Background()
 
 	// Request 1: Pass
@@ -58,7 +59,7 @@ func TestSessionService_RateLimit_CreateSession(t *testing.T) {
 func TestSessionService_RateLimit_Isolation(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	svc := &SessionServer{DB: db}
+	svc := &SessionServer{DB: db, Limiter: ratelimit.New(100 * time.Millisecond)}
 	ctx := context.Background()
 
 	// 1. Send Message - Session A

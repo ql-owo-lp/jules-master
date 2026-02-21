@@ -10,11 +10,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/mcpany/jules/internal/logger"
+	"github.com/mcpany/jules/internal/ratelimit"
 	pb "github.com/mcpany/jules/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -33,48 +33,18 @@ func isValidSessionID(id string) bool {
 
 type SessionServer struct {
 	pb.UnimplementedSessionServiceServer
-	DB                *sql.DB
-	BaseURL           string
-	HTTPClient        *http.Client
-	RateLimitMu       sync.Mutex
-	LastRequestTimes  map[string]time.Time
-	RateLimitDuration time.Duration
+	DB         *sql.DB
+	BaseURL    string
+	HTTPClient *http.Client
+	Limiter    *ratelimit.Limiter
 }
 
 // checkRateLimit enforces a rate limit per key (profile or session).
 // This isolates users and sessions to prevent DoS.
 func (s *SessionServer) checkRateLimit(key string) error {
-	s.RateLimitMu.Lock()
-	defer s.RateLimitMu.Unlock()
-
-	if s.LastRequestTimes == nil {
-		s.LastRequestTimes = make(map[string]time.Time)
+	if s.Limiter != nil {
+		return s.Limiter.Check(key)
 	}
-
-	// Simple cleanup to prevent memory leaks
-	if len(s.LastRequestTimes) > 5000 {
-		threshold := time.Now().Add(-1 * time.Minute)
-		for k, t := range s.LastRequestTimes {
-			if t.Before(threshold) {
-				delete(s.LastRequestTimes, k)
-			}
-		}
-	}
-
-	limit := s.RateLimitDuration
-	if limit == 0 {
-		limit = 100 * time.Millisecond
-	}
-
-	now := time.Now()
-	last, exists := s.LastRequestTimes[key]
-
-	// Allow 1 request every limit duration per key
-	if exists && now.Sub(last) < limit {
-		return fmt.Errorf("rate limit exceeded: please slow down")
-	}
-
-	s.LastRequestTimes[key] = now
 	return nil
 }
 
