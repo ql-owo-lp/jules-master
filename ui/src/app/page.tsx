@@ -504,6 +504,8 @@ function HomePageContent() {
             progressCurrent={progressCurrent}
             progressTotal={progressTotal}
             pendingBackgroundWork={pendingBackgroundWork}
+            isAnyFilterActive={!!isAnyFilterActive}
+            onClearFilters={handleClearFilters}
           >
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div className="space-y-2">
