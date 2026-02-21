@@ -152,6 +152,10 @@ export const sessions = sqliteTable('sessions', {
   lastError: text('last_error'),
   lastInteractionAt: integer('last_interaction_at'),
   profileId: text('profile_id').references(() => profiles.id).notNull().default('default'),
+  // Optimization: Store PR URL and Merged status as separate columns to avoid parsing potentially large JSON outputs
+  // when listing sessions or checking for stale branches.
+  prUrl: text('pr_url'),
+  isPrMerged: integer('is_pr_merged', { mode: 'boolean' }).default(false),
 }, (table) => ({
   // Optimization: Add composite index on profileId and createTime to speed up session listing queries.
   // This helps when filtering sessions by profile and sorting by creation time, which is a very common operation.
