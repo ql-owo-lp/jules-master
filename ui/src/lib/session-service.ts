@@ -40,6 +40,23 @@ export async function getSettings(profileId: string = 'default'): Promise<Settin
  */
 export async function upsertSession(session: Session) {
   const now = Date.now();
+
+  // Extract PR info for optimization columns
+  let prUrl: string | null = null;
+  let isMerged = false;
+  if (session.outputs) {
+    for (const output of session.outputs) {
+      if (output.pullRequest) {
+        if (!prUrl && output.pullRequest.url) {
+            prUrl = output.pullRequest.url;
+        }
+        if (output.pullRequest.status?.toUpperCase() === 'MERGED') {
+          isMerged = true;
+        }
+      }
+    }
+  }
+
   const sessionData = {
     id: session.id,
     name: session.name,
@@ -54,6 +71,8 @@ export async function upsertSession(session: Session) {
     requirePlanApproval: session.requirePlanApproval,
     automationMode: session.automationMode,
     lastUpdated: now,
+    prUrl: prUrl,
+    isPrMerged: isMerged,
     // Only include profileId if provided, otherwise let database default handle insert,
     // and rely on partial update logic (see below) to not overwrite existing profileId
     ...(session.profileId ? { profileId: session.profileId } : {})
@@ -98,6 +117,7 @@ export async function updateSessionInteraction(sessionId: string) {
 export async function getCachedSessions(profileId: string = 'default'): Promise<Session[]> {
   // Optimization: Select only necessary columns for list view.
   // Exclude heavy fields like lastError, retryCount, lastInteractionAt, lastUpdated.
+  // Also avoid fetching the potentially large 'outputs' JSON blob, using 'prUrl' instead.
   const cachedSessions = await db.select({
     id: sessions.id,
     name: sessions.name,
@@ -108,7 +128,7 @@ export async function getCachedSessions(profileId: string = 'default'): Promise<
     updateTime: sessions.updateTime,
     state: sessions.state,
     url: sessions.url,
-    outputs: sessions.outputs,
+    prUrl: sessions.prUrl,
     requirePlanApproval: sessions.requirePlanApproval,
     automationMode: sessions.automationMode,
     profileId: sessions.profileId,
@@ -118,25 +138,31 @@ export async function getCachedSessions(profileId: string = 'default'): Promise<
     .orderBy(sql`${sessions.createTime} DESC`);
 
   // Map back to Session type if needed, though they should be compatible
-  return cachedSessions.map(s => ({
-    ...s,
-    sourceContext: s.sourceContext || undefined,
-    createTime: s.createTime || undefined,
-    updateTime: s.updateTime || undefined,
-    url: s.url || undefined,
-    // Optimization: Sanitize outputs to reduce payload size.
-    // We only need pullRequest info for the list view.
-    // Used reduce instead of map+filter to avoid creating intermediate arrays/objects.
-    outputs: (s.outputs && Array.isArray(s.outputs)) ? s.outputs.reduce<SessionOutput[]>((acc, o) => {
-      if (o && o.pullRequest) {
-        acc.push({ pullRequest: o.pullRequest });
-      }
-      return acc;
-    }, []) : undefined,
-    requirePlanApproval: s.requirePlanApproval || undefined,
-    automationMode: s.automationMode || undefined,
-    profileId: s.profileId,
-  } as Session));
+  return cachedSessions.map(s => {
+    // Reconstruct a lightweight output object for UI compatibility
+    let outputs: SessionOutput[] | undefined = undefined;
+    if (s.prUrl) {
+      outputs = [{
+        pullRequest: {
+          url: s.prUrl,
+          title: '', // Not needed for list view URL check
+          description: '', // Not needed for list view URL check
+        }
+      }];
+    }
+
+    return {
+      ...s,
+      sourceContext: s.sourceContext || undefined,
+      createTime: s.createTime || undefined,
+      updateTime: s.updateTime || undefined,
+      url: s.url || undefined,
+      outputs: outputs,
+      requirePlanApproval: s.requirePlanApproval || undefined,
+      automationMode: s.automationMode || undefined,
+      profileId: s.profileId,
+    } as Session;
+  });
 }
 
 /**
@@ -247,7 +273,7 @@ export async function syncStaleSessions(explicitApiKey?: string) {
       state: sessions.state,
       lastUpdated: sessions.lastUpdated,
       createTime: sessions.createTime,
-      outputs: sessions.outputs,
+      isPrMerged: sessions.isPrMerged,
     })
     .from(sessions)
     .where(and(
@@ -282,8 +308,9 @@ export async function syncStaleSessions(explicitApiKey?: string) {
     // Double check specific logic that couldn't be easily put in SQL (e.g. JSON fields)
 
     // Check if COMPLETED sessions have merged PRs
+    // Optimization: Check the optimized column instead of parsing JSON
     if (session.state === 'COMPLETED') {
-         if (isPrMerged(session as unknown as Session)) {
+         if (session.isPrMerged) {
             continue;
          }
     }
