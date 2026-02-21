@@ -7,13 +7,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mcpany/jules/internal/ratelimit"
 	pb "github.com/mcpany/jules/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type ChatServer struct {
 	pb.UnimplementedChatServiceServer
-	DB *sql.DB
+	DB      *sql.DB
+	Limiter *ratelimit.Limiter
 }
 
 func (s *ChatServer) GetChatConfig(ctx context.Context, req *pb.GetChatConfigRequest) (*pb.ChatConfig, error) {
@@ -38,6 +40,12 @@ func (s *ChatServer) GetChatConfig(ctx context.Context, req *pb.GetChatConfigReq
 }
 
 func (s *ChatServer) CreateChatConfig(ctx context.Context, req *pb.CreateChatConfigRequest) (*pb.ChatConfig, error) {
+	if s.Limiter != nil {
+		if err := s.Limiter.Check("chat_config:" + req.JobId); err != nil {
+			return nil, err
+		}
+	}
+
 	if req.JobId == "" {
 		return nil, fmt.Errorf("job_id is required")
 	}
@@ -72,6 +80,14 @@ func (s *ChatServer) CreateChatConfig(ctx context.Context, req *pb.CreateChatCon
 }
 
 func (s *ChatServer) SendChatMessage(ctx context.Context, req *pb.SendChatMessageRequest) (*emptypb.Empty, error) {
+	// Rate limit check
+	// Using JobID as key to limit rate per job
+	if s.Limiter != nil {
+		if err := s.Limiter.Check("chat:" + req.JobId); err != nil {
+			return nil, err
+		}
+	}
+
 	if req.JobId == "" {
 		return nil, fmt.Errorf("job_id is required")
 	}

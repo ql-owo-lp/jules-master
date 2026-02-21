@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mcpany/jules/internal/ratelimit"
 	"github.com/mcpany/jules/internal/service"
 	pb "github.com/mcpany/jules/proto"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ func TestBackgroundJobWorker_ProcessJob(t *testing.T) {
 	defer db.Close()
 
 	jobSvc := &service.JobServer{DB: db}
-	sessionSvc := &service.SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
+	sessionSvc := &service.SessionServer{DB: db, Limiter: ratelimit.New(1 * time.Nanosecond)}
 	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc, &service.SettingsServer{DB: db})
 	ctx := context.Background()
 
@@ -72,7 +73,7 @@ func TestBackgroundJobWorker_ProcessJob_Partial(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	jobSvc := &service.JobServer{DB: db}
-	sessionSvc := &service.SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
+	sessionSvc := &service.SessionServer{DB: db, Limiter: ratelimit.New(1 * time.Nanosecond)}
 	settingsSvc := &service.SettingsServer{DB: db}
 	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc, settingsSvc)
 	ctx := context.Background()
@@ -107,7 +108,7 @@ func TestBackgroundJobWorker_ScheduleAndProcess(t *testing.T) {
 	defer db.Close()
 
 	jobSvc := &service.JobServer{DB: db}
-	sessionSvc := &service.SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
+	sessionSvc := &service.SessionServer{DB: db, Limiter: ratelimit.New(1 * time.Nanosecond)}
 	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc, &service.SettingsServer{DB: db})
 	ctx := context.Background()
 

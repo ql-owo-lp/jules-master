@@ -9,9 +9,11 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/mcpany/jules/internal/db"
 	gclient "github.com/mcpany/jules/internal/github"
+	"github.com/mcpany/jules/internal/ratelimit"
 	"github.com/mcpany/jules/internal/service"
 	"github.com/mcpany/jules/internal/worker"
 	pb "github.com/mcpany/jules/proto"
@@ -75,7 +77,10 @@ func main() {
 	cronService := &service.CronJobServer{DB: dbConn}
 	jobService := &service.JobServer{DB: dbConn}
 	promptService := &service.PromptServer{DB: dbConn}
-	sessionService := &service.SessionServer{DB: dbConn}
+	sessionService := &service.SessionServer{
+		DB:      dbConn,
+		Limiter: ratelimit.New(100 * time.Millisecond),
+	}
 
 	// Initialize Worker Manager
 	workerManager := worker.NewManager()
@@ -120,7 +125,10 @@ func main() {
 	pb.RegisterJobServiceServer(grpcServer, jobService)
 	pb.RegisterPromptServiceServer(grpcServer, promptService)
 	pb.RegisterSessionServiceServer(grpcServer, sessionService)
-	pb.RegisterChatServiceServer(grpcServer, &service.ChatServer{DB: dbConn})
+	pb.RegisterChatServiceServer(grpcServer, &service.ChatServer{
+		DB:      dbConn,
+		Limiter: ratelimit.New(100 * time.Millisecond),
+	})
 
 	// Enable reflection for grpcurl
 	reflection.Register(grpcServer)
