@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/mcpany/jules/internal/ratelimit"
 	pb "github.com/mcpany/jules/proto"
 )
 
@@ -12,7 +14,7 @@ func TestChatService(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	svc := &ChatServer{DB: db}
+	svc := &ChatServer{DB: db, Limiter: ratelimit.New(1 * time.Nanosecond)}
 	ctx := context.Background()
 
 	jobId := uuid.New().String()

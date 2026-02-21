@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mcpany/jules/internal/ratelimit"
 	pb "github.com/mcpany/jules/proto"
 	"github.com/stretchr/testify/assert"
 )
@@ -49,10 +50,10 @@ func TestCreateSession_InvalidRemoteID(t *testing.T) {
 	}
 
 	svc := &SessionServer{
-		DB:                db,
-		HTTPClient:        mockClient,
-		BaseURL:           "https://mock.api",
-		RateLimitDuration: 1 * time.Nanosecond,
+		DB:         db,
+		HTTPClient: mockClient,
+		BaseURL:    "https://mock.api",
+		Limiter:    ratelimit.New(1 * time.Nanosecond),
 	}
 
 	// Set API key to trigger remote path
