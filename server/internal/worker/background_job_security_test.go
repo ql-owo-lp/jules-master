@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mcpany/jules/internal/logger"
+	"github.com/mcpany/jules/internal/ratelimit"
 	"github.com/mcpany/jules/internal/service"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +17,7 @@ func TestBackgroundJobWorker_DoesNotLogPromptOnError(t *testing.T) {
 	defer db.Close()
 
 	jobSvc := &service.JobServer{DB: db}
-	sessionSvc := &service.SessionServer{DB: db, RateLimitDuration: 1 * time.Nanosecond}
+	sessionSvc := &service.SessionServer{DB: db, Limiter: ratelimit.New(1 * time.Nanosecond)}
 	settingsSvc := &service.SettingsServer{DB: db}
 	workerCtx := NewBackgroundJobWorker(db, jobSvc, sessionSvc, settingsSvc)
 	ctx := context.Background()
