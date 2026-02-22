@@ -112,6 +112,8 @@ export function CronJobsList() {
         );
     }
 
+    const jobToDeleteName = cronJobs.find(j => j.id === jobToDelete)?.name;
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -218,7 +220,7 @@ export function CronJobsList() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the cron job.
+                            This action cannot be undone. This will permanently delete the cron job{jobToDeleteName ? <span className="font-semibold text-foreground"> “{jobToDeleteName}”</span> : null}.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

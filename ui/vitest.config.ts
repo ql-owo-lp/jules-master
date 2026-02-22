@@ -32,6 +32,9 @@ export default defineConfig({
     },
     preserveSymlinks: true,
   },
+  esbuild: {
+    jsx: 'automatic',
+  },
   server: {
     fs: {
       allow: ['..'],
