@@ -22,8 +22,14 @@ func (s *ChatServer) GetChatConfig(ctx context.Context, req *pb.GetChatConfigReq
 	if req.JobId == "" {
 		return nil, fmt.Errorf("job_id is required")
 	}
+	if len(req.JobId) > 64 {
+		return nil, fmt.Errorf("job_id too long (max 64)")
+	}
 	if req.AgentName == "" {
 		return nil, fmt.Errorf("agent_name is required")
+	}
+	if len(req.AgentName) > 100 {
+		return nil, fmt.Errorf("agent_name too long (max 100)")
 	}
 
 	var config pb.ChatConfig
@@ -49,8 +55,14 @@ func (s *ChatServer) CreateChatConfig(ctx context.Context, req *pb.CreateChatCon
 	if req.JobId == "" {
 		return nil, fmt.Errorf("job_id is required")
 	}
+	if len(req.JobId) > 64 {
+		return nil, fmt.Errorf("job_id too long (max 64)")
+	}
 	if req.AgentName == "" {
 		return nil, fmt.Errorf("agent_name is required")
+	}
+	if len(req.AgentName) > 100 {
+		return nil, fmt.Errorf("agent_name too long (max 100)")
 	}
 
 	// Check if already exists
@@ -91,8 +103,20 @@ func (s *ChatServer) SendChatMessage(ctx context.Context, req *pb.SendChatMessag
 	if req.JobId == "" {
 		return nil, fmt.Errorf("job_id is required")
 	}
+	if len(req.JobId) > 64 {
+		return nil, fmt.Errorf("job_id too long (max 64)")
+	}
 	if req.Content == "" {
 		return nil, fmt.Errorf("content is required")
+	}
+	if len(req.Content) > 10000 {
+		return nil, fmt.Errorf("content too long (max 10000 characters)")
+	}
+	if len(req.SenderName) > 100 {
+		return nil, fmt.Errorf("sender_name too long (max 100 characters)")
+	}
+	if len(req.Recipient) > 100 {
+		return nil, fmt.Errorf("recipient too long (max 100 characters)")
 	}
 
 	senderName := req.SenderName
@@ -137,6 +161,9 @@ func (s *ChatServer) ListChatMessages(ctx context.Context, req *pb.ListChatMessa
 	if req.JobId == "" {
 		return nil, fmt.Errorf("job_id is required")
 	}
+	if len(req.JobId) > 64 {
+		return nil, fmt.Errorf("job_id too long (max 64)")
+	}
 
 	query := "SELECT id, job_id, sender_name, content, created_at, is_human, recipient FROM chat_messages WHERE job_id = ?"
 	args := []interface{}{req.JobId}
@@ -148,6 +175,9 @@ func (s *ChatServer) ListChatMessages(ctx context.Context, req *pb.ListChatMessa
 
 	// Filter by viewer if provided
 	if req.ViewerName != "" {
+		if len(req.ViewerName) > 100 {
+			return nil, fmt.Errorf("viewer_name too long (max 100)")
+		}
 		// Visible if:
 		// 1. Recipient is NULL/Empty (Public)
 		// 2. Recipient matches ViewerName
@@ -158,10 +188,12 @@ func (s *ChatServer) ListChatMessages(ctx context.Context, req *pb.ListChatMessa
 
 	query += " ORDER BY created_at ASC"
 
-	if req.Limit > 0 {
-		query += " LIMIT ?"
-		args = append(args, req.Limit)
+	limit := req.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 100
 	}
+	query += " LIMIT ?"
+	args = append(args, limit)
 
 	rows, err := s.DB.Query(query, args...)
 	if err != nil {
