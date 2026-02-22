@@ -106,6 +106,39 @@ export function hasDataChanged<T extends { id: string }>(
 ): boolean {
   if (prev.length !== next.length) return true;
 
+  // Fast path: Check for identical order
+  // Most polling updates return data in the same order (e.g. by creation time),
+  // so we can avoid creating the Map in the common case.
+  let reordered = false;
+  for (let i = 0; i < prev.length; i++) {
+    if (prev[i].id !== next[i].id) {
+      reordered = true;
+      break;
+    }
+
+    const prevItem = prev[i];
+    const item = next[i];
+
+    // Optimization: Use updateTime if available on both items
+    // This avoids expensive JSON.stringify for large objects like Sessions
+    if (
+      'updateTime' in item &&
+      'updateTime' in prevItem &&
+      typeof (item as Record<string, unknown>).updateTime === 'string' &&
+      typeof (prevItem as Record<string, unknown>).updateTime === 'string'
+    ) {
+      const itemTime = (item as Record<string, unknown>).updateTime;
+      const prevTime = (prevItem as Record<string, unknown>).updateTime;
+      if (itemTime !== prevTime) return true;
+      // If timestamps match, we assume content is same.
+      continue;
+    }
+
+    if (JSON.stringify(prevItem) !== JSON.stringify(item)) return true;
+  }
+
+  if (!reordered) return false;
+
   const prevMap = new Map(prev.map(item => [item.id, item]));
 
   for (const item of next) {
