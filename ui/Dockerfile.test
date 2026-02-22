@@ -1,10 +1,10 @@
 FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
-# Install Go
-RUN apt-get update && apt-get install -y wget build-essential && \
-    wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
-    rm go1.24.0.linux-amd64.tar.gz
+# Install Go (matching server/go.mod requirement)
+RUN apt-get update && apt-get install -y wget build-essential sqlite3 && \
+    wget https://go.dev/dl/go1.24.8.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.24.8.linux-amd64.tar.gz && \
+    rm go1.24.8.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 WORKDIR /app
@@ -18,14 +18,20 @@ COPY ui/package.json ui/package-lock.json ./
 # Install dependencies
 RUN npm ci
 RUN ln -s /app/node_modules /node_modules
+RUN ./node_modules/.bin/tsx --version
+RUN ./node_modules/.bin/next --version
 
 # Copy source code
 COPY ui/ .
 COPY proto/ /proto/
 COPY server/ /server/
 
-# Pre-build backend
-RUN cd /server && go mod download && CGO_ENABLED=1 go build -o /app/server_bin cmd/server/main.go
+# Build frontend
+RUN npm run build
 
-# Run E2E tests
-CMD ["npm", "run", "test:e2e"]
+# Download backend dependencies
+RUN cd /server && go mod download
+
+# Run E2E tests via the startup script to manage services and logs
+ENV TEST_SKIP_WEBSERVER=true
+CMD ["sh", "scripts/start-e2e.sh", "npm", "run", "test:e2e"]

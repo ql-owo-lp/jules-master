@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 describe("useLocalStorage", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    vi.restoreAllMocks();
   });
 
   it("should initialize with default value", () => {
@@ -60,5 +61,48 @@ describe("useLocalStorage", () => {
     // The implementation now emits undefined payload as listeners re-read from cache
     expect(emitSpy).toHaveBeenCalledWith("storage:perf-key", undefined);
     expect(emitSpy).not.toHaveBeenCalledWith("change", expect.anything());
+  });
+
+  it("should NOT update local storage if the value is the same", () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+    const { result } = renderHook(() => useLocalStorage("same-val-key", "initial"));
+
+    // First update changes value
+    act(() => {
+      result.current[1]("new-value");
+    });
+
+    // Check call count (might be > 1 due to monkey-patching or other internal calls, but should be at least 1)
+    const callsAfterFirstUpdate = setItemSpy.mock.calls.length;
+    expect(callsAfterFirstUpdate).toBeGreaterThan(0);
+
+    // Second update sets same value
+    act(() => {
+      result.current[1]("new-value");
+    });
+
+    // Expectation: setItem should NOT be called again
+    expect(setItemSpy).toHaveBeenCalledTimes(callsAfterFirstUpdate);
+  });
+
+  it("should overwrite invalid JSON in local storage when setting a new value directly", () => {
+    // Setup invalid JSON
+    window.localStorage.setItem("invalid-json-key", "invalid-json-content");
+
+    const { result } = renderHook(() => useLocalStorage("invalid-json-key", "default"));
+
+    // Initial value should be default because parse fails
+    expect(result.current[0]).toBe("default");
+
+    // Spy on setItem
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+
+    // Set value directly (not function updater)
+    act(() => {
+      result.current[1]("new-valid-value");
+    });
+
+    expect(setItemSpy).toHaveBeenCalled();
+    expect(window.localStorage.getItem("invalid-json-key")).toBe(JSON.stringify("new-valid-value"));
   });
 });

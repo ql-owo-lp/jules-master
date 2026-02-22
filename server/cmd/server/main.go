@@ -49,12 +49,13 @@ func authInterceptor(validToken string) grpc.UnaryServerInterceptor {
 }
 
 func main() {
+	log.Println("Server process starting...")
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "50051"
 	}
 
-	listener, err := net.Listen("tcp", ":"+port)
+	listener, err := net.Listen("tcp", "0.0.0.0:"+port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

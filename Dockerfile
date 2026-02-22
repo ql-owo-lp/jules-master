@@ -10,10 +10,11 @@ COPY server/ .
 RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
-FROM node:24 AS node-builder
-RUN apt-get update && apt-get install -y curl unzip
-# Install pnpm
-RUN npm install -g pnpm
+# Use Node 20 LTS (Iron) for maximum stability.
+FROM node:20-bookworm AS node-builder
+RUN apt-get update && apt-get install -y curl unzip python3 make g++
+# Install pnpm (optional, but we use npm now)
+# RUN npm install -g pnpm
 
 RUN PROTOC_VERSION="29.3" && \
     ARCH=$(uname -m) && \
@@ -30,9 +31,10 @@ RUN PROTOC_VERSION="29.3" && \
 WORKDIR /app
 
 # Copy UI package files and proto files
-COPY ui/package.json ui/pnpm-lock.yaml ./
-# Use pnpm install instead of npm ci
-RUN pnpm install --frozen-lockfile
+COPY ui/package.json ui/package-lock.json ./
+# Use npm ci instead of pnpm to avoid symlink issues in multi-stage builds
+# This installs ALL dependencies (dev + prod) for building
+RUN npm ci
 
 # Copy source code and protos
 COPY ui/ .
@@ -53,29 +55,49 @@ RUN ln -s /app/node_modules /node_modules
 RUN npm run build --debug
 RUN mkdir -p /app/data
 
+# Prepare production dependencies in a separate folder
+# We do this here because this stage definitely has working npm and build tools (python, make, g++)
+# and shares the same OS/Architecture as the runner stage (node:20-bookworm)
+WORKDIR /app/prod_deps
+COPY ui/package.json ui/package-lock.json ./
+RUN npm ci --omit=dev
+
 # 3. Final Stage
-FROM gcr.io/distroless/nodejs24-debian12 AS runner
+# Use Node 20 LTS (Iron) for stability
+FROM node:20-bookworm AS runner
 WORKDIR /app
 # Set DB URL
 ENV DATABASE_URL=/app/data/sqlite.db
 
+# Install runtime dependencies
+# sqlite3 CLI for debugging, others for better-sqlite3 runtime (if dynamic linking needed)
+RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
+
+# Copy package files (useful for reference, though modules are copied below)
+COPY --from=node-builder /app/package.json ./package.json
+COPY --from=node-builder /app/package-lock.json ./package-lock.json
+
+# Copy production node_modules from the builder's prepared folder
+# This bypasses running npm in the runner stage, avoiding "command not found" errors
+COPY --from=node-builder /app/prod_deps/node_modules ./node_modules
+
+# Verify better-sqlite3 installation immediately (using the pre-built binary)
+RUN node -e "try { require('better-sqlite3'); console.log('better-sqlite3 verified'); } catch (e) { console.error(e); process.exit(1); }"
+
 # Copy Next.js assets
 COPY --from=node-builder /app/.next ./.next
-# Copy pnpm-lock.yaml instead of package-lock.json if needed by runtime (Next.js sometimes checks lockfile for dependency resolution optimization)
-# But more importantly copy node_modules
-# Note: pnpm node_modules structure might contain symlinks. Distroless image might not handle copying symlinks well if the source is not present?
-# But `COPY` should dereference if we copy directories? No.
-# If `pnpm` uses hardlinks to store, copying across stages might break if store is not copied?
-# However, `pnpm install` in Docker without mount usually copies files into node_modules (hardlinked), so copying the folder should work as files.
-COPY --from=node-builder /app/node_modules ./node_modules
-COPY --from=node-builder /app/package.json ./package.json
 COPY --from=node-builder /app/start.js ./
-COPY --from=node-builder /app/src/lib/db ./src/lib/db
+# Copy entire src folder to ensure all dependencies for migrations/scripts are present
+COPY --from=node-builder /app/src ./src
+COPY --from=node-builder /app/tsconfig.json ./tsconfig.json
 COPY --from=node-builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=node-builder /app/data /app/data
 
 # Copy Go backend binary
 COPY --from=go-builder /app/server /app/server
+
+# Explicitly copy migrations folder to ensure it exists (redundant but safe)
+COPY --from=node-builder /app/src/lib/db/migrations ./src/lib/db/migrations
 
 # Expose ports (9002 for frontend, 50051 for backend (internal))
 EXPOSE 9002
@@ -84,4 +106,4 @@ EXPOSE 9002
 VOLUME /app/data
 
 
-CMD ["start.js"]
+CMD ["node", "start.js"]

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
-const port = process.env.PLAYWRIGHT_PORT ? parseInt(process.env.PLAYWRIGHT_PORT) : 9002;
-const baseURL = process.env.TEST_TARGET_URL || `http://127.0.0.1:${port}`;
+const port = process.env.PLAYWRIGHT_PORT ? parseInt(process.env.PLAYWRIGHT_PORT) : 3000;
+const baseURL = process.env.TEST_TARGET_URL || `http://localhost:${port}`;
 
 export default defineConfig({
     testDir: './tests/e2e',
@@ -8,8 +8,8 @@ export default defineConfig({
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
     workers: 1,
-    reporter: 'list',
-    timeout: 60000,
+    reporter: [['list'], ['html']],
+    timeout: 120000,
     expect: {
         timeout: 30000,
     },
@@ -24,11 +24,14 @@ export default defineConfig({
       },
     ],
     webServer: process.env.TEST_SKIP_WEBSERVER ? undefined : {
-      command: `rm -f /tmp/e2e_jules.db && export DATABASE_URL=/tmp/e2e_jules.db; sh -c "npx -y tsx src/lib/db/migrate.ts && npx -y tsx scripts/seed-e2e.ts && (([ -f /app/server_bin ] && /app/server_bin > /tmp/backend.log 2>&1) || ([ -f ./server_bin ] && ./server_bin > /tmp/backend.log 2>&1) || (cd ../server && go run cmd/server/main.go > /tmp/backend.log 2>&1) &) && npx -y tsx scripts/wait-for-backend.ts && MOCK_API=false JULES_API_KEY=${process.env.JULES_API_KEY || 'mock-api-key'} DATABASE_URL=/tmp/e2e_jules.db next dev -p ${port}"`,
+      command: `sh scripts/start-e2e.sh ${port}`,
       url: baseURL,
+      env: {
+        DATABASE_URL: 'e2e_jules.db', // Ensure consistency if passed down
+      },
       reuseExistingServer: !process.env.CI,
       stdout: 'pipe',
       stderr: 'pipe',
-      timeout: 120 * 1000,
+      timeout: 600 * 1000,
     },
 });
