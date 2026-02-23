@@ -107,19 +107,21 @@ func TestChatService(t *testing.T) {
 		t.Errorf("Agent2 should see 3 messages, got %d", len(resp2.Messages))
 	}
 
-	// 8. List Messages as Human (ViewerName="Human", assumes Human sees all public + addressed to Human + sent by Human)
-	// Actually, usually Human assumes Admin role in these debug views, but strictly following logic:
-	// If ViewerName is "Human", checks recipient="Human" or sender="Human" or Public.
+	// 8. List Messages as User (ViewerName="User", assumes User sees all public + addressed to User + sent by User)
+	// Actually, usually User assumes Admin role in these debug views, but strictly following logic:
+	// If ViewerName is "User", checks recipient="User" or sender="User" or Public.
 	// Private messages between Agent1 and Agent2 should NOT be visible strictly speaking if we follow the logic.
-	// But let's verify if we send ViewerName="" (Admin/God mode?) -> logic says "no filter" if ViewerName empty.
-	// Let's test "Admin" view (empty ViewerName)
+	// But let's verify if we send ViewerName="" (Anonymous/Public mode) -> logic NOW says "public only" if ViewerName empty.
+	// Let's test "Anonymous" view (empty ViewerName)
 	respAdmin, err := svc.ListChatMessages(ctx, &pb.ListChatMessagesRequest{
 		JobId: jobId,
 	})
 	if err != nil {
-		t.Fatalf("ListChatMessages Admin failed: %v", err)
+		t.Fatalf("ListChatMessages Anonymous failed: %v", err)
 	}
-	if len(respAdmin.Messages) != 3 {
-		t.Errorf("Admin should see 3 messages, got %d", len(respAdmin.Messages))
+	// Expect ONLY public message ("Hello Everyone")
+	// "Secret for Agent2" and "Secret for Agent1" are private between agents.
+	if len(respAdmin.Messages) != 1 {
+		t.Errorf("Anonymous should see 1 message, got %d", len(respAdmin.Messages))
 	}
 }

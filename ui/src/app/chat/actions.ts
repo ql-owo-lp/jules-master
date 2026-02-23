@@ -64,7 +64,7 @@ export async function listChatMessages(jobId: string, since?: string, limit?: nu
       jobId,
       since: since || "",
       limit: limit || 50,
-      viewerName: "" // Default to empty (admin/all) or handle properly if we want to filter for human
+      viewerName: "User" // Identify as "User" to see messages for/from User, while respecting privacy of agent-to-agent messages
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }, (err: any, response: any) => {
       if (err) {
