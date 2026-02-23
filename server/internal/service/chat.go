@@ -184,6 +184,9 @@ func (s *ChatServer) ListChatMessages(ctx context.Context, req *pb.ListChatMessa
 		// 3. Sender matches ViewerName (I can see my own messages)
 		query += " AND (recipient IS NULL OR recipient = '' OR recipient = ? OR sender_name = ?)"
 		args = append(args, req.ViewerName, req.ViewerName)
+	} else {
+		// Secure by default: If no viewer specified, only show public messages
+		query += " AND (recipient IS NULL OR recipient = '')"
 	}
 
 	query += " ORDER BY created_at ASC"
