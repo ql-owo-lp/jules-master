@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -11,14 +12,14 @@ global.fetch = mockFetch;
 
 // Mock AlertDialog to avoid Portal issues in JSDOM
 vi.mock('@/components/ui/alert-dialog', () => ({
-  AlertDialog: ({ open, children }: any) => open ? <div role="alertdialog">{children}</div> : null,
-  AlertDialogContent: ({ children }: any) => <div>{children}</div>,
-  AlertDialogHeader: ({ children }: any) => <div>{children}</div>,
-  AlertDialogTitle: ({ children }: any) => <div>{children}</div>,
-  AlertDialogDescription: ({ children }: any) => <div>{children}</div>,
-  AlertDialogFooter: ({ children }: any) => <div>{children}</div>,
-  AlertDialogAction: ({ children }: any) => <button>{children}</button>,
-  AlertDialogCancel: ({ children }: any) => <button>{children}</button>,
+  AlertDialog: ({ open, children }: { open: boolean; children: React.ReactNode }) => open ? <div role="alertdialog">{children}</div> : null,
+  AlertDialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogTitle: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogDescription: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogAction: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+  AlertDialogCancel: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
 }));
 
 const mockCronJobs: CronJob[] = [
@@ -42,9 +43,14 @@ describe('CronJobsList', () => {
   });
 
   it('displays the job name in the delete confirmation dialog', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockCronJobs,
+    mockFetch.mockImplementation((url) => {
+      if (url === '/api/cron-jobs') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockCronJobs,
+        });
+      }
+      return Promise.resolve({ ok: true });
     });
 
     render(<CronJobsList />);
@@ -69,5 +75,36 @@ describe('CronJobsList', () => {
         expect(dialog).toHaveTextContent(/This will permanently delete the cron job/);
         expect(dialog).toHaveTextContent(/Test Job/);
     });
+  });
+
+  it('triggers execution when clicking the run button', async () => {
+    mockFetch.mockImplementation((url) => {
+      if (url === '/api/cron-jobs') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockCronJobs,
+        });
+      }
+      if (url.endsWith('/execute')) {
+         return Promise.resolve({ ok: true });
+      }
+      return Promise.resolve({ ok: true });
+    });
+
+    render(<CronJobsList />);
+
+    // Wait for the job to be displayed
+    await waitFor(() => {
+      expect(screen.getByText('Test Job')).toBeInTheDocument();
+    });
+
+    const user = userEvent.setup();
+    const runButton = screen.getByRole('button', { name: /run cron job now/i });
+
+    await user.click(runButton);
+
+    expect(mockFetch).toHaveBeenCalledWith('/api/cron-jobs/1/execute', expect.objectContaining({
+        method: 'POST'
+    }));
   });
 });
