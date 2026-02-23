@@ -92,9 +92,49 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
 }
 
 /**
+ * Deep equality check for two values.
+ * Handles primitives, arrays, objects, and Dates.
+ * Optimized to avoid string allocations unlike JSON.stringify.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function deepEqual(obj1: any, obj2: any): boolean {
+  if (obj1 === obj2) return true;
+
+  if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) {
+    return false;
+  }
+
+  if (obj1 instanceof Date && obj2 instanceof Date) {
+    return obj1.getTime() === obj2.getTime();
+  }
+
+  if (Array.isArray(obj1) !== Array.isArray(obj2)) return false;
+
+  if (Array.isArray(obj1)) {
+    if (obj1.length !== obj2.length) return false;
+    for (let i = 0; i < obj1.length; i++) {
+      if (!deepEqual(obj1[i], obj2[i])) return false;
+    }
+    return true;
+  }
+
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  if (keys1.length !== keys2.length) return false;
+
+  for (const key of keys1) {
+    if (!Object.prototype.hasOwnProperty.call(obj2, key)) return false;
+    if (!deepEqual(obj1[key], obj2[key])) return false;
+  }
+
+  return true;
+}
+
+/**
  * Checks if data has changed between two arrays of objects.
  * Uses `updateTime` for fast comparison if available and valid (string).
- * Falls back to deep equality (via JSON.stringify) otherwise.
+ * Falls back to deep equality otherwise.
  *
  * Note: If `updateTime` matches, it assumes the object is unchanged.
  * This works well for server-synced entities but may miss local client-side mutations
@@ -120,7 +160,7 @@ export function hasDataChanged<T extends { id: string }>(
     const item = next[i];
 
     // Optimization: Use updateTime if available on both items
-    // This avoids expensive JSON.stringify for large objects like Sessions
+    // This avoids expensive deep comparison for large objects like Sessions
     if (
       'updateTime' in item &&
       'updateTime' in prevItem &&
@@ -134,7 +174,7 @@ export function hasDataChanged<T extends { id: string }>(
       continue;
     }
 
-    if (JSON.stringify(prevItem) !== JSON.stringify(item)) return true;
+    if (!deepEqual(prevItem, item)) return true;
   }
 
   if (!reordered) return false;
@@ -146,7 +186,7 @@ export function hasDataChanged<T extends { id: string }>(
     if (!prevItem) return true;
 
     // Optimization: Use updateTime if available on both items
-    // This avoids expensive JSON.stringify for large objects like Sessions
+    // This avoids expensive deep comparison for large objects like Sessions
     if (
       'updateTime' in item &&
       'updateTime' in prevItem &&
@@ -160,7 +200,7 @@ export function hasDataChanged<T extends { id: string }>(
       continue;
     }
 
-    if (JSON.stringify(prevItem) !== JSON.stringify(item)) return true;
+    if (!deepEqual(prevItem, item)) return true;
   }
 
   return false;

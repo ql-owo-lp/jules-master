@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupSessionsByTopic, createDynamicJobs } from '../src/lib/utils';
+import { groupSessionsByTopic, createDynamicJobs, deepEqual, hasDataChanged } from '../src/lib/utils';
 import { Session } from '../src/lib/types';
 
 describe('Utils', () => {
@@ -134,6 +134,106 @@ describe('Utils', () => {
       expect(jobs.length).toBe(1);
       expect(jobs[0].repo).toBe('test/repo2');
       expect(jobs[0].branch).toBe('develop');
+    });
+  });
+
+  describe('deepEqual', () => {
+    it('should return true for identical primitives', () => {
+      expect(deepEqual(1, 1)).toBe(true);
+      expect(deepEqual('test', 'test')).toBe(true);
+      expect(deepEqual(true, true)).toBe(true);
+      expect(deepEqual(null, null)).toBe(true);
+      expect(deepEqual(undefined, undefined)).toBe(true);
+    });
+
+    it('should return false for different primitives', () => {
+      expect(deepEqual(1, 2)).toBe(false);
+      expect(deepEqual('test', 'rest')).toBe(false);
+      expect(deepEqual(true, false)).toBe(false);
+      expect(deepEqual(null, undefined)).toBe(false);
+    });
+
+    it('should return true for identical arrays', () => {
+      expect(deepEqual([1, 2, 3], [1, 2, 3])).toBe(true);
+      expect(deepEqual(['a', 'b'], ['a', 'b'])).toBe(true);
+    });
+
+    it('should return false for different arrays', () => {
+      expect(deepEqual([1, 2], [1, 2, 3])).toBe(false);
+      expect(deepEqual([1, 2], [1, 3])).toBe(false);
+      expect(deepEqual([1, 2], ['1', '2'])).toBe(false);
+    });
+
+    it('should return true for identical objects', () => {
+      expect(deepEqual({ a: 1, b: 2 }, { a: 1, b: 2 })).toBe(true);
+      expect(deepEqual({ a: 1, b: { c: 3 } }, { a: 1, b: { c: 3 } })).toBe(true);
+    });
+
+    it('should return false for different objects', () => {
+      expect(deepEqual({ a: 1 }, { a: 2 })).toBe(false);
+      expect(deepEqual({ a: 1 }, { b: 1 })).toBe(false);
+      expect(deepEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+    });
+
+    it('should handle Date objects', () => {
+      const date1 = new Date('2023-01-01');
+      const date2 = new Date('2023-01-01');
+      const date3 = new Date('2023-01-02');
+      expect(deepEqual(date1, date2)).toBe(true);
+      expect(deepEqual(date1, date3)).toBe(false);
+    });
+  });
+
+  describe('hasDataChanged', () => {
+    it('should return false if arrays are identical', () => {
+        const prev = [{ id: '1', val: 'a' }];
+        const next = [{ id: '1', val: 'a' }];
+        expect(hasDataChanged(prev, next)).toBe(false);
+    });
+
+    it('should return true if length differs', () => {
+        const prev = [{ id: '1', val: 'a' }];
+        const next = [{ id: '1', val: 'a' }, { id: '2', val: 'b' }];
+        expect(hasDataChanged(prev, next)).toBe(true);
+    });
+
+    it('should return true if content differs', () => {
+        const prev = [{ id: '1', val: 'a' }];
+        const next = [{ id: '1', val: 'b' }];
+        expect(hasDataChanged(prev, next)).toBe(true);
+    });
+
+    it('should return true if order differs', () => {
+        const prev = [{ id: '1', val: 'a' }, { id: '2', val: 'b' }];
+        const next = [{ id: '2', val: 'b' }, { id: '1', val: 'a' }];
+        // It returns false because hasDataChanged handles reordering by creating a Map
+        expect(hasDataChanged(prev, next)).toBe(false);
+    });
+
+    it('should use updateTime optimization if available', () => {
+        const prev = [{ id: '1', updateTime: 't1', val: 'a' }];
+        const next = [{ id: '1', updateTime: 't1', val: 'b' }]; // val changed but time didn't
+        // Optimization assumes no change if time matches
+        expect(hasDataChanged(prev, next)).toBe(false);
+    });
+
+    it('should return true if updateTime differs', () => {
+        const prev = [{ id: '1', updateTime: 't1', val: 'a' }];
+        const next = [{ id: '1', updateTime: 't2', val: 'a' }]; // val same but time diff
+        expect(hasDataChanged(prev, next)).toBe(true);
+    });
+
+    it('should use deepEqual fallback if updateTime is missing', () => {
+        const prev = [{ id: '1', val: 'a' }];
+        const next = [{ id: '1', val: 'a' }];
+        // Should use deepEqual and return false
+        expect(hasDataChanged(prev, next)).toBe(false);
+    });
+
+    it('should return true with deepEqual if content changed', () => {
+        const prev = [{ id: '1', val: 'a' }];
+        const next = [{ id: '1', val: 'b' }];
+        expect(hasDataChanged(prev, next)).toBe(true);
     });
   });
 });
