@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { SessionTable } from "./session-table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { deepEqual } from "@/lib/utils";
 import type { Job, Session, PredefinedPrompt } from "@/lib/types";
 
 interface JobAccordionItemProps {
@@ -450,7 +451,9 @@ export function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next:
   }
 
   // Check other simple props
-  if (prev.job !== next.job) return false;
+  if (prev.job !== next.job) {
+    if (!deepEqual(prev.job, next.job)) return false;
+  }
   if (prev.statusFilter !== next.statusFilter) return false;
   if (prev.sessionsPerPage !== next.sessionsPerPage) return false;
   if (prev.page !== next.page) return false;
