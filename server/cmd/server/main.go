@@ -107,9 +107,26 @@ func main() {
 			log.Fatalf("failed to generate secure token: %v", err)
 		}
 		token = hex.EncodeToString(bytes)
-		log.Println("WARNING: JULES_INTERNAL_TOKEN not set.")
-		log.Printf("Generated secure internal token: %s", token)
-		log.Println("Please set JULES_INTERNAL_TOKEN environment variable to persist authentication.")
+
+		// Try to save token to a file with restricted permissions
+		tokenFile := ".jules_token"
+		err := os.WriteFile(tokenFile, []byte(token), 0600)
+		if err != nil {
+			log.Printf("WARNING: JULES_INTERNAL_TOKEN not set and failed to write token to file: %v", err)
+			log.Println("********************************************************************************")
+			log.Println("* WARNING: JULES_INTERNAL_TOKEN IS NOT SET                                   *")
+			log.Println("* A temporary token has been generated.                                        *")
+			log.Println("* This token is logged below because file creation failed.                     *")
+			log.Println("* Ensure your logs are secure!                                                 *")
+			log.Println("********************************************************************************")
+			log.Printf("Generated secure internal token: %s", token)
+			log.Println("********************************************************************************")
+		} else {
+			log.Println("WARNING: JULES_INTERNAL_TOKEN not set.")
+			log.Printf("Generated secure internal token and saved to %s (permissions 0600).", tokenFile)
+			log.Println("Please check the file content for the token to authenticate.")
+			log.Println("Please set JULES_INTERNAL_TOKEN environment variable to persist authentication.")
+		}
 	} else {
 		log.Println("Enforcing internal authentication with JULES_INTERNAL_TOKEN")
 	}
