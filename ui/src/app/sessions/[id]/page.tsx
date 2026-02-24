@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useTransition, useRef, useCallback, useMemo } from "react";
@@ -54,12 +53,19 @@ import {
   Zap,
   Briefcase,
   ChevronDown,
-  MessageSquareReply
+  MessageSquareReply,
+  Command
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Combobox } from "@/components/ui/combobox";
 import { CopyButton } from "@/components/copy-button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -235,6 +241,13 @@ export default function SessionDetailPage() {
     });
   };
   
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
   const repoContext = session?.sourceContext?.githubRepoContext;
   const repoName = session?.sourceContext?.source.split("/").slice(-2).join("/");
   
@@ -549,6 +562,7 @@ export default function SessionDetailPage() {
                                     id="message"
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
+                                    onKeyDown={handleKeyDown}
                                     placeholder="Type your message here..."
                                     rows={4}
                                     disabled={isActionPending}
@@ -573,10 +587,22 @@ export default function SessionDetailPage() {
                                     />
                                 </div>
                             ) : <div></div>}
-                            <Button onClick={handleSendMessage} disabled={isActionPending || !message.trim()}>
-                                {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
-                                Send Message
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button onClick={handleSendMessage} disabled={isActionPending || !message.trim()}>
+                                      {isActionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
+                                      Send Message
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="flex items-center gap-1">
+                                    <Command className="h-3 w-3" />
+                                    <span>+ Enter to send</span>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                         </CardFooter>
                     </Card>
 
