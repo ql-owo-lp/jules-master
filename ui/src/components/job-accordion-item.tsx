@@ -15,7 +15,6 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { SessionTable } from "./session-table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { deepEqual } from "@/lib/utils";
 import type { Job, Session, PredefinedPrompt } from "@/lib/types";
 
 interface JobAccordionItemProps {
@@ -450,10 +449,7 @@ export function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next:
       }
   }
 
-  // Check other simple props
-  if (prev.job !== next.job) {
-    if (!deepEqual(prev.job, next.job)) return false;
-  }
+  // Check simple props first to fail fast
   if (prev.statusFilter !== next.statusFilter) return false;
   if (prev.sessionsPerPage !== next.sessionsPerPage) return false;
   if (prev.page !== next.page) return false;
@@ -472,6 +468,30 @@ export function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next:
   if (prev.onSendMessage !== next.onSendMessage) return false;
   if (prev.setActiveJobId !== next.setActiveJobId) return false;
 
+  // Check job primitive fields
+  // This replaces the expensive deepEqual(prev.job, next.job)
+  if (prev.job.id !== next.job.id ||
+      prev.job.name !== next.job.name ||
+      prev.job.status !== next.job.status ||
+      prev.job.createdAt !== next.job.createdAt ||
+      prev.job.repo !== next.job.repo ||
+      prev.job.branch !== next.job.branch ||
+      prev.job.prompt !== next.job.prompt ||
+      prev.job.sessionCount !== next.job.sessionCount ||
+      prev.job.chatEnabled !== next.job.chatEnabled ||
+      prev.job.autoApproval !== next.job.autoApproval ||
+      prev.job.background !== next.job.background ||
+      prev.job.automationMode !== next.job.automationMode ||
+      prev.job.requirePlanApproval !== next.job.requirePlanApproval ||
+      prev.job.cronJobId !== next.job.cronJobId ||
+      prev.job.profileId !== next.job.profileId) {
+      return false;
+  }
+
+  if (prev.job.sessionIds.length !== next.job.sessionIds.length) {
+      return false;
+  }
+
   // Check details (deep check)
   if (prev.details !== next.details) {
       if (!prev.details || !next.details) return false; // One is undefined
@@ -485,18 +505,37 @@ export function areJobAccordionItemPropsEqual(prev: JobAccordionItemProps, next:
       }
   }
 
-  // Check sessionMap (smart check)
-  if (prev.sessionMap !== next.sessionMap) {
-      for (const id of next.job.sessionIds) {
-          const prevSession = prev.sessionMap.get(id);
-          const nextSession = next.sessionMap.get(id);
+  // Unified check for sessionIds content AND sessionMap updates
+  // This combines the check for job.sessionIds changes and sessionMap content changes
+  // into a single iteration, avoiding double loops over sessionIds.
+  const jobsSame = prev.job === next.job;
+  const sessionMapSame = prev.sessionMap === next.sessionMap;
+
+  // If both references are same, we can skip iteration (assuming immutability)
+  if (jobsSame && sessionMapSame) {
+      return true;
+  }
+
+  const nextSessionIds = next.job.sessionIds;
+  const prevSessionIds = prev.job.sessionIds;
+
+  for (let i = 0; i < nextSessionIds.length; i++) {
+      const nextId = nextSessionIds[i];
+
+      // If job object is different, we must verify IDs match
+      if (!jobsSame) {
+          if (prevSessionIds[i] !== nextId) return false;
+      }
+
+      // If sessionMap changed, check if session content changed
+      if (!sessionMapSame) {
+          const prevSession = prev.sessionMap.get(nextId);
+          const nextSession = next.sessionMap.get(nextId);
 
           if (prevSession === nextSession) continue;
-          if (!prevSession || !nextSession) return false; // One is undefined
+          if (!prevSession || !nextSession) return false;
 
           // Optimization: If updateTime matches, assume session is unchanged
-          // This avoids re-rendering all jobs when one session in one job changes
-          // (which causes sessionMap reference to change for everyone)
           if (prevSession.updateTime && nextSession.updateTime && prevSession.updateTime === nextSession.updateTime) {
               continue;
           }
