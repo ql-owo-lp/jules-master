@@ -83,14 +83,22 @@ const ActivityItem = memo(({ activity, isLast }: { activity: Activity, isLast: b
     return (
         <div className="flex gap-4">
             <div className="flex flex-col items-center">
-            <span
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
-            title={`Originated by: ${activity.originator}`}
-            >
-            {originatorIcons[activity.originator] || (
-                <MessageSquare className="h-5 w-5" />
-            )}
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  aria-label={`Originated by: ${activity.originator}`}
+                  tabIndex={0}
+                >
+                  {originatorIcons[activity.originator] || (
+                    <MessageSquare className="h-5 w-5" />
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Originated by: {activity.originator}</p>
+              </TooltipContent>
+            </Tooltip>
             {!isLast && (
                 <div className="flex-1 w-px bg-border my-2"></div>
             )}
