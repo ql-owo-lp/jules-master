@@ -179,7 +179,11 @@ export const chatMessages = sqliteTable('chat_messages', {
   createdAt: text('created_at').notNull(),
   isHuman: integer('is_human', { mode: 'boolean' }).default(false),
   recipient: text('recipient'),
-});
+}, (table) => ({
+  // Optimization: Add composite index on jobId and createdAt to speed up message listing queries.
+  // This helps when filtering messages by job and sorting by creation time.
+  jobIdCreatedAtIdx: index('chat_messages_job_id_created_at_idx').on(table.jobId, table.createdAt),
+}));
 
 export const locks = sqliteTable('locks', {
   id: text('id').primaryKey(),

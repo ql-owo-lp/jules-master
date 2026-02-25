@@ -169,6 +169,7 @@ func createTables(t *testing.T, conn *sql.DB) {
             is_human BOOLEAN DEFAULT 0,
             recipient TEXT
         );`,
+		`CREATE INDEX chat_messages_job_id_created_at_idx ON chat_messages (job_id, created_at);`,
 	}
 
 	for _, q := range queries {
