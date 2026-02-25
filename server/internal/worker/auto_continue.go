@@ -185,6 +185,19 @@ func (w *AutoContinueWorker) runCheck(ctx context.Context) error {
 			}
 		}
 
+		// Security: Prevent infinite loop of auto-continue messages
+		cannedCount := 0
+		for _, m := range remoteSess.Messages {
+			if m.Text == cannedResponse {
+				cannedCount++
+			}
+		}
+
+		if cannedCount >= 5 {
+			logger.Warn("%s [%s]: Session %s has reached max auto-continue limit (5). Skipping.", w.Name(), w.id, sessID)
+			continue
+		}
+
 		// Send Continue Message
 		logger.Info("%s [%s]: Auto-replying to session %s (Completed, No PR)", w.Name(), w.id, sessID)
 		_, err = w.sessionService.SendMessage(ctx, &pb.SendMessageRequest{
