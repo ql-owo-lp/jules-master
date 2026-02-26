@@ -573,6 +573,7 @@ export function JobCreationForm({
                     searchPlaceholder="Search messages..."
                     disabled={isPending || disabled}
                     icon={<BookText className="h-4 w-4 text-muted-foreground" />}
+                    aria-label="Select a prompt template"
                     renderOption={(option) => (
                       <span className="truncate">
                         {option.label}
