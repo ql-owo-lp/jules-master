@@ -39,6 +39,8 @@ type ComboboxProps = {
     icon?: React.ReactNode;
     name?: string;
     id?: string;
+    "aria-label"?: string;
+    "aria-labelledby"?: string;
     renderOption?: (option: ComboboxOption) => React.ReactNode;
 };
 
@@ -58,6 +60,8 @@ export function Combobox({
     icon,
     name,
     id,
+    "aria-label": ariaLabel,
+    "aria-labelledby": ariaLabelledBy,
     renderOption
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
@@ -118,6 +122,8 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
           className="w-full justify-between"
           disabled={disabled}
           name={name}
