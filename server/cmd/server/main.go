@@ -112,15 +112,7 @@ func main() {
 		tokenFile := ".jules_token"
 		err := os.WriteFile(tokenFile, []byte(token), 0600)
 		if err != nil {
-			log.Printf("WARNING: JULES_INTERNAL_TOKEN not set and failed to write token to file: %v", err)
-			log.Println("********************************************************************************")
-			log.Println("* WARNING: JULES_INTERNAL_TOKEN IS NOT SET                                   *")
-			log.Println("* A temporary token has been generated.                                        *")
-			log.Println("* This token is logged below because file creation failed.                     *")
-			log.Println("* Ensure your logs are secure!                                                 *")
-			log.Println("********************************************************************************")
-			log.Printf("Generated secure internal token: %s", token)
-			log.Println("********************************************************************************")
+			log.Fatalf("WARNING: JULES_INTERNAL_TOKEN not set and failed to write token to file: %v. Exiting.", err)
 		} else {
 			log.Println("WARNING: JULES_INTERNAL_TOKEN not set.")
 			log.Printf("Generated secure internal token and saved to %s (permissions 0600).", tokenFile)
