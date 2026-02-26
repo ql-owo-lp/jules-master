@@ -137,6 +137,7 @@ export function MessageDialog({
                             <div className="space-y-2">
                                 <Label htmlFor="message-suggestions">Message Suggestions</Label>
                                 <Combobox
+                                    id="message-suggestions"
                                     options={promptOptions}
                                     onValueChange={(val) => {
                                         const selected = predefinedPrompts.find(p => p.id === val);
@@ -151,6 +152,7 @@ export function MessageDialog({
                             <div className="space-y-2">
                                 <Label htmlFor="quick-replies">Quick Replies</Label>
                                 <Combobox
+                                    id="quick-replies"
                                     options={replyOptions}
                                     onValueChange={(val) => {
                                         if (providedQuickReplyOptions) {

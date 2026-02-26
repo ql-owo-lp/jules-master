@@ -93,4 +93,20 @@ describe("Combobox", () => {
     const button = screen.getByRole("combobox");
     expect(button).toHaveAttribute("id", "my-unique-combobox-id");
   });
+
+  it("should pass aria-label to the button", () => {
+    render(
+      <Combobox
+        options={options}
+        selectedValue={null}
+        onValueChange={() => {}}
+        placeholder="Select an option"
+        searchPlaceholder="Search..."
+        aria-label="My Combobox Label"
+      />
+    );
+
+    const button = screen.getByRole("combobox");
+    expect(button).toHaveAttribute("aria-label", "My Combobox Label");
+  });
 });
