@@ -64,5 +64,11 @@ func Connect() (*sql.DB, error) {
 		fmt.Printf("Lazy migration failed (might already exist): %v\n", err)
 	}
 
+	// Add index for chat messages
+	if _, err := db.Exec("CREATE INDEX IF NOT EXISTS chat_messages_job_id_created_at_idx ON chat_messages (job_id, created_at)"); err != nil {
+		// Log error but continue as table might not exist yet
+		fmt.Printf("Lazy migration for chat_messages index failed (might not exist): %v\n", err)
+	}
+
 	return db, nil
 }
