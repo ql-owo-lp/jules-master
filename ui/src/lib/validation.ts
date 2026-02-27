@@ -45,7 +45,7 @@ export const cronJobSchema = z.object({
   name: z.string().min(1, "Name is required"),
   schedule: z.string().min(1, "Schedule is required"),
   prompt: z.string().min(1, "Prompt is required"),
-  repo: z.string().min(1, "Repository is required"),
+  repo: z.string().min(1, "Repository is required").regex(/^[a-zA-Z0-9-]+\/[a-zA-Z0-9-._]+$/, "Repository must be in 'owner/repo' format"),
   branch: z.string().min(1, "Branch is required"),
   autoApproval: z.boolean(),
   automationMode: z.enum(['AUTOMATION_MODE_UNSPECIFIED', 'AUTO_CREATE_PR']).optional(),
