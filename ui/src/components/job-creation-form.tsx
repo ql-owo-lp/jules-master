@@ -18,7 +18,7 @@ import { refreshSources, listSources } from "@/app/sessions/actions";
 import { getPredefinedPrompts, getGlobalPrompt, getRepoPrompt, addJob, getHistoryPrompts, saveHistoryPrompt, getSettings } from "@/app/config/actions";
 import type { Session, Source, PredefinedPrompt, Job, AutomationMode, HistoryPrompt, Settings } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Wand2, Loader2, RefreshCw, X, Trash2, BookText, HelpCircle } from "lucide-react";
+import { Wand2, Loader2, RefreshCw, X, Trash2, BookText, HelpCircle, Command } from "lucide-react";
 import { SourceSelection } from "./source-selection";
 import { BranchSelection } from "./branch-selection";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -364,6 +364,13 @@ export function JobCreationForm({
     });
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      e.currentTarget.form?.requestSubmit();
+    }
+  };
+
   const handlePreCannedPromptSelect = (promptId: string | null) => {
     if (!promptId) {
         setSelectedPromptId(null);
@@ -558,6 +565,7 @@ export function JobCreationForm({
                   // If user types, we deselect any suggestion because it might differ now
                   if (selectedPromptId) setSelectedPromptId(null);
               }}
+              onKeyDown={handleKeyDown}
               disabled={isPending || disabled}
               aria-label="Session Prompts"
               required
@@ -752,7 +760,10 @@ export function JobCreationForm({
               ) : !finalPrompt.trim() ? (
                 <p>Please enter a prompt to create a job</p>
               ) : (
-                <p>Create new job</p>
+                <div className="flex items-center gap-1">
+                  <Command className="h-3 w-3" />
+                  <span>+ Enter to create job</span>
+                </div>
               )}
             </TooltipContent>
           </Tooltip>

@@ -26,7 +26,8 @@ describe('NewJobPage', () => {
     render(<NewJobPage />);
 
     // Use findByText to wait for isClient to become true (via useEffect)
-    expect(await screen.findByText('API Key Not Set')).toBeDefined();
+    const alert = await screen.findByText('API Key Not Set');
+    expect(alert).toBeDefined();
   });
 
   it('should render NewJobDialog when apiKey is set in localStorage', async () => {
