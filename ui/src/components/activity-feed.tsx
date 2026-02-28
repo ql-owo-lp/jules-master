@@ -403,6 +403,7 @@ function BashOutputDetails({ bashOutput, index }: { bashOutput: BashOutput, inde
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 bg-background/80 hover:bg-background shadow-sm"
+                    aria-label="Copy output"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleCopy(bashOutput.output);
@@ -471,6 +472,7 @@ function GitPatchDetails({ patch }: { patch: GitPatch }) {
                             variant="ghost"
                             size="icon"
                             className="absolute top-0 right-0 h-7 w-7"
+                            aria-label="Copy patch"
                             onClick={() => handleCopy(patch.unidiffPatch)}
                             >
                             {copied ? (
