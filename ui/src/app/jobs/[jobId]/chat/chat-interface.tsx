@@ -34,7 +34,8 @@ export function ChatInterface({ jobId }: ChatInterfaceProps) {
                 // But for now let's just fetch all (or limit to last 50)
                 const msgs = await listChatMessages(jobId, undefined, 50);
                 if (isMounted) {
-                    setMessages(msgs);
+                    // Bolt ⚡: Prevent re-renders if fetched messages haven't changed
+                    setMessages(prev => JSON.stringify(prev) !== JSON.stringify(msgs) ? msgs : prev);
                     setIsLoading(false);
                 }
             } catch (error) {
