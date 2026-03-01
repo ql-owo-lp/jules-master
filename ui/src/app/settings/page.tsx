@@ -570,7 +570,7 @@ function SettingsContent() {
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" disabled={isSavingMessage}>
+                      <Button variant="ghost" size="icon" disabled={isSavingMessage} aria-label="Open menu">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
