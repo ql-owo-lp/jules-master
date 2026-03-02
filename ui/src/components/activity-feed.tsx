@@ -108,7 +108,10 @@ const ActivityItem = memo(({ activity, isLast }: { activity: Activity, isLast: b
             <p className="font-semibold text-sm break-words">{activity.description}</p>
             <Tooltip>
               <TooltipTrigger asChild>
-                <p className="text-xs text-muted-foreground whitespace-nowrap pl-4 pt-0.5 cursor-help">
+                <p
+                  className="text-xs text-muted-foreground whitespace-nowrap pl-4 pt-0.5 cursor-help"
+                  tabIndex={0}
+                >
                   {formatDistanceToNow(new Date(activity.createTime), {
                     addSuffix: true,
                   })}

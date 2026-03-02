@@ -551,7 +551,9 @@ export function CronJobForm({
                 <Label htmlFor="require-plan-approval">Require Plan Approval</Label>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      <button type="button" className="cursor-help" aria-label="Help: Require Plan Approval">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>If enabled, you must manually approve the plan before changes are applied.</p>
@@ -564,7 +566,9 @@ export function CronJobForm({
                   <Label htmlFor="automation-mode">Automation Mode</Label>
                    <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      <button type="button" className="cursor-help" aria-label="Help: Automation Mode">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Determines how the job interacts with the repository (e.g., auto-creating PRs).</p>
