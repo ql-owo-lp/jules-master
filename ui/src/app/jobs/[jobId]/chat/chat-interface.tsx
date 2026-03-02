@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, User, Bot, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTransition } from "react";
+import { hasDataChanged } from "@/lib/utils";
 
 interface ChatInterfaceProps {
     jobId: string;
@@ -35,7 +36,8 @@ export function ChatInterface({ jobId }: ChatInterfaceProps) {
                 const msgs = await listChatMessages(jobId, undefined, 50);
                 if (isMounted) {
                     // Bolt ⚡: Prevent re-renders if fetched messages haven't changed
-                    setMessages(prev => JSON.stringify(prev) !== JSON.stringify(msgs) ? msgs : prev);
+                    // Replaced expensive JSON.stringify with optimized hasDataChanged
+                    setMessages(prev => hasDataChanged(prev, msgs) ? msgs : prev);
                     setIsLoading(false);
                 }
             } catch (error) {
