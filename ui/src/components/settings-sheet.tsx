@@ -151,8 +151,9 @@ export function SettingsSheet() {
 
                 {settings.autoMergeEnabled && (
                     <div className="grid gap-2">
-                         <Label>Auto Merge Message</Label>
+                         <Label htmlFor="auto-merge-message">Auto Merge Message</Label>
                          <Input 
+                            id="auto-merge-message"
                             value={settings.autoMergeMessage || ""} 
                             onChange={(e) => setSettings({ ...settings, autoMergeMessage: e.target.value })}
                             placeholder="Automatically merged by bot as all checks passed"
@@ -171,8 +172,9 @@ export function SettingsSheet() {
 
                 {settings.closePrOnConflictEnabled && (
                     <div className="grid gap-2">
-                         <Label>Conflict Message</Label>
+                         <Label htmlFor="conflict-message">Conflict Message</Label>
                          <Input 
+                            id="conflict-message"
                             value={settings.autoCloseOnConflictMessage || ""} 
                             onChange={(e) => setSettings({ ...settings, autoCloseOnConflictMessage: e.target.value })}
                             placeholder="Closed due to merge conflict"
