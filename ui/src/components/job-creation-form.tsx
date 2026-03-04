@@ -650,7 +650,9 @@ export function JobCreationForm({
                   <Label htmlFor="background-job">Background Job</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      <button type="button" className="cursor-help" aria-label="Help: Background Job">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Job will run in the background. You can check the status later.</p>
@@ -669,7 +671,9 @@ export function JobCreationForm({
                 <Label htmlFor="require-plan-approval">Require Plan Approval</Label>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      <button type="button" className="cursor-help" aria-label="Help: Require Plan Approval">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>If enabled, you must manually approve the plan before changes are applied.</p>
@@ -688,7 +692,9 @@ export function JobCreationForm({
                   <Label htmlFor="enable-chatroom">Enable Chatroom</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      <button type="button" className="cursor-help" aria-label="Help: Enable Chatroom">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Create a chatroom for agents to communicate with each other.</p>
@@ -703,7 +709,9 @@ export function JobCreationForm({
                   <Label htmlFor="automation-mode">Automation Mode</Label>
                    <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      <button type="button" className="cursor-help" aria-label="Help: Automation Mode">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Determines how the job interacts with the repository (e.g., auto-creating PRs).</p>
