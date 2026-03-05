@@ -28,6 +28,7 @@ export function CronJobsList() {
     const [cronJobs, setCronJobs] = useState<CronJob[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [jobToDelete, setJobToDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [executingJobId, setExecutingJobId] = useState<string | null>(null);
     const { toast } = useToast();
 
@@ -56,8 +57,10 @@ export function CronJobsList() {
         fetchCronJobs();
     }, []);
 
-    const confirmDelete = async () => {
+    const confirmDelete = async (e: React.MouseEvent) => {
+        e.preventDefault(); // Prevent closing immediately
         if (!jobToDelete) return;
+        setIsDeleting(true);
         try {
             const response = await fetch(`/api/cron-jobs/${jobToDelete}`, { method: 'DELETE' });
             if (response.ok) {
@@ -69,6 +72,7 @@ export function CronJobsList() {
         } catch (error) {
             console.error("Failed to delete cron job", error);
         } finally {
+            setIsDeleting(false);
             setJobToDelete(null);
         }
     };
@@ -244,7 +248,7 @@ export function CronJobsList() {
             </CardContent>
             </TooltipProvider>
 
-            <AlertDialog open={!!jobToDelete} onOpenChange={(open) => !open && setJobToDelete(null)}>
+            <AlertDialog open={!!jobToDelete} onOpenChange={(open) => !open && !isDeleting && setJobToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -253,9 +257,10 @@ export function CronJobsList() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Delete
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction disabled={isDeleting} onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {isDeleting ? "Deleting..." : "Delete"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
