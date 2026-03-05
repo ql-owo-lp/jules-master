@@ -122,7 +122,7 @@ func (w *AutoApprovalWorker) runCheck(ctx context.Context) error {
 		// FILTER: If NOT "All Sessions", check if this session belongs to a Job.
 		if !s.GetAutoApprovalAllSessions() {
 			var count int
-			err := w.db.QueryRowContext(ctx, `SELECT count(*) FROM jobs WHERE session_ids LIKE ?`, "%"+c.id+"%").Scan(&count)
+			err := w.db.QueryRowContext(ctx, `SELECT count(*) FROM jobs WHERE session_ids LIKE ?`, "%\""+c.id+"\"%").Scan(&count)
 			if err != nil || count == 0 {
 				continue
 			}
