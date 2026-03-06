@@ -12,21 +12,25 @@ export function groupSessionsByTopic(sessions: Session[]): { groupedSessions: Ma
   const remainingUnknown: Session[] = [];
 
   sessions.forEach(session => {
-    // Optimization: Avoid split('\n') which allocates array for full string.
-    const newlineIndex = session.prompt?.indexOf('\n');
-    const firstLine = (newlineIndex !== undefined && newlineIndex !== -1)
-      ? session.prompt!.substring(0, newlineIndex)
-      : (session.prompt || '');
-    const match = firstLine.match(/^\[TOPIC\]: # \((.+)\)\s*$/);
-    if (match) {
-      const jobName = match[1].trim();
-      if (!groupedSessions.has(jobName)) {
-        groupedSessions.set(jobName, []);
+    const prompt = session.prompt || '';
+
+    // Optimization: avoid slow RegExp on every session
+    if (prompt.startsWith('[TOPIC]: # (')) {
+      const newlineIndex = prompt.indexOf('\n');
+      const firstLine = newlineIndex !== -1 ? prompt.substring(0, newlineIndex) : prompt;
+
+      const endParenIndex = firstLine.lastIndexOf(')');
+      if (endParenIndex !== -1 && endParenIndex > 12) {
+        const jobName = firstLine.substring(12, endParenIndex).trim();
+        if (!groupedSessions.has(jobName)) {
+          groupedSessions.set(jobName, []);
+        }
+        groupedSessions.get(jobName)!.push(session);
+        return;
       }
-      groupedSessions.get(jobName)!.push(session);
-    } else {
-      remainingUnknown.push(session);
     }
+
+    remainingUnknown.push(session);
   });
 
   return { groupedSessions, remainingUnknown };
