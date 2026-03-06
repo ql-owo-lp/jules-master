@@ -507,7 +507,7 @@ export function SessionList({
                 <Card className="flex items-center gap-4 p-3 shadow-2xl animate-in fade-in-0 slide-in-from-bottom-5">
                     <div className="flex items-center gap-2">
                         <div className="text-sm font-medium">{selectedSessionIds.length} session(s) selected</div>
-                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedSessionIds([])}>
+                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedSessionIds([])} aria-label="Clear selection">
                             <X className="h-4 w-4"/>
                             <span className="sr-only">Clear selection</span>
                         </Button>

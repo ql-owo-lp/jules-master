@@ -126,7 +126,7 @@ export function MessageDialog({
                 <DialogHeader className="relative pr-10">
                     <DialogTitle>{dialogTitle}</DialogTitle>
                     <DialogDescription>{dialogDescription}</DialogDescription>
-                    <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-0 right-0">
+                    <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-0 right-0" aria-label="Reset Message">
                         <RotateCcw className="h-4 w-4"/>
                         <span className="sr-only">Reset Message</span>
                     </Button>
@@ -176,7 +176,7 @@ export function MessageDialog({
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="message-text">Message</Label>
                                 {message && (
-                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setMessage("")}>
+                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setMessage("")} aria-label="Clear message">
                                         <X className="h-4 w-4" />
                                         <span className="sr-only">Clear message</span>
                                     </Button>
