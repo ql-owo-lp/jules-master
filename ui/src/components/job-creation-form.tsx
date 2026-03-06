@@ -473,7 +473,7 @@ export function JobCreationForm({
          {onReset && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-4 right-4">
+                <Button variant="ghost" size="icon" onClick={handleReset} className="absolute top-4 right-4" aria-label="Reset Form">
                     <Trash2 className="h-4 w-4"/>
                     <span className="sr-only">Reset Form</span>
                 </Button>
@@ -543,7 +543,7 @@ export function JobCreationForm({
                   {prompt && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setPrompt(""); setSelectedPromptId(null); }}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setPrompt(""); setSelectedPromptId(null); }} aria-label="Clear prompt">
                             <X className="h-4 w-4" />
                             <span className="sr-only">Clear prompt</span>
                         </Button>

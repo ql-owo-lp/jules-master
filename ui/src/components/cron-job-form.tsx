@@ -420,7 +420,7 @@ export function CronJobForm({
                 {prompt && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setPrompt(""); setSelectedPromptId(null); }}>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setPrompt(""); setSelectedPromptId(null); }} aria-label="Clear prompt">
                           <X className="h-4 w-4" />
                           <span className="sr-only">Clear prompt</span>
                       </Button>
