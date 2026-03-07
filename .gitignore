@@ -56,3 +56,4 @@ coverage.out
 # UI Coverage
 ui/coverage/
 server/coverage.out
+.jules_token

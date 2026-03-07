@@ -1,4 +1,4 @@
-import { credentials, Metadata } from '@grpc/grpc-js';
+import * as grpc from '@grpc/grpc-js';
 import { 
     SettingsServiceClient, 
     ProfileServiceClient, 
@@ -14,24 +14,56 @@ const PORT = 50051;
 // In production, this should be configurable
 const TARGET = `0.0.0.0:${PORT}`;
 
-let creds = credentials.createInsecure();
+let cachedCreds: grpc.ChannelCredentials;
+let cachedOptions: grpc.ClientOptions;
 
-const token = process.env.JULES_INTERNAL_TOKEN;
-if (token) {
-    const authCreds = credentials.createFromMetadataGenerator((args, callback) => {
-        const metadata = new Metadata();
-        metadata.add('authorization', 'Bearer ' + token);
-        callback(null, metadata);
-    });
-    creds = credentials.combineChannelCredentials(creds, authCreds);
+function getCredsAndOptions() {
+    if (cachedCreds && cachedOptions) return { creds: cachedCreds, clientOptions: cachedOptions };
+
+    cachedCreds = grpc.credentials.createInsecure();
+
+    const interceptor = (options: grpc.InterceptorOptions, nextCall: grpc.NextCall) => {
+        return new grpc.InterceptingCall(nextCall(options), {
+            start: function (metadata: grpc.Metadata, listener: grpc.InterceptorListener, next: (metadata: grpc.Metadata, listener: grpc.InterceptorListener | grpc.ListenerBuilder) => void) {
+                const token = process.env.JULES_INTERNAL_TOKEN;
+                if (token) {
+                    metadata.add('authorization', 'Bearer ' + token);
+                }
+                next(metadata, listener);
+            }
+        });
+    };
+
+    cachedOptions = {
+        interceptors: [interceptor]
+    };
+
+    return { creds: cachedCreds, clientOptions: cachedOptions };
 }
 
-export const settingsClient = new SettingsServiceClient(TARGET, creds);
-export const profileClient = new ProfileServiceClient(TARGET, creds);
-export const logClient = new LogServiceClient(TARGET, creds);
-export const cronJobClient = new CronJobServiceClient(TARGET, creds);
-export const jobClient = new JobServiceClient(TARGET, creds);
-export const promptClient = new PromptServiceClient(TARGET, creds);
-export const sessionClient = new SessionServiceClient(TARGET, creds);
-export const chatClient = new ChatServiceClient(TARGET, creds);
+function createLazyClient<T extends object>(ClientClass: any): T {
+    let instance: T | null = null;
+    return new Proxy({} as T, {
+        get(target, prop, receiver) {
+            if (!instance) {
+                const { creds, clientOptions } = getCredsAndOptions();
+                instance = new ClientClass(TARGET, creds, clientOptions) as T;
+            }
+            const value = (instance as any)[prop];
+            if (typeof value === 'function') {
+                return value.bind(instance);
+            }
+            return value;
+        }
+    });
+}
+
+export const settingsClient = createLazyClient<SettingsServiceClient>(SettingsServiceClient);
+export const profileClient = createLazyClient<ProfileServiceClient>(ProfileServiceClient);
+export const logClient = createLazyClient<LogServiceClient>(LogServiceClient);
+export const cronJobClient = createLazyClient<CronJobServiceClient>(CronJobServiceClient);
+export const jobClient = createLazyClient<JobServiceClient>(JobServiceClient);
+export const promptClient = createLazyClient<PromptServiceClient>(PromptServiceClient);
+export const sessionClient = createLazyClient<SessionServiceClient>(SessionServiceClient);
+export const chatClient = createLazyClient<ChatServiceClient>(ChatServiceClient);
 export function getChatClient() { return chatClient; }
