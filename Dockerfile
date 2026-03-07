@@ -1,5 +1,5 @@
 # 1. Go Builder Stage
-FROM golang:1.24-bookworm AS go-builder
+FROM public.ecr.aws/docker/library/golang:1.24-bookworm AS go-builder
 WORKDIR /app
 # Install build dependencies if needed (gcc is included in bookworm)
 # RUN apt-get update && apt-get install -y gcc
@@ -10,10 +10,10 @@ COPY server/ .
 RUN go build -o server cmd/server/main.go
 
 # 2. Node Builder Stage
-FROM node:24 AS node-builder
+FROM public.ecr.aws/docker/library/node:24 AS node-builder
 RUN apt-get update && apt-get install -y curl unzip
 # Install pnpm
-RUN npm install -g pnpm
+
 
 RUN PROTOC_VERSION="29.3" && \
     ARCH=$(uname -m) && \
@@ -30,9 +30,9 @@ RUN PROTOC_VERSION="29.3" && \
 WORKDIR /app
 
 # Copy UI package files and proto files
-COPY ui/package.json ui/pnpm-lock.yaml ./
+COPY ui/package.json ui/package-lock.json ./
 # Use pnpm install instead of npm ci
-RUN pnpm install --frozen-lockfile
+RUN npm ci
 
 # Copy source code and protos
 COPY ui/ .
