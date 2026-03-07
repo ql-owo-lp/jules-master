@@ -38,19 +38,17 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "24"
+          cache: "npm"
+          cache-dependency-path: "ui/package-lock.json"
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
 
       - name: Install Dependencies
         working-directory: ./ui
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Run Unit Tests
         working-directory: ./ui
-        run: pnpm run test:unit
+        run: npm run test:unit
 
   e2e:
     timeout-minutes: 20
