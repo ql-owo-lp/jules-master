@@ -406,20 +406,44 @@ function HomePageContent() {
     router.push(`?${newParams.toString()}`);
   }
   
-  const repoOptions = useMemo(() => [
-    { value: 'all', label: 'All Repositories'}, 
-    ...Array.from(new Set(jobs.map(j => j.repo).filter((r): r is string => !!r))).map(r => ({ value: r, label: r }))
-  ], [jobs]);
+  const repoOptions = useMemo(() => {
+    // ⚡ Bolt: Replaced chained array mapping and filtering with a single-pass O(n) loop
+    // using a Set to track unique repositories, significantly reducing allocations.
+    const options = [{ value: 'all', label: 'All Repositories' }];
+    const seen = new Set<string>();
+    for (let i = 0; i < jobs.length; i++) {
+      const r = jobs[i].repo;
+      if (r && !seen.has(r)) {
+        seen.add(r);
+        options.push({ value: r, label: r });
+      }
+    }
+    return options;
+  }, [jobs]);
   
-  const allJobOptions = useMemo(() => [
-    { value: 'all', label: 'All Jobs' },
-    ...[...jobs].reverse().map(j => ({ value: j.id, label: j.name }))
-  ], [jobs]);
+  const allJobOptions = useMemo(() => {
+    // ⚡ Bolt: Replaced array spread, reverse, and map with an O(n) reverse traversal loop.
+    const options = [{ value: 'all', label: 'All Jobs' }];
+    for (let i = jobs.length - 1; i >= 0; i--) {
+      options.push({ value: jobs[i].id, label: jobs[i].name });
+    }
+    return options;
+  }, [jobs]);
 
-  const statusOptions = useMemo(() => [
-    { value: 'all', label: 'All Statuses' },
-    ...Array.from(new Set(sessions.map(s => s.state).filter((s): s is State => !!s))).map(s => ({ value: s, label: s }))
-  ], [sessions]);
+  const statusOptions = useMemo(() => {
+    // ⚡ Bolt: Replaced chained array mapping and filtering with a single-pass O(n) loop
+    // using a Set to track unique session states, significantly reducing allocations.
+    const options = [{ value: 'all', label: 'All Statuses' }];
+    const seen = new Set<State>();
+    for (let i = 0; i < sessions.length; i++) {
+      const s = sessions[i].state;
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        options.push({ value: s, label: s });
+      }
+    }
+    return options;
+  }, [sessions]);
   
   const isAnyFilterActive = jobFilter || repoFilter !== 'all' || statusFilter !== 'all';
 
