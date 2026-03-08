@@ -17,7 +17,6 @@ export async function register() {
         // startAutoContinueWorker();
         // startAutoDeleteStaleBranchWorker();
         // startBackgroundJobWorker();
-        startPrMonitorWorker();
 
         // Initialize settings if needed
         const { db } = await import('./lib/db');
@@ -64,6 +63,9 @@ export async function register() {
         } catch (error) {
             console.error('Failed to seed settings:', error);
         }
+
+        // Start worker after DB setup is complete
+        startPrMonitorWorker();
 
         // Run cron worker every minute
         // setInterval(processCronJobs, 60 * 1000);
