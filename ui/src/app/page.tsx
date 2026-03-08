@@ -500,7 +500,7 @@ function HomePageContent() {
           )}
           <div className="flex justify-end">
             <NewJobDialog>
-                <Button disabled={!hasJulesApiKey}>
+                <Button disabled={!hasJulesApiKey} aria-label="Create New Job">
                     <Wand2 className="mr-2 h-4 w-4" />
                     Create New Job
                 </Button>
@@ -573,7 +573,7 @@ function HomePageContent() {
                 </div>
             </div>
             {isAnyFilterActive && (
-              <Button variant="outline" size="sm" onClick={handleClearFilters} className="mt-4">
+              <Button variant="outline" size="sm" onClick={handleClearFilters} className="mt-4" aria-label="Clear All Filters">
                   <X className="mr-2 h-4 w-4" />
                   Clear All Filters
               </Button>

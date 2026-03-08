@@ -75,7 +75,7 @@ export default async function RootLayout({
                     <Bot className="h-7 w-7 text-primary" />
                     <span className='group-data-[collapsible=icon]:hidden'>Jules Master</span>
                   </Link>
-                   <SidebarTrigger>
+                   <SidebarTrigger aria-label="Toggle Sidebar">
                       <PanelLeft className="h-5 w-5" />
                       <span className="sr-only">Toggle Sidebar</span>
                    </SidebarTrigger>

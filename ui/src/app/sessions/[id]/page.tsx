@@ -325,7 +325,7 @@ export default function SessionDetailPage() {
         <div className="space-y-8 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
              <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" asChild>
+                <Button variant="outline" size="icon" asChild aria-label="Back to list">
                     <Link href={backPath}>
                         <ArrowLeft className="h-4 w-4" />
                         <span className="sr-only">Back to list</span>
