@@ -127,7 +127,7 @@ test.describe('Comprehensive UI Tests', () => {
 
         await expect(dialog.locator('label', { hasText: 'Repository' })).toBeVisible();
 
-        await expect(dialog.getByLabel('Require Plan Approval')).toBeVisible();
+        await expect(dialog.getByRole('switch', { name: 'Require Plan Approval' })).toBeVisible();
         await expect(dialog.getByLabel('Automation Mode')).toBeVisible();
     });
   });
