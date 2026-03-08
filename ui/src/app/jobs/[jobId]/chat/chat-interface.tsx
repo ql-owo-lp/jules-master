@@ -169,7 +169,7 @@ export function ChatInterface({ jobId }: ChatInterfaceProps) {
                         disabled={isSending}
                         className="flex-1"
                     />
-                    <Button type="submit" size="icon" disabled={isSending || !inputValue.trim()}>
+                    <Button type="submit" size="icon" disabled={isSending || !inputValue.trim()} aria-label="Send message">
                         {isSending ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
