@@ -199,7 +199,7 @@ export function CronJobsList() {
                                                             size="icon"
                                                             onClick={() => handleExecuteNow(job.id)}
                                                             disabled={executingJobId === job.id}
-                                                            aria-label="Run cron job now"
+                                                            aria-label={executingJobId === job.id ? "Executing cron job" : "Run cron job now"}
                                                         >
                                                             {executingJobId === job.id ? (
                                                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -209,7 +209,7 @@ export function CronJobsList() {
                                                         </Button>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>Execute Now</p>
+                                                        <p>{executingJobId === job.id ? "Executing..." : "Execute Now"}</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                                 <DropdownMenu>
