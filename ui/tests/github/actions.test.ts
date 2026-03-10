@@ -1,5 +1,5 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getPullRequestStatus, getPullRequestStatuses } from '@/app/github/actions';
 
 // Mock next/cache
@@ -10,12 +10,22 @@ vi.mock('next/cache', () => ({
 // Mocking fetch globally for all tests in this file
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
+const originalGithubToken = process.env.GITHUB_TOKEN;
 
 describe('GitHub Actions', () => {
   describe('getPullRequestStatus', () => {
 
     beforeEach(() => {
       mockFetch.mockClear();
+      delete process.env.GITHUB_TOKEN;
+    });
+
+    afterEach(() => {
+      if (originalGithubToken === undefined) {
+        delete process.env.GITHUB_TOKEN;
+      } else {
+        process.env.GITHUB_TOKEN = originalGithubToken;
+      }
     });
 
     it('should return NO_TOKEN if no token is provided', async () => {

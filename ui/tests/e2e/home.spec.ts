@@ -28,7 +28,7 @@ test.describe('Home Page', () => {
 
     // Save
     await page.getByRole('button', { name: 'Save General Settings' }).click();
-    await expect(page.getByText('Settings Saved')).toBeVisible();
+    await expect(page.getByText('Settings Saved', { exact: true })).toBeVisible();
 
     // Go back to home
     await page.getByRole('link', { name: 'Jules' }).first().click();

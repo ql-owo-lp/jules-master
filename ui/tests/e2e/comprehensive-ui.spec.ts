@@ -128,6 +128,7 @@ test.describe('Comprehensive UI Tests', () => {
         await expect(dialog.locator('label', { hasText: 'Repository' })).toBeVisible();
 
         await expect(dialog.getByRole('switch', { name: 'Require Plan Approval' })).toBeVisible();
+        await expect(dialog.getByRole('combobox', { name: 'Automation Mode' })).toBeVisible();
         await expect(dialog.locator('button', { hasText: 'Auto-create Pull Request' })).toBeVisible();
     });
   });
