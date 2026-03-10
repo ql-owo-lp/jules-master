@@ -96,8 +96,27 @@ jobs:
             -e HYBRID_MOCK=true \
             nextn-app:latest
 
-          # Initial wait for container
-          sleep 5
+          # Wait until the built production image is actually serving traffic.
+          for attempt in $(seq 1 30); do
+            if ! docker ps --filter name=nextn-prod --filter status=running --format '{{.Names}}' | grep -qx nextn-prod; then
+              echo "Production container exited before becoming ready."
+              docker logs nextn-prod || true
+              exit 1
+            fi
+
+            if curl -fsS http://127.0.0.1:9002 >/dev/null; then
+              echo "Production app is ready."
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 30 ]; then
+              echo "Production app failed to become ready in time."
+              docker logs nextn-prod || true
+              exit 1
+            fi
+
+            sleep 2
+          done
 
       # Run Tests
       - name: Run E2E Tests
