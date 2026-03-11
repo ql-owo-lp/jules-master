@@ -197,9 +197,16 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(({
                 </CardDescription>
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                 <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh session data" disabled={isRefreshing}>
-                    <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-                </Button>
+                 <Tooltip>
+                     <TooltipTrigger asChild>
+                         <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh session data" disabled={isRefreshing}>
+                             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                         </Button>
+                     </TooltipTrigger>
+                     <TooltipContent>
+                         <p>Refresh feed</p>
+                     </TooltipContent>
+                 </Tooltip>
                 {lastUpdatedAt && (
                     <div className="text-right">
                         <div>
