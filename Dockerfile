@@ -32,7 +32,7 @@ WORKDIR /app
 # Copy UI package files and proto files
 COPY ui/package.json ui/package-lock.json ./
 # Use pnpm install instead of npm ci
-RUN npm ci
+RUN npm install
 
 # Copy source code and protos
 COPY ui/ .
