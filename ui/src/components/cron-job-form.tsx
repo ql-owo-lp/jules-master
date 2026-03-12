@@ -91,16 +91,16 @@ export function CronJobForm({
     setIsClient(true);
     async function fetchData() {
         const [prompts, gPrompt, hPrompts] = await Promise.all([
-            getPredefinedPrompts(),
-            getGlobalPrompt(),
-            getHistoryPrompts()
+            getPredefinedPrompts(currentProfileId),
+            getGlobalPrompt(currentProfileId),
+            getHistoryPrompts(currentProfileId)
         ]);
         setPredefinedPrompts(prompts);
         setGlobalPrompt(gPrompt);
         setHistoryPrompts(hPrompts);
     }
     fetchData();
-  }, []);
+  }, [currentProfileId]);
 
   // Handle initial values selection once sources are loaded
   useEffect(() => {
