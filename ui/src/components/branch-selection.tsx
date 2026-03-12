@@ -40,6 +40,7 @@ export function BranchSelection({ branches, selectedValue, onBranchSelected, dis
         disabled={disabled || branches.length === 0}
         icon={<GitBranch className="h-4 w-4 text-muted-foreground" />}
         name="branch"
+        aria-label="Select a branch"
       />
     </div>
   );
