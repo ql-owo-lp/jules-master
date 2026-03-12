@@ -87,6 +87,7 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue, sou
         searchPlaceholder='Search repositories...'
         disabled={disabled || sources.length === 0}
         icon={<GitMerge className="h-4 w-4 text-muted-foreground" />}
+        aria-label="Select a repository"
         renderOption={(option) => (
           <div className="flex items-center gap-2">
             {option.isPrivate ? (
