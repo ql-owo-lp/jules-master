@@ -41,13 +41,24 @@ export function createDynamicJobs(groupedSessions: Map<string, Session[]>): Job[
     .filter(([, sessions]) => sessions.length > 0)
     .map(([jobName, sessions]) => {
       const latestSession = sessions.reduce((latest, current) => {
-        const latestTime = new Date(latest.createTime || 0);
-        const currentTime = new Date(current.createTime || 0);
+        // Optimization: ISO 8601 strings can be safely compared lexicographically.
+        // This avoids expensive Date parsing in a hot loop when processing many sessions.
+        const latestTime = latest.createTime || "";
+        const currentTime = current.createTime || "";
 
-        if (isNaN(latestTime.getTime())) return current;
-        if (isNaN(currentTime.getTime())) return latest;
+        // Fast path: if both are strings of reasonable length and match basic ISO structure
+        // checking the first char is '2' avoids trying to parse things like "invalid-date"
+        if (latestTime.length > 10 && currentTime.length > 10 && latestTime.startsWith('2') && currentTime.startsWith('2')) {
+           return currentTime > latestTime ? current : latest;
+        }
 
-        return currentTime > latestTime ? current : latest;
+        const latestTimeObj = new Date(latestTime || 0);
+        const currentTimeObj = new Date(currentTime || 0);
+
+        if (isNaN(latestTimeObj.getTime())) return current;
+        if (isNaN(currentTimeObj.getTime())) return latest;
+
+        return currentTimeObj > latestTimeObj ? current : latest;
       }, sessions[0]);
 
       const repo = latestSession.sourceContext?.source || 'unknown';
