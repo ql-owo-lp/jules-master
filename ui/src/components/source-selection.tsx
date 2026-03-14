@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
+import React, { useEffect, useState, useTransition, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { listSources } from '@/app/sessions/actions';
 import type { Source } from '@/lib/types';
@@ -46,6 +46,19 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue, sou
   }, [apiKey, sources]);
 
 
+  // ⚡ Bolt: Memoize the options array to avoid re-computing it on every render,
+  // especially helpful if the sources list grows large.
+  const options = useMemo(() => sources.map(source => ({
+    value: source.name,
+    label: `${source.githubRepo.owner}/${source.githubRepo.repo}`,
+    isPrivate: source.githubRepo.isPrivate
+  })), [sources]);
+
+  const handleSourceSelected = (sourceName: string | null) => {
+    const selected = sources.find((s) => s.name === sourceName) || null;
+    onSourceSelected(selected);
+  }
+
   if (isFetching && sources.length === 0) {
     return (
       <div className="space-y-2">
@@ -63,17 +76,6 @@ export function SourceSelection({ onSourceSelected, disabled, selectedValue, sou
             </div>
         </div>
     )
-  }
-  
-  const options = sources.map(source => ({
-    value: source.name,
-    label: `${source.githubRepo.owner}/${source.githubRepo.repo}`,
-    isPrivate: source.githubRepo.isPrivate
-  }));
-
-  const handleSourceSelected = (sourceName: string | null) => {
-    const selected = sources.find((s) => s.name === sourceName) || null;
-    onSourceSelected(selected);
   }
 
   return (

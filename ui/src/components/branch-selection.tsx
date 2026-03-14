@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import type { Branch } from '@/lib/types';
 import { GitBranch } from 'lucide-react';
@@ -15,10 +15,12 @@ type BranchSelectionProps = {
 
 export function BranchSelection({ branches, selectedValue, onBranchSelected, disabled }: BranchSelectionProps) {
 
-  const options = branches.map(branch => ({
+  // ⚡ Bolt: Memoize the options array to prevent unnecessary re-calculations on every render
+  // This avoids mapping over potentially large branch lists unless the branches actually change
+  const options = useMemo(() => branches.map(branch => ({
     value: branch.displayName,
     label: branch.displayName
-  }));
+  })), [branches]);
 
   const handleValueChange = (value: string | null) => {
     onBranchSelected(value ?? undefined);
