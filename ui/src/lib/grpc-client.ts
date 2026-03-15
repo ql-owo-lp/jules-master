@@ -41,15 +41,16 @@ function getCredsAndOptions() {
     return { creds: cachedCreds, clientOptions: cachedOptions };
 }
 
-function createLazyClient<T extends object>(ClientClass: any): T {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createLazyClient<T extends object>(ClientClass: { new(...args: any[]): T }): T {
     let instance: T | null = null;
     return new Proxy({} as T, {
-        get(target, prop, receiver) {
+        get(target, prop) {
             if (!instance) {
                 const { creds, clientOptions } = getCredsAndOptions();
-                instance = new ClientClass(TARGET, creds, clientOptions) as T;
+                instance = new ClientClass(TARGET, creds, clientOptions);
             }
-            const value = (instance as any)[prop];
+            const value = (instance as Record<string | symbol, unknown>)[prop];
             if (typeof value === 'function') {
                 return value.bind(instance);
             }
