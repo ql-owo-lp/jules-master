@@ -6,6 +6,7 @@ import { storageEmitter } from "@/lib/storage-event";
 // Global cache for localStorage values to avoid synchronous reads
 // Maps key -> value (string) | null (doesn't exist)
 const storeCache = new Map<string, string | null>();
+const parsedCache = new Map<string, unknown>(); // Add parsed cache
 
 // Initialize listener for cross-tab updates and monkey-patch for same-tab updates
 if (typeof window !== "undefined") {
@@ -15,11 +16,13 @@ if (typeof window !== "undefined") {
         if (e.key) {
             // Update cache
             storeCache.set(e.key, e.newValue);
+            parsedCache.delete(e.key); // Invalidate parsed cache using the exact storage key
             // Notify listeners
             storageEmitter.emit(`storage:${e.key}`, undefined);
         } else {
             // Storage cleared
             storeCache.clear();
+            parsedCache.clear();
         }
     }
   });
@@ -43,6 +46,7 @@ if (typeof window !== "undefined") {
       // Only update cache/emit if this is localStorage
       if (this === window.localStorage) {
         storeCache.set(key, valueStr);
+        parsedCache.delete(key); // Invalidate parsed cache using the exact storage key
         // Notify listeners within the same tab
         storageEmitter.emit(`storage:${key}`, undefined);
       }
@@ -53,6 +57,7 @@ if (typeof window !== "undefined") {
 
       if (this === window.localStorage) {
         storeCache.set(key, null);
+        parsedCache.delete(key); // Invalidate parsed cache using the exact storage key
         storageEmitter.emit(`storage:${key}`, undefined);
       }
     };
@@ -62,6 +67,7 @@ if (typeof window !== "undefined") {
 
       if (this === window.localStorage) {
         storeCache.clear();
+        parsedCache.clear();
       }
     };
   }
@@ -137,13 +143,24 @@ export function useLocalStorage<T>(
   );
 
   // Parse the store string back to T
+  // ⚡ Bolt: Cache parsed JSON values globally to prevent duplicate parsing
+  // across multiple components using the same key and identical value.
   const parsedValue = useMemo(() => {
+    // We only cache the parsed value for the *current* store string for this key
+    const cachedEntry = parsedCache.get(key) as { store: string; parsed: T } | undefined;
+
+    if (cachedEntry && cachedEntry.store === store) {
+        return cachedEntry.parsed;
+    }
+
     try {
-        return JSON.parse(store);
+        const parsed = JSON.parse(store) as T;
+        parsedCache.set(key, { store, parsed });
+        return parsed;
     } catch {
         return initialValue;
     }
-  }, [store, initialValue]);
+  }, [key, store, initialValue]);
 
   return [parsedValue, setValue];
 }
