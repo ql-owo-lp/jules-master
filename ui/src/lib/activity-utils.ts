@@ -83,7 +83,12 @@ export function areActivitiesEqual(prev: Activity, next: Activity) {
 }
 
 export function mergeActivities(prev: Activity[], next: Activity[]): Activity[] {
-  const sortedNext = [...next].sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime());
+  // ⚡ Bolt: Use direct string comparison for ISO 8601 dates to avoid expensive Date parsing
+  const sortedNext = [...next].sort((a, b) => {
+    const timeA = a.createTime || "";
+    const timeB = b.createTime || "";
+    return timeA < timeB ? -1 : (timeA > timeB ? 1 : 0);
+  });
 
   // Optimization: If empty, return empty
   if (sortedNext.length === 0) return [];
