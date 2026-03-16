@@ -82,7 +82,12 @@ function HomePageContent() {
     const { groupedSessions, remainingUnknown } = groupSessionsByTopic(unknown);
     const dynamicJobs = createDynamicJobs(groupedSessions);
 
-    const allJobs = [...jobs, ...dynamicJobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // ⚡ Bolt: Use direct string comparison for ISO 8601 dates in descending order to avoid expensive Date parsing
+    const allJobs = [...jobs, ...dynamicJobs].sort((a, b) => {
+      const timeA = a.createdAt || "";
+      const timeB = b.createdAt || "";
+      return timeA > timeB ? -1 : (timeA < timeB ? 1 : 0);
+    });
 
     return { allJobs, unknownSessions: remainingUnknown };
   }, [jobs, sessions]);
