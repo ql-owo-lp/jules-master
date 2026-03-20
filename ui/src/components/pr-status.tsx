@@ -10,6 +10,7 @@ import { getPullRequestStatus } from "@/app/github/actions";
 import { useEffect, useState } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useEnv } from "@/components/env-provider";
+import { deepEqual } from "@/lib/utils";
 
 
 type PrStatusProps = {
@@ -33,9 +34,16 @@ export function PrStatus({ prUrl, initialStatus }: PrStatusProps) {
   // Update cache if initialStatus is provided and different/newer
   useEffect(() => {
     if (initialStatus && prUrl) {
-       setCachedData({
-          status: initialStatus,
-          timestamp: Date.now()
+       setCachedData((prev) => {
+          // ⚡ Bolt: Prevent unnecessary localStorage writes and cross-tab storage
+          // events by verifying the new status is different from the cached status.
+          if (prev && prev.status && deepEqual(prev.status, initialStatus)) {
+            return prev;
+          }
+          return {
+            status: initialStatus,
+            timestamp: Date.now()
+          };
        });
     }
   }, [initialStatus, prUrl, setCachedData]);

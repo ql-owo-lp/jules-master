@@ -24,6 +24,7 @@ import type { Session, PredefinedPrompt, PullRequestStatus } from "@/lib/types";
 import { getPullRequestStatuses } from "@/app/github/actions";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useEnv } from "@/components/env-provider";
+import { deepEqual } from "@/lib/utils";
 
 interface SessionTableProps {
   sessions: Session[];
@@ -306,7 +307,23 @@ const SessionTableComponent = ({
              // Pass null if using env token, so server action uses process.env
             const results = await getPullRequestStatuses(prUrls, githubToken || (hasEnvGithubToken ? null : ""));
             if (isMounted) {
-                setPrStatuses(prev => ({ ...prev, ...results }));
+                setPrStatuses(prev => {
+                    if (!results) return prev;
+
+                    // ⚡ Bolt: Prevent cascading re-renders across all PR rows by
+                    // deeply comparing the newly fetched statuses with the previous state.
+                    let changed = false;
+                    for (const url of Object.keys(results)) {
+                        if (!deepEqual(prev[url], results[url])) {
+                            changed = true;
+                            break;
+                        }
+                    }
+                    if (changed) {
+                        return { ...prev, ...results };
+                    }
+                    return prev;
+                });
             }
         } catch (error) {
             console.error("Failed to batch fetch PR statuses", error);
