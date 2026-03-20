@@ -27,7 +27,11 @@ export function FloatingProgressBar({
   const percentage = total > 0 ? Math.round((current / total) * 100) : 0
 
   return (
-    <div className={cn("fixed bottom-4 inset-x-4 flex justify-center z-50 pointer-events-none", className)}>
+    <div
+      className={cn("fixed bottom-4 inset-x-4 flex justify-center z-50 pointer-events-none", className)}
+      role="status"
+      aria-live="polite"
+    >
       <Card className="w-full max-w-md p-4 shadow-2xl animate-in fade-in-0 slide-in-from-bottom-5 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
