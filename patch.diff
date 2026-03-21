@@ -1,0 +1,38 @@
+--- ui/src/components/cron-jobs-list.tsx
++++ ui/src/components/cron-jobs-list.tsx
+@@ -162,18 +162,21 @@
+                                 </TableRow>
+                             </TableHeader>
+                             <TableBody>
+-                                {cronJobs.map((job) => (
+-                                    <TableRow key={job.id}>
++                                {cronJobs.map((job) => {
++                                    // ⚡ Bolt: Cache the result of getScheduleDescription to avoid calling it twice per row
++                                    const scheduleDescription = getScheduleDescription(job.schedule);
++                                    return (
++                                        <TableRow key={job.id}>
+                                         <TableCell className="font-medium">{job.name}</TableCell>
+                                         <TableCell>
+-                                            {getScheduleDescription(job.schedule) ? (
++                                            {scheduleDescription ? (
+                                                 <div className="flex flex-col">
+-                                                    <span className="font-medium">{getScheduleDescription(job.schedule)}</span>
++                                                    <span className="font-medium">{scheduleDescription}</span>
+                                                     <span className="text-muted-foreground text-xs font-mono">{job.schedule}</span>
+                                                 </div>
+                                             ) : (
+                                                 <span className="font-mono">{job.schedule}</span>
+                                             )}
+                                         </TableCell>
+                                         <TableCell>{job.repo} ({job.branch})</TableCell>
+                                         <TableCell>{job.lastRunAt ? new Date(job.lastRunAt).toLocaleString() : 'Never'}</TableCell>
+@@ -241,7 +244,8 @@
+                                             </div>
+                                         </TableCell>
+                                     </TableRow>
+-                                ))}
++                                    );
++                                })}
+                             </TableBody>
+                         </Table>
+                     </div>

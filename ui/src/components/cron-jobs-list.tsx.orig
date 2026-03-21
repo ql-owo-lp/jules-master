@@ -162,16 +162,13 @@ export function CronJobsList() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {cronJobs.map((job) => {
-                                    // ⚡ Bolt: Cache the result of getScheduleDescription to avoid calling it twice per row
-                                    const scheduleDescription = getScheduleDescription(job.schedule);
-                                    return (
-                                        <TableRow key={job.id}>
+                                {cronJobs.map((job) => (
+                                    <TableRow key={job.id}>
                                         <TableCell className="font-medium">{job.name}</TableCell>
                                         <TableCell>
-                                            {scheduleDescription ? (
+                                            {getScheduleDescription(job.schedule) ? (
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium">{scheduleDescription}</span>
+                                                    <span className="font-medium">{getScheduleDescription(job.schedule)}</span>
                                                     <span className="text-muted-foreground text-xs font-mono">{job.schedule}</span>
                                                 </div>
                                             ) : (
@@ -243,8 +240,7 @@ export function CronJobsList() {
                                             </div>
                                         </TableCell>
                                     </TableRow>
-                                    );
-                                })}
+                                ))}
                             </TableBody>
                         </Table>
                     </div>
