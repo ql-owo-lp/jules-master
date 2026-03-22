@@ -714,6 +714,7 @@ function SettingsContent() {
                                 type="button" variant="ghost" size="icon"
                                 className="absolute inset-y-0 right-0 h-full px-3"
                                 onClick={() => setShowApiKey(!showApiKey)}
+                                aria-label={showApiKey ? "Hide API Key" : "Show API Key"}
                             >
                                 {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </Button>
@@ -737,6 +738,7 @@ function SettingsContent() {
                                 type="button" variant="ghost" size="icon"
                                 className="absolute inset-y-0 right-0 h-full px-3"
                                 onClick={() => setShowGithubToken(!showGithubToken)}
+                                aria-label={showGithubToken ? "Hide GitHub Token" : "Show GitHub Token"}
                             >
                                 {showGithubToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </Button>
