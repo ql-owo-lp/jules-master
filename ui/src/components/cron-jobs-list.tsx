@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -32,7 +32,9 @@ export function CronJobsList() {
     const [executingJobId, setExecutingJobId] = useState<string | null>(null);
     const { toast } = useToast();
 
-    const fetchCronJobs = async () => {
+    // ⚡ Bolt: Memoize fetchCronJobs to prevent unnecessary re-renders of child components
+    // like CronJobDialog that receive it as a prop.
+    const fetchCronJobs = useCallback(async () => {
         setIsLoading(true);
         try {
             const response = await fetch('/api/cron-jobs', {
@@ -51,11 +53,11 @@ export function CronJobsList() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchCronJobs();
-    }, []);
+    }, [fetchCronJobs]);
 
     const confirmDelete = async (e: React.MouseEvent) => {
         e.preventDefault(); // Prevent closing immediately
