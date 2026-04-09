@@ -95,17 +95,25 @@ export function Combobox({
     for (const group of groups) {
         if (count >= MAX_DISPLAYED_OPTIONS) break;
 
-        const filteredOptions = group.options.filter(option => {
-             const match = option.label.toLowerCase().includes(lowerSearch) ||
-                           (option.value && option.value.toLowerCase().includes(lowerSearch));
-             return match;
-        });
+        // ⚡ Bolt: Replaced Array.prototype.filter with a standard loop that breaks
+        // early as soon as the maximum display limit is reached, transforming an O(N)
+        // scan into an O(min(N, K)) search.
+        const filteredOptions = [];
+        for (let i = 0; i < group.options.length; i++) {
+            if (count + filteredOptions.length >= MAX_DISPLAYED_OPTIONS) break;
+
+            const option = group.options[i];
+            const match = option.label.toLowerCase().includes(lowerSearch) ||
+                          (option.value && option.value.toLowerCase().includes(lowerSearch));
+
+            if (match) {
+                filteredOptions.push(option);
+            }
+        }
 
         if (filteredOptions.length > 0) {
-            const remainingSpace = MAX_DISPLAYED_OPTIONS - count;
-            const slicedOptions = filteredOptions.slice(0, remainingSpace);
-            result.push({ ...group, options: slicedOptions });
-            count += slicedOptions.length;
+            result.push({ ...group, options: filteredOptions });
+            count += filteredOptions.length;
         }
     }
 
